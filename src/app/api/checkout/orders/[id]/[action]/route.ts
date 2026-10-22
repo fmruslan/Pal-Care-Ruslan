@@ -18,7 +18,7 @@ export async function POST(
     const { id, action } = await params;
     if (
       !recordIdSchema.safeParse(id).success ||
-      !["capture", "cancel", "retry"].includes(action)
+      !["capture", "reconcile", "cancel", "retry"].includes(action)
     )
       throw new CheckoutError("checkout_not_found", 404);
     const runtime = checkoutRuntime();
@@ -34,9 +34,11 @@ export async function POST(
     const order =
       action === "capture"
         ? await runtime.service.capture(id, hash)
-        : action === "retry"
-          ? await runtime.service.retryCreation(id, hash)
-          : await runtime.service.cancel(id, hash);
+        : action === "reconcile"
+          ? await runtime.service.reconcile(id, hash)
+          : action === "retry"
+            ? await runtime.service.retryCreation(id, hash)
+            : await runtime.service.cancel(id, hash);
     return Response.json(order, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     return checkoutErrorResponse(error);

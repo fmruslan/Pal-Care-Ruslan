@@ -17,6 +17,7 @@ import type {
   ProductSnapshot,
   PolicySnapshot,
   CheckoutState,
+  CaptureStatus,
 } from "../lib/commerce/contracts";
 
 export const customers = pgTable(
@@ -84,6 +85,17 @@ export const checkoutOrders = pgTable(
     captureKey: uuid("capture_key").notNull().unique(),
     providerOrderId: varchar("provider_order_id", { length: 36 }).unique(),
     providerCaptureId: varchar("provider_capture_id", { length: 36 }).unique(),
+    observedCaptureId: varchar("observed_capture_id", { length: 36 }).unique(),
+    captureStatus: varchar("capture_status", {
+      length: 20,
+    }).$type<CaptureStatus>(),
+    capturePendingReason: varchar("capture_pending_reason", {
+      length: 20,
+    }).$type<"ECHECK">(),
+    captureCheckedAt: timestamp("capture_checked_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
     approvalUrl: text("approval_url"),
     captureAttemptedAt: timestamp("capture_attempted_at", {
       withTimezone: true,
@@ -129,6 +141,18 @@ export const checkoutOrders = pgTable(
     check(
       "checkout_completed_evidence",
       sql`${t.state} <> 'completed' or (${t.providerOrderId} is not null and ${t.providerCaptureId} is not null and ${t.verifiedAt} is not null and ${t.capturedAt} is not null)`,
+    ),
+    check(
+      "checkout_capture_observation",
+      sql`${t.captureStatus} is null or (${t.captureStatus} in ('PENDING','COMPLETED','FAILED','DECLINED') and ${t.observedCaptureId} is not null and ${t.captureCheckedAt} is not null)`,
+    ),
+    check(
+      "checkout_capture_pending_reason",
+      sql`${t.capturePendingReason} is null or (${t.capturePendingReason} = 'ECHECK' and ${t.captureStatus} is not null and ${t.captureStatus} = 'PENDING')`,
+    ),
+    check(
+      "checkout_capture_identity",
+      sql`${t.observedCaptureId} is null or ${t.providerCaptureId} is null or ${t.observedCaptureId} = ${t.providerCaptureId}`,
     ),
   ],
 );

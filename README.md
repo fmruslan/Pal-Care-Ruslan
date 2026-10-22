@@ -83,6 +83,8 @@ See [Setup & Render deployment](docs/SETUP.md) for PostgreSQL and hosting, and [
 
 Expired, unattempted checkouts now show an explicit expired status and no approval/capture/retry controls; they cannot be revived by a stale return URL. Previously attempted captures remain reconcilable after the deadline without a second capture. [Deadline contract](docs/API.md#checkout-deadline-contract).
 
+For an existing attempted payment, **Check payment status** uses a reconciliation-only action: authenticated Orders v2 and Payments v2 GETs, never another capture. Pending eChecks remain unverified with an explicit explanation; failed/declined captures create no Twin. Only matching completed evidence creates the Twin, receipt, policy and purchase event exactly once. Apply reviewed migrations through `0004_minor_whizzer.sql` before using this version. [Reconciliation contract](docs/API.md#capture-reconciliation-contract) · [Future Render webhook assessment](docs/PAYPAL-WEBHOOKS.md).
+
 Quality checks:
 
 ```bash
@@ -133,6 +135,7 @@ render.yaml           Web service + private-network PostgreSQL Blueprint
 docs/SETUP.md         Local development, tests and Render deployment
 docs/API.md           Current read-only HTTP surface and future boundaries
 docs/PAYPAL.md        Secure Sandbox configuration and actual verification checklist
+docs/PAYPAL-WEBHOOKS.md Planned verified-delivery design and Render prerequisites
 postman/              Credential-free Pal Care checkout API collection
 docs/PRODUCT.md       Product promise, requirements, scope and boundaries
 docs/ARCHITECTURE.md  Data flows, services and payment safeguards

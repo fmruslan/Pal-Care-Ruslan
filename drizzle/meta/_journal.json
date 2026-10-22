@@ -22,6 +22,20 @@
       "when": 1792638481188,
       "tag": "0002_loving_sir_ram",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792701372502,
+      "tag": "0003_flat_ares",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792702612750,
+      "tag": "0004_minor_whizzer",
+      "breakpoints": true
     }
   ]
 }

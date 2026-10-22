@@ -25,6 +25,12 @@ const errorMessages: Record<string, string> = {
     "The PayPal response did not match the saved purchase. This checkout needs operator review; no verified Purchase Twin was created.",
   checkout_expired:
     "This checkout has expired. No additional capture will be requested.",
+  capture_not_attempted:
+    "No capture has been requested for this checkout. Status reconciliation cannot start a payment.",
+  capture_failed:
+    "PayPal reports that the existing capture failed. No verified Purchase Twin was created. Do not repeat capture.",
+  capture_declined:
+    "PayPal reports that the existing capture was declined. No verified Purchase Twin was created. Do not repeat capture.",
 };
 function message(code: string | null) {
   return code
@@ -126,7 +132,7 @@ export function CheckoutControls({
     return () => clearTimeout(timer);
   }, [order]);
 
-  async function update(action?: "capture" | "cancel" | "retry") {
+  async function update(action?: "capture" | "reconcile" | "cancel" | "retry") {
     setBusy(true);
     setError("");
     try {
@@ -172,7 +178,7 @@ export function CheckoutControls({
           !checkoutHasExpired(current) &&
           ["created", "capturing", "pending"].includes(current.state)
         )
-          await update("capture");
+          await update(current.captureAttempted ? "reconcile" : "capture");
       }
     });
     // Automatic reconciliation is deliberately one-shot, never a polling loop.
@@ -196,11 +202,15 @@ export function CheckoutControls({
                 : order?.state === "created"
                   ? "Ready for buyer approval. No completed payment has been verified."
                   : order?.state === "pending" || order?.state === "capturing"
-                    ? "Payment confirmation is pending. No verified Purchase Twin exists yet. A status check will reconcile the original capture, not send a second one."
+                    ? order.pendingReason === "ECHECK"
+                      ? "PayPal reports the existing capture is pending eCheck clearance (ECHECK). No verified Purchase Twin exists yet. Check payment status to retrieve this same capture; no second capture will be sent, even after the original checkout deadline."
+                      : "Payment confirmation is pending. No verified Purchase Twin exists yet. A status check will reconcile the original capture, not send a second one."
                     : order?.state === "create_unknown"
                       ? "PayPal order creation could not be confirmed. Retry the original order creation below; its saved request identifier will be reused."
                       : order?.state === "failed"
-                        ? "The sandbox payment failed. No verified Purchase Twin was created."
+                        ? order.error === "capture_declined"
+                          ? "PayPal declined the existing sandbox capture. No verified Purchase Twin was created."
+                          : "The sandbox payment failed. No verified Purchase Twin was created."
                         : order?.state === "review"
                           ? "This checkout needs operator review. It is not a verified purchase."
                           : "This checkout has not been verified."}
@@ -236,9 +246,13 @@ export function CheckoutControls({
             className="w-full"
             variant="outline"
             disabled={busy}
-            onClick={() => update("capture")}
+            onClick={() =>
+              update(order.captureAttempted ? "reconcile" : "capture")
+            }
           >
-            Check / complete this sandbox payment
+            {order.captureAttempted
+              ? "Check payment status"
+              : "Check / complete this sandbox payment"}
           </Button>
         )}
       {!expired && order?.state === "created" && (

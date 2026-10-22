@@ -31,7 +31,7 @@ Blank values above are intentional, **not credentials**. Fill them privately. Ke
 1. Open `/shop` in the app browser. It must say **PayPal Sandbox only**, with enabled purchase buttons. Both dashboards remain freely browsable.
 2. Choose a fictional product. Pal Care saves the trusted price/product/policy and request keys before creating the actual sandbox order.
 3. Continue to PayPal Sandbox, approve using the fictional buyer, and return in the **same browser**. Browser checkout cookies are not portable between Postman, browsers or hosts.
-4. On return, the client first reads checkout status. Only an eligible current or already-attempted reconcilable checkout proceeds to a same-origin capture POST; an expired unattempted checkout stops without that POST. Pal Care retrieves and validates the order, requests capture once, retrieves order/capture details, and creates the Twin atomically only if both completed evidence checks pass.
+4. On return, the client first reads checkout status. An eligible unattempted checkout may proceed to a same-origin capture POST; an already-attempted checkout instead uses the reconciliation-only POST. Expired unattempted checkouts stop without either operation. Pal Care retrieves and validates the order, requests capture at most once, and independently retrieves the discovered/pinned capture through Payments v2. Only matching completed evidence permits atomic Twin creation.
 5. Confirm the new Twin says **Verified PayPal Sandbox**, shows provider order/capture references, and appears in `/dashboard`, `/vault`, documents and merchant counts. Existing sample Twins must still say **Sample**.
 6. In the operator terminal, use the **local checkout UUID** from `/checkout/:uuid`, not the provider order ID:
 
@@ -46,17 +46,23 @@ This command performs **read-only** provider/DB verification; it never creates o
 
 ## Pending and failed checkouts
 
-The UI separates order creation, buyer approval, pending capture, failed/declined, cancelled, review-required and completed states. Return query parameters are never payment evidence. Creation retries reuse the saved request UUID/body within two hours. Unknown capture outcomes **never blindly resubmit capture**: the same browser's “Check / complete” action retrieves provider state and reconciles the original attempt.
+The UI separates order creation, buyer approval, pending capture, failed/declined, cancelled, review-required and completed states. Return query parameters are never payment evidence. Creation retries reuse the saved request UUID/body within two hours. Unknown capture outcomes **never blindly resubmit capture**: the same browser's **Check payment status** action posts only to `reconcile` once capture has been attempted.
 
 A pending capture that stays unconfirmed, expired creation, lost browser cookie, or verification mismatch needs operator investigation. Never reset an attempted-capture marker, fabricate a completed state or start another payment to hide uncertainty. A manual cancellation only stops an unattempted local checkout; it does not reverse a PayPal capture or imply a refund.
 
 Unattempted open checkouts expire visibly at the saved deadline without polling. Status reads derive expiry without writing a payment state. Approval/capture/creation-retry controls disappear, and the service blocks expired first operations. Already-attempted captures still reconcile after the deadline; their attempt markers and idempotency keys are never reset.
+
+Reconciliation uses the saved capture ID once pinned from validated Orders v2 evidence. Payments v2 is retrieved for pending and terminal outcomes, not only for completed captures. The migration adds nullable capture status, allowlisted pending reason and check time; it never seeds a capture or manufactures historical verification. Pending eChecks show an explicit clearance explanation. `FAILED`/`DECLINED` show failure/decline and retain the attempt/reference without a verified Twin. Network failures remain unconfirmed, while mismatched evidence needs review. See the [HTTP contract](API.md#capture-reconciliation-contract).
 
 ### Actual pending eCheck evidence
 
 On 2026-10-22, the one authorized USD 129.00 follow-up purchase returned from buyer approval and requested capture once. Read-only Orders v2 and Payments v2 retrieval both confirmed the same capture as `PENDING`, with `status_details.reason: ECHECK`; the order-level status was `COMPLETED`. The payer matches the previously confirmed Personal Sandbox buyer and differs from the configured Business merchant. This is an actual provider-pending payment, not an approval rejection, completed capture, amount mismatch or invented sample payment.
 
 PostgreSQL retains its attempted-capture marker and original keys; the checkout remains pending with no verified Twin. A guarded normal-service reconciliation made zero provider mutation calls. Do not submit capture again or create another order to work around pending funding. Wait for or investigate the existing eCheck in PayPal Sandbox activity. No unverified settlement ETA or Sandbox clearing mechanism is assumed. When PayPal reports `COMPLETED` for the capture, reconcile the existing checkout and run the read-only verification command above. [Authoritative Payments v2 status schema](https://developer.paypal.com/api/payments/v2/schema.json).
+
+At 20:47 UTC, the new reconciliation-only service was exercised against that **same actual capture** with create/capture methods explicitly forbidden. It retrieved Orders v2 and Payments v2 once each, persisted the matching capture ID and `PENDING / ECHECK` observation, and left the Twin absent. The original attempt marker, keys and deadline were unchanged. This verifies real pending reconciliation, not completed settlement. Post-deadline completed/failed/declined behavior is covered with labeled provider doubles; no mock payload was used as live evidence.
+
+Migration 0004 subsequently separated the observed capture identity from the original completed-payment reference, preserving the exact ID value and the Twin FK evidence boundary. At **21:01 UTC**, actual reconciliation again returned `PENDING / ECHECK` with one Orders GET, one Payments GET, zero create/capture calls and no Twin. No deadline or attempt marker was reset. Apply all reviewed migrations through 0004 before starting this version.
 
 ### Controlled follow-up to the original expired checkout
 
@@ -78,4 +84,4 @@ Twins snapshot product/merchant information, purchase date, exact integer price,
 
 ## Webhooks
 
-**Not implemented or verified in Stage 2.** Completion currently relies on direct authenticated retrieval. There is no unverified webhook endpoint. Public HTTPS, a registered PayPal webhook ID, signature verification and actual delivery/replay testing are required before claiming webhook support. No webhook ID or simulated webhook can substitute for actual capture evidence.
+**Not implemented or verified in Stage 2.** Completion currently relies on direct authenticated retrieval. There is no unverified webhook endpoint. Public HTTPS, a registered PayPal webhook ID, signature verification and actual delivery/replay testing are required before claiming webhook support. No webhook ID or simulated webhook can substitute for actual capture evidence. The separate [Render webhook assessment](PAYPAL-WEBHOOKS.md) specifies ingress verification, a durable inbox, deduplication/retry, current-state reconciliation and acceptance evidence; it is not an implementation claim.

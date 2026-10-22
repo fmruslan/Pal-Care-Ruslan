@@ -144,7 +144,9 @@ test("theme changes preserve checkout state and never create extra financial POS
   );
   await page.route(`**/api/checkout/orders/${id}/capture`, (route) => {
     posts++;
-    return route.fulfill({ json: { ...view, state: "pending" } });
+    return route.fulfill({
+      json: { ...view, state: "pending", captureAttempted: true },
+    });
   });
   await page.goto(`/checkout/${id}`);
   await expect(page.getByRole("status")).toContainText(

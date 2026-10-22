@@ -40,6 +40,7 @@ export type CheckoutState =
   | "cancelled"
   | "failed"
   | "review";
+export type CaptureStatus = "PENDING" | "COMPLETED" | "FAILED" | "DECLINED";
 export type CheckoutView = {
   id: string;
   // Expiry is derived from the saved deadline, not a new persisted payment state.
@@ -50,6 +51,9 @@ export type CheckoutView = {
   error: string | null;
   expiresAt: string;
   captureAttempted: boolean;
+  captureStatus: CaptureStatus | null;
+  pendingReason: "ECHECK" | null;
+  captureCheckedAt: string | null;
 };
 
 export class CheckoutError extends Error {

@@ -4,12 +4,97 @@ import {
   decimalToMinor,
   inspectOrder,
   inspectCapturedPayment,
+  inspectOrderCapture,
+  inspectCaptureStatus,
   minorToDecimal,
 } from "../../src/lib/commerce/verification";
 import { createOrderBody } from "../../src/lib/commerce/paypal";
 import { providerFixture, unitOrder } from "../helpers/paypal-fixture";
 
 describe("PayPal verification with explicit test fixtures (not live proof)", () => {
+  it.each(["PENDING", "COMPLETED", "FAILED", "DECLINED"])(
+    "validates %s capture identity without treating it as completed proof",
+    (status) => {
+      const order = unitOrder();
+      const payload = providerFixture(order, "COMPLETED", status);
+      const observed = inspectOrderCapture(payload, order).capture!;
+      expect(observed.status).toBe(status);
+      expect(
+        inspectCaptureStatus(
+          payload.purchaseUnits[0].payments.captures[0],
+          order,
+          observed,
+        ).status,
+      ).toBe(status);
+      if (status !== "COMPLETED")
+        expect(() =>
+          inspectCapturedPayment(
+            payload.purchaseUnits[0].payments.captures[0],
+            order,
+            observed,
+          ),
+        ).toThrow("verification_failed");
+    },
+  );
+  it.each([
+    "id",
+    "amount",
+    "currency",
+    "timestamp",
+    "final",
+    "related-order",
+    "invoice",
+    "custom",
+  ])("rejects mismatched Payments v2 %s on a pending capture", (field) => {
+    const order = unitOrder();
+    const payload = providerFixture(order, "COMPLETED", "PENDING");
+    const expected = inspectOrderCapture(payload, order).capture!;
+    const capture: Record<string, unknown> = structuredClone(
+      payload.purchaseUnits[0].payments.captures[0],
+    );
+    if (field === "id") capture.id = "OTHERTESTCAPTURE1";
+    if (field === "amount")
+      capture.amount = { value: "0.01", currencyCode: "USD" };
+    if (field === "currency")
+      capture.amount = { value: "129.00", currencyCode: "EUR" };
+    if (field === "timestamp")
+      capture.createTime = new Date(Date.now() + 60000).toISOString();
+    if (field === "final") capture.finalCapture = false;
+    if (field === "related-order")
+      capture.supplementaryData = {
+        relatedIds: { orderId: "OTHERTESTORDER1" },
+      };
+    if (field === "invoice") capture.invoiceId = "OTHER-INVOICE";
+    if (field === "custom") capture.customId = "OTHER-CHECKOUT";
+    expect(() => inspectCaptureStatus(capture, order, expected)).toThrow(
+      "verification_failed",
+    );
+  });
+  it.each(["observedCaptureId", "providerCaptureId"] as const)(
+    "cannot replace a pinned %s with another Orders v2 capture",
+    (field) => {
+      const order = unitOrder();
+      order[field] = "PINNEDTESTCAPTURE1";
+      expect(() =>
+        inspectOrderCapture(
+          providerFixture(order, "COMPLETED", "PENDING"),
+          order,
+        ),
+      ).toThrow("verification_failed");
+    },
+  );
+  it("returns only the allowlisted pending reason rather than arbitrary provider text", () => {
+    const order = unitOrder();
+    const payload = providerFixture(order, "COMPLETED", "PENDING");
+    expect(inspectOrderCapture(payload, order).capture?.pendingReason).toBe(
+      "ECHECK",
+    );
+    payload.purchaseUnits[0].payments.captures[0].statusDetails.reason =
+      "untrusted explanatory text";
+    expect(
+      inspectOrderCapture(payload, order).capture?.pendingReason,
+    ).toBeNull();
+  });
   it("independently validates the Payments v2 capture against the Orders v2 evidence", () => {
     const order = unitOrder();
     const payload = providerFixture(order, "COMPLETED");

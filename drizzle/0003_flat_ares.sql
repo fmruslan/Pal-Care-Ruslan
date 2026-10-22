@@ -1,0 +1,5 @@
+ALTER TABLE "checkout_orders" ADD COLUMN "capture_status" varchar(20);--> statement-breakpoint
+ALTER TABLE "checkout_orders" ADD COLUMN "capture_pending_reason" varchar(20);--> statement-breakpoint
+ALTER TABLE "checkout_orders" ADD COLUMN "capture_checked_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "checkout_orders" ADD CONSTRAINT "checkout_capture_observation" CHECK ("checkout_orders"."capture_status" is null or ("checkout_orders"."capture_status" in ('PENDING','COMPLETED','FAILED','DECLINED') and "checkout_orders"."provider_capture_id" is not null and "checkout_orders"."capture_checked_at" is not null));--> statement-breakpoint
+ALTER TABLE "checkout_orders" ADD CONSTRAINT "checkout_capture_pending_reason" CHECK ("checkout_orders"."capture_pending_reason" is null or ("checkout_orders"."capture_pending_reason" = 'ECHECK' and "checkout_orders"."capture_status" is not null and "checkout_orders"."capture_status" = 'PENDING'));

@@ -20,6 +20,7 @@ The premium appearance layer adds no HTTP endpoints. Light/Dark/System preferenc
 | POST | `/api/checkout/orders` | JSON `{productId, requestId}` UUIDs only; trusted server price/product/policy; returns local checkout view and an HttpOnly cookie |
 | GET | `/api/checkout/orders/:uuid` | Owned checkout status from DB, no provider call; same cookie required |
 | POST | `/api/checkout/orders/:uuid/capture` | JSON `{}`; exact Origin + owning cookie; retrieve/validate order, capture once if approved, retrieve order/capture, atomically persist Twin only on completed evidence |
+| POST | `/api/checkout/orders/:uuid/reconcile` | JSON `{}`; exact Origin + owning cookie; reconcile an already-attempted checkout with provider GETs only; persist status or atomically create its verified Twin; never create/capture a payment |
 | POST | `/api/checkout/orders/:uuid/cancel` | JSON `{}`; cancel only an unattempted local checkout; never reverses/refunds a payment |
 | POST | `/api/checkout/orders/:uuid/retry` | JSON `{}`; retry uncertain creation with original saved request key/body inside its two-hour deadline |
 
@@ -35,4 +36,14 @@ The browser hides approval, capture, cancellation and creation-retry controls fo
 
 An already-attempted capture remains `pending`/`capturing` and can reconcile after expiry; it must not be discarded, locally cancelled or recaptured. Completed and other terminal states are not replaced by expiry. Local cancellation of an unattempted order retains evidence and request keys and is not a PayPal refund or provider cancellation.
 
-GET routes also support framework HEAD handling. No webhook, refund, merchant-approval, catalog-write, AI or seed HTTP routes exist. CLI migrations/seeds are operator tasks. `pnpm paypal:verify LOCAL_CHECKOUT_UUID` is an operator-only, read-only actual-provider verification command; no browser/API endpoint can fake its result.
+### Capture reconciliation contract
+
+`reconcile` is **read-only at PayPal**, not at PostgreSQL: it can save an observation or finalize a verified Twin. It rejects an unattempted nonterminal checkout with `capture_not_attempted` before provider calls. Completed/cancelled/failed/review states return their existing view without executing a payment. It shares the durable lease and persistent provider budgets. The original deadline blocks a *first* capture, never the retrieval of an already-attempted payment.
+
+The service validates current Orders v2 evidence and pins its single capture ID in `observed_capture_id` even when pending. Future checks cannot switch that identity or accept a capture ID from the visitor. It always independently retrieves that ID through Payments v2, validates ID/amount/currency/final-capture/timestamp and any supplied related-order/application references, and records `capture_status`, allowlisted `capture_pending_reason` and `capture_checked_at`. Migrations `0003_flat_ares.sql` and `0004_minor_whizzer.sql` add these nullable fields/constraints and preserve existing observed IDs without fabricating statuses or changing keys/deadlines. The original `provider_capture_id` stays reserved for atomic completed-payment evidence; a pending observation cannot satisfy the verified Twin's foreign-key reference.
+
+Checkout JSON adds `captureStatus`, `pendingReason` (`ECHECK` or null) and ISO `captureCheckedAt`. No raw payer details/provider text are returned. `PENDING` stays unverified, with an eCheck-specific explanation when known. `FAILED`/`DECLINED` produce `state: failed` and `capture_failed`/`capture_declined`, retaining the identity and attempt marker without a Twin. Unknown/mismatched evidence requires review; transient retrieval failures stay pending. Both APIs must agree on completed capture evidence before atomic, exactly-once Twin/receipt/policy/event persistence. A pending observation is not completed-payment proof.
+
+Attempted checkouts display **Check payment status**, which posts only to `reconcile`; returning already-attempted checkouts reconcile once rather than calling capture. No status polling or appearance-triggered requests are introduced. The legacy capture action also cannot recapture an attempted checkout.
+
+GET routes also support framework HEAD handling. No webhook, refund, merchant-approval, catalog-write, AI or seed HTTP routes exist. See [future verified-webhook assessment](PAYPAL-WEBHOOKS.md). CLI migrations/seeds are operator tasks. `pnpm paypal:verify LOCAL_CHECKOUT_UUID` is an operator-only, read-only actual-provider verification command; no browser/API endpoint can fake its result.

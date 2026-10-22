@@ -22,6 +22,7 @@
     },
     { "name": "Read owned checkout (no provider calls)", "request": { "method": "GET", "url": "{{baseUrl}}/api/checkout/orders/{{checkoutId}}" } },
     { "name": "Capture / reconcile AFTER actual buyer approval", "request": { "method": "POST", "url": "{{baseUrl}}/api/checkout/orders/{{checkoutId}}/capture", "header": [ { "key": "Origin", "value": "{{baseUrl}}" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{}" } } },
+    { "name": "Reconcile existing attempted capture — provider GETs only, no new capture", "request": { "method": "POST", "url": "{{baseUrl}}/api/checkout/orders/{{checkoutId}}/reconcile", "header": [ { "key": "Origin", "value": "{{baseUrl}}" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{}" } } },
     { "name": "Cancel unattempted local checkout (not a refund)", "request": { "method": "POST", "url": "{{baseUrl}}/api/checkout/orders/{{checkoutId}}/cancel", "header": [ { "key": "Origin", "value": "{{baseUrl}}" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{}" } } }
   ]
 }

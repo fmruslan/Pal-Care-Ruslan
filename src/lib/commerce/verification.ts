@@ -1,6 +1,10 @@
 import { z } from "zod";
 import type { CheckoutOrder } from "../../db/schema";
-import { CheckoutError, providerIdSchema } from "./contracts";
+import {
+  CheckoutError,
+  providerIdSchema,
+  type CaptureStatus,
+} from "./contracts";
 
 const moneySchema = z.object({
   currencyCode: z.literal("USD"),
@@ -13,6 +17,14 @@ const captureSchema = z.object({
   finalCapture: z.boolean().optional(),
   createTime: z.iso.datetime().optional(),
   updateTime: z.iso.datetime().optional(),
+  statusDetails: z.object({ reason: z.string().max(80).optional() }).optional(),
+  invoiceId: z.string().optional(),
+  customId: z.string().optional(),
+  supplementaryData: z
+    .object({
+      relatedIds: z.object({ orderId: z.string().optional() }).optional(),
+    })
+    .optional(),
 });
 const orderSchema = z.object({
   id: providerIdSchema,
@@ -55,7 +67,7 @@ export function minorToDecimal(value: number) {
   return `${Math.floor(value / 100)}.${String(value % 100).padStart(2, "0")}`;
 }
 
-export function inspectOrder(payload: unknown, expected: CheckoutOrder) {
+function validatedOrder(payload: unknown, expected: CheckoutOrder) {
   const result = orderSchema.safeParse(payload);
   if (!result.success) throw new CheckoutError("verification_failed");
   const order = result.data;
@@ -72,40 +84,96 @@ export function inspectOrder(payload: unknown, expected: CheckoutOrder) {
   ) {
     throw new CheckoutError("verification_failed");
   }
-  const captures = unit.payments?.captures ?? [];
-  if (order.status !== "COMPLETED") {
-    if (
-      captures.some((capture) =>
-        ["COMPLETED", "REFUNDED", "PARTIALLY_REFUNDED"].includes(
-          capture.status,
-        ),
-      )
-    )
-      throw new CheckoutError("verification_failed");
-    return { status: order.status, capture: null };
-  }
-  // An order-level COMPLETED flag alone is not payment proof.
-  if (captures.length !== 1) throw new CheckoutError("verification_failed");
-  const capture = captures[0];
-  if (decimalToMinor(capture.amount.value) !== expected.amountMinor)
-    throw new CheckoutError("verification_failed");
-  if (capture.status === "PENDING") return { status: "PENDING", capture: null };
+  return order;
+}
+
+export type CaptureObservation = {
+  id: string;
+  status: CaptureStatus;
+  capturedAt: string;
+  pendingReason: "ECHECK" | null;
+};
+
+function captureObservation(
+  payload: unknown,
+  expected: CheckoutOrder,
+): CaptureObservation {
+  const parsed = captureSchema.safeParse(payload);
+  if (!parsed.success) throw new CheckoutError("verification_failed");
+  const capture = parsed.data;
   if (
-    capture.status !== "COMPLETED" ||
+    !["PENDING", "COMPLETED", "FAILED", "DECLINED"].includes(capture.status) ||
+    ((expected.observedCaptureId ?? expected.providerCaptureId) &&
+      capture.id !==
+        (expected.observedCaptureId ?? expected.providerCaptureId)) ||
+    decimalToMinor(capture.amount.value) !== expected.amountMinor ||
     capture.finalCapture !== true ||
-    !capture.createTime
-  )
-    throw new CheckoutError("verification_failed");
-  if (
-    new Date(capture.createTime).getTime() <
-      new Date(expected.createdAt).getTime() - 300_000 ||
-    new Date(capture.createTime).getTime() > Date.now() + 300_000
+    !capture.createTime ||
+    Date.parse(capture.createTime) < Date.parse(expected.createdAt) - 300_000 ||
+    Date.parse(capture.createTime) > Date.now() + 300_000 ||
+    (capture.customId !== undefined && capture.customId !== expected.id) ||
+    (capture.invoiceId !== undefined &&
+      capture.invoiceId !== `PALCARE-${expected.id}`) ||
+    (capture.supplementaryData?.relatedIds?.orderId !== undefined &&
+      capture.supplementaryData.relatedIds.orderId !== expected.providerOrderId)
   )
     throw new CheckoutError("verification_failed");
   return {
-    status: "COMPLETED",
-    capture: { id: capture.id, capturedAt: capture.createTime },
+    id: capture.id,
+    status: capture.status as CaptureStatus,
+    capturedAt: capture.createTime,
+    pendingReason:
+      capture.status === "PENDING" && capture.statusDetails?.reason === "ECHECK"
+        ? "ECHECK"
+        : null,
   };
+}
+
+// Relationship validation is separate from completion proof. Pending/failed
+// captures can be identified safely without being labeled verified purchases.
+export function inspectOrderCapture(payload: unknown, expected: CheckoutOrder) {
+  const order = validatedOrder(payload, expected);
+  const captures = order.purchaseUnits[0].payments?.captures ?? [];
+  if (
+    captures.length > 1 ||
+    (order.status === "COMPLETED" && captures.length !== 1) ||
+    ((expected.observedCaptureId ?? expected.providerCaptureId) &&
+      captures.length !== 1)
+  )
+    throw new CheckoutError("verification_failed");
+  const capture = captures[0]
+    ? captureObservation(captures[0], expected)
+    : null;
+  if (capture?.status === "COMPLETED" && order.status !== "COMPLETED")
+    throw new CheckoutError("verification_failed");
+  return { status: order.status, capture };
+}
+
+export function inspectOrder(payload: unknown, expected: CheckoutOrder) {
+  const result = inspectOrderCapture(payload, expected);
+  if (!result.capture) return { status: result.status, capture: null };
+  if (result.capture.status === "PENDING")
+    return { status: "PENDING", capture: null };
+  if (result.capture.status !== "COMPLETED")
+    throw new CheckoutError("verification_failed");
+  return {
+    status: "COMPLETED",
+    capture: { id: result.capture.id, capturedAt: result.capture.capturedAt },
+  };
+}
+
+export function inspectCaptureStatus(
+  payload: unknown,
+  order: CheckoutOrder,
+  expected: { id: string; capturedAt: string },
+) {
+  const capture = captureObservation(payload, order);
+  if (
+    capture.id !== expected.id ||
+    Date.parse(capture.capturedAt) !== Date.parse(expected.capturedAt)
+  )
+    throw new CheckoutError("verification_failed");
+  return capture;
 }
 
 export function inspectCapturedPayment(
@@ -113,17 +181,8 @@ export function inspectCapturedPayment(
   order: CheckoutOrder,
   expected: { id: string; capturedAt: string },
 ) {
-  const parsed = captureSchema.safeParse(payload);
-  if (
-    !parsed.success ||
-    parsed.data.id !== expected.id ||
-    parsed.data.status !== "COMPLETED" ||
-    parsed.data.finalCapture !== true ||
-    decimalToMinor(parsed.data.amount.value) !== order.amountMinor ||
-    !parsed.data.createTime ||
-    new Date(parsed.data.createTime).getTime() !==
-      new Date(expected.capturedAt).getTime()
-  )
+  const capture = inspectCaptureStatus(payload, order, expected);
+  if (capture.status !== "COMPLETED")
     throw new CheckoutError("verification_failed");
   return expected;
 }

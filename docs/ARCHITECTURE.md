@@ -32,6 +32,8 @@ The original Blue & Lavender identity uses semantic CSS tokens for dedicated lig
 
 Provider calls happen outside DB transactions, guarded by durable leases. Completion inserts order evidence, Twin, receipt, demo policy and purchase event in one transaction. `capture_attempted_at` persists before dispatch; later requests reconcile an ambiguous outcome rather than resubmitting capture. No webhook endpoint is implemented. Full operational limits and failure tradeoffs are in [ADR 0003](adr/0003-sandbox-checkout.md) and [PayPal setup](PAYPAL.md).
 
+`POST /api/checkout/orders/:uuid/reconcile` is read-only at PayPal and cannot start capture. It preserves the attempted-capture marker and deadline, validates Orders v2 relationships, pins the existing capture ID and independently retrieves that ID through Payments v2. Migrations 0003/0004 separate observed capture identity/status/reason/check-time from the original completed-payment evidence reference, preserving the Twin foreign-key boundary. Pending stays unverified; failed/declined captures produce terminal failure; both providers must supply matching completed capture evidence before exactly-once local finalization. Retries and concurrent browser checks reuse leases, quotas and unique references. Future webhooks must reuse this retrieval-only reconciliation path after separate signature verification and durable deduplication; see [assessment, not implementation](PAYPAL-WEBHOOKS.md).
+
 ```text
 Public customer demo           Public merchant demo (+ AG Studio later)
       |                                   |

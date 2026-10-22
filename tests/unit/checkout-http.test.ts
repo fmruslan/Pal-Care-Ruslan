@@ -5,6 +5,7 @@ import { newSessionToken, sessionHash } from "../../src/lib/commerce/security";
 const mocks = vi.hoisted(() => ({
   start: vi.fn(),
   capture: vi.fn(),
+  reconcile: vi.fn(),
   cancel: vi.fn(),
   view: vi.fn(),
   retryCreation: vi.fn(),
@@ -24,6 +25,11 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.start.mockResolvedValue({ id, state: "created" });
   mocks.capture.mockResolvedValue({ id, state: "pending" });
+  mocks.reconcile.mockResolvedValue({
+    id,
+    state: "pending",
+    captureAttempted: true,
+  });
   mocks.view.mockResolvedValue({ id, state: "created" });
 });
 function request(
@@ -42,6 +48,51 @@ function request(
   });
 }
 describe("HTTP authorization boundary with a mocked service, no provider calls", () => {
+  it("reconciliation passes only the local checkout ID and cookie digest, never a capture request", async () => {
+    const token = newSessionToken();
+    const response = await mutate(
+      request(`/api/checkout/orders/${id}/reconcile`, {
+        Cookie: `palcare_checkout=${token}`,
+      }),
+      { params: Promise.resolve({ id, action: "reconcile" }) },
+    );
+    expect(response.status).toBe(200);
+    expect(mocks.reconcile).toHaveBeenCalledWith(id, sessionHash(token));
+    expect(mocks.capture).not.toHaveBeenCalled();
+    expect(mocks.start).not.toHaveBeenCalled();
+    expect(response.headers.get("cache-control")).toBe("no-store");
+  });
+  it.each(["origin", "cookie", "capture-id", "amount", "oversized"])(
+    "reconciliation rejects invalid %s before the service",
+    async (scenario) => {
+      const token = newSessionToken();
+      const headers: Record<string, string> = {
+        Cookie: `palcare_checkout=${token}`,
+      };
+      let body = "{}";
+      if (scenario === "origin") headers.Origin = "https://evil.example";
+      if (scenario === "cookie") delete headers.Cookie;
+      if (scenario === "capture-id") body = '{"captureId":"VISITORCAPTURE1"}';
+      if (scenario === "amount") body = '{"amount":1}';
+      if (scenario === "oversized")
+        body = JSON.stringify({ padding: "x".repeat(3000) });
+      const response = await mutate(
+        request(`/api/checkout/orders/${id}/reconcile`, headers, body),
+        { params: Promise.resolve({ id, action: "reconcile" }) },
+      );
+      expect(response.status).toBe(
+        scenario === "origin"
+          ? 403
+          : scenario === "cookie"
+            ? 404
+            : scenario === "oversized"
+              ? 413
+              : 400,
+      );
+      expect(mocks.reconcile).not.toHaveBeenCalled();
+      expect(mocks.capture).not.toHaveBeenCalled();
+    },
+  );
   it("rejects cross-origin creation before any service mutation", async () => {
     expect(
       (
@@ -68,6 +119,7 @@ describe("HTTP authorization boundary with a mocked service, no provider calls",
     );
     expect(response.status).toBe(404);
     expect(mocks.capture).not.toHaveBeenCalled();
+    expect(mocks.reconcile).not.toHaveBeenCalled();
   });
   it("passes only the cookie digest and local order ID to the service", async () => {
     const token = newSessionToken();

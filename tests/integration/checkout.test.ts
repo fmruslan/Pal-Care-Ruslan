@@ -30,6 +30,7 @@ if (!url || !new URL(url).pathname.endsWith("_test"))
 const { db, pool } = createDatabase(url);
 let gateway: FakePayPal;
 let service: CheckoutService;
+let forbiddenMutationCalls = 0;
 const sessions: string[] = [];
 function newSession() {
   const hash = sessionHash(newSessionToken());
@@ -51,6 +52,7 @@ before(async () => {
   await seedDemo(db);
 });
 beforeEach(async () => {
+  forbiddenMutationCalls = 0;
   gateway = new FakePayPal();
   service = new CheckoutService(db, gateway, testConfig);
   await db.delete(checkoutRateLimits);
@@ -80,6 +82,11 @@ afterEach(async () => {
     await db.delete(checkoutOrders).where(inArray(checkoutOrders.id, ids));
   }
   sessions.length = 0;
+  assert.equal(
+    forbiddenMutationCalls,
+    0,
+    "Reconciliation called a forbidden provider mutation",
+  );
 });
 after(async () => {
   await pool.end();
@@ -238,6 +245,7 @@ test("another anonymous session cannot inspect, cancel or capture the order", as
     () => service.view(order.id, other),
     () => service.capture(order.id, other),
     () => service.cancel(order.id, other),
+    () => service.reconcile(order.id, other),
   ])
     await assert.rejects(operation, { message: "checkout_not_found" });
 });
@@ -405,7 +413,8 @@ test("a document-write failure rolls back completion and later reconciles withou
     .select()
     .from(checkoutOrders)
     .where(eq(checkoutOrders.id, order.id));
-  assert.equal(pending.providerCaptureId, null);
+  assert.equal(pending.providerCaptureId, null); // Verified-payment reference is atomic with Twin finalization.
+  assert.ok(pending.observedCaptureId); // Keep the observed identity despite local finalization rollback.
   assert.equal(pending.verifiedAt, null);
   await db
     .update(checkoutOrders)
@@ -413,4 +422,279 @@ test("a document-write failure rolls back completion and later reconciles withou
     .where(eq(checkoutOrders.id, order.id));
   assert.equal((await service.capture(order.id, hash)).state, "completed");
   assert.equal(gateway.captureCalls.length, 1);
+});
+
+test("reconciliation-only action rejects an unattempted order without provider calls", async () => {
+  const { hash, order } = await begin();
+  await assert.rejects(service.reconcile(order.id, hash), {
+    message: "capture_not_attempted",
+  });
+  assert.equal(gateway.retrieveCalls.length, 0);
+  assert.equal(gateway.retrieveCaptureCalls.length, 0);
+  assert.equal(gateway.captureCalls.length, 0);
+});
+
+async function pendingAfterDeadline() {
+  gateway.captureStatus = "PENDING";
+  const context = await begin();
+  const pending = await service.capture(context.order.id, context.hash);
+  assert.equal(pending.state, "pending");
+  assert.equal(pending.pendingReason, "ECHECK");
+  assert.equal(pending.captureStatus, "PENDING");
+  await db
+    .update(checkoutOrders)
+    .set({ expiresAt: new Date(Date.now() - 3600000).toISOString() })
+    .where(eq(checkoutOrders.id, context.order.id));
+  const [saved] = await db
+    .select()
+    .from(checkoutOrders)
+    .where(eq(checkoutOrders.id, context.order.id));
+  assert.ok(saved.observedCaptureId);
+  assert.equal(saved.providerCaptureId, null);
+  assert.ok(saved.captureCheckedAt);
+  // From here on, any accidental provider mutation fails the test immediately.
+  gateway.capture = async () => {
+    forbiddenMutationCalls++;
+    assert.fail("Reconciliation must not dispatch another capture");
+  };
+  gateway.create = async () => {
+    forbiddenMutationCalls++;
+    assert.fail("Reconciliation must not create another order");
+  };
+  return { ...context, saved };
+}
+
+test("pending eCheck is queried by its pinned capture ID after expiry and remains unverified", async () => {
+  const { hash, order, saved } = await pendingAfterDeadline();
+  for (let i = 0; i < 2; i++) {
+    const result = await service.reconcile(order.id, hash);
+    assert.equal(result.state, "pending");
+    assert.equal(result.captureStatus, "PENDING");
+    assert.equal(result.pendingReason, "ECHECK");
+    assert.equal(result.twinId, null);
+  }
+  const [after] = await db
+    .select()
+    .from(checkoutOrders)
+    .where(eq(checkoutOrders.id, order.id));
+  assert.equal(after.observedCaptureId, saved.observedCaptureId);
+  assert.equal(after.providerCaptureId, null);
+  assert.equal(after.captureAttemptedAt, saved.captureAttemptedAt);
+  assert.equal(after.captureKey, saved.captureKey);
+  assert.equal(after.createKey, saved.createKey);
+  assert.equal(after.expiresAt, saved.expiresAt);
+  assert.equal(after.verifiedAt, null);
+  assert.equal(after.capturedAt, null);
+  assert.ok(
+    gateway.retrieveCaptureCalls.every((id) => id === saved.observedCaptureId),
+  );
+  assert.equal(gateway.captureCalls.length, 1);
+});
+
+test("a pending capture observation cannot satisfy a verified Twin's database evidence reference", async () => {
+  const { order, saved } = await pendingAfterDeadline();
+  await assert.rejects(
+    db.insert(purchaseTwins).values({
+      ...demoData.twins[0],
+      id: randomUUID(),
+      checkoutOrderId: order.id,
+      paypalOrderId: saved.providerOrderId,
+      paypalCaptureId: saved.observedCaptureId,
+      purchasePriceMinor: saved.amountMinor,
+      verifiedAt: new Date().toISOString(),
+      origin: "sandbox",
+      productSnapshot: saved.product,
+    }),
+    (error) => (error as { cause?: { code?: string } }).cause?.code === "23503",
+  );
+});
+
+test("completed existing capture after expiry creates exactly one Twin, receipt, policy and purchase event", async () => {
+  const { hash, order, saved } = await pendingAfterDeadline();
+  gateway.captureStatus = "COMPLETED";
+  const result = await service.reconcile(order.id, hash);
+  assert.equal(result.state, "completed");
+  assert.ok(result.twinId);
+  assert.equal((await service.reconcile(order.id, hash)).twinId, result.twinId);
+  assert.equal((await service.capture(order.id, hash)).twinId, result.twinId);
+  const twins = await db
+    .select()
+    .from(purchaseTwins)
+    .where(eq(purchaseTwins.checkoutOrderId, order.id));
+  assert.equal(twins.length, 1);
+  assert.equal(twins[0].paypalCaptureId, saved.observedCaptureId);
+  const docs = await db
+    .select()
+    .from(documents)
+    .where(eq(documents.twinId, result.twinId));
+  assert.equal(
+    docs.filter((d) => d.kind === "receipt" && d.origin === "sandbox").length,
+    1,
+  );
+  assert.equal(docs.filter((d) => d.kind === "policy").length, 1);
+  const events = await db
+    .select()
+    .from(careEvents)
+    .where(eq(careEvents.twinId, result.twinId));
+  assert.equal(
+    events.filter((e) => e.kind === "purchase" && e.origin === "sandbox")
+      .length,
+    1,
+  );
+  assert.equal(gateway.captureCalls.length, 1);
+});
+
+for (const status of ["FAILED", "DECLINED"]) {
+  test(`${status} existing capture after expiry produces a terminal failure without a Twin`, async () => {
+    const { hash, order, saved } = await pendingAfterDeadline();
+    gateway.captureStatus = status;
+    const result = await service.reconcile(order.id, hash);
+    assert.equal(result.state, "failed");
+    assert.equal(result.captureStatus, status);
+    assert.equal(result.pendingReason, null);
+    assert.equal(result.error, `capture_${status.toLowerCase()}`);
+    assert.equal(result.twinId, null);
+    assert.equal((await service.capture(order.id, hash)).state, "failed");
+    assert.equal((await service.reconcile(order.id, hash)).state, "failed");
+    const [after] = await db
+      .select()
+      .from(checkoutOrders)
+      .where(eq(checkoutOrders.id, order.id));
+    assert.equal(after.observedCaptureId, saved.observedCaptureId);
+    assert.equal(after.providerCaptureId, null);
+    assert.equal(after.captureAttemptedAt, saved.captureAttemptedAt);
+    assert.equal(after.verifiedAt, null);
+    assert.equal(after.capturedAt, null);
+    assert.equal(gateway.captureCalls.length, 1);
+  });
+}
+
+test("Orders v2 completion alone cannot finalize when Payments v2 is pending", async () => {
+  const { hash, order } = await pendingAfterDeadline();
+  gateway.captureStatus = "COMPLETED";
+  gateway.paymentsCaptureStatus = "PENDING";
+  const result = await service.reconcile(order.id, hash);
+  assert.equal(result.state, "pending");
+  assert.equal(result.captureStatus, "PENDING");
+  assert.equal(result.twinId, null);
+});
+
+test("Payments v2 completion alone cannot finalize while Orders v2 capture is still pending", async () => {
+  const { hash, order } = await pendingAfterDeadline();
+  gateway.paymentsCaptureStatus = "COMPLETED";
+  const result = await service.reconcile(order.id, hash);
+  assert.equal(result.state, "pending");
+  assert.equal(result.captureStatus, "COMPLETED");
+  assert.equal(result.twinId, null);
+});
+
+test("mismatched independent Payments v2 evidence requires review and retains pinned identity", async () => {
+  const { hash, order, saved } = await pendingAfterDeadline();
+  gateway.captureStatus = "COMPLETED";
+  gateway.tamperCaptureAmount = true;
+  const result = await service.reconcile(order.id, hash);
+  assert.equal(result.state, "review");
+  assert.equal(result.twinId, null);
+  const [after] = await db
+    .select()
+    .from(checkoutOrders)
+    .where(eq(checkoutOrders.id, order.id));
+  assert.equal(after.observedCaptureId, saved.observedCaptureId);
+  assert.equal(after.providerCaptureId, null);
+  assert.equal(after.verifiedAt, null);
+});
+
+test("a different capture cannot replace the original pinned capture", async () => {
+  const { hash, order, saved } = await pendingAfterDeadline();
+  gateway.captureIdOverride = "DIFFERENTCAPTURE1";
+  const result = await service.reconcile(order.id, hash);
+  assert.equal(result.state, "review");
+  assert.equal(result.twinId, null);
+  const [after] = await db
+    .select()
+    .from(checkoutOrders)
+    .where(eq(checkoutOrders.id, order.id));
+  assert.equal(after.observedCaptureId, saved.observedCaptureId);
+  assert.equal(after.providerCaptureId, null);
+});
+
+test("Payments retrieval timeout remains pending and later settles without recapture", async () => {
+  const { hash, order } = await pendingAfterDeadline();
+  gateway.failRetrieveCapture = true;
+  assert.equal((await service.reconcile(order.id, hash)).state, "pending");
+  gateway.failRetrieveCapture = false;
+  gateway.captureStatus = "COMPLETED";
+  assert.equal((await service.reconcile(order.id, hash)).state, "completed");
+  assert.equal(gateway.captureCalls.length, 1);
+});
+
+test("concurrent reconciliation checks share the lease and finalize once", async () => {
+  const { hash, order } = await pendingAfterDeadline();
+  gateway.captureStatus = "COMPLETED";
+  let release!: () => void;
+  gateway.retrieveGate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const first = service.reconcile(order.id, hash);
+  for (let i = 0; i < 100; i++) {
+    const [row] = await db
+      .select()
+      .from(checkoutOrders)
+      .where(eq(checkoutOrders.id, order.id));
+    if (row.leaseToken) break;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  try {
+    await assert.rejects(service.reconcile(order.id, hash), {
+      message: "operation_in_progress",
+    });
+  } finally {
+    release();
+  }
+  assert.equal((await first).state, "completed");
+  assert.equal(gateway.captureCalls.length, 1);
+  assert.equal(
+    (
+      await db
+        .select()
+        .from(purchaseTwins)
+        .where(eq(purchaseTwins.checkoutOrderId, order.id))
+    ).length,
+    1,
+  );
+});
+
+test("reconciliation retains persistent per-order provider limits", async () => {
+  const { hash, order } = await pendingAfterDeadline();
+  // Creation and initial capture already consumed two leases in this bucket.
+  for (let i = 0; i < 18; i++)
+    assert.equal((await service.reconcile(order.id, hash)).state, "pending");
+  await assert.rejects(service.reconcile(order.id, hash), {
+    message: "demo_limit_reached",
+  });
+  assert.equal(gateway.captureCalls.length, 1);
+});
+
+test("database rejects unchecked capture observations and orphaned pending reasons", async () => {
+  const { order } = await begin();
+  await assert.rejects(
+    db
+      .update(checkoutOrders)
+      .set({ captureStatus: "PENDING" })
+      .where(eq(checkoutOrders.id, order.id)),
+    (error) => (error as { cause?: { code?: string } }).cause?.code === "23514",
+  );
+  await assert.rejects(
+    db
+      .update(checkoutOrders)
+      .set({ capturePendingReason: "ECHECK" })
+      .where(eq(checkoutOrders.id, order.id)),
+    (error) => (error as { cause?: { code?: string } }).cause?.code === "23514",
+  );
+  const [saved] = await db
+    .select()
+    .from(checkoutOrders)
+    .where(eq(checkoutOrders.id, order.id));
+  assert.equal(saved.captureStatus, null);
+  assert.equal(saved.capturePendingReason, null);
 });

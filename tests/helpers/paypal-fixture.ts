@@ -50,6 +50,9 @@ export function providerFixture(
                       value: minorToDecimal(order.amountMinor),
                     },
                     finalCapture: true,
+                    statusDetails: {
+                      reason: captureStatus === "PENDING" ? "ECHECK" : "OTHER",
+                    },
                     createTime: new Date(order.createdAt).toISOString(),
                   },
                 ]
@@ -87,6 +90,10 @@ export function unitOrder(): CheckoutOrder {
     captureKey: randomUUID(),
     providerOrderId: "TESTORDER123456789",
     providerCaptureId: null,
+    observedCaptureId: null,
+    captureStatus: null,
+    capturePendingReason: null,
+    captureCheckedAt: null,
     approvalUrl: null,
     captureAttemptedAt: null,
     verifiedAt: null,
@@ -103,8 +110,13 @@ export class FakePayPal implements PayPalGateway {
   createCalls: CheckoutOrder[] = [];
   captureCalls: { id: string; key: string }[] = [];
   retrieveCalls: string[] = [];
+  retrieveCaptureCalls: string[] = [];
   status = "APPROVED";
   captureStatus = "COMPLETED";
+  paymentsCaptureStatus: string | null = null;
+  failRetrieveCapture = false;
+  tamperCaptureAmount = false;
+  captureIdOverride: string | null = null;
   failCreate = false;
   captureError: string | null = null;
   completeBeforeError = false;
@@ -134,14 +146,24 @@ export class FakePayPal implements PayPalGateway {
       this.captureStatus,
     );
     if (this.tamperAmount) fixture.purchaseUnits[0].amount.value = "0.01";
+    if (this.captureIdOverride && fixture.purchaseUnits[0].payments.captures[0])
+      fixture.purchaseUnits[0].payments.captures[0].id = this.captureIdOverride;
     return fixture;
   }
   async retrieveCapture(id: string) {
+    this.retrieveCaptureCalls.push(id);
+    if (this.failRetrieveCapture)
+      throw new CheckoutError("provider_unavailable", 502);
     const order = [...this.orders.values()].find(
       (order) => `C${order.id.replaceAll("-", "").toUpperCase()}` === id,
     )!;
-    return providerFixture(order, "COMPLETED", this.captureStatus)
-      .purchaseUnits[0].payments.captures[0];
+    const capture = providerFixture(
+      order,
+      "COMPLETED",
+      this.paymentsCaptureStatus ?? this.captureStatus,
+    ).purchaseUnits[0].payments.captures[0];
+    if (this.tamperCaptureAmount) capture.amount.value = "0.01";
+    return capture;
   }
   async capture(id: string, key: string) {
     this.captureCalls.push({ id, key });

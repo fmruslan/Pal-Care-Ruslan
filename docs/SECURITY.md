@@ -14,16 +14,18 @@ Sensitive assets include database URLs, PayPal app credentials/OAuth tokens, ano
 - Headers deny framing/object embedding and enable MIME sniffing protection, permissions and referrer policies. This is a baseline, not a complete production CSP or independent security audit.
 - Future financial/merchant actions need separate operator authorization. Persistent rate limits and paid-resource budgets must be implemented **before** exposing those endpoints; they are not claimed as implemented now.
 
-### Implemented checkout safeguards (not live-verified)
+### Implemented checkout safeguards (completed settlement not yet live-verified)
 
 - 256-bit HttpOnly/SameSite=Lax browser cookie; Secure on HTTPS. Only SHA-256 token digests are stored. A checkout UUID/return token is not authorization.
 - Exact Origin checks, JSON-only 2 KiB request bodies, UUID/product allowlists; no visitor-supplied amount/currency/merchant parameters.
 - PostgreSQL counters: 3 new orders/session/hour, 10 globally/hour, 30 globally/day. Provider operations additionally have per-order/global hourly/daily limits. No IP addresses are retained.
 - Persisted create/capture UUIDs, a two-hour create deadline and durable concurrent-operation leases. Capture intent is saved before dispatch; ambiguous captures only reconcile. An operator must investigate unresolved attempts, not reset their markers or invent completion.
+- The same-origin, cookie-bound `reconcile` action requires an already-attempted payment, accepts no visitor capture ID and cannot create/capture at PayPal. Existing capture identity is pinned from validated order evidence and independently retrieved through Payments v2. Expiry does not disable attempted-capture reconciliation. Status observations alone do not authorize a verified Twin; pending, failed, declined, mismatched or incomplete evidence cannot fabricate completion.
 - Retrieve and validate both order and capture: status, amount/currency, merchant, item SKU/quantity, application references, final-capture flag and timestamps. Atomic Twin/document/event insertion and unique provider references prevent duplicate records.
 - Original product/policy/callback/payee context is snapshotted. Raw SDK payload logging is not enabled; sanitized error status/debug IDs are the only provider diagnostics.
 - No runtime mock-provider or arbitrary provider-base-URL switch. Tests inject doubles into the service or intercept browser transport only. Production SDK environment is hardcoded Sandbox.
 - Webhooks are absent; signature verification/delivery has not been tested. See `docs/PAYPAL.md` before claiming live integration.
+- `docs/PAYPAL-WEBHOOKS.md` assesses a future public-HTTPS listener, verification, inbox and retry/deduplication boundary. It adds no current webhook route or delivery claim.
 
 ## Required safeguards
 

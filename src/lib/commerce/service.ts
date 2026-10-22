@@ -24,8 +24,8 @@ import type { PayPalGateway } from "./paypal";
 import { checkoutHasExpired } from "./expiry";
 import {
   approvalLink,
-  inspectCapturedPayment,
-  inspectOrder,
+  inspectCaptureStatus,
+  inspectOrderCapture,
   minorToDecimal,
 } from "./verification";
 
@@ -87,6 +87,11 @@ export class CheckoutService {
       error: expired ? "checkout_expired" : order.lastError,
       expiresAt: new Date(order.expiresAt).toISOString(),
       captureAttempted: Boolean(order.captureAttemptedAt),
+      captureStatus: order.captureStatus,
+      pendingReason: order.capturePendingReason,
+      captureCheckedAt: order.captureCheckedAt
+        ? new Date(order.captureCheckedAt).toISOString()
+        : null,
     };
   }
 
@@ -247,6 +252,20 @@ export class CheckoutService {
   }
 
   async capture(id: string, sessionHash: string) {
+    return this.processPayment(id, sessionHash, true);
+  }
+
+  // Read-only at PayPal: this action may persist checked status or finalize a
+  // verified Twin locally, but must never create an order or dispatch capture.
+  async reconcile(id: string, sessionHash: string) {
+    return this.processPayment(id, sessionHash, false);
+  }
+
+  private async processPayment(
+    id: string,
+    sessionHash: string,
+    allowFirstCapture: boolean,
+  ) {
     const current = await this.view(id, sessionHash);
     if (
       ["completed", "cancelled", "failed", "review", "expired"].includes(
@@ -254,6 +273,8 @@ export class CheckoutService {
       )
     )
       return current;
+    if (!allowFirstCapture && !current.captureAttempted)
+      throw new CheckoutError("capture_not_attempted");
     const lease = await this.claim(id, sessionHash);
     const order = lease.order;
     let attempted = Boolean(order.captureAttemptedAt);
@@ -263,11 +284,18 @@ export class CheckoutService {
       if (checkoutHasExpired({ ...order, captureAttempted: attempted }))
         return await this.view(id, sessionHash);
       if (!order.providerOrderId) throw new CheckoutError("order_not_created");
-      let result = inspectOrder(
+      if (!allowFirstCapture && !attempted)
+        throw new CheckoutError("capture_not_attempted");
+      let result = inspectOrderCapture(
         await this.paypal.retrieve(order.providerOrderId),
         order,
       );
-      if (result.status === "APPROVED" && !order.captureAttemptedAt) {
+      if (
+        allowFirstCapture &&
+        result.status === "APPROVED" &&
+        !order.captureAttemptedAt &&
+        !result.capture
+      ) {
         if (Date.now() >= new Date(order.expiresAt).getTime())
           throw new CheckoutError("checkout_expired");
         // Persist BEFORE the money-changing request. If the process dies, future
@@ -278,18 +306,47 @@ export class CheckoutService {
         });
         attempted = true;
         await this.paypal.capture(order.providerOrderId, order.captureKey);
-        result = inspectOrder(
+        result = inspectOrderCapture(
           await this.paypal.retrieve(order.providerOrderId),
           order,
         );
       }
       if (result.capture) {
-        const verified = inspectCapturedPayment(
-          await this.paypal.retrieveCapture(result.capture.id),
+        // Pin the Orders-validated identity even while funding is pending.
+        // Subsequent checks cannot silently switch to a different capture.
+        const captureId =
+          order.observedCaptureId ??
+          order.providerCaptureId ??
+          result.capture.id;
+        if (!order.observedCaptureId)
+          await this.update(id, lease.token, { observedCaptureId: captureId });
+        const observed = inspectCaptureStatus(
+          await this.paypal.retrieveCapture(captureId),
           order,
           result.capture,
         );
-        await this.finalize(order, lease.token, verified);
+        await this.update(id, lease.token, {
+          captureStatus: observed.status,
+          capturePendingReason: observed.pendingReason,
+          captureCheckedAt: new Date().toISOString(),
+        });
+        if (
+          result.capture.status === "COMPLETED" &&
+          observed.status === "COMPLETED"
+        )
+          await this.finalize(order, lease.token, observed);
+        else
+          await this.update(id, lease.token, {
+            state: ["FAILED", "DECLINED"].includes(observed.status)
+              ? "failed"
+              : "pending",
+            lastError:
+              observed.status === "FAILED"
+                ? "capture_failed"
+                : observed.status === "DECLINED"
+                  ? "capture_declined"
+                  : null,
+          });
       } else
         await this.update(id, lease.token, {
           state:
@@ -359,12 +416,20 @@ export class CheckoutService {
       if (locked.leaseToken !== leaseToken)
         throw new CheckoutError("operation_in_progress");
       if (locked.state === "completed") return;
+      if (
+        locked.observedCaptureId !== capture.id ||
+        locked.captureStatus !== "COMPLETED"
+      )
+        throw new CheckoutError("verification_failed");
       const now = new Date().toISOString();
       await tx
         .update(checkoutOrders)
         .set({
           state: "completed",
           providerCaptureId: capture.id,
+          captureStatus: "COMPLETED",
+          capturePendingReason: null,
+          captureCheckedAt: now,
           verifiedAt: now,
           capturedAt: capture.capturedAt,
           lastError: null,

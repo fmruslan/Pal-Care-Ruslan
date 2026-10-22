@@ -11,6 +11,9 @@ const view = {
   product: {},
   expiresAt: "2099-01-01T00:00:00.000Z",
   captureAttempted: false,
+  captureStatus: null,
+  pendingReason: null,
+  captureCheckedAt: null,
 };
 
 test("catalog stays public and honestly disabled without credentials", async ({
@@ -92,13 +95,14 @@ test("mock UI transport: declined and pending payments never show completion", a
     route.fulfill({ json: view }),
   );
   await page.route(
-    `**/api/checkout/orders/${checkoutId}/capture`,
+    new RegExp(`/api/checkout/orders/${checkoutId}/(capture|reconcile)$`),
     async (route) => {
       await route.fulfill({
         json: {
           ...view,
           state,
           error: state === "failed" ? "INSTRUMENT_DECLINED" : null,
+          captureAttempted: true,
         },
       });
     },
@@ -108,9 +112,7 @@ test("mock UI transport: declined and pending payments never show completion", a
     "confirmation is pending",
   );
   state = "failed";
-  await page
-    .getByRole("button", { name: "Check / complete this sandbox payment" })
-    .click();
+  await page.getByRole("button", { name: "Check payment status" }).click();
   await expect(page.getByRole("status")).toContainText(
     "sandbox payment failed",
   );
@@ -210,21 +212,138 @@ test("mock UI transport: attempted pending capture remains reconcilable after de
   await page.route(`**/api/checkout/orders/${checkoutId}`, (route) =>
     route.fulfill({ json: pending }),
   );
-  await page.route(`**/api/checkout/orders/${checkoutId}/capture`, (route) => {
-    captures++;
-    return route.fulfill({ json: pending });
-  });
+  await page.route(
+    `**/api/checkout/orders/${checkoutId}/reconcile`,
+    (route) => {
+      captures++;
+      return route.fulfill({ json: pending });
+    },
+  );
   await page.goto(`/checkout/${checkoutId}`);
   await expect(page.getByRole("status")).toContainText(
     "confirmation is pending",
   );
-  await page
-    .getByRole("button", { name: "Check / complete this sandbox payment" })
-    .click();
+  await page.getByRole("button", { name: "Check payment status" }).click();
   await expect(page.getByRole("status")).toContainText(
     "confirmation is pending",
   );
   expect(captures).toBe(1);
+});
+
+for (const outcome of ["PENDING", "COMPLETED", "FAILED", "DECLINED"]) {
+  test(`mock UI transport: existing capture reconciliation after expiry reports ${outcome} without calling capture`, async ({
+    page,
+  }) => {
+    let capturePosts = 0;
+    let checks = 0;
+    page.on("request", (request) => {
+      if (request.method() === "POST" && request.url().endsWith("/capture"))
+        capturePosts++;
+    });
+    const pending = {
+      ...view,
+      state: "pending",
+      captureAttempted: true,
+      captureStatus: "PENDING",
+      pendingReason: "ECHECK",
+      captureCheckedAt: "2026-10-22T12:00:00Z",
+      expiresAt: "2020-01-01T00:00:00Z",
+    };
+    await page.route(`**/api/checkout/orders/${checkoutId}`, (route) =>
+      route.fulfill({ json: pending }),
+    );
+    await page.route(
+      `**/api/checkout/orders/${checkoutId}/reconcile`,
+      (route) => {
+        checks++;
+        return route.fulfill({
+          json: {
+            ...pending,
+            state:
+              outcome === "COMPLETED"
+                ? "completed"
+                : ["FAILED", "DECLINED"].includes(outcome)
+                  ? "failed"
+                  : "pending",
+            captureStatus: outcome,
+            pendingReason: outcome === "PENDING" ? "ECHECK" : null,
+            error: ["FAILED", "DECLINED"].includes(outcome)
+              ? `capture_${outcome.toLowerCase()}`
+              : null,
+            twinId: outcome === "COMPLETED" ? sampleTwinId : null,
+          },
+        });
+      },
+    );
+    await page.goto(`/checkout/${checkoutId}`);
+    await expect(page.getByRole("status")).toContainText(
+      "pending eCheck clearance (ECHECK)",
+    );
+    await expect(
+      page.getByRole("link", { name: "Continue to PayPal Sandbox" }),
+    ).toHaveCount(0);
+    expect(checks).toBe(0);
+    await page.getByRole("button", { name: "Check payment status" }).click();
+    if (outcome === "COMPLETED")
+      await expect(page).toHaveURL(new RegExp(`/vault/${sampleTwinId}$`));
+    else if (outcome === "PENDING") {
+      await expect(page.getByRole("status")).toContainText(
+        "pending eCheck clearance (ECHECK)",
+      );
+      await expect(page).toHaveURL(/\/checkout\//);
+    } else {
+      await expect(page.getByRole("status")).toContainText(
+        outcome === "FAILED"
+          ? "payment failed"
+          : "declined the existing sandbox capture",
+      );
+      await expect(
+        page.getByRole("alert", { name: "Checkout error" }),
+      ).toContainText("Do not repeat capture");
+      await expect(
+        page.getByRole("button", { name: "Check payment status" }),
+      ).toHaveCount(0);
+      await expect(page).toHaveURL(/\/checkout\//);
+    }
+    expect(checks).toBe(1);
+    expect(capturePosts).toBe(0);
+  });
+}
+
+test("mock UI transport: a returning already-attempted checkout automatically reconciles once, never captures", async ({
+  page,
+}) => {
+  let checks = 0;
+  let capturePosts = 0;
+  const pending = {
+    ...view,
+    state: "pending",
+    captureAttempted: true,
+    captureStatus: "PENDING",
+    pendingReason: "ECHECK",
+    expiresAt: "2020-01-01T00:00:00Z",
+  };
+  await page.route(`**/api/checkout/orders/${checkoutId}`, (route) =>
+    route.fulfill({ json: pending }),
+  );
+  await page.route(
+    `**/api/checkout/orders/${checkoutId}/reconcile`,
+    (route) => {
+      checks++;
+      return route.fulfill({ json: pending });
+    },
+  );
+  page.on("request", (request) => {
+    if (request.method() === "POST" && request.url().endsWith("/capture"))
+      capturePosts++;
+  });
+  await page.goto(`/checkout/${checkoutId}?token=EXISTING-ATTEMPT-RETURN`);
+  await expect(page.getByRole("status")).toContainText(
+    "pending eCheck clearance (ECHECK)",
+  );
+  await page.getByRole("combobox", { name: "Appearance" }).selectOption("dark");
+  expect(checks).toBe(1);
+  expect(capturePosts).toBe(0);
 });
 
 test("forged return parameters cannot bypass the disabled server boundary", async ({
