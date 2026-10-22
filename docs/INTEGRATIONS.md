@@ -1,10 +1,10 @@
 # Integration contracts and sponsor strategy
 
-External PayPal, AI and sponsor integrations below remain **planned**. The local PostgreSQL/Drizzle foundation works, but Render cloud hosting is not verified. Track actual evidence in [Implementation Status](STATUS.md). Never commit real credentials.
+PayPal checkout is implemented and independently tested, but **actual Sandbox verification is blocked by missing credentials**. AI/sponsor integrations remain planned. Local PostgreSQL works; Render hosting is unverified. Track evidence in [Implementation Status](STATUS.md). Never commit real credentials.
 
 | Provider | Planned use | Reference |
 | --- | --- | --- |
-| PayPal Sandbox | Orders v2, Payments v2 capture and partial refund, webhook verification | https://developer.paypal.com/ |
+| PayPal Sandbox | Orders v2 create/get/capture + Payments v2 capture retrieval via official SDK 2.5.0; live verification blocked; refunds/webhooks deferred | https://developer.paypal.com/ |
 | Official PayPal Next.js starter | Trusted checkout reference | https://developer.paypal.com/guides/nextjs-checkout |
 | PayPal Postman workspace | Create/capture/refund/error testing | https://www.postman.com/paypal |
 | Hosted AI model API | Structured product/policy understanding and care answers | Provider and model to be selected |

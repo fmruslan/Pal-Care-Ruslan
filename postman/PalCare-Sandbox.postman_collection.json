@@ -1,0 +1,27 @@
+{
+  "info": {
+    "name": "Pal Care — Sandbox checkout (no credentials included)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Use only an explicitly enabled PayPal Sandbox deployment. This is Pal Care's collection, not an official PayPal collection. See docs/PAYPAL.md and postman.com/paypal. Cookies must stay in the same Postman jar. Never export credentials. Capturing requires real buyer approval; no mock status switch exists."
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "productId", "value": "00000000-0000-4000-8000-000000000101" },
+    { "key": "requestId", "value": "" },
+    { "key": "checkoutId", "value": "" }
+  ],
+  "item": [
+    { "name": "Readiness (not payment proof)", "request": { "method": "GET", "url": "{{baseUrl}}/api/ready" } },
+    {
+      "name": "Create sandbox checkout — repeat with same requestId for retry",
+      "event": [
+        { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["if (!pm.collectionVariables.get('requestId')) pm.collectionVariables.set('requestId', pm.variables.replaceIn('{{$guid}}'));"] } },
+        { "listen": "test", "script": { "type": "text/javascript", "exec": ["if (pm.response.code === 200) { const data = pm.response.json(); pm.collectionVariables.set('checkoutId', data.id); }"] } }
+      ],
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/checkout/orders", "header": [ { "key": "Origin", "value": "{{baseUrl}}" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\"productId\":\"{{productId}}\",\"requestId\":\"{{requestId}}\"}" } }
+    },
+    { "name": "Read owned checkout (no provider calls)", "request": { "method": "GET", "url": "{{baseUrl}}/api/checkout/orders/{{checkoutId}}" } },
+    { "name": "Capture / reconcile AFTER actual buyer approval", "request": { "method": "POST", "url": "{{baseUrl}}/api/checkout/orders/{{checkoutId}}/capture", "header": [ { "key": "Origin", "value": "{{baseUrl}}" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{}" } } },
+    { "name": "Cancel unattempted local checkout (not a refund)", "request": { "method": "POST", "url": "{{baseUrl}}/api/checkout/orders/{{checkoutId}}/cancel", "header": [ { "key": "Origin", "value": "{{baseUrl}}" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{}" } } }
+  ]
+}

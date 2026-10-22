@@ -3,13 +3,13 @@
 **Everything you buy. Taken care of.**  
 *Powered by CareOS · Independent PayPal AI Hackathon project*
 
-> **Project status: Stage 1 application foundation implemented.** Public customer and merchant dashboards, sample Purchase Twins/documents/events, PostgreSQL + Drizzle migrations, and automated tests are available. **PayPal transactions, AI, sponsor integrations, and a hosted deployment are not yet implemented.** See [Implementation Status](docs/STATUS.md).
+> **Stage 2 implementation is available; actual PayPal Sandbox verification is BLOCKED by missing credentials. Stage 2 is not complete.** The catalog, session-bound checkout, official SDK integration, capture verification and automatic Purchase Twin persistence are independently tested. **Refunds, AI, sponsor integrations and webhooks are not yet implemented.** See [Implementation Status](docs/STATUS.md).
 
 Pal Care explores a new reason to choose PayPal: the purchase becomes the beginning of a useful care experience, rather than the end of a transaction.
 
 The product's central object is a **Purchase Twin**, a durable, item-level record created from an authorized merchant's verified PayPal sandbox purchase. **CareOS** connects that record to source-backed product documentation, relevant changes, eligibility checks, and approved outcomes.
 
-**Today:** explore three fictional sample Purchase Twins. They are not verified purchases. Both demo dashboards are public with no registration or login, and expose no merchant-write or money-movement actions. Render Managed PostgreSQL and Drizzle replace the initial Supabase proposal; see [ADR 0002](docs/adr/0002-public-render-demo.md).
+**Today:** explore three fictional sample Purchase Twins and `/shop`. Checkout is disabled until real Sandbox credentials are configured; there is no mock payment fallback. When enabled, an actual verified capture creates a separately labeled sandbox Twin. Both dashboards remain public without registration, and no merchant-edit or refund actions are exposed. See [PayPal setup and live verification](docs/PAYPAL.md), [ADR 0002](docs/adr/0002-public-render-demo.md) and [ADR 0003](docs/adr/0003-sandbox-checkout.md).
 
 ## Product at a glance
 
@@ -49,7 +49,7 @@ Pal Care is an independent hackathon concept and **not an official PayPal produc
 | Purchase records | Render Managed PostgreSQL 17; Drizzle ORM and versioned SQL migrations |
 | Demo identity and documents | Fixed fictional customer/merchant; public sample text documents; no login or uploads |
 | AI intelligence | Server-side multimodal model API, schema validation with Zod, source-grounded explanations |
-| Payment workflow | PayPal Orders v2, Payments v2, verified webhooks, Sandbox merchant and buyer |
+| Payment workflow | Official PayPal Server SDK 2.5.0, Orders v2 and Payments v2; redirect buyer approval; live verification blocked; webhooks deferred |
 | Product safety | US Consumer Product Safety Commission (CPSC) public recall data |
 | Replacement discovery | Channel3 API; real merchant product records and links |
 | Merchant intelligence | AG Studio, including agent-driven analysis and custom widgets |
@@ -71,9 +71,9 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open `http://localhost:3000`. Explore `/dashboard`, `/vault`, `/documents`, and `/merchant`. Bundled preview mode is labeled on every dashboard. Database mode is separately configured and tested; no database outage silently falls back to fixtures.
+Open `http://localhost:3000`. Explore `/dashboard`, `/vault`, `/documents`, `/shop`, and `/merchant`. Bundled preview mode is labeled on every dashboard; checkout requires database mode and explicit Sandbox configuration. No database/provider outage silently falls back to mock payments.
 
-See [Setup & Render deployment](docs/SETUP.md) for local PostgreSQL, environment variables, migrations, idempotent fictional seeds, dedicated integration tests and hosting instructions. No PayPal buyer credentials are needed yet.
+See [Setup & Render deployment](docs/SETUP.md) for PostgreSQL and hosting, and [PayPal Sandbox setup](docs/PAYPAL.md) for credentials, safety limits and the actual end-to-end verification checklist. Browsing needs no PayPal account. Sandbox checkout needs a fictional PayPal buyer; never commit buyer passwords.
 
 Quality checks:
 
@@ -116,11 +116,14 @@ src/app/              Public demo pages and read-only API routes
 src/components/       Accessible UI and original product illustrations
 src/db/               Drizzle schema, connection, read-only queries and seed service
 src/lib/demo/         Fictional fixtures, presentation and server-only repository
+src/lib/commerce/     Sandbox adapter, verification, authorization and checkout services
 drizzle/              Reviewed SQL migrations and schema snapshots
 tests/                Unit, PostgreSQL integration and browser/accessibility tests
 render.yaml           Web service + private-network PostgreSQL Blueprint
 docs/SETUP.md         Local development, tests and Render deployment
 docs/API.md           Current read-only HTTP surface and future boundaries
+docs/PAYPAL.md        Secure Sandbox configuration and actual verification checklist
+postman/              Credential-free Pal Care checkout API collection
 docs/PRODUCT.md       Product promise, requirements, scope and boundaries
 docs/ARCHITECTURE.md  Data flows, services and payment safeguards
 docs/INTEGRATIONS.md Technology partners and external API boundaries

@@ -11,7 +11,7 @@
 
 ## Hackathon access model
 
-Both dashboards are public using one fixed fictional customer and merchant. No registration, login or real customer information is collected. Stage 1 contains sample products, Twins, original documents and illustrative events, not verified payments or active monitoring. Future consequential actions require separate server-side operator authorization and abuse controls. See [ADR 0002](adr/0002-public-render-demo.md).
+Both dashboards are public using one fixed fictional customer and merchant. No registration, login or real customer information is collected. Stage 1's sample records remain explicitly labeled. Stage 2 adds a separately authorized, bounded anonymous Sandbox checkout; live provider verification is still blocked. Merchant editing/refunds remain unavailable and will need separate operator authority. See [ADR 0002](adr/0002-public-render-demo.md) and [ADR 0003](adr/0003-sandbox-checkout.md).
 
 ## Five planned capabilities
 

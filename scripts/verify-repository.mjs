@@ -8,6 +8,8 @@ const required = [
   'docs/JUDGING.md', 'docs/SECURITY.md', 'docs/STATUS.md',
   'docs/adr/0001-modular-monolith.md',
   'docs/adr/0002-public-render-demo.md', 'docs/SETUP.md', 'docs/API.md',
+  'docs/adr/0003-sandbox-checkout.md', 'docs/PAYPAL.md',
+  'postman/PalCare-Sandbox.postman_collection.json',
   'package.json', 'pnpm-lock.yaml', 'render.yaml', 'src/db/schema.ts',
 ];
 const errors = required.filter(path => !existsSync(join(process.cwd(), path))).map(path => 'Missing: ' + path);

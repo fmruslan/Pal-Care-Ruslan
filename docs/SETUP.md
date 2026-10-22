@@ -1,10 +1,10 @@
-# Stage 1 setup and deployment
+# Application setup and deployment
 
 ## Prerequisites
 
 - Node.js 22.23.x (pinned in `.node-version`), pnpm 10.34.7 (`corepack enable`).
 - Docker Compose for local PostgreSQL, or an existing dedicated PostgreSQL 17 database.
-- No Supabase, customer accounts, PayPal, AI or sponsor credentials are required.
+- No Supabase/customer accounts. Browsing needs no PayPal credentials; actual Sandbox checkout requires the separate setup in [PAYPAL.md](PAYPAL.md). No AI/sponsor credentials are needed.
 
 All direct JavaScript dependencies are exact-pinned in `package.json` and `pnpm-lock.yaml`. TypeScript 5.9 and ESLint 9 are pinned for compatibility with Next's current lint plugins; update the lint toolchain together when its peer support changes. Run ESLint independently: Next.js 16 builds do not run it.
 
@@ -43,7 +43,7 @@ The seed inserts a fictional customer/merchant and three products, Twins, docume
 2. `pnpm db:generate` creates SQL and a snapshot in `drizzle/`.
 3. Review and commit them; then `pnpm db:migrate`.
 
-Do not use `drizzle-kit push`, edit applied migrations, or run competing migration systems. Stage 2 needs a new migration for verified PayPal references and financial state; current sample-only constraints deliberately reject `origin='sandbox'`.
+Do not use `drizzle-kit push`, edit applied migrations, or run competing migration systems. Migration 0001 adds constrained Sandbox provenance, checkout operations and rate limits. Existing sample records cannot be relabeled without matching checkout evidence.
 
 ## Tests
 
@@ -60,7 +60,7 @@ pnpm test:e2e
 
 Browser tests run the production build on port 3100, at desktop and mobile sizes, including axe accessibility scans. `pnpm build` is required first. Screenshots and HTML reports are git-ignored in `test-results/` and `playwright-report/`.
 
-Integration tests require an **explicit dedicated `TEST_DATABASE_URL`**. For the local sample-only database, set it to the same local URL in `.env.local`; never use a deployed/real-customer database. Tests apply migrations twice and seeds twice, verify constraints and read-only sessions, and roll back invalid-write cases.
+Integration tests require an **explicit dedicated `TEST_DATABASE_URL` with a database name ending in `_test`**. Create a separate database (for example `palcare_stage2_test`) and set its URL privately. Never point these tests at your app/deployed database: checkout tests create provider-double evidence in that test database and clean it afterward. They do not contact PayPal. Tests run serially to avoid shared migration/seed races.
 
 ```bash
 pnpm test:integration
@@ -86,4 +86,4 @@ Use the internal database URL between Render resources. For external administrat
 
 ## Next-stage configuration (not used now)
 
-PayPal Developer sandbox app, merchant/buyer accounts and webhook setup are needed for Stage 2. Separate operator authorization, durable abuse limits, verified capture persistence, idempotency and reconciliation must be added before public sandbox mutation routes. AI, Channel3 and AG Studio credentials/licenses come in their own stages.
+See [PAYPAL.md](PAYPAL.md) for the Stage 2 app/merchant/buyer setup and actual verification checklist. Cookie authorization, durable quotas/idempotency and verified capture persistence are implemented independently, but actual PayPal calls remain blocked. Webhooks remain deferred. AI, Channel3, AG Studio and refunds come later.

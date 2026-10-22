@@ -2,21 +2,23 @@
 
 Last updated: 2026-10-21
 
-> **Stage 1 application foundation is implemented and locally tested.** Public dashboards and sample records work with both bundled preview data and real local PostgreSQL. **PayPal, AI, sponsor integrations and a Render-hosted deployment are not yet implemented/verified.** Infrastructure now follows [ADR 0002](adr/0002-public-render-demo.md); Supabase and customer login are not used.
+> **Stage 2 implementation and independent tests are available. Actual PayPal Sandbox verification is BLOCKED by missing credentials; Stage 2's Definition of Done is not satisfied.** Stage 1 remains working. Checkout defaults off and has no mock-provider mode. No real provider create/capture, actual buyer approval or webhook delivery has been verified. Supabase/customer login remain excluded.
 
 | Component | Status | Evidence / remaining work |
 | --- | --- | --- |
 | Next.js 16 / React / TypeScript / Tailwind / shadcn-based UI | **Implemented** | Production build, lint and typecheck pass; premium responsive shell and original illustrations |
 | Public customer and merchant dashboards | **Implemented** | Browsable without login; no mutation controls/endpoints |
-| Purchase Vault and Twin detail pages | **Implemented with sample data** | Three fictional records, working search/category filter, no-result state and detail links |
-| Documents and care history | **Implemented with sample data** | Three original public text attachments/events; no real manuals, uploads or active monitoring |
-| PostgreSQL / Drizzle migrations and seed | **Implemented; local PostgreSQL verified** | Six tables, reviewed SQL, repeatable migration/seed, relational and provenance constraints |
-| Read-only access and secure configuration | **Implemented for public sample scope** | Server-only repository, fixed demo IDs, read-only database sessions, validation, bounded pool/timeouts and baseline headers |
-| CI foundation | **Verified on GitHub** | [Passing foundation run](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/39709677502) at `b5a260a`; subsequent workflow hardening pins current Node 24 actions and Ubuntu 24.04; check latest run for current commit |
+| Purchase Vault and Twin detail pages | **Implemented; sandbox display independently tested** | Samples remain separate; new sandbox Twins use saved product/merchant snapshots and capture references |
+| Documents and care history | **Implemented; sandbox persistence tested with provider double** | Original samples plus verified-capture receipt/policy/event path; no manufacturer manuals/warranties supplied |
+| PostgreSQL / Drizzle migrations and seed | **Implemented; local PostgreSQL verified** | Eight tables; migrations 0001/0002 add checkout/rates, provider references, constrained provenance and globally unique client request IDs |
+| Read-only dashboards + bounded checkout | **Implemented; independent tests pass** | Separate write service, cookie authorization, exact Origin, bounded JSON, DB-backed quotas/leases/idempotency |
+| CI pipeline | **Configured; use commit-specific run evidence** | Commit-pinned Node 24 actions on Ubuntu 24.04 run quality checks, real PostgreSQL tests and both browser modes. See [latest runs](https://github.com/fmruslan/Pal-Care-Ruslan/actions) for the current commit; CI deliberately has no PayPal credentials and cannot prove actual Sandbox completion |
 | Render deployment preparation | **Prepared, not deployed** | `render.yaml`, private-network DB, readiness, pre-deploy migration/seed and setup guide; account/billing approval needed |
 | Supabase / customer login / private uploads | **Excluded by design** | Replaced by Render PostgreSQL and public fictional identities |
-| PayPal sandbox payment capture | Not started | Verified provider response |
-| Purchase Twin generation | Not started | Durable record created after real capture |
+| Demo merchant catalog | **Implemented** | `/shop`, trusted allowlisted products and integer USD prices, clear disabled/configuration state |
+| PayPal Sandbox create/approval/capture | **Implemented; LIVE VERIFICATION BLOCKED** | Official SDK and redirect flow; missing Sandbox app credentials/merchant/buyer configuration |
+| Automatic Purchase Twin generation | **Implemented and independently tested; LIVE VERIFICATION BLOCKED** | Retrieved Orders v2 + Payments v2 evidence must validate before atomic persistence; tests use an injected provider double, not actual PayPal |
+| Webhooks | Not implemented or verified | Direct provider retrieval is used; actual HTTPS delivery/signature/replay testing deferred |
 | Price Guardian and partial refund | Not started | Authorized merchant approval and verified PayPal refund |
 | CPSC candidate matching | Not started | Real source data and model verification |
 | Product Care assistant | Not started | Grounded answer from actual manual |
@@ -28,18 +30,18 @@ Last updated: 2026-10-21
 
 - `pnpm install --frozen-lockfile`: reproducible installation.
 - `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`: pass.
-- Unit tests: **25 passed**, covering configuration, sample integrity, lookup scoping, IDs, money formatting, UTC dates and explicit data-source/error boundaries (repository boundary tests use unit mocks).
-- PostgreSQL integration: **7 passed** against local PostgreSQL 17, with no mocked database. Tests run migrations/seeds twice, reject writes on runtime connections, invalid prices/currency, mismatched products/merchants, orphan documents and relabeled sample provenance.
-- Playwright: **24 passed in fixture mode + 24 passed in database mode**, desktop and mobile Chromium. Includes navigation/search, downloads, invalid IDs/methods, absent mutation routes, security headers, six-page axe WCAG A/AA scans and page-width checks.
+- Unit tests: **53 passed**, including configuration, verification of order/capture evidence, currency/amount/item/payee checks, authorization/body boundaries, sample integrity, snapshots and UI helpers. Unit-only provider payloads are not live proof.
+- PostgreSQL integration: **26 passed** against a dedicated PostgreSQL 17 test database. **19 checkout cases use an injected PayPal double** to exercise atomic persistence/rollback, cancellation, declines, pending/ambiguous responses, concurrent/repeated attempts, lost initial cookies, saved product snapshots, ownership, expiry and quotas. Seven foundation tests verify migration/seed/integrity behavior. Test-origin sandbox rows are cleaned up and never seeded into the app database.
+- Playwright: **36 passed in fixture mode + 36 passed in database mode**, desktop/mobile Chromium, including seven-page axe WCAG A/AA scans, shop disabled-state and forged-return checks. Checkout success/cancel/failure UI tests intercept HTTP responses and are explicitly labeled mock UI transport; they do not prove an actual PayPal purchase.
 - Production-server failure test: **1 passed**, confirming an unavailable PostgreSQL database returns readiness 503 without a fixture fallback or DSN disclosure.
 - Render Blueprint: validated against Render's official JSON schema; account-level/cloud deployment remains unverified.
-- `pnpm audit --prod`: no known runtime dependency vulnerabilities at verification time.
+- Stage 2 `pnpm audit --prod` was attempted, but the npm audit service timed out; no current audit result is claimed. Stage 1's earlier audit result is not evidence for newly added SDK dependencies.
 - Automated accessibility checks are a baseline, not a full manual accessibility certification or security audit.
 
 ## Stage 2 readiness and prerequisites
 
-The repository, schema/migration workflow, server-only data boundary, public UI, sample fixtures and tests are ready for the next slice. Stage 2 must add verified PayPal order/capture records and a new sandbox-provenance migration before creating real sandbox Purchase Twins. No sample row may be relabeled as verified evidence.
+The code path is ready for live testing, **not yet complete**. `pnpm paypal:verify` was executed and returned **BLOCKED (exit 2)** because real credentials are absent; no provider call was made. The command only passes when direct PayPal retrieval and a matching durable Twin/receipt both validate.
 
-External setup still needed: Render account/GitHub authorization and paid-plan approval; PayPal Developer sandbox merchant/buyer/app and webhook configuration for Stage 2. No AI/Channel3/AG Studio credentials are needed for Stage 1. Operator authorization, persistent rate limits and budgets are required before consequential or paid-provider endpoints are exposed.
+Required next: Sandbox REST app client ID/secret, the app merchant's 13-character Sandbox merchant ID, a fictional funded buyer, exact `APP_ORIGIN`, database mode and explicit `PAYPAL_CHECKOUT_ENABLED=true`. See [docs/PAYPAL.md](PAYPAL.md). Configure privately in `.env.local` or Render; never paste passwords into Git. Render account/GitHub connection/plan approval are still needed for public deployment. HTTPS webhook setup is deferred, not claimed as verified.
 
 A feature is only marked complete after a reproducible test or actual external-provider evidence. Mock data and UI prototypes must remain identified as such.

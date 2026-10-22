@@ -1,6 +1,6 @@
 # Judge-oriented guide
 
-**Current status:** Stage 1 foundation implemented: public dashboards, fictional Purchase Twins/documents/events, PostgreSQL migrations/seeds and tests. PayPal, AI and sponsor integrations are not implemented. See [Implementation Status](STATUS.md). The flagship flow below remains a planned evidence checklist.
+**Current status:** Public dashboards, sample records, catalog and Stage 2 checkout code/tests are implemented. **Actual PayPal Sandbox end-to-end verification is blocked by missing credentials; Stage 2 is not complete.** No actual capture IDs or successful provider run are claimed. AI, refunds and sponsors remain unimplemented. See [Implementation Status](STATUS.md) and the [live verification checklist](PAYPAL.md). The flagship flow remains planned.
 
 ## Why Pal Care?
 

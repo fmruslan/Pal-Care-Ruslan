@@ -29,6 +29,7 @@ jobs:
       DATABASE_URL: postgresql://palcare:${{ github.run_id }}-${{ github.run_attempt }}@127.0.0.1:5432/palcare_test
       TEST_DATABASE_URL: postgresql://palcare:${{ github.run_id }}-${{ github.run_attempt }}@127.0.0.1:5432/palcare_test
       DEMO_DATA_SOURCE: database
+      PAYPAL_CHECKOUT_ENABLED: "false"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

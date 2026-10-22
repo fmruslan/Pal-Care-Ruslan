@@ -4,7 +4,7 @@
 
 **Modular monolith** using Next.js 16 App Router, React, TypeScript and Drizzle on Render Managed PostgreSQL. Both dashboards are public demo views with one fixed fictional customer and merchant. No Supabase, customer registration, login, personal uploads or real-money payments are included. [ADR 0002](adr/0002-public-render-demo.md) supersedes the initial infrastructure/auth proposal.
 
-Stage 1 is implemented; payment, AI, sponsor and worker services below remain planned. A future worker will invoke the same domain services through durable database-backed jobs.
+Stage 1 is implemented. Stage 2's checkout code and independent tests are implemented, but actual PayPal verification is blocked by missing credentials. AI, refunds, sponsors and workers remain planned. See [ADR 0003](adr/0003-sandbox-checkout.md).
 
 ## Implemented foundation
 
@@ -13,11 +13,20 @@ Stage 1 is implemented; payment, AI, sponsor and worker services below remain pl
 - `scripts/migrate.ts` applies migrations; `scripts/seed.ts` creates deterministic fictional records with transactional `ON CONFLICT DO NOTHING`. Reruns do not overwrite existing data.
 - `src/lib/demo/repository.ts` is server-only. Runtime sessions default to read-only; queries use repeatable-read, read-only transactions. The connection pool and timeouts are bounded.
 - Queries use fixed server-side demo IDs and join-derived document/event scopes, not visitor-supplied customer or merchant IDs. `findTwin` validates IDs and product/merchant association.
+- Public purchase reads are bounded to the 100 newest Twins; counts/search describe that current demo window, not lifetime commerce metrics.
 - `DEMO_DATA_SOURCE=fixtures` is a labeled, account-free preview. `database` reads PostgreSQL sample records. Configuration or database failures never silently trigger fixture fallback.
-- Twins, events and documents have database-enforced `origin='sample'` in Stage 1. No provider references or verified-payment state exist. Stage 2 must migrate the schema before adding sandbox records.
+- Stage 1 sample constraints are extended by migration 0001. Sandbox Twins require checkout evidence references, a snapshot and verification time; unique keys prevent duplicate Twins for one capture. Existing sample rows remain sample-only.
 - Original sample text documents are stored in PostgreSQL and returned as attachments. No object-storage service, private upload or real manufacturer content is claimed.
-- Only read endpoints exist. There are no checkout, refund, approval, catalog-edit, AI or seed endpoints. Migration/seed commands are operator CLI tasks.
+- Dashboards remain read-only. Stage 2 adds bounded, session-authorized sandbox checkout endpoints only; no refunds, merchant approvals, catalog-edit, AI or seed endpoints. Migration/seed commands are operator CLI tasks.
 - `/api/health` checks process liveness; `/api/ready` verifies the selected data source and seed presence. Render uses readiness.
+
+## Stage 2 checkout boundary
+
+`src/lib/commerce/` contains pure schemas/security/verification, the official Sandbox SDK adapter, a testable service and a server-only runtime. `checkout_orders` stores immutable request/product/policy context, separate create/capture idempotency keys, hashed anonymous ownership, state, leases, selected provider references and attempted/verified timestamps. `checkout_rate_limits` enforces persistent budgets.
+
+`POST /api/checkout/orders` validates a product UUID/request UUID, loads trusted catalog prices and snapshots a one-item USD order before contacting PayPal. The browser receives a random HttpOnly checkout cookie; provider credentials never reach it. Buyer approval happens through the sandbox HATEOAS redirect URL. On return, a same-origin POST retrieves and validates the order before capture; capture is requested at most once, then Orders v2 and Payments v2 retrieval establish completion. GET callbacks/query parameters alone cannot create a Twin.
+
+Provider calls happen outside DB transactions, guarded by durable leases. Completion inserts order evidence, Twin, receipt, demo policy and purchase event in one transaction. `capture_attempted_at` persists before dispatch; later requests reconcile an ambiguous outcome rather than resubmitting capture. No webhook endpoint is implemented. Full operational limits and failure tradeoffs are in [ADR 0003](adr/0003-sandbox-checkout.md) and [PayPal setup](PAYPAL.md).
 
 ```text
 Public customer demo           Public merchant demo (+ AG Studio later)
