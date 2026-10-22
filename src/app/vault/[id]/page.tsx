@@ -22,6 +22,12 @@ import { Badge } from "@/components/ui/badge";
 import { ProductArt } from "@/components/product-art";
 import { DocumentList, PurchaseBadge } from "@/components/vault";
 import { Events } from "@/components/events";
+import {
+  AskCareOS,
+  CareContextRegistration,
+} from "@/components/careos/provider";
+import { contextOf } from "@/lib/careos/contracts";
+import { Button } from "@/components/ui/button";
 
 export const metadata = { title: "Purchase Twin" };
 export default async function TwinPage({
@@ -38,6 +44,7 @@ export default async function TwinPage({
   const verified = twin.origin === "sandbox";
   return (
     <Shell active="/vault" source={data.source}>
+      <CareContextRegistration context={contextOf(record)} />
       <Link
         href="/vault"
         className="mb-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary"
@@ -113,6 +120,19 @@ export default async function TwinPage({
                 {verified
                   ? "A completed PayPal Sandbox capture was retrieved and validated on the server. The product and customer are fictional; no real money was used."
                   : "This is a sample Purchase Twin, not a verified PayPal purchase."}
+              </div>
+              <div className="mt-5 flex flex-wrap gap-3">
+                {documents
+                  .filter((d) => d.kind === "receipt")
+                  .map((d) => (
+                    <Button asChild key={d.id}>
+                      <Link href={`/documents/${d.id}`}>
+                        <FileText aria-hidden="true" />
+                        View receipt
+                      </Link>
+                    </Button>
+                  ))}
+                <AskCareOS context={contextOf(record)} />
               </div>
             </div>
           </div>

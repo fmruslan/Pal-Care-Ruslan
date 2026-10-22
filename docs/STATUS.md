@@ -33,6 +33,10 @@ Last updated: 2026-10-22
 
 ## Local verification
 
+### Stage 3 — increment 1 (implementation in progress)
+
+Persistent root-level CareOS host, product context registration, cookie-scoped preview conversations, deterministic receipt/purchase/document tools and inline document viewing are implemented. No model is invoked. New regression checks cover receipt scope, authorization, request validation and navigation continuity. Later Stage 3 increments will add care evidence, PostgreSQL conversation persistence and the explicitly gated runtime API adapter. Stage 2 payment code is unchanged. This paragraph is not a live-AI or completed-Stage-3 claim.
+
 - `pnpm install --frozen-lockfile`: reproducible installation.
 - `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm format:check`, repository validation and `git diff --check`: pass.
 - Unit tests: **123 passed**, including one-test configuration/confirmation/privacy gates, full legacy-payload equivalence and immediate-preference serialization, plus expiry, semantic contrast, capture verification and HTTP authorization/body boundaries. Unit-only provider payloads are not live proof.

@@ -1,5 +1,7 @@
 # HTTP surface — Stage 2 Sandbox purchase/Twin flow verified
 
+Stage 3 increment 1 adds `/documents/:uuid` for scoped inline text viewing, `POST /api/careos/conversations` (empty JSON), owned `GET`/`DELETE /api/careos/conversations/:uuid`, and `POST /api/careos/conversations/:uuid/turns` (`requestId`, nullable `twinId`, `revision`, `message`, optional allowlisted `intent`). Mutations require exact configured `APP_ORIGIN`, bounded JSON and a separate HttpOnly CareOS capability. Initial conversations use a bounded, expiring preview store. These deterministic reads never invoke a model or PayPal.
+
 Customer/merchant dashboards remain public and read-only. Explicitly enabled checkout endpoints can create/capture **Sandbox-only** orders for the originating anonymous browser, with durable global/session/order limits. They default off. No refunds, merchant editing, AI or real money.
 
 Actual Orders/Payments completed-capture and exactly-one Twin/receipt/policy/event acceptance passed for the separately approved USD 129.00 case. Repeated read-only verification preserved all records. This is not a webhook, production-readiness or blanket provider-negative-testing claim; the separate eCheck remains preserved. [Evidence](evidence/STAGE2-VERIFICATION.md).

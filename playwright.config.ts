@@ -54,6 +54,7 @@ export default defineConfig({
     env: {
       DEMO_DATA_SOURCE: process.env.E2E_DATA_SOURCE ?? "fixtures",
       PAYPAL_CHECKOUT_ENABLED: "false",
+      APP_ORIGIN: `http://127.0.0.1:${port}`,
     },
   },
 });

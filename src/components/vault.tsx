@@ -152,10 +152,10 @@ export function DocumentList({ documents }: { documents: CareDocument[] }) {
             </div>
           </div>
           <Button variant="outline" asChild size="sm">
-            <a href={`/api/documents/${document.id}/download`}>
+            <Link href={`/documents/${document.id}`}>
               <Download aria-hidden="true" />
-              Download<span className="sr-only"> {document.title}</span>
-            </a>
+              Open<span className="sr-only"> {document.title}</span>
+            </Link>
           </Button>
         </Card>
       ))}

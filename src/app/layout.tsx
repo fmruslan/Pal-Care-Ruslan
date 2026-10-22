@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { ThemeProvider } from "@/components/theme-provider";
+import { CareOSProvider } from "@/components/careos/provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -34,7 +35,7 @@ export default function RootLayout({
           >
             Skip to content
           </a>
-          {children}
+          <CareOSProvider>{children}</CareOSProvider>
         </ThemeProvider>
       </body>
     </html>

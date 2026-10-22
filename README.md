@@ -13,6 +13,8 @@ The product's central object is a **Purchase Twin**, a durable, item-level recor
 
 ## Appearance
 
+Stage 3 is in progress: the first CareOS slice adds a persistent customer assistant, deterministic scoped receipt lookup and inline document views. It makes no model or payment calls. Product-care intelligence and the runtime model adapter are not yet implemented in this increment.
+
 Pal Care's original product-passport identity uses blue for commerce, lavender for planned CareOS intelligence, and spacious white or midnight surfaces. **System is the default:** Light/Dark overrides are available from the appearance selector and persist locally. Geist Sans uses the maintained package's bundled, self-hosted fonts—no custom font service or browser request to Google Fonts.
 
 See [Design system and visual references](docs/DESIGN.md). The Purchase Twin is the signature experience; planned AI and sample/verified-sandbox labels remain explicit in both themes.
