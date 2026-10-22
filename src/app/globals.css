@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f8f3;
+  --foreground: #203e36;
+  --card: #ffffff;
+  --primary: #214c3e;
+  --primary-foreground: #ffffff;
+  --secondary: #ecf0e5;
+  --secondary-foreground: #234b3c;
+  --muted-foreground: #5d6861;
+  --accent: #e5ecdf;
+  --border: #e0e5da;
+  --input: #d4ddd0;
+  --ring: #4b7352;
+  --coral: #c56b51;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-coral: var(--coral);
+  --font-sans: Arial, Helvetica, sans-serif;
+  --font-display: Georgia, "Times New Roman", serif;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: Arial, Helvetica, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a,
+  button,
+  input {
+    -webkit-tap-highlight-color: transparent;
+  }
+  a:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 5px;
+    border-radius: 4px;
+  }
+  button:not(:disabled),
+  a {
+    cursor: pointer;
+  }
+  ::selection {
+    background: #dbe8cb;
+    color: #203e36;
+  }
+}

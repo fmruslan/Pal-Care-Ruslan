@@ -30,3 +30,6 @@ receipts/
 customer-data/
 *.bak
 *.zip
+
+# Superseded local experiment; never part of the application
+supabase/

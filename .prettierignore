@@ -1,0 +1,13 @@
+node_modules/
+.next/
+pnpm-lock.yaml
+drizzle/
+coverage/
+playwright-report/
+test-results/
+supabase/
+docs/
+README.md
+AGENTS.md
+SECURITY.md
+CONTRIBUTING.md
