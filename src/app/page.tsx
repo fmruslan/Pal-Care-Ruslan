@@ -43,7 +43,7 @@ export default function Home() {
             <p className="mt-4 text-xs leading-6 text-white/80">
               No sign-up. Fictional sample records. No real money.
               <br />
-              Stage 1 foundation · PayPal and AI not connected yet.
+              Sandbox checkout requires configuration. AI is not connected.
             </p>
           </div>
           <CareIllustration />

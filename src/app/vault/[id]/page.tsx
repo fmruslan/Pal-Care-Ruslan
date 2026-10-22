@@ -40,7 +40,10 @@ export default async function TwinPage({
         <ProductArt kind={product.illustration} large />
         <div className="py-3">
           <p className="text-xs font-semibold uppercase tracking-[.18em] text-muted-foreground">
-            PURCHASE TWIN · SAMPLE RECORD
+            PURCHASE TWIN ·{" "}
+            {twin.origin === "sandbox"
+              ? "VERIFIED PAYPAL SANDBOX"
+              : "SAMPLE RECORD"}
           </p>
           <h1 className="mt-4 font-display text-4xl sm:text-5xl">
             {product.name}
@@ -50,10 +53,28 @@ export default async function TwinPage({
           </p>
           <dl className="mt-7 grid grid-cols-2 gap-6 border-t pt-6">
             {[
-              ["Sample purchase", displayDate(twin.purchasedOn)],
-              ["Sample price paid", money(twin.purchasePriceMinor)],
-              ["Fictional merchant", data.merchant.name],
-              ["Payment verification", "Not connected"],
+              [
+                twin.origin === "sandbox"
+                  ? "Sandbox purchase"
+                  : "Sample purchase",
+                displayDate(twin.purchasedOn),
+              ],
+              [
+                twin.origin === "sandbox"
+                  ? "Sandbox price paid"
+                  : "Sample price paid",
+                money(twin.purchasePriceMinor),
+              ],
+              [
+                "Fictional merchant",
+                twin.productSnapshot?.merchantName ?? data.merchant.name,
+              ],
+              [
+                "Payment verification",
+                twin.origin === "sandbox"
+                  ? "COMPLETED · verified server-side"
+                  : "Not connected",
+              ],
             ].map(([label, value]) => (
               <div key={label}>
                 <dt className="text-xs text-muted-foreground">{label}</dt>
@@ -62,9 +83,29 @@ export default async function TwinPage({
             ))}
           </dl>
           <div className="mt-7 rounded-2xl bg-secondary p-4 text-xs leading-6">
-            This is a fictional Purchase Twin, not a verified PayPal purchase.
+            {twin.origin === "sandbox"
+              ? "A completed PayPal Sandbox capture was retrieved and validated on the server. The product and customer are fictional; no real money was used."
+              : "This is a sample Purchase Twin, not a verified PayPal purchase."}{" "}
             Warranty, return and recall status have not been verified.
           </div>
+          {twin.origin === "sandbox" && (
+            <dl className="mt-5 space-y-3 break-all text-xs">
+              <div>
+                <dt className="text-muted-foreground">PayPal Sandbox order</dt>
+                <dd className="mt-1 font-mono">{twin.paypalOrderId}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">
+                  PayPal Sandbox capture
+                </dt>
+                <dd className="mt-1 font-mono">{twin.paypalCaptureId}</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Verified at</dt>
+                <dd className="mt-1">{twin.verifiedAt}</dd>
+              </div>
+            </dl>
+          )}
         </div>
       </div>
       <div className="mt-9 grid gap-7 xl:grid-cols-[1.2fr_1fr]">
@@ -88,8 +129,8 @@ export default async function TwinPage({
             <Sparkles className="size-7 text-primary" aria-hidden="true" />
             <h3 className="mt-5 text-base font-semibold">AI Product Care</h3>
             <p className="mt-3 text-sm leading-7 text-muted-foreground">
-              Source-backed setup and troubleshooting are planned. No model is
-              connected in Stage 1.
+              Source-backed setup and troubleshooting are planned. No AI model
+              is connected.
             </p>
             <span className="mt-5 inline-block rounded-full bg-secondary px-3 py-2 text-xs font-medium">
               Coming in a later stage

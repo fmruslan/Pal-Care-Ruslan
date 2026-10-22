@@ -25,8 +25,14 @@ export default async function Merchant() {
       <div className="my-7 grid gap-4 sm:grid-cols-3">
         {[
           [data.products.length, "Sample catalog items"],
-          [data.twins.length, "Sample Purchase Twins"],
-          [0, "Verified sandbox transactions"],
+          [
+            data.twins.filter((twin) => twin.origin === "sample").length,
+            "Sample Purchase Twins",
+          ],
+          [
+            data.twins.filter((twin) => twin.origin === "sandbox").length,
+            "Verified sandbox transactions",
+          ],
         ].map(([value, label]) => (
           <Card key={label}>
             <p className="text-3xl font-semibold">{value}</p>
@@ -84,7 +90,9 @@ export default async function Merchant() {
                           href={`/vault/${twin.id}`}
                           className="inline-flex min-h-11 items-center gap-2 text-xs font-semibold"
                         >
-                          View sample
+                          {twin.origin === "sandbox"
+                            ? "View sandbox purchase"
+                            : "View sample"}
                           <ArrowUpRight className="size-4" aria-hidden="true" />
                         </Link>
                       ))}

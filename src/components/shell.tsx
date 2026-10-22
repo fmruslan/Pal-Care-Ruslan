@@ -6,6 +6,7 @@ import {
   FileText,
   LayoutDashboard,
   ShieldCheck,
+  ShoppingBag,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Brand } from "./brand";
@@ -15,6 +16,7 @@ const navigation = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/vault", label: "Purchase vault", icon: Archive },
   { href: "/documents", label: "Documents", icon: FileText },
+  { href: "/shop", label: "Demo shop", icon: ShoppingBag },
 ];
 
 export function Shell({
@@ -120,19 +122,20 @@ export function Shell({
             className="mb-8 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-secondary px-4 py-3 text-xs leading-5"
           >
             <span>
-              <strong>Sample demo</strong> · All products, purchases, documents
-              and events are fictional. No PayPal transactions yet.
+              <strong>Sandbox demo</strong> · Fictional products and customer.
+              Sample records are labeled; only completed PayPal Sandbox captures
+              are labeled verified. No real money.
             </span>
             <span className="font-medium">
               {source === "database"
-                ? "PostgreSQL sample records"
+                ? "PostgreSQL demo records"
                 : "Bundled preview · database not in use"}
             </span>
           </div>
           {children}
         </main>
         <footer className="mx-auto max-w-[1400px] px-5 pb-8 text-xs leading-relaxed text-muted-foreground sm:px-8 lg:px-12">
-          <span className="font-medium">Pal Care · Stage 1 foundation.</span>{" "}
+          <span className="font-medium">Pal Care · Sandbox demo.</span>{" "}
           Independent hackathon project. Not an official PayPal product or
           coverage promise.
           <Link

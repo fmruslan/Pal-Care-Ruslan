@@ -64,17 +64,18 @@ export default async function Dashboard() {
           {
             icon: Archive,
             value: data.twins.length,
-            label: "Sample purchases",
+            label: "Purchase Twins · samples + sandbox",
           },
           {
             icon: FileText,
             value: data.documents.length,
-            label: "Sample documents",
+            label: "Documents · source labeled",
           },
           {
             icon: HeartHandshake,
-            value: data.events.length,
-            label: "Illustrative care events",
+            value: data.twins.filter((twin) => twin.origin === "sandbox")
+              .length,
+            label: "Verified sandbox purchases",
           },
         ].map(({ icon: Icon, value, label }) => (
           <Card key={label} className="flex items-center gap-4 py-5">
@@ -109,7 +110,7 @@ export default async function Dashboard() {
             A little care, along the way.
           </h2>
           <span className="text-xs text-muted-foreground">
-            Illustrative events · not live monitoring
+            Source-labeled history · no live care monitoring
           </span>
         </div>
         <Events events={data.events} />

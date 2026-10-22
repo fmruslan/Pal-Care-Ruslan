@@ -7,7 +7,7 @@ describe("fictional demo integrity", () => {
     expect(demoData.customer.kind).toBe("fictional");
     expect(demoData.merchant.kind).toBe("fictional");
     expect(JSON.stringify(demoData)).not.toMatch(
-      /@(gmail|outlook)|capture_id|refund_id|paypalOrderId/,
+      /@(gmail|outlook)|capture_id|refund_id/,
     );
     for (const record of [
       ...demoData.twins,
@@ -15,6 +15,11 @@ describe("fictional demo integrity", () => {
       ...demoData.events,
     ])
       expect(record.origin).toBe("sample");
+    for (const twin of demoData.twins) {
+      expect(twin.paypalOrderId).toBeNull();
+      expect(twin.paypalCaptureId).toBeNull();
+      expect(twin.verifiedAt).toBeNull();
+    }
   });
   it("resolves every Purchase Twin to the right merchant, product, documents and events", () => {
     for (const twin of demoData.twins) {

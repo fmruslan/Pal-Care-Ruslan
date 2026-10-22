@@ -17,10 +17,11 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:failure": "tsx --test tests/failure/*.test.ts",
-    "test:integration": "tsx --test tests/integration/*.test.ts",
+    "test:integration": "tsx --test --test-concurrency=1 tests/integration/*.test.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
+    "paypal:verify": "tsx scripts/verify-paypal.ts",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "pnpm": {
@@ -31,6 +32,7 @@
     ]
   },
   "dependencies": {
+    "@paypal/paypal-server-sdk": "2.5.0",
     "@radix-ui/react-slot": "1.5.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",

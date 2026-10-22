@@ -1,4 +1,4 @@
-import { eq, inArray, sql } from "drizzle-orm";
+import { desc, eq, inArray, sql } from "drizzle-orm";
 import type { createDatabase } from "./connection";
 import {
   customers,
@@ -37,7 +37,8 @@ export async function readDemoData(
         .select()
         .from(purchaseTwins)
         .where(eq(purchaseTwins.customerId, CUSTOMER_ID))
-        .orderBy(purchaseTwins.id);
+        .orderBy(desc(purchaseTwins.createdAt), purchaseTwins.id)
+        .limit(100);
       const twinIds = twins
         .filter((twin) => twin.merchantId === MERCHANT_ID)
         .map((twin) => twin.id);

@@ -1,0 +1,1 @@
+ALTER TABLE "checkout_orders" ADD CONSTRAINT "checkout_orders_request_id_unique" UNIQUE("request_id");

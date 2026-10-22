@@ -15,9 +15,10 @@ export default async function Documents() {
         Your paperwork, together.
       </h1>
       <p className="mt-4 mb-8 max-w-2xl text-sm leading-7 text-muted-foreground">
-        Original fictional receipts and a sample care card. Publicly
-        downloadable for judging; not real purchase evidence, manufacturer
-        manuals, or warranty coverage. Personal uploads are not supported.
+        Original sample documents and receipts from verified sandbox captures,
+        when available. Every document is source-labeled and publicly
+        downloadable for judging. No real-money receipts, manufacturer manuals,
+        personal uploads or warranty coverage are implied.
       </p>
       <DocumentList documents={data.documents} />
     </Shell>

@@ -33,11 +33,14 @@ export function findTwin(data: DemoData, id: string) {
       record.merchantId === data.merchant.id,
   );
   if (!twin) return undefined;
-  const product = data.products.find(
+  const catalogProduct = data.products.find(
     (record) =>
       record.id === twin.productId && record.merchantId === twin.merchantId,
   );
-  if (!product) return undefined;
+  if (!catalogProduct) return undefined;
+  const product = twin.productSnapshot
+    ? { ...catalogProduct, ...twin.productSnapshot }
+    : catalogProduct;
   return {
     twin,
     product,

@@ -25,6 +25,9 @@ export default defineConfig({
     command: "pnpm start --port 3100",
     url: "http://127.0.0.1:3100/api/health",
     reuseExistingServer: false,
-    env: { DEMO_DATA_SOURCE: process.env.E2E_DATA_SOURCE ?? "fixtures" },
+    env: {
+      DEMO_DATA_SOURCE: process.env.E2E_DATA_SOURCE ?? "fixtures",
+      PAYPAL_CHECKOUT_ENABLED: "false",
+    },
   },
 });

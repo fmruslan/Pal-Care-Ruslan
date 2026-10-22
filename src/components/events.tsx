@@ -31,7 +31,7 @@ export function Events({ events }: { events: CareEvent[] }) {
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-sm font-semibold">{event.title}</h3>
                   <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    Sample
+                    {event.origin === "sandbox" ? "Verified sandbox" : "Sample"}
                   </span>
                 </div>
                 <p className="mt-2 text-xs leading-6 text-muted-foreground">

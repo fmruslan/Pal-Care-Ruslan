@@ -10,13 +10,14 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   const data = await getDemoData();
   const document = data.documents.find(
-    (record) => record.id === id && record.origin === "sample",
+    (record) =>
+      record.id === id && ["sample", "sandbox"].includes(record.origin),
   );
   if (!document) return new Response("Not found", { status: 404 });
   return new Response(document.content, {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
-      "Content-Disposition": `attachment; filename="palcare-sample-${id}.txt"`,
+      "Content-Disposition": `attachment; filename="palcare-${document.origin}-${id}.txt"`,
       "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
     },

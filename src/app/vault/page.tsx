@@ -1,5 +1,6 @@
 import { Search } from "lucide-react";
 import { getDemoData } from "@/lib/demo/repository";
+import { findTwin } from "@/lib/demo/presentation";
 import { Shell } from "@/components/shell";
 import { TwinList } from "@/components/vault";
 import { Input } from "@/components/ui/input";
@@ -25,9 +26,7 @@ export default async function Vault({
   ];
   const ids = data.twins
     .filter((twin) => {
-      const product = data.products.find(
-        (record) => record.id === twin.productId,
-      );
+      const product = findTwin(data, twin.id)?.product;
       return (
         product &&
         `${product.name} ${product.brand} ${product.model}`
@@ -44,8 +43,8 @@ export default async function Vault({
       </p>
       <h1 className="mt-3 font-display text-4xl sm:text-5xl">Purchase vault</h1>
       <p className="mt-4 text-sm leading-7 text-muted-foreground">
-        A living record for every purchase. Explore {data.twins.length} sample
-        Purchase Twins.
+        A living record for every purchase. Explore {data.twins.length} Purchase
+        Twins. Samples and verified sandbox purchases are labeled separately.
       </p>
       <form
         action="/vault"
@@ -85,7 +84,7 @@ export default async function Vault({
         </Button>
       </form>
       <p role="status" className="mb-5 text-xs text-muted-foreground">
-        {ids.length} sample purchase{ids.length !== 1 && "s"}
+        {ids.length} purchase{ids.length !== 1 && "s"}
         {q && ` matching “${q}”`}
       </p>
       <TwinList data={data} ids={ids} />

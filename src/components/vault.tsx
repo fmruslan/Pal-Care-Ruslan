@@ -47,7 +47,7 @@ export function TwinList({ data, ids }: { data: DemoData; ids?: string[] }) {
                 {record.product.brand} / {record.product.category}
               </p>
               <span className="rounded-full bg-secondary px-2.5 py-1 text-[10px] font-semibold">
-                Sample
+                {twin.origin === "sandbox" ? "Verified sandbox" : "Sample"}
               </span>
             </div>
             <h2 className="mt-2 text-lg font-semibold">
@@ -59,7 +59,7 @@ export function TwinList({ data, ids }: { data: DemoData; ids?: string[] }) {
             </p>
             <div className="mt-5 flex items-center justify-between border-t pt-4">
               <span className="text-xs text-muted-foreground">
-                {record.documents.length} sample document
+                {record.documents.length} document
                 {record.documents.length !== 1 && "s"}
               </span>
               <Link
@@ -110,7 +110,10 @@ export function DocumentList({ documents }: { documents: CareDocument[] }) {
                 {document.title}
               </span>
               <p className="mt-1 text-xs text-muted-foreground">
-                Fictional document · plain text
+                {document.origin === "sandbox"
+                  ? "Verified sandbox receipt"
+                  : "Sample document"}{" "}
+                · plain text
               </p>
             </div>
           </div>

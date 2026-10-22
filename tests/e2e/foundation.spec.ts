@@ -12,7 +12,7 @@ test("public landing page opens customer demo without registration", async ({
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Alex");
   await expect(page.getByRole("note")).toContainText(
-    "All products, purchases, documents and events are fictional",
+    "Fictional products and customer",
   );
 });
 
@@ -20,7 +20,7 @@ test("vault search, filter and empty state work", async ({ page }) => {
   await page.goto("/vault");
   await page.getByLabel("Search purchases").fill("headphones");
   await page.getByRole("button", { name: "Search", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("1 sample purchase");
+  await expect(page.getByRole("status")).toContainText("1 purchase");
   await expect(
     page.getByRole("heading", { name: "Everyday headphones", exact: true }),
   ).toBeVisible();
@@ -34,7 +34,7 @@ test("vault search, filter and empty state work", async ({ page }) => {
   await page.getByRole("link", { name: "Show all purchases" }).click();
   await page.getByLabel("Category", { exact: true }).selectOption("Kitchen");
   await page.getByRole("button", { name: "Search", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("1 sample purchase");
+  await expect(page.getByRole("status")).toContainText("1 purchase");
   await expect(
     page.getByRole("heading", { name: "Pour-over kettle", exact: true }),
   ).toBeVisible();
@@ -50,7 +50,7 @@ test("Purchase Twin and downloadable receipt remain explicitly sample-only", asy
   );
   await expect(page.getByText("Not connected", { exact: true })).toBeVisible();
   await expect(
-    page.getByText("No model is connected in Stage 1.", { exact: false }),
+    page.getByText("No AI model is connected.", { exact: false }),
   ).toBeVisible();
   const download = await request.get(
     "/api/documents/00000000-0000-4000-8000-000000000301/download",
@@ -109,7 +109,7 @@ test("health endpoints and security headers are present", async ({
   const health = await request.get("/api/health");
   expect(await health.json()).toMatchObject({
     status: "ok",
-    payments: "not-implemented",
+    payments: "sandbox-configurable",
   });
   expect(health.headers()["x-frame-options"]).toBe("DENY");
   expect(health.headers()["x-content-type-options"]).toBe("nosniff");
@@ -119,7 +119,7 @@ test("health endpoints and security headers are present", async ({
   const ready = await request.get("/api/ready");
   expect(await ready.json()).toMatchObject({
     status: "ready",
-    records: "sample",
+    records: "demo",
   });
 });
 
@@ -129,6 +129,7 @@ for (const path of [
   "/vault",
   "/documents",
   "/merchant",
+  "/shop",
   "/vault/00000000-0000-4000-8000-000000000201",
 ]) {
   test(`accessible and responsive: ${path}`, async ({ page }) => {
