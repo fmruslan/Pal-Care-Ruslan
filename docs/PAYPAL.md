@@ -1,6 +1,6 @@
 # Stage 2 — PayPal Sandbox setup and verification
 
-**Live verification is currently blocked.** No PayPal credentials were supplied, no actual provider order/capture has been executed, and Stage 2's Definition of Done is not yet satisfied. The independent implementation/tests are available. Nothing silently substitutes mock payments.
+**Stage 2's Definition of Done is not yet satisfied.** Operational tests confirmed Sandbox credentials authenticate and an actual order was created/retrieved. Buyer approval encountered a hosted PayPal rejection; capture and automatic Twin creation have not been verified end to end. The original local checkout subsequently expired. The UI redesign does not fix either approval or expiry behavior. Nothing silently substitutes mock payments.
 
 ## Configure securely
 

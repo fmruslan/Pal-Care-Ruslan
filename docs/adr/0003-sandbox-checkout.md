@@ -1,6 +1,6 @@
 # ADR 0003: Bounded anonymous PayPal Sandbox checkout
 
-**Status:** Implementation tested independently; live PayPal verification blocked by missing account credentials.
+**Status:** Implementation tested independently. Operational OAuth/order creation and retrieval verified; buyer approval/capture and end-to-end Twin creation remain unverified. Checkout-expiry and approval diagnostics are separate from the frontend redesign.
 **Date:** 2026-10-21
 
 ## Decision

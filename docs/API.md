@@ -2,6 +2,8 @@
 
 Customer/merchant dashboards remain public and read-only. Explicitly enabled checkout endpoints can create/capture **Sandbox-only** orders for the originating anonymous browser, with durable global/session/order limits. They default off. No refunds, merchant editing, AI or real money.
 
+The premium appearance layer adds no HTTP endpoints. Light/Dark/System preference is browser-local; theme changes must not issue payment POSTs or change checkout authorization. All existing routes and financial behavior remain unchanged, including the separately tracked expiry defect.
+
 | Method | Path | Behavior |
 | --- | --- | --- |
 | GET | `/` | Product landing page and links to both demos |

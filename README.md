@@ -3,13 +3,19 @@
 **Everything you buy. Taken care of.**  
 *Powered by CareOS · Independent PayPal AI Hackathon project*
 
-> **Stage 2 implementation is available; actual PayPal Sandbox verification is BLOCKED by missing credentials. Stage 2 is not complete.** The catalog, session-bound checkout, official SDK integration, capture verification and automatic Purchase Twin persistence are independently tested. **Refunds, AI, sponsor integrations and webhooks are not yet implemented.** See [Implementation Status](docs/STATUS.md).
+> **Stage 2 is not complete.** Operational testing confirmed Sandbox authentication and real order creation/retrieval, but buyer approval, actual capture and automatic Twin creation remain unverified end to end. The premium Blue & Lavender redesign preserves the checkout implementation; it does not fix the approval issue or the separately tracked expiry defect. **Refunds, AI, sponsor integrations and webhooks are not yet implemented.** See [Implementation Status](docs/STATUS.md).
 
 Pal Care explores a new reason to choose PayPal: the purchase becomes the beginning of a useful care experience, rather than the end of a transaction.
 
 The product's central object is a **Purchase Twin**, a durable, item-level record created from an authorized merchant's verified PayPal sandbox purchase. **CareOS** connects that record to source-backed product documentation, relevant changes, eligibility checks, and approved outcomes.
 
 **Today:** explore three fictional sample Purchase Twins and `/shop`. Checkout is disabled until real Sandbox credentials are configured; there is no mock payment fallback. When enabled, an actual verified capture creates a separately labeled sandbox Twin. Both dashboards remain public without registration, and no merchant-edit or refund actions are exposed. See [PayPal setup and live verification](docs/PAYPAL.md), [ADR 0002](docs/adr/0002-public-render-demo.md) and [ADR 0003](docs/adr/0003-sandbox-checkout.md).
+
+## Appearance
+
+Pal Care's original product-passport identity uses blue for commerce, lavender for planned CareOS intelligence, and spacious white or midnight surfaces. **System is the default:** Light/Dark overrides are available from the appearance selector and persist locally. Geist Sans uses the maintained package's bundled, self-hosted fonts—no custom font service or browser request to Google Fonts.
+
+See [Design system and visual references](docs/DESIGN.md). The Purchase Twin is the signature experience; planned AI and sample/verified-sandbox labels remain explicit in both themes.
 
 ## Product at a glance
 
@@ -129,6 +135,7 @@ docs/ARCHITECTURE.md  Data flows, services and payment safeguards
 docs/INTEGRATIONS.md Technology partners and external API boundaries
 docs/JUDGING.md      Judge-oriented evidence and demonstration criteria
 docs/STATUS.md       Explicit working vs. planned functionality
+docs/DESIGN.md       Light/dark tokens, component rules and visual references
 docs/SECURITY.md     Threat model and authorization requirements
 docs/adr/             Architecture decisions
 AGENTS.md             OpenCode engineering expectations
@@ -138,6 +145,6 @@ LICENSE               MIT open-source license
 
 ## Contributing and license
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). Licensed under [MIT](LICENSE).
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). Application code is licensed under [MIT](LICENSE). Geist fonts retain their [SIL Open Font License](public/licenses/geist-OFL.txt), also served at `/licenses/geist-OFL.txt`.
 
 **Brand note:** “Pal Care” is a provisional project name. The project uses its own identity and does not imply affiliation or endorsement by PayPal. Product names and trademarks belong to their respective owners.

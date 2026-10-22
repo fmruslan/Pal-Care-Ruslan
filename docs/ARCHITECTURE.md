@@ -4,7 +4,11 @@
 
 **Modular monolith** using Next.js 16 App Router, React, TypeScript and Drizzle on Render Managed PostgreSQL. Both dashboards are public demo views with one fixed fictional customer and merchant. No Supabase, customer registration, login, personal uploads or real-money payments are included. [ADR 0002](adr/0002-public-render-demo.md) supersedes the initial infrastructure/auth proposal.
 
-Stage 1 is implemented. Stage 2's checkout code and independent tests are implemented, but actual PayPal verification is blocked by missing credentials. AI, refunds, sponsors and workers remain planned. See [ADR 0003](adr/0003-sandbox-checkout.md).
+Stage 1 is implemented. Stage 2's code/tests are available; operational tests confirmed actual Sandbox OAuth and order creation/retrieval, but buyer approval/capture and automatic Twin creation remain unverified end to end. The premium UI redesign does not resolve those issues. AI, refunds, sponsors and workers remain planned. See [ADR 0003](adr/0003-sandbox-checkout.md).
+
+## Frontend appearance
+
+The original Blue & Lavender identity uses semantic CSS tokens for dedicated light/dark palettes, original theme-aware SVGs and reusable passport/card/status components. Geist Sans is self-hosted from the maintained `geist` package. `next-themes` wraps the root once, defaults to System and stores only appearance preference under `palcare-appearance`. The accessible selector and browser/native color-scheme synchronization do not call an API or remount checkout controls. Mobile/tablet navigation uses four bottom destinations; desktop retains a sidebar. See [ADR 0004](adr/0004-premium-appearance.md) and [Design system](DESIGN.md).
 
 ## Implemented foundation
 
