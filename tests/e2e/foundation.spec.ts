@@ -8,7 +8,9 @@ test("public landing page opens customer demo without registration", async ({
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
     "Everything you buy.",
   );
-  await page.getByRole("link", { name: "Explore customer demo" }).click();
+  await page
+    .getByRole("link", { name: "Explore Pal Care", exact: true })
+    .click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Alex");
   await expect(page.getByRole("note")).toContainText(

@@ -1,102 +1,83 @@
 import Link from "next/link";
-import { Archive, ArrowRight, FileText, HeartHandshake } from "lucide-react";
+import {
+  Archive,
+  ArrowRight,
+  FileText,
+  ShieldCheck,
+  CircleDollarSign,
+  CalendarDays,
+} from "lucide-react";
 import { getDemoData } from "@/lib/demo/repository";
 import { Shell } from "@/components/shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CareIllustration } from "@/components/care-illustration";
+import { Badge } from "@/components/ui/badge";
+import { PageHeading } from "@/components/page-heading";
+import { CareOSPanel } from "@/components/careos-panel";
 import { TwinList } from "@/components/vault";
 import { Events } from "@/components/events";
 
 export const metadata = { title: "Your care space" };
-
 export default async function Dashboard() {
   const data = await getDemoData();
   return (
     <Shell active="/dashboard" source={data.source}>
-      <div className="mb-7">
-        <p className="text-xs font-semibold uppercase tracking-[.18em] text-muted-foreground">
-          A LITTLE LESS TO THINK ABOUT
-        </p>
-        <h1 className="mt-3 font-display text-4xl tracking-tight sm:text-5xl">
-          Welcome to your care space, {data.customer.name}.
-        </h1>
-        <p className="mt-3 text-sm leading-7 text-muted-foreground">
-          The things you love. The details that matter. All together.
-        </p>
-      </div>
-      <section
-        aria-labelledby="hero-title"
-        className="grid overflow-hidden rounded-3xl bg-primary px-7 py-7 text-white sm:px-9 md:grid-cols-[1.3fr_1fr] md:items-center"
-      >
-        <div>
-          <span className="inline-flex rounded-full border border-white/25 px-3 py-1.5 text-[10px] font-semibold tracking-[.15em]">
-            YOUR PURCHASE, JUST THE BEGINNING
-          </span>
-          <h2
-            id="hero-title"
-            className="mt-5 max-w-lg font-display text-3xl leading-tight sm:text-4xl"
-          >
-            Good things deserve
-            <br />
-            <span className="text-[#dce9c8]">a little extra care.</span>
-          </h2>
-          <p className="mt-4 max-w-md text-sm leading-7 text-white/80">
-            Explore a Purchase Twin: one home for a product’s story, paperwork,
-            and what comes next.
-          </p>
-          <Button
-            asChild
-            className="mt-6 bg-[#e4edce] text-primary hover:bg-white"
-          >
-            <Link href="/vault">
-              Open purchase vault
+      <PageHeading
+        eyebrow="Your everyday, beautifully connected."
+        title={`A little less to think about, ${data.customer.name}.`}
+        description="Your purchases, paperwork, and product stories. All in a good place."
+        action={
+          <Button asChild variant="outline" className="hidden sm:inline-flex">
+            <Link href="/shop">
+              Explore the demo shop
               <ArrowRight aria-hidden="true" />
             </Link>
           </Button>
-        </div>
-        <div className="hidden sm:block">
-          <CareIllustration />
-        </div>
-      </section>
-      <div className="my-7 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        }
+      />
+      <div className="mb-8 grid grid-cols-3 gap-2 sm:gap-3">
         {[
-          {
-            icon: Archive,
-            value: data.twins.length,
-            label: "Purchase Twins · samples + sandbox",
-          },
+          { icon: Archive, value: data.twins.length, label: "Purchase Twins" },
           {
             icon: FileText,
             value: data.documents.length,
-            label: "Documents · source labeled",
+            label: "Documents together",
           },
           {
-            icon: HeartHandshake,
+            icon: ShieldCheck,
             value: data.twins.filter((twin) => twin.origin === "sandbox")
               .length,
             label: "Verified sandbox purchases",
           },
         ].map(({ icon: Icon, value, label }) => (
-          <Card key={label} className="flex items-center gap-4 py-5">
-            <span className="flex size-11 items-center justify-center rounded-2xl bg-secondary">
-              <Icon className="size-5" strokeWidth={1.5} aria-hidden="true" />
+          <div
+            key={label}
+            className="flex flex-col items-start gap-1 rounded-2xl border bg-card px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:px-5 sm:py-4"
+          >
+            <span className="inline-flex items-center gap-2">
+              <Icon
+                className="size-4 shrink-0 text-primary sm:size-5"
+                strokeWidth={1.6}
+                aria-hidden="true"
+              />
+              <span className="text-xl font-semibold tabular-nums">
+                {value}
+              </span>
             </span>
-            <div>
-              <p className="text-2xl font-semibold tracking-tight">{value}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{label}</p>
-            </div>
-          </Card>
+            <span className="text-xs leading-5 text-muted-foreground sm:text-sm">
+              {label}
+            </span>
+          </div>
         ))}
       </div>
       <section aria-labelledby="purchases-title">
         <div className="mb-5 flex items-center justify-between gap-4">
-          <h2 id="purchases-title" className="font-display text-2xl">
+          <h2 id="purchases-title" className="section-title">
             Your purchase vault
           </h2>
           <Link
             href="/vault"
-            className="inline-flex min-h-11 items-center gap-2 text-xs font-semibold"
+            className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary"
           >
             View all
             <ArrowRight className="size-4" aria-hidden="true" />
@@ -104,17 +85,49 @@ export default async function Dashboard() {
         </div>
         <TwinList data={data} />
       </section>
-      <section aria-labelledby="care-title" className="mt-9">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-          <h2 id="care-title" className="font-display text-2xl">
-            A little care, along the way.
-          </h2>
-          <span className="text-xs text-muted-foreground">
-            Source-labeled history · no live care monitoring
-          </span>
+      <div className="mt-9 grid items-start gap-6 xl:grid-cols-[1.4fr_1fr]">
+        <section aria-labelledby="care-title">
+          <div className="mb-5">
+            <h2 id="care-title" className="section-title">
+              A little care, along the way.
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Source-labeled history. Sample scenarios are not live monitoring.
+            </p>
+          </div>
+          <Events events={data.events} />
+        </section>
+        <div className="space-y-5 xl:pt-16">
+          <CareOSPanel compact />
+          {[
+            {
+              icon: CircleDollarSign,
+              title: "Price Guardian",
+              description:
+                "Find eligible price opportunities under a merchant’s policy. Price monitoring and refunds are not connected.",
+            },
+            {
+              icon: CalendarDays,
+              title: "Purchase Protection",
+              description:
+                "A place for return dates, supplied warranty terms, and official recall evidence. Live checks are not active.",
+            },
+          ].map(({ icon: Icon, title, description }) => (
+            <Card key={title} className="rounded-2xl">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="flex items-center gap-2 text-sm font-semibold">
+                  <Icon className="size-4 text-primary" aria-hidden="true" />
+                  {title}
+                </h3>
+                <Badge>Not active</Badge>
+              </div>
+              <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                {description}
+              </p>
+            </Card>
+          ))}
         </div>
-        <Events events={data.events} />
-      </section>
+      </div>
     </Shell>
   );
 }

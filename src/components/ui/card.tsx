@@ -6,7 +6,7 @@ export function Card({ className, ...props }: ComponentProps<"div">) {
     <div
       data-slot="card"
       className={cn(
-        "rounded-3xl border border-border bg-card p-6 shadow-[0_3px_16px_-12px_#253b36]",
+        "rounded-3xl border border-border bg-card p-6 shadow-card",
         className,
       )}
       {...props}

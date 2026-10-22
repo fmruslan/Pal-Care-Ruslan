@@ -1,19 +1,78 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #f7f8f3;
-  --foreground: #203e36;
+  --background: #fafbff;
+  --foreground: #172033;
   --card: #ffffff;
-  --primary: #214c3e;
+  --primary: #3157b7;
   --primary-foreground: #ffffff;
-  --secondary: #ecf0e5;
-  --secondary-foreground: #234b3c;
-  --muted-foreground: #5d6861;
-  --accent: #e5ecdf;
-  --border: #e0e5da;
-  --input: #d4ddd0;
-  --ring: #4b7352;
-  --coral: #c56b51;
+  --secondary: #eaf1ff;
+  --secondary-foreground: #3157b7;
+  --muted-foreground: #59667e;
+  --accent: #f2f6ff;
+  --border: #e2e8f3;
+  --input: #7c89a3;
+  --ring: #3157b7;
+  --brand: #4f7df3;
+  --intelligence: #f5f1ff;
+  --intelligence-foreground: #7354b3;
+  --lavender: #ad9af7;
+  --success: #116149;
+  --success-surface: #e9f7f0;
+  --warning: #80520c;
+  --warning-surface: #fff5df;
+  --danger: #a32942;
+  --danger-surface: #fff0f2;
+  --neutral: #f0f3f9;
+  --hero-start: #eef4ff;
+  --hero-end: #f4efff;
+  --art-surface: #eaf0fc;
+  --art-body: #6385df;
+  --art-edge: #304d9c;
+  --art-highlight: #c3d3ff;
+  --art-alt: #b7a5ef;
+  --art-shadow: #3157b7;
+  --elevation: 0 4px 24px -14px rgb(34 58 112 / 18%);
+  --elevation-hover: 0 16px 40px -22px rgb(49 87 183 / 30%);
+  color-scheme: light;
+}
+
+.dark {
+  --background: #0b1020;
+  --foreground: #f3f6ff;
+  --card: #121a2b;
+  --primary: #90afff;
+  --primary-foreground: #0b1020;
+  --secondary: #1a2540;
+  --secondary-foreground: #afc4ff;
+  --muted-foreground: #a9b5d0;
+  --accent: #202c46;
+  --border: #2d3954;
+  --input: #7182a4;
+  --ring: #afc4ff;
+  --brand: #90afff;
+  --intelligence: #292342;
+  --intelligence-foreground: #ddd2ff;
+  --lavender: #c4b5fd;
+  --success: #9ce0bf;
+  --success-surface: #142c29;
+  --warning: #ffd38f;
+  --warning-surface: #302818;
+  --danger: #ffb1bd;
+  --danger-surface: #351e2b;
+  --neutral: #1b2539;
+  --hero-start: #192848;
+  --hero-end: #28223f;
+  --art-surface: #1a2540;
+  --art-body: #87a8fa;
+  --art-edge: #cfddff;
+  --art-highlight: #b5cbff;
+  --art-alt: #bca9ed;
+  --art-shadow: #050918;
+  --elevation: 0 6px 28px -16px rgb(0 0 0 / 45%);
+  --elevation-hover: 0 16px 40px -20px rgb(0 0 0 / 65%);
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -29,9 +88,21 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-coral: var(--coral);
-  --font-sans: Arial, Helvetica, sans-serif;
-  --font-display: Georgia, "Times New Roman", serif;
+  --color-brand: var(--brand);
+  --color-intelligence: var(--intelligence);
+  --color-intelligence-foreground: var(--intelligence-foreground);
+  --color-lavender: var(--lavender);
+  --color-success: var(--success);
+  --color-success-surface: var(--success-surface);
+  --color-warning: var(--warning);
+  --color-warning-surface: var(--warning-surface);
+  --color-danger: var(--danger);
+  --color-danger-surface: var(--danger-surface);
+  --color-neutral: var(--neutral);
+  --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  --font-display: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  --shadow-card: var(--elevation);
+  --shadow-lift: var(--elevation-hover);
 }
 
 @layer base {
@@ -41,13 +112,30 @@
   body {
     background: var(--background);
     color: var(--foreground);
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    line-height: 1.2;
+  }
+  h1,
+  h2 {
+    letter-spacing: -0.04em;
+  }
+  select {
+    color: var(--foreground);
+    color-scheme: inherit;
   }
   a,
   button,
-  input {
+  input,
+  select {
     -webkit-tap-highlight-color: transparent;
+    scroll-margin-block: 6rem;
   }
   a:focus-visible {
     outline: 2px solid var(--ring);
@@ -59,7 +147,78 @@
     cursor: pointer;
   }
   ::selection {
-    background: #dbe8cb;
-    color: #203e36;
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+  }
+}
+
+@layer components {
+  .hero-wash {
+    background: linear-gradient(
+      125deg,
+      var(--hero-start),
+      var(--card) 50%,
+      var(--hero-end)
+    );
+  }
+  .intelligence-wash {
+    background: linear-gradient(140deg, var(--intelligence), var(--card));
+  }
+  .product-wash {
+    background:
+      radial-gradient(ellipse at 50% 25%, var(--card), transparent 65%),
+      var(--art-surface);
+  }
+  .passport-frame {
+    background: linear-gradient(
+      135deg,
+      var(--brand),
+      var(--border) 35%,
+      var(--lavender)
+    );
+    padding: 1px;
+    border-radius: 28px;
+  }
+  .passport-divider {
+    border-top: 1px dashed var(--input);
+    position: relative;
+  }
+  .section-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--primary);
+  }
+  .section-title {
+    font-size: clamp(1.35rem, 2.2vw, 1.75rem);
+    font-weight: 600;
+  }
+  .page-title {
+    font-size: clamp(2rem, 3.5vw, 3rem);
+    font-weight: 600;
+    line-height: 1.1;
+  }
+  .motion-card {
+    transition:
+      transform 180ms ease,
+      box-shadow 180ms ease,
+      border-color 180ms ease;
+  }
+  @media (hover: hover) {
+    .motion-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--elevation-hover);
+      border-color: var(--input);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

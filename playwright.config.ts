@@ -8,19 +8,41 @@ export default defineConfig({
   workers: 2,
   reporter: [["list"], ["html", { open: "never" }]],
   use: { baseURL: "http://127.0.0.1:3100", trace: "retain-on-failure" },
-  projects: [
+  snapshotPathTemplate: "{testDir}/visual/{projectName}/{arg}{ext}",
+  expect: {
+    toHaveScreenshot: {
+      animations: "disabled",
+      caret: "hide",
+      maxDiffPixelRatio: 0.005,
+    },
+  },
+  projects: (["light", "dark"] as const).flatMap((colorScheme) => [
     {
-      name: "desktop",
+      name: `desktop-${colorScheme}`,
       use: {
         ...devices["Desktop Chrome"],
         viewport: { width: 1440, height: 1000 },
+        colorScheme,
       },
     },
     {
-      name: "mobile",
-      use: { ...devices["iPhone 13"], defaultBrowserType: "chromium" },
+      name: `tablet-${colorScheme}`,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 834, height: 1112 },
+        hasTouch: true,
+        colorScheme,
+      },
     },
-  ],
+    {
+      name: `mobile-${colorScheme}`,
+      use: {
+        ...devices["iPhone 13"],
+        defaultBrowserType: "chromium" as const,
+        colorScheme,
+      },
+    },
+  ]),
   webServer: {
     command: "pnpm start --port 3100",
     url: "http://127.0.0.1:3100/api/health",

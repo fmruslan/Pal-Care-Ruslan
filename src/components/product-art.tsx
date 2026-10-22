@@ -5,141 +5,217 @@ export function ProductArt({
   kind: string;
   large?: boolean;
 }) {
-  const color =
-    kind === "kettle"
-      ? "bg-[#efe8dc]"
-      : kind === "speaker"
-        ? "bg-[#e7e8e3]"
-        : "bg-[#e6ecdf]";
   return (
     <div
       aria-hidden="true"
-      className={`flex items-center justify-center overflow-hidden rounded-2xl ${color} ${large ? "h-80" : "h-48"}`}
+      data-product-art={kind}
+      className={`product-wash relative flex items-center justify-center overflow-hidden rounded-[22px] ${large ? "min-h-80 h-full" : "h-48"}`}
     >
+      <div className="absolute inset-7 rounded-full border border-brand/10" />
+      <div className="absolute inset-12 rounded-full border border-dashed border-brand/15" />
       <svg
-        viewBox="0 0 240 180"
-        className={large ? "h-64 w-80" : "h-40 w-56"}
+        viewBox="0 0 280 210"
+        className={`relative drop-shadow-lg ${large ? "h-72 w-full max-w-96" : "h-44 w-60"}`}
         fill="none"
       >
         <ellipse
-          cx="122"
-          cy="157"
-          rx="60"
+          cx="140"
+          cy="185"
+          rx="68"
           ry="8"
-          fill="#203e36"
-          opacity=".08"
+          fill="var(--art-shadow)"
+          opacity=".12"
         />
         {kind === "headphones" ? (
           <>
             <path
-              d="M64 110V87a56 56 0 0 1 112 0v23"
-              stroke="#2a4138"
-              strokeWidth="15"
+              d="M72 126V94a68 68 0 0 1 136 0v32"
+              stroke="var(--art-edge)"
+              strokeWidth="17"
             />
             <path
-              d="M65 81a55 55 0 0 1 110 0"
-              stroke="#7b8e78"
-              strokeWidth="6"
+              d="M72 94a68 68 0 0 1 136 0"
+              stroke="var(--art-body)"
+              strokeWidth="13"
+            />
+            <path
+              d="M83 63a66 66 0 0 1 114 0"
+              stroke="var(--art-highlight)"
+              strokeWidth="3"
               strokeLinecap="round"
             />
+            <path
+              d="M75 119v31m130-31v31"
+              stroke="var(--art-alt)"
+              strokeWidth="9"
+            />
             <rect
-              x="52"
-              y="90"
-              width="34"
-              height="59"
-              rx="16"
-              fill="#273e35"
-              transform="rotate(-8 52 90)"
+              x="57"
+              y="109"
+              width="44"
+              height="68"
+              rx="21"
+              fill="var(--art-edge)"
+              transform="rotate(-9 57 109)"
             />
             <rect
               x="61"
-              y="94"
-              width="18"
-              height="48"
-              rx="9"
-              fill="#4b6150"
-              transform="rotate(-8 61 94)"
-            />
-            <rect
-              x="155"
-              y="85"
-              width="34"
-              height="59"
+              y="109"
+              width="32"
+              height="62"
               rx="16"
-              fill="#273e35"
-              transform="rotate(8 155 85)"
+              fill="var(--art-body)"
+              transform="rotate(-9 61 109)"
+            />
+            <path
+              d="M69 121v31"
+              stroke="var(--art-highlight)"
+              strokeWidth="3"
+              opacity=".8"
+              strokeLinecap="round"
+              transform="rotate(-9 69 121)"
             />
             <rect
-              x="161"
-              y="92"
-              width="18"
-              height="48"
-              rx="9"
-              fill="#4b6150"
-              transform="rotate(8 161 92)"
+              x="181"
+              y="103"
+              width="44"
+              height="68"
+              rx="21"
+              fill="var(--art-edge)"
+              transform="rotate(9 181 103)"
+            />
+            <rect
+              x="189"
+              y="109"
+              width="32"
+              height="62"
+              rx="16"
+              fill="var(--art-body)"
+              transform="rotate(9 189 109)"
+            />
+            <circle
+              cx="205"
+              cy="141"
+              r="5"
+              stroke="var(--art-highlight)"
+              strokeWidth="2"
             />
           </>
         ) : kind === "kettle" ? (
           <>
             <path
-              d="M155 75c48-18 55 50 9 49"
-              stroke="#465348"
-              strokeWidth="11"
+              d="M180 88c59-23 64 64 10 66"
+              stroke="var(--art-edge)"
+              strokeWidth="13"
             />
             <path
-              d="M84 76c-6 28-21 48-12 64 10 19 81 19 92 0 10-17-9-42-12-64Z"
-              fill="#e1b88d"
-              stroke="#a27d59"
+              d="M178 89c44-15 52 49 10 55"
+              stroke="var(--art-body)"
+              strokeWidth="5"
+            />
+            <path
+              d="M102 87c-3 29-24 58-14 78 12 23 94 23 107 0 12-22-10-49-12-78Z"
+              fill="var(--art-alt)"
+              stroke="var(--art-edge)"
               strokeWidth="2"
             />
             <path
-              d="M87 104C66 98 59 78 41 78l-8-12c26-4 41 9 53 16"
-              fill="#e1b88d"
-              stroke="#a27d59"
+              d="M105 115C78 109 68 81 45 82l-7-13c32-5 47 13 64 18"
+              fill="var(--art-alt)"
+              stroke="var(--art-edge)"
               strokeWidth="2"
             />
             <ellipse
-              cx="118"
-              cy="76"
-              rx="34"
-              ry="7"
-              fill="#f0d5b7"
-              stroke="#a27d59"
+              cx="142"
+              cy="87"
+              rx="41"
+              ry="9"
+              fill="var(--art-highlight)"
+              stroke="var(--art-edge)"
               strokeWidth="2"
             />
-            <rect x="110" y="61" width="16" height="12" rx="5" fill="#465348" />
             <path
-              d="M92 90c-5 19-14 35-11 44"
-              stroke="#f1d7bb"
+              d="M108 104c-3 24-17 40-14 53"
+              stroke="var(--card)"
               strokeWidth="5"
+              opacity=".65"
+              strokeLinecap="round"
+            />
+            <rect
+              x="132"
+              y="67"
+              width="20"
+              height="15"
+              rx="6"
+              fill="var(--art-edge)"
+            />
+            <path
+              d="M137 70h9"
+              stroke="var(--art-highlight)"
+              strokeWidth="2"
               strokeLinecap="round"
             />
           </>
         ) : (
           <>
-            <rect
-              x="71"
-              y="32"
-              width="98"
-              height="119"
-              rx="28"
-              fill="#52665a"
+            <path
+              d="M139 44v-8c0-12 19-12 19 0v16"
+              stroke="var(--art-edge)"
+              strokeWidth="7"
             />
-            <rect x="80" y="43" width="80" height="98" rx="20" fill="#8e9c89" />
-            {[0, 1, 2, 3, 4, 5, 6, 7].map((n) => (
+            <rect
+              x="84"
+              y="45"
+              width="115"
+              height="132"
+              rx="31"
+              fill="var(--art-edge)"
+            />
+            <rect
+              x="86"
+              y="45"
+              width="105"
+              height="128"
+              rx="29"
+              fill="var(--art-body)"
+            />
+            <rect
+              x="96"
+              y="59"
+              width="83"
+              height="101"
+              rx="21"
+              fill="var(--art-highlight)"
+            />
+            {Array.from({ length: 9 }, (_, row) => (
               <path
-                key={n}
-                d={`M87 ${54 + n * 10}h66`}
-                stroke="#536651"
+                key={row}
+                d={`M105 ${71 + row * 10}h66`}
+                stroke="var(--art-edge)"
                 strokeWidth="2"
-                strokeDasharray="2 4"
+                strokeDasharray="2 5"
+                opacity=".65"
               />
             ))}
-            <rect x="112" y="22" width="16" height="19" rx="7" fill="#344e40" />
+            <rect
+              x="125"
+              y="109"
+              width="25"
+              height="22"
+              rx="7"
+              fill="var(--art-body)"
+            />
             <path
-              d="M119 26v8"
-              stroke="#d8e2ce"
+              d="M133 120h9m-4-4v8"
+              stroke="var(--art-edge)"
               strokeWidth="2"
+              strokeLinecap="round"
+            />
+            <path
+              d="M101 54h62"
+              stroke="var(--card)"
+              strokeWidth="2"
+              opacity=".5"
               strokeLinecap="round"
             />
           </>

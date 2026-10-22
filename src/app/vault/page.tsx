@@ -1,13 +1,14 @@
-import { Search } from "lucide-react";
+import { Search, Archive } from "lucide-react";
 import { getDemoData } from "@/lib/demo/repository";
 import { findTwin } from "@/lib/demo/presentation";
 import { Shell } from "@/components/shell";
 import { TwinList } from "@/components/vault";
+import { PageHeading } from "@/components/page-heading";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export const metadata = { title: "Purchase vault" };
-
 export default async function Vault({
   searchParams,
 }: {
@@ -38,18 +39,21 @@ export default async function Vault({
     .map((twin) => twin.id);
   return (
     <Shell active="/vault" source={data.source}>
-      <p className="text-xs font-semibold uppercase tracking-[.18em] text-muted-foreground">
-        EVERYTHING, IN ITS PLACE
-      </p>
-      <h1 className="mt-3 font-display text-4xl sm:text-5xl">Purchase vault</h1>
-      <p className="mt-4 text-sm leading-7 text-muted-foreground">
-        A living record for every purchase. Explore {data.twins.length} Purchase
-        Twins. Samples and verified sandbox purchases are labeled separately.
-      </p>
+      <PageHeading
+        eyebrow="Your ownership library"
+        title="Purchase vault"
+        description="The things you chose. A home for every detail. Samples and verified sandbox purchases are always labeled separately."
+        action={
+          <Badge tone="blue">
+            <Archive className="size-3.5" aria-hidden="true" />
+            {data.twins.length} Purchase Twins
+          </Badge>
+        }
+      />
       <form
         action="/vault"
         role="search"
-        className="my-7 flex flex-col gap-3 sm:flex-row"
+        className="mb-6 flex flex-col gap-3 rounded-2xl border bg-card p-4 sm:flex-row"
       >
         <label className="relative flex-1">
           <span className="sr-only">Search purchases</span>
@@ -71,7 +75,7 @@ export default async function Vault({
             aria-label="Category"
             name="category"
             defaultValue={categories.includes(category) ? category : "all"}
-            className="h-12 w-full rounded-xl border bg-card px-4 text-sm sm:w-40"
+            className="h-12 w-full rounded-xl border border-input bg-card px-4 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:w-44"
           >
             <option value="all">All categories</option>
             {categories.map((value) => (
@@ -79,11 +83,9 @@ export default async function Vault({
             ))}
           </select>
         </label>
-        <Button type="submit" className="rounded-xl">
-          Search
-        </Button>
+        <Button type="submit">Search</Button>
       </form>
-      <p role="status" className="mb-5 text-xs text-muted-foreground">
+      <p role="status" className="mb-5 text-sm text-muted-foreground">
         {ids.length} purchase{ids.length !== 1 && "s"}
         {q && ` matching “${q}”`}
       </p>

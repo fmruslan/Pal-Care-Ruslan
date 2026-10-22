@@ -149,7 +149,7 @@ export function CheckoutControls({
     <div className="space-y-5">
       <div
         role="status"
-        className="rounded-2xl bg-secondary p-5 text-sm leading-7"
+        className="rounded-2xl border bg-secondary p-5 text-sm leading-7 text-secondary-foreground"
       >
         {busy
           ? "Checking this checkout…"
@@ -173,7 +173,7 @@ export function CheckoutControls({
         <p
           role="alert"
           aria-label="Checkout error"
-          className="rounded-xl border p-4 text-sm leading-7"
+          className="rounded-xl border bg-danger-surface p-4 text-sm leading-7 text-danger"
         >
           {error}
         </p>
@@ -230,7 +230,7 @@ export function CheckoutControls({
       )}
       <Link
         href="/shop"
-        className="inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-4"
+        className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline underline-offset-4"
       >
         Back to demo catalog
       </Link>
