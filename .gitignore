@@ -1,0 +1,32 @@
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.sqlite
+*.sqlite3
+
+# Generated output and dependencies
+node_modules/
+.next/
+out/
+build/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Local and customer data
+.DS_Store
+*.log
+*.local
+uploads/
+private/
+receipts/
+customer-data/
+*.bak
+*.zip
