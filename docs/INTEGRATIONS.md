@@ -1,10 +1,10 @@
 # Integration contracts and sponsor strategy
 
-PayPal checkout is implemented and independently tested. **The single controlled follow-up Sandbox purchase has actual buyer approval; its capture is `PENDING / ECHECK`, independently retrieved through Orders v2 and Payments v2. No completed capture or automatic Twin is claimed.** AI/sponsor integrations remain planned. Local PostgreSQL works; Render hosting is unverified. Track evidence in [Implementation Status](STATUS.md). Never commit real credentials.
+PayPal checkout is implemented and independently tested. **The separately approved immediate-payment case has actual completed Orders/Payments capture evidence and exactly one durable Twin/receipt/policy/event. Repeated read-only verification passed without duplicates; Stage 2's bounded purchase/Twin slice is complete.** The separate eCheck remains preserved and is not claimed cleared. AI/sponsor integrations and webhooks remain planned. Local PostgreSQL works; Render hosting is unverified. Track [acceptance evidence](evidence/STAGE2-VERIFICATION.md) and [Implementation Status](STATUS.md). Never commit real credentials.
 
 | Provider | Planned use | Reference |
 | --- | --- | --- |
-| PayPal Sandbox | Orders v2 create/get/capture + Payments v2 capture retrieval via official SDK 2.5.0; live verification blocked; refunds/webhooks deferred | https://developer.paypal.com/ |
+| PayPal Sandbox | Actual completed Orders/Payments capture and automatic Twin verified via official SDK 2.5.0; refunds/webhooks deferred | https://developer.paypal.com/ |
 | Official PayPal Next.js starter | Trusted checkout reference | https://developer.paypal.com/guides/nextjs-checkout |
 | PayPal Postman workspace | Create/capture/refund/error testing | https://www.postman.com/paypal |
 | Hosted AI model API | Structured product/policy understanding and care answers | Provider and model to be selected |

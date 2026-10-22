@@ -4,7 +4,7 @@
 
 **Modular monolith** using Next.js 16 App Router, React, TypeScript and Drizzle on Render Managed PostgreSQL. Both dashboards are public demo views with one fixed fictional customer and merchant. No Supabase, customer registration, login, personal uploads or real-money payments are included. [ADR 0002](adr/0002-public-render-demo.md) supersedes the initial infrastructure/auth proposal.
 
-Stage 1 is implemented. Stage 2's code/tests and expiry fix are available. The controlled follow-up Sandbox purchase has actual buyer approval, but its capture remains `PENDING / ECHECK` in Orders/Payments v2; completed-capture/Twin verification is still incomplete. The approved premium UI is preserved. AI, refunds, sponsors and workers remain planned. See [ADR 0003](adr/0003-sandbox-checkout.md).
+Stage 1 and the bounded Stage 2 Sandbox purchase/Twin flow are implemented and locally verified. A separately authorized USD 129.00 immediate-payment purchase has matching actual completed Orders/Payments evidence and exactly one durable Twin/receipt/policy/event; two read-only verifier runs preserved all records. The earlier eCheck remains separately pending/unverified locally and unchanged by that verification. The approved premium UI is preserved. AI, refunds, sponsors, workers and webhooks remain planned. See [acceptance evidence](evidence/STAGE2-VERIFICATION.md) and [ADR 0003](adr/0003-sandbox-checkout.md).
 
 ## Frontend appearance
 

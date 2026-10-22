@@ -1,6 +1,6 @@
 # Stage 2 — PayPal Sandbox setup and verification
 
-**Stage 2's Definition of Done is not yet satisfied.** One controlled follow-up Sandbox purchase was approved by the correct Personal buyer. Its order is `COMPLETED`, but its capture is **`PENDING / ECHECK`** in both Orders v2 and Payments v2; no verified completed payment or automatic Twin is claimed. The expired-checkout follow-up fixes deadline presentation and blocks stale approval/capture/retry controls. Nothing silently substitutes mock payments.
+**Stage 2's scoped Sandbox purchase/Twin acceptance is complete.** The separately approved immediate-payment case has actual `COMPLETED` Orders v2 and Payments v2 evidence for USD 129.00, exactly one durable Twin/receipt/policy/purchase event, and two successful read-only verifier runs without duplicates or changes. The earlier eCheck remains separately preserved and is not claimed cleared. Webhooks/refunds/AI/public deployment remain incomplete. [Sanitized actual-provider evidence](evidence/STAGE2-VERIFICATION.md).
 
 ## Configure securely
 
@@ -41,8 +41,8 @@ pnpm paypal:verify LOCAL_CHECKOUT_UUID
 
 This command performs **read-only** provider/DB verification; it never creates or captures payments. A successful result requires current Orders v2 and Payments v2 responses plus the saved Twin/receipt. It prints selected evidence only, not credentials or payer data. Save the run evidence privately; do not mark Stage 2 complete solely from unit/CI results.
 
-7. Repeat the capture/status action for the same checkout: it must return the same Twin and no second charge. Verify the provider operation in PayPal's Sandbox activity/API logs.
-8. Exercise buyer cancellation, an unapproved return, provider failure/negative testing, and an interrupted response. None may create a completed Twin without authoritative evidence. Provider declines and actual sandbox negative tests remain unverified until credentials are available.
+7. Repeat read-only verification for the same checkout: it must retain the same Twin and exact record counts. Use only the reconciliation action for any separately authorized status check; never blindly resubmit an uncertain capture. Review selected provider-operation diagnostics privately.
+8. Keep regression coverage for cancellation, unapproved returns, provider failure and interrupted responses. No scenario may create a verified Twin without authoritative evidence. Automated negatives use labeled doubles/intercepted transport; every external provider negative scenario has not been executed or claimed. Stage 2 completion records the actual bounded happy path and its independent safeguards, not production certification.
 
 ## Pending and failed checkouts
 
@@ -66,7 +66,9 @@ Migration 0004 subsequently separated the observed capture identity from the ori
 
 ### One separate immediate-payment test
 
-The user conditionally approved **one additional, separate USD 129.00 headphones test**, not a retry/replacement of the pending eCheck. Do not create it until code tests pass **and** the user confirms at least USD 129.00 available balance on the previously verified Personal Sandbox buyer. Do not make a bank transfer, change the old capture, clear it manually, reset its marker/deadline, or use mock completion evidence.
+**Executed and verified:** this one separately approved USD 129.00 headphones test completed at `2026-10-22T23:02:00Z`, and actual-provider/read-only database acceptance passed at 23:04–23:05 UTC. The following procedure records its gates; it does not authorize another purchase. [Evidence](evidence/STAGE2-VERIFICATION.md).
+
+The user approved the test conditionally, not as a retry/replacement of the pending eCheck. Before creation, code tests had to pass **and** the user had to confirm at least USD 129.00 available balance on the previously verified Personal Sandbox buyer. No bank transfer, old-capture modification, manual clearance, marker/deadline reset or mock completion was authorized.
 
 Implementation: migration `0005_redundant_doomsday.sql` adds a nullable per-order payment preference. Old rows remain null, and old create bodies omit the field exactly as before. Server-only `PAYPAL_IMMEDIATE_TEST_REQUEST_ID` and `PAYPAL_IMMEDIATE_TEST_SESSION_HASH` reserve one request in the existing browser; `PAYPAL_IMMEDIATE_TEST_BALANCE_CONFIRMED=false` blocks new creation while keeping existing status/reconciliation services available. All three variables must be valid together. No raw cookie is stored in configuration and no session digest is sent to the client. Restart the process after configuration changes; do not rotate the reserved request ID to bypass the one-order approval.
 
@@ -75,6 +77,8 @@ Once tests pass and the user confirms sufficient available USD balance, set only
 After one Buy click, verify the new checkout's saved `IMMEDIATE_PAYMENT_REQUIRED` preference, distinct identifiers, merchant, USD 129.00 amount and deadline before proceeding to PayPal. On PayPal's review page the user must explicitly select **PayPal balance**. Stop before approval if it is unavailable/insufficient or a checking account/eCheck/other source is selected. The immediate preference is not balance-only and does not guarantee approval. The API may identify a PayPal wallet without independently proving its underlying balance funding; record funding selection as user-confirmed unless actual provider evidence exposes it.
 
 After actual approval, use the normal one-capture flow and independently retrieve Orders v2 and Payments v2. Only matching completed evidence creates the new Twin once. If approval, funding, capture or verification fails or stays pending, preserve this separate checkout and stop—no extra purchases or blind capture retries. Keep the earlier eCheck separate and untouched. See [ADR 0005](adr/0005-single-immediate-sandbox-test.md).
+
+For the completed case, `pnpm paypal:verify caf0a232-650e-43c3-a06a-55267e1ffd6b` passed twice with exit 0 and the same Twin. Supplemental read-only queries asserted exactly one Twin, one Sandbox receipt, one sample demo policy and one Sandbox purchase event; complete target snapshots were identical before/after repetition. The old eCheck's prior-field digest and zero linked-Twin count also stayed unchanged. Verification made no order-create, capture or refund requests. Full provider references/logs remain private; only sanitized outcomes are in Git.
 
 ### Controlled follow-up to the original expired checkout
 

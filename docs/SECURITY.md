@@ -14,7 +14,7 @@ Sensitive assets include database URLs, PayPal app credentials/OAuth tokens, ano
 - Headers deny framing/object embedding and enable MIME sniffing protection, permissions and referrer policies. This is a baseline, not a complete production CSP or independent security audit.
 - Future financial/merchant actions need separate operator authorization. Persistent rate limits and paid-resource budgets must be implemented **before** exposing those endpoints; they are not claimed as implemented now.
 
-### Implemented checkout safeguards (completed settlement not yet live-verified)
+### Implemented checkout safeguards (actual Sandbox happy path verified; not production certification)
 
 - 256-bit HttpOnly/SameSite=Lax browser cookie; Secure on HTTPS. Only SHA-256 token digests are stored. A checkout UUID/return token is not authorization.
 - Exact Origin checks, JSON-only 2 KiB request bodies, UUID/product allowlists; no visitor-supplied amount/currency/merchant parameters.

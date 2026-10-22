@@ -86,4 +86,4 @@ Use the internal database URL between Render resources. For external administrat
 
 ## Next-stage configuration (not used now)
 
-See [PAYPAL.md](PAYPAL.md) for the Stage 2 app/merchant/buyer setup and actual verification checklist. Cookie authorization, durable quotas/idempotency and verified capture persistence are implemented independently, but actual PayPal calls remain blocked. Webhooks remain deferred. AI, Channel3, AG Studio and refunds come later.
+See [PAYPAL.md](PAYPAL.md) for Sandbox app/merchant/buyer setup and verification. Stage 2's bounded completed-purchase/Twin flow now has actual local provider/database acceptance evidence, in addition to independent security/idempotency regressions. New environments still need explicit private configuration and their own verification; no credentials or completed capture are seeded into preview data. Webhooks, AI, Channel3, AG Studio and refunds remain deferred. [Evidence](evidence/STAGE2-VERIFICATION.md).

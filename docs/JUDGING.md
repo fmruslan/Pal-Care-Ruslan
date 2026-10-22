@@ -1,6 +1,6 @@
 # Judge-oriented guide
 
-**Current status:** Public dashboards, sample records, catalog and Stage 2 checkout code/tests are implemented, with the approved premium System-default light/dark presentation and a separate expiry fix. **The single follow-up Sandbox purchase was approved by the correct Personal buyer, but Orders/Payments v2 both report its capture as `PENDING / ECHECK`. Stage 2 is not complete.** No completed capture, automatic Twin or refund is claimed. AI, refunds and sponsors remain unimplemented. See [Implementation Status](STATUS.md), [visual references](DESIGN.md) and the [live verification checklist](PAYPAL.md). The flagship flow remains planned.
+**Current status:** **Stage 2's bounded Sandbox purchase/Twin flow is complete and locally verified.** The separately approved USD 129.00 immediate-payment case has matching actual completed Orders/Payments capture evidence, a displayed Purchase Twin, exactly one receipt/policy/purchase event and two read-only verifier passes without changed records or duplicates. The earlier eCheck is preserved separately and is not claimed cleared. AI, refunds, sponsors, webhooks and public Render deployment remain incomplete; the broader flagship flow is still a target. See [actual-provider evidence](evidence/STAGE2-VERIFICATION.md), [Implementation Status](STATUS.md) and [visual references](DESIGN.md).
 
 ## Why Pal Care?
 
@@ -8,8 +8,8 @@ AI shopping agents help consumers purchase items. Pal Care tests the idea that P
 
 ## Planned flagship demonstration
 
-1. Complete a genuine PayPal Sandbox order/capture for a controlled merchant and sandbox buyer.
-2. Automatically create an item-level Purchase Twin, payment record, receipt and available policy/documents.
+1. Complete a genuine PayPal Sandbox order/capture for a controlled merchant and sandbox buyer. **Stage 2 case B verified.**
+2. Automatically create an item-level Purchase Twin, payment record, receipt and available policy/documents. **Stage 2 case B verified; the attached policy remains a labeled sample.**
 3. Replay a **clearly labeled simulated merchant price change** through real application logic.
 4. Inspect the recorded merchant-policy version and deterministic eligibility calculation.
 5. Have an authorized merchant user approve the price adjustment.
@@ -32,14 +32,19 @@ AI shopping agents help consumers purchase items. Pal Care tests the idea that P
 - [x] Reproducible runnable foundation build (not yet an eligible PayPal + AI submission).
 - [x] Complete foundation source and top-level MIT license.
 - [x] Documented setup, migrations, sample data and automated tests.
+- [x] Actual completed Sandbox capture and automatic Twin/receipt/policy/event evidence, with repeated read-only verification; not a refund, webhook or AI claim.
 - [ ] Public YouTube demo **under 3 minutes**.
 - [ ] Devpost description with genuine PayPal, AI and sponsor details.
 - [ ] Working judge access through December 15, 2026.
 - [x] Public browsing requires no login. Future operator/provider secrets remain private.
 
-## Proof to add once implemented
+## Available proof
 
-- Verified PayPal capture and refund IDs/status (redacted as appropriate).
+- [Sanitized Stage 2 acceptance report](evidence/STAGE2-VERIFICATION.md): actual APIs, correct USD amount/merchant, exact PostgreSQL counts, two exit-0 verification runs and preservation of the separate pending case. Full provider references/logs remain private; the report is not mock evidence.
+
+## Remaining proof once implemented
+
+- Actual PayPal refund IDs/status and refund reconciliation (redacted as appropriate); capture evidence already exists for Stage 2.
 - Code references for idempotency, approval, webhook signature validation and deduplication.
 - Actual CPSC source records and documented product matching.
 - Channel3 returned product records with source/price timestamps.

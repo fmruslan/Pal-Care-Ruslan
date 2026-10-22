@@ -1,6 +1,6 @@
 # ADR 0005: One conditionally approved immediate-payment Sandbox test
 
-**Status:** Accepted implementation; no provider order authorized until tests pass and the buyer confirms sufficient Sandbox USD balance.
+**Status:** Accepted, implemented and executed once. Tests and buyer balance confirmation preceded creation; actual completed capture/Twin acceptance passed on 2026-10-22. The consumed request does not authorize another purchase. [Evidence](../evidence/STAGE2-VERIFICATION.md).
 **Date:** 2026-10-22
 
 ## Scope
@@ -21,6 +21,6 @@ The user approved exactly one **separate** USD 129.00 Everyday headphones purcha
 
 Offline payload tests compare the full legacy body, not just the absence of one field. Dedicated PostgreSQL tests cover unconfirmed balance, wrong browser/request/SKU/price, persisted preference before dispatch, duplicate/concurrent creation, lost cookies, retry across configuration changes and separate old-pending/new-completed records. Outcome fixtures remain test doubles, not live evidence.
 
-Before creating the real test order, finish quality/regression checks, preserve a read-only baseline of the old checkout, apply migration 0005 without changing its existing fields, start the new scope unarmed, and obtain explicit balance confirmation. No order, buyer approval or completed capture is claimed by this ADR.
+The required quality/regression checks, old-checkout read-only baseline, migration 0005, unarmed startup and explicit buyer balance confirmation were completed before the single new order was created. The user reported PayPal balance selected and approved once. Actual Orders/Payments completed-capture evidence and exact database counts were then checked, and `pnpm paypal:verify` passed twice with unchanged records. The earlier eCheck remained untouched. These execution claims come from the linked actual-provider evidence, not the specification or provider doubles alone.
 
 See [controlled-test procedure](../PAYPAL.md#one-separate-immediate-payment-test) and the [official Orders v2 schema](https://developer.paypal.com/api/orders/v2/schema.json).

@@ -3,13 +3,13 @@
 **Everything you buy. Taken care of.**  
 *Powered by CareOS · Independent PayPal AI Hackathon project*
 
-> **Stage 2 is not complete.** One controlled Sandbox purchase now has actual buyer approval and a capture reported as **PENDING / ECHECK** by both Orders v2 and Payments v2. No completed payment or automatic Purchase Twin is claimed while that capture is pending. The Stage 2 follow-up fixes expired-checkout controls without changing the approved Blue & Lavender design. **Refunds, AI, sponsor integrations and webhooks are not yet implemented.** See [Implementation Status](docs/STATUS.md).
+> **Stage 2 is complete for the bounded Sandbox checkout and automatic Purchase Twin flow.** Actual Orders v2 and Payments v2 both confirmed a completed USD 129.00 capture; PostgreSQL contains exactly one Twin, receipt, policy snapshot and purchase event. `pnpm paypal:verify` passed twice without changes or duplicates. The separate pending eCheck is preserved and is not claimed cleared. **Refunds, AI, sponsor integrations and webhooks are not yet implemented. Public Render deployment remains incomplete.** See [verification evidence](docs/evidence/STAGE2-VERIFICATION.md) and [Implementation Status](docs/STATUS.md).
 
 Pal Care explores a new reason to choose PayPal: the purchase becomes the beginning of a useful care experience, rather than the end of a transaction.
 
 The product's central object is a **Purchase Twin**, a durable, item-level record created from an authorized merchant's verified PayPal sandbox purchase. **CareOS** connects that record to source-backed product documentation, relevant changes, eligibility checks, and approved outcomes.
 
-**Today:** explore three fictional sample Purchase Twins and `/shop`. Checkout is disabled until real Sandbox credentials are configured; there is no mock payment fallback. When enabled, an actual verified capture creates a separately labeled sandbox Twin. Both dashboards remain public without registration, and no merchant-edit or refund actions are exposed. See [PayPal setup and live verification](docs/PAYPAL.md), [ADR 0002](docs/adr/0002-public-render-demo.md) and [ADR 0003](docs/adr/0003-sandbox-checkout.md).
+**Today:** bundled preview mode still contains three explicitly fictional sample Twins. The local database also contains the actually verified Sandbox purchase; it is not seeded into fixtures. Checkout defaults off, requires explicit Sandbox configuration and has no mock payment fallback. Both dashboards remain read-only without registration, and no merchant-edit or refund actions are exposed. See [PayPal setup and verification](docs/PAYPAL.md), [ADR 0002](docs/adr/0002-public-render-demo.md) and [ADR 0003](docs/adr/0003-sandbox-checkout.md).
 
 ## Appearance
 
@@ -54,12 +54,12 @@ Pal Care is an independent hackathon concept and **not an official PayPal produc
 | Frontend and backend | Next.js 16 App Router, React, TypeScript, Tailwind CSS, shadcn/ui |
 | Purchase records | Render Managed PostgreSQL 17; Drizzle ORM and versioned SQL migrations |
 | Demo identity and documents | Fixed fictional customer/merchant; public sample text documents; no login or uploads |
-| AI intelligence | Server-side multimodal model API, schema validation with Zod, source-grounded explanations |
-| Payment workflow | Official PayPal Server SDK 2.5.0, Orders v2 and Payments v2; redirect buyer approval; live verification blocked; webhooks deferred |
-| Product safety | US Consumer Product Safety Commission (CPSC) public recall data |
-| Replacement discovery | Channel3 API; real merchant product records and links |
-| Merchant intelligence | AG Studio, including agent-driven analysis and custom widgets |
-| Deployment | Render web service and scheduled/background work |
+| AI intelligence | Planned server-side model API and grounded explanations; not connected |
+| Payment workflow | Official PayPal Server SDK 2.5.0; actual Sandbox Orders/Payments completed-capture and Twin verification passed; webhooks deferred |
+| Product safety | Planned CPSC source-backed matching; no live recall monitoring |
+| Replacement discovery | Planned Channel3 integration; not connected |
+| Merchant intelligence | Planned AG Studio integration; not connected |
+| Deployment | Render preparation exists; public deployment and workers not verified |
 | Testing | Vitest, Playwright, Postman; GitHub Actions CI |
 | Development | OpenCode on a Tailscale-connected remote server; Mac client |
 
@@ -85,7 +85,7 @@ Expired, unattempted checkouts now show an explicit expired status and no approv
 
 For an existing attempted payment, **Check payment status** uses a reconciliation-only action: authenticated Orders v2 and Payments v2 GETs, never another capture. Pending eChecks remain unverified with an explicit explanation; failed/declined captures create no Twin. Only matching completed evidence creates the Twin, receipt, policy and purchase event exactly once. Apply reviewed migrations through `0004_minor_whizzer.sql` before using this version. [Reconciliation contract](docs/API.md#capture-reconciliation-contract) · [Future Render webhook assessment](docs/PAYPAL-WEBHOOKS.md).
 
-A separately approved, single USD 129.00 Sandbox balance experiment now has an operator-scoped immediate-payment preference. It stays paused until code checks pass and the buyer confirms sufficient available USD balance. Existing payments and payloads are unchanged; no new order or completed payment is implied by preparation. Apply reviewed migration `0005_redundant_doomsday.sql` before enabling this code. [Controlled-test procedure](docs/PAYPAL.md#one-separate-immediate-payment-test).
+A separately approved, single USD 129.00 Sandbox balance experiment completed after tests and explicit buyer balance confirmation. Its snapshotted immediate-payment preference did not alter older payloads or the separate eCheck. The reserved request remains one-order scoped—do not rotate it or create additional purchases without approval. Apply reviewed migrations through `0005_redundant_doomsday.sql` before enabling this code. [Controlled-test procedure](docs/PAYPAL.md#one-separate-immediate-payment-test).
 
 Quality checks:
 

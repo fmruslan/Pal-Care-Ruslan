@@ -1,6 +1,8 @@
-# HTTP surface — Stage 2 implementation (live PayPal verification blocked)
+# HTTP surface — Stage 2 Sandbox purchase/Twin flow verified
 
 Customer/merchant dashboards remain public and read-only. Explicitly enabled checkout endpoints can create/capture **Sandbox-only** orders for the originating anonymous browser, with durable global/session/order limits. They default off. No refunds, merchant editing, AI or real money.
+
+Actual Orders/Payments completed-capture and exactly-one Twin/receipt/policy/event acceptance passed for the separately approved USD 129.00 case. Repeated read-only verification preserved all records. This is not a webhook, production-readiness or blanket provider-negative-testing claim; the separate eCheck remains preserved. [Evidence](evidence/STAGE2-VERIFICATION.md).
 
 The premium appearance layer adds no HTTP endpoints. Light/Dark/System preference is browser-local; theme changes must not issue payment POSTs or change checkout authorization. The Stage 2 expiry follow-up preserves those appearance and authorization boundaries.
 

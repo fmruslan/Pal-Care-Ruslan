@@ -1,6 +1,6 @@
 # ADR 0003: Bounded anonymous PayPal Sandbox checkout
 
-**Status:** Implementation/expiry fix tested independently. Operational OAuth, order creation/retrieval and one controlled buyer approval verified; the actual capture remains `PENDING / ECHECK`, so completed-capture/Twin verification is incomplete. Checkout expiry and operational verification are separate from the approved frontend redesign.
+**Status:** Accepted and implemented; bounded Stage 2 Sandbox purchase/Twin acceptance passed on 2026-10-22. The separately authorized immediate-payment case has matching actual completed capture evidence and exactly-one durable Twin/receipt/policy/event; two read-only verifier runs preserved all records. The prior eCheck remains separately preserved and is not claimed cleared. Checkout expiry/operational verification are separate from the approved redesign. [Evidence](../evidence/STAGE2-VERIFICATION.md).
 **Date:** 2026-10-21
 
 ## Decision
