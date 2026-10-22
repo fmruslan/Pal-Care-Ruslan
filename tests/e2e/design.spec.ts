@@ -136,6 +136,8 @@ test("theme changes preserve checkout state and never create extra financial POS
     approvalUrl: null,
     twinId: null,
     error: null,
+    expiresAt: "2099-01-01T00:00:00.000Z",
+    captureAttempted: false,
   };
   await page.route(`**/api/checkout/orders/${id}`, (route) =>
     route.fulfill({ json: view }),

@@ -3,7 +3,7 @@
 **Everything you buy. Taken care of.**  
 *Powered by CareOS · Independent PayPal AI Hackathon project*
 
-> **Stage 2 is not complete.** Operational testing confirmed Sandbox authentication and real order creation/retrieval, but buyer approval, actual capture and automatic Twin creation remain unverified end to end. The premium Blue & Lavender redesign preserves the checkout implementation; it does not fix the approval issue or the separately tracked expiry defect. **Refunds, AI, sponsor integrations and webhooks are not yet implemented.** See [Implementation Status](docs/STATUS.md).
+> **Stage 2 is not complete.** One controlled Sandbox purchase now has actual buyer approval and a capture reported as **PENDING / ECHECK** by both Orders v2 and Payments v2. No completed payment or automatic Purchase Twin is claimed while that capture is pending. The Stage 2 follow-up fixes expired-checkout controls without changing the approved Blue & Lavender design. **Refunds, AI, sponsor integrations and webhooks are not yet implemented.** See [Implementation Status](docs/STATUS.md).
 
 Pal Care explores a new reason to choose PayPal: the purchase becomes the beginning of a useful care experience, rather than the end of a transaction.
 
@@ -81,6 +81,8 @@ Open `http://localhost:3000`. Explore `/dashboard`, `/vault`, `/documents`, `/sh
 
 See [Setup & Render deployment](docs/SETUP.md) for PostgreSQL and hosting, and [PayPal Sandbox setup](docs/PAYPAL.md) for credentials, safety limits and the actual end-to-end verification checklist. Browsing needs no PayPal account. Sandbox checkout needs a fictional PayPal buyer; never commit buyer passwords.
 
+Expired, unattempted checkouts now show an explicit expired status and no approval/capture/retry controls; they cannot be revived by a stale return URL. Previously attempted captures remain reconcilable after the deadline without a second capture. [Deadline contract](docs/API.md#checkout-deadline-contract).
+
 Quality checks:
 
 ```bash
@@ -88,6 +90,8 @@ pnpm check
 pnpm format:check
 pnpm exec playwright install chromium
 pnpm test:e2e
+# If another local preview uses port 3100:
+E2E_PORT=3104 pnpm test:e2e
 # With a dedicated TEST_DATABASE_URL configured:
 pnpm test:integration
 # Run browser tests against PostgreSQL-backed records:

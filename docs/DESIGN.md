@@ -68,6 +68,6 @@ Update visual baselines deliberately with `pnpm test:e2e --update-snapshots`, in
 
 ## Known, separate checkout issues
 
-- The PayPal buyer/merchant approval rejection is not resolved by this redesign. Actual capture and automatic Twin creation remain unverified end to end.
-- An expired unattempted checkout may still expose approval controls before the financial service rejects capture. This known state/expiry defect is deliberately unchanged; it needs its own tested change, not a cosmetic workaround or extension of an old deadline.
+- The redesign did not resolve the PayPal buyer/merchant approval rejection. The separate Stage 2 follow-up achieved one actual approval, but its capture is pending `ECHECK`; completed-capture/Twin verification remains incomplete. See [status](STATUS.md) rather than treating appearance as payment evidence.
+- The expiry defect was deliberately outside the redesign. The separate Stage 2 follow-up now derives expiry and removes stale approval/capture/retry controls without altering this design or extending old deadlines; [status](STATUS.md) records current verification.
 - Redesign tests disable live checkout. Intercepted checkout UI responses and injected service doubles are never described as actual PayPal verification.

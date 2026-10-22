@@ -9,6 +9,8 @@ const view = {
   twinId: null,
   error: null,
   product: {},
+  expiresAt: "2099-01-01T00:00:00.000Z",
+  captureAttempted: false,
 };
 
 test("catalog stays public and honestly disabled without credentials", async ({
@@ -39,6 +41,9 @@ test("mock UI transport: successful return navigates to the returned Twin once",
   page,
 }) => {
   let calls = 0;
+  await page.route(`**/api/checkout/orders/${checkoutId}`, (route) =>
+    route.fulfill({ json: view }),
+  );
   await page.route(
     `**/api/checkout/orders/${checkoutId}/capture`,
     async (route) => {
@@ -83,6 +88,9 @@ test("mock UI transport: declined and pending payments never show completion", a
   page,
 }) => {
   let state = "pending";
+  await page.route(`**/api/checkout/orders/${checkoutId}`, (route) =>
+    route.fulfill({ json: view }),
+  );
   await page.route(
     `**/api/checkout/orders/${checkoutId}/capture`,
     async (route) => {
@@ -110,6 +118,113 @@ test("mock UI transport: declined and pending payments never show completion", a
     page.getByRole("alert", { name: "Checkout error" }),
   ).toContainText("declined");
   await expect(page).toHaveURL(/\/checkout\//);
+});
+
+for (const state of ["created", "create_unknown", "expired"]) {
+  test(`mock UI transport: expired ${state} hides approval/capture/retry and never auto-captures on return`, async ({
+    page,
+  }) => {
+    let posts = 0;
+    page.on("request", (request) => {
+      if (
+        request.method() === "POST" &&
+        request.url().includes("/api/checkout/")
+      )
+        posts++;
+    });
+    await page.route(`**/api/checkout/orders/${checkoutId}`, (route) =>
+      route.fulfill({
+        json: {
+          ...view,
+          state,
+          expiresAt: "2020-01-01T00:00:00Z",
+          error: "checkout_expired",
+          approvalUrl: "https://www.sandbox.paypal.com/checkoutnow?token=TEST",
+        },
+      }),
+    );
+    await page.goto(`/checkout/${checkoutId}?token=EXPIRED-UI-RETURN`);
+    await expect(page.getByRole("status")).toContainText(
+      "checkout has expired",
+    );
+    await expect(
+      page.getByRole("link", { name: "Continue to PayPal Sandbox" }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", {
+        name: /Check \/ complete|Retry original order creation|Cancel this checkout/,
+      }),
+    ).toHaveCount(0);
+    await page
+      .getByRole("combobox", { name: "Appearance" })
+      .selectOption("dark");
+    await expect(page.getByRole("status")).toContainText(
+      "checkout has expired",
+    );
+    expect(posts).toBe(0);
+  });
+}
+
+test("mock UI transport: open checkout expires without polling or sending a financial request", async ({
+  page,
+}) => {
+  await page.clock.install({ time: new Date("2026-10-22T12:00:00Z") });
+  let requests = 0;
+  page.on("request", (request) => {
+    if (request.url().includes("/api/checkout/")) requests++;
+  });
+  await page.route(`**/api/checkout/orders/${checkoutId}`, (route) =>
+    route.fulfill({
+      json: {
+        ...view,
+        expiresAt: "2026-10-22T12:00:05Z",
+        approvalUrl: "https://www.sandbox.paypal.com/checkoutnow?token=TEST",
+      },
+    }),
+  );
+  await page.goto(`/checkout/${checkoutId}`);
+  await expect(
+    page.getByRole("link", { name: "Continue to PayPal Sandbox" }),
+  ).toBeVisible();
+  await page.clock.fastForward(6000);
+  await expect(page.getByRole("status")).toContainText("checkout has expired");
+  await expect(
+    page.getByRole("link", { name: "Continue to PayPal Sandbox" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Check / complete this sandbox payment" }),
+  ).toHaveCount(0);
+  expect(requests).toBe(1);
+});
+
+test("mock UI transport: attempted pending capture remains reconcilable after deadline", async ({
+  page,
+}) => {
+  let captures = 0;
+  const pending = {
+    ...view,
+    state: "pending",
+    captureAttempted: true,
+    expiresAt: "2020-01-01T00:00:00Z",
+  };
+  await page.route(`**/api/checkout/orders/${checkoutId}`, (route) =>
+    route.fulfill({ json: pending }),
+  );
+  await page.route(`**/api/checkout/orders/${checkoutId}/capture`, (route) => {
+    captures++;
+    return route.fulfill({ json: pending });
+  });
+  await page.goto(`/checkout/${checkoutId}`);
+  await expect(page.getByRole("status")).toContainText(
+    "confirmation is pending",
+  );
+  await page
+    .getByRole("button", { name: "Check / complete this sandbox payment" })
+    .click();
+  await expect(page.getByRole("status")).toContainText(
+    "confirmation is pending",
+  );
+  expect(captures).toBe(1);
 });
 
 test("forged return parameters cannot bypass the disabled server boundary", async ({

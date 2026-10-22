@@ -1,6 +1,6 @@
 # Integration contracts and sponsor strategy
 
-PayPal checkout is implemented and independently tested. **Actual Sandbox OAuth and order creation/retrieval succeeded operationally; buyer approval/capture and end-to-end Twin creation remain unverified.** AI/sponsor integrations remain planned. Local PostgreSQL works; Render hosting is unverified. Track evidence in [Implementation Status](STATUS.md). Never commit real credentials.
+PayPal checkout is implemented and independently tested. **The single controlled follow-up Sandbox purchase has actual buyer approval; its capture is `PENDING / ECHECK`, independently retrieved through Orders v2 and Payments v2. No completed capture or automatic Twin is claimed.** AI/sponsor integrations remain planned. Local PostgreSQL works; Render hosting is unverified. Track evidence in [Implementation Status](STATUS.md). Never commit real credentials.
 
 | Provider | Planned use | Reference |
 | --- | --- | --- |

@@ -259,8 +259,84 @@ test("expired orders cannot initiate a capture", async () => {
     .where(eq(checkoutOrders.id, order.id));
   const result = await service.capture(order.id, hash);
   assert.equal(result.error, "checkout_expired");
+  assert.equal(result.state, "expired");
+  assert.equal(result.approvalUrl, null);
+  assert.equal(gateway.retrieveCalls.length, 0);
   assert.equal(gateway.captureCalls.length, 0);
   assert.equal(result.twinId, null);
+});
+
+test("view derives expiry without mutation and repeated start/capture cannot revive an unapproved order", async () => {
+  gateway.status = "CREATED";
+  const { hash, order, requestId } = await begin();
+  await db
+    .update(checkoutOrders)
+    .set({ expiresAt: new Date(Date.now() - 1000).toISOString() })
+    .where(eq(checkoutOrders.id, order.id));
+  const [before] = await db
+    .select()
+    .from(checkoutOrders)
+    .where(eq(checkoutOrders.id, order.id));
+  const expired = await service.view(order.id, hash);
+  assert.equal(expired.state, "expired");
+  assert.equal(expired.approvalUrl, null);
+  assert.equal(expired.captureAttempted, false);
+  assert.equal(expired.expiresAt, new Date(before.expiresAt).toISOString());
+  assert.equal(
+    (await service.start({ productId: order.product.id, requestId }, hash))
+      .state,
+    "expired",
+  );
+  assert.equal((await service.capture(order.id, hash)).state, "expired");
+  const [after] = await db
+    .select()
+    .from(checkoutOrders)
+    .where(eq(checkoutOrders.id, order.id));
+  assert.deepEqual(after, before);
+  assert.equal(gateway.createCalls.length, 1);
+  assert.equal(gateway.retrieveCalls.length, 0);
+  assert.equal(gateway.captureCalls.length, 0);
+  // Retire only the local unattempted checkout, keeping provider IDs/keys/deadline.
+  assert.equal((await service.cancel(order.id, hash)).state, "cancelled");
+  assert.equal((await service.capture(order.id, hash)).state, "cancelled");
+  const [retired] = await db
+    .select()
+    .from(checkoutOrders)
+    .where(eq(checkoutOrders.id, order.id));
+  assert.equal(retired.providerOrderId, before.providerOrderId);
+  assert.equal(retired.captureKey, before.captureKey);
+  assert.equal(retired.expiresAt, before.expiresAt);
+  assert.equal(retired.captureAttemptedAt, null);
+});
+
+test("expired ambiguous creation cannot retry the provider with an expired idempotency window", async () => {
+  gateway.failCreate = true;
+  const { hash, order } = await begin();
+  await db
+    .update(checkoutOrders)
+    .set({ expiresAt: new Date(Date.now() - 1000).toISOString() })
+    .where(eq(checkoutOrders.id, order.id));
+  assert.equal((await service.retryCreation(order.id, hash)).state, "expired");
+  assert.equal(gateway.createCalls.length, 1);
+  assert.equal(gateway.captureCalls.length, 0);
+});
+
+test("an already attempted capture reconciles after expiry without another capture", async () => {
+  gateway.captureError = "provider_unavailable";
+  gateway.completeBeforeError = true;
+  const { hash, order } = await begin();
+  assert.equal((await service.capture(order.id, hash)).state, "pending");
+  await db
+    .update(checkoutOrders)
+    .set({ expiresAt: new Date(Date.now() - 1000).toISOString() })
+    .where(eq(checkoutOrders.id, order.id));
+  const pending = await service.view(order.id, hash);
+  assert.equal(pending.state, "pending");
+  assert.equal(pending.captureAttempted, true);
+  const result = await service.capture(order.id, hash);
+  assert.equal(result.state, "completed");
+  assert.ok(result.twinId);
+  assert.equal(gateway.captureCalls.length, 1);
 });
 
 test("concurrent creation of the same browser request makes one provider order", async () => {

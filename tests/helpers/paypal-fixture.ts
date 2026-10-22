@@ -102,6 +102,7 @@ export class FakePayPal implements PayPalGateway {
   orders = new Map<string, CheckoutOrder>();
   createCalls: CheckoutOrder[] = [];
   captureCalls: { id: string; key: string }[] = [];
+  retrieveCalls: string[] = [];
   status = "APPROVED";
   captureStatus = "COMPLETED";
   failCreate = false;
@@ -125,6 +126,7 @@ export class FakePayPal implements PayPalGateway {
     };
   }
   async retrieve(id: string) {
+    this.retrieveCalls.push(id);
     if (this.retrieveGate) await this.retrieveGate;
     const fixture = providerFixture(
       this.orders.get(id)!,

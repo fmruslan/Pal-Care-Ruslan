@@ -1,6 +1,6 @@
 # Stage 2 — PayPal Sandbox setup and verification
 
-**Stage 2's Definition of Done is not yet satisfied.** Operational tests confirmed Sandbox credentials authenticate and an actual order was created/retrieved. Buyer approval encountered a hosted PayPal rejection; capture and automatic Twin creation have not been verified end to end. The original local checkout subsequently expired. The UI redesign does not fix either approval or expiry behavior. Nothing silently substitutes mock payments.
+**Stage 2's Definition of Done is not yet satisfied.** One controlled follow-up Sandbox purchase was approved by the correct Personal buyer. Its order is `COMPLETED`, but its capture is **`PENDING / ECHECK`** in both Orders v2 and Payments v2; no verified completed payment or automatic Twin is claimed. The expired-checkout follow-up fixes deadline presentation and blocks stale approval/capture/retry controls. Nothing silently substitutes mock payments.
 
 ## Configure securely
 
@@ -31,7 +31,7 @@ Blank values above are intentional, **not credentials**. Fill them privately. Ke
 1. Open `/shop` in the app browser. It must say **PayPal Sandbox only**, with enabled purchase buttons. Both dashboards remain freely browsable.
 2. Choose a fictional product. Pal Care saves the trusted price/product/policy and request keys before creating the actual sandbox order.
 3. Continue to PayPal Sandbox, approve using the fictional buyer, and return in the **same browser**. Browser checkout cookies are not portable between Postman, browsers or hosts.
-4. On return, the client submits a same-origin capture POST. Pal Care retrieves and validates the order, requests capture once, retrieves order/capture details, and creates the Twin atomically only if both completed evidence checks pass.
+4. On return, the client first reads checkout status. Only an eligible current or already-attempted reconcilable checkout proceeds to a same-origin capture POST; an expired unattempted checkout stops without that POST. Pal Care retrieves and validates the order, requests capture once, retrieves order/capture details, and creates the Twin atomically only if both completed evidence checks pass.
 5. Confirm the new Twin says **Verified PayPal Sandbox**, shows provider order/capture references, and appears in `/dashboard`, `/vault`, documents and merchant counts. Existing sample Twins must still say **Sample**.
 6. In the operator terminal, use the **local checkout UUID** from `/checkout/:uuid`, not the provider order ID:
 
@@ -49,6 +49,20 @@ This command performs **read-only** provider/DB verification; it never creates o
 The UI separates order creation, buyer approval, pending capture, failed/declined, cancelled, review-required and completed states. Return query parameters are never payment evidence. Creation retries reuse the saved request UUID/body within two hours. Unknown capture outcomes **never blindly resubmit capture**: the same browser's “Check / complete” action retrieves provider state and reconciles the original attempt.
 
 A pending capture that stays unconfirmed, expired creation, lost browser cookie, or verification mismatch needs operator investigation. Never reset an attempted-capture marker, fabricate a completed state or start another payment to hide uncertainty. A manual cancellation only stops an unattempted local checkout; it does not reverse a PayPal capture or imply a refund.
+
+Unattempted open checkouts expire visibly at the saved deadline without polling. Status reads derive expiry without writing a payment state. Approval/capture/creation-retry controls disappear, and the service blocks expired first operations. Already-attempted captures still reconcile after the deadline; their attempt markers and idempotency keys are never reset.
+
+### Actual pending eCheck evidence
+
+On 2026-10-22, the one authorized USD 129.00 follow-up purchase returned from buyer approval and requested capture once. Read-only Orders v2 and Payments v2 retrieval both confirmed the same capture as `PENDING`, with `status_details.reason: ECHECK`; the order-level status was `COMPLETED`. The payer matches the previously confirmed Personal Sandbox buyer and differs from the configured Business merchant. This is an actual provider-pending payment, not an approval rejection, completed capture, amount mismatch or invented sample payment.
+
+PostgreSQL retains its attempted-capture marker and original keys; the checkout remains pending with no verified Twin. A guarded normal-service reconciliation made zero provider mutation calls. Do not submit capture again or create another order to work around pending funding. Wait for or investigate the existing eCheck in PayPal Sandbox activity. No unverified settlement ETA or Sandbox clearing mechanism is assumed. When PayPal reports `COMPLETED` for the capture, reconcile the existing checkout and run the read-only verification command above. [Authoritative Payments v2 status schema](https://developer.paypal.com/api/payments/v2/schema.json).
+
+### Controlled follow-up to the original expired checkout
+
+On 2026-10-22, read-only reinspection of the original provider order returned HTTP 404. That means it was not retrievable, **not** that payment or provider cancellation was verified. PostgreSQL still showed an expired, unattempted local order, no capture reference/verification timestamps and no linked Twin. The existing cancellation service retired only that local checkout to `cancelled`; all provider references, snapshots, request keys and deadlines were retained. No capture or provider mutation was issued. Selected diagnostics are retained privately, not as raw provider bodies or browser cookies in Git.
+
+For the next authorized attempt, use the original non-Incognito Mac Chrome profile and exact configured localhost origin through its existing tunnel. Independently confirm the previously checked Personal Sandbox buyer, not the Business merchant, before clicking Buy **once**. Do not create an order in Postman or a server-side browser and move its approval link to another cookie jar. If hosted approval fails again, preserve the error/time and selected provider diagnostics, then stop without another order or capture retry. Account-profile/login facts remain user-confirmed unless independently observable; an unapproved order cannot establish the buyer's identity.
 
 ## Documents and privacy
 

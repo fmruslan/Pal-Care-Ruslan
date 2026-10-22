@@ -21,6 +21,7 @@ import {
 } from "./contracts";
 import type { CheckoutConfig } from "./config";
 import type { PayPalGateway } from "./paypal";
+import { checkoutHasExpired } from "./expiry";
 import {
   approvalLink,
   inspectCapturedPayment,
@@ -68,17 +69,24 @@ export class CheckoutService {
         ),
       );
     if (!order) throw new CheckoutError("checkout_not_found", 404);
+    const expired = checkoutHasExpired({
+      ...order,
+      captureAttempted: Boolean(order.captureAttemptedAt),
+    });
     const [twin] = await this.db
       .select({ id: purchaseTwins.id })
       .from(purchaseTwins)
       .where(eq(purchaseTwins.checkoutOrderId, id));
     return {
       id,
-      state: order.state,
+      state: expired ? "expired" : order.state,
       product: order.product,
-      approvalUrl: order.state === "created" ? order.approvalUrl : null,
+      approvalUrl:
+        !expired && order.state === "created" ? order.approvalUrl : null,
       twinId: twin?.id ?? null,
-      error: order.lastError,
+      error: expired ? "checkout_expired" : order.lastError,
+      expiresAt: new Date(order.expiresAt).toISOString(),
+      captureAttempted: Boolean(order.captureAttemptedAt),
     };
   }
 
@@ -154,7 +162,7 @@ export class CheckoutService {
     try {
       if (!["creating", "create_unknown"].includes(lease.order.state))
         return await this.view(id, sessionHash);
-      if (Date.now() > new Date(lease.order.expiresAt).getTime())
+      if (Date.now() >= new Date(lease.order.expiresAt).getTime())
         throw new CheckoutError("checkout_expired");
       const created = approvalLink(await this.paypal.create(lease.order));
       await this.update(id, lease.token, {
@@ -240,7 +248,11 @@ export class CheckoutService {
 
   async capture(id: string, sessionHash: string) {
     const current = await this.view(id, sessionHash);
-    if (["completed", "cancelled", "failed", "review"].includes(current.state))
+    if (
+      ["completed", "cancelled", "failed", "review", "expired"].includes(
+        current.state,
+      )
+    )
       return current;
     const lease = await this.claim(id, sessionHash);
     const order = lease.order;
@@ -248,13 +260,15 @@ export class CheckoutService {
     try {
       if (["completed", "cancelled", "failed", "review"].includes(order.state))
         return await this.view(id, sessionHash);
+      if (checkoutHasExpired({ ...order, captureAttempted: attempted }))
+        return await this.view(id, sessionHash);
       if (!order.providerOrderId) throw new CheckoutError("order_not_created");
       let result = inspectOrder(
         await this.paypal.retrieve(order.providerOrderId),
         order,
       );
       if (result.status === "APPROVED" && !order.captureAttemptedAt) {
-        if (Date.now() > new Date(order.expiresAt).getTime())
+        if (Date.now() >= new Date(order.expiresAt).getTime())
           throw new CheckoutError("checkout_expired");
         // Persist BEFORE the money-changing request. If the process dies, future
         // requests only reconcile; they never issue an uncertain second capture.

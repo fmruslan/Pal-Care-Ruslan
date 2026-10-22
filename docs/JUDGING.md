@@ -1,6 +1,6 @@
 # Judge-oriented guide
 
-**Current status:** Public dashboards, sample records, catalog and Stage 2 checkout code/tests are implemented, with a premium System-default light/dark presentation. **Actual Sandbox authentication and order creation/retrieval succeeded; buyer approval/capture and end-to-end Twin creation remain unverified. Stage 2 is not complete.** No successful capture or refund is claimed. AI, refunds and sponsors remain unimplemented. See [Implementation Status](STATUS.md), [visual references](DESIGN.md) and the [live verification checklist](PAYPAL.md). The flagship flow remains planned.
+**Current status:** Public dashboards, sample records, catalog and Stage 2 checkout code/tests are implemented, with the approved premium System-default light/dark presentation and a separate expiry fix. **The single follow-up Sandbox purchase was approved by the correct Personal buyer, but Orders/Payments v2 both report its capture as `PENDING / ECHECK`. Stage 2 is not complete.** No completed capture, automatic Twin or refund is claimed. AI, refunds and sponsors remain unimplemented. See [Implementation Status](STATUS.md), [visual references](DESIGN.md) and the [live verification checklist](PAYPAL.md). The flagship flow remains planned.
 
 ## Why Pal Care?
 

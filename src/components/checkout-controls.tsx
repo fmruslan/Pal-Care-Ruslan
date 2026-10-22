@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowUpRight, LoaderCircle } from "lucide-react";
 import { Button } from "./ui/button";
 import type { CheckoutView } from "@/lib/commerce/contracts";
+import { checkoutHasExpired } from "@/lib/commerce/expiry";
 
 const errorMessages: Record<string, string> = {
   checkout_unavailable:
@@ -103,8 +104,27 @@ export function CheckoutControls({
   const [order, setOrder] = useState<CheckoutView | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(true);
+  const [deadlineReached, setDeadlineReached] = useState(false);
   const initialized = useRef(false);
   const router = useRouter();
+  const expired = Boolean(
+    order &&
+    (order.state === "expired" || deadlineReached || checkoutHasExpired(order)),
+  );
+
+  useEffect(() => {
+    if (!order) return;
+    if (
+      order.captureAttempted ||
+      ["completed", "cancelled", "failed", "review"].includes(order.state)
+    )
+      return;
+    const remaining = new Date(order.expiresAt).getTime() - Date.now();
+    if (!Number.isFinite(remaining) || remaining <= 0) return;
+    // This timer only removes stale controls. It never polls or sends a payment request.
+    const timer = setTimeout(() => setDeadlineReached(true), remaining);
+    return () => clearTimeout(timer);
+  }, [order]);
 
   async function update(action?: "capture" | "cancel" | "retry") {
     setBusy(true);
@@ -126,9 +146,11 @@ export function CheckoutControls({
         return;
       }
       setOrder(data);
+      setDeadlineReached(checkoutHasExpired(data));
       if (data.state === "completed" && data.twinId)
         router.replace(`/vault/${data.twinId}`);
       else if (data.error) setError(message(data.error));
+      return data as CheckoutView;
     } catch {
       setError(
         "Connection interrupted. The payment is not confirmed; check its status again.",
@@ -140,7 +162,19 @@ export function CheckoutControls({
   useEffect(() => {
     if (initialized.current) return;
     initialized.current = true;
-    void update(cancelled ? "cancel" : returned ? "capture" : undefined);
+    void Promise.resolve().then(async () => {
+      if (cancelled) await update("cancel");
+      else {
+        const current = await update();
+        if (
+          returned &&
+          current &&
+          !checkoutHasExpired(current) &&
+          ["created", "capturing", "pending"].includes(current.state)
+        )
+          await update("capture");
+      }
+    });
     // Automatic reconciliation is deliberately one-shot, never a polling loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -153,21 +187,23 @@ export function CheckoutControls({
       >
         {busy
           ? "Checking this checkout…"
-          : order?.state === "completed"
-            ? "PayPal Sandbox capture verified. Opening your Purchase Twin…"
-            : order?.state === "cancelled"
-              ? "Checkout cancelled. Pal Care did not request a capture for this checkout."
-              : order?.state === "created"
-                ? "Ready for buyer approval. No completed payment has been verified."
-                : order?.state === "pending" || order?.state === "capturing"
-                  ? "Payment confirmation is pending. No verified Purchase Twin exists yet. A status check will reconcile the original capture, not send a second one."
-                  : order?.state === "create_unknown"
-                    ? "PayPal order creation could not be confirmed. Retry the original order creation below; its saved request identifier will be reused."
-                    : order?.state === "failed"
-                      ? "The sandbox payment failed. No verified Purchase Twin was created."
-                      : order?.state === "review"
-                        ? "This checkout needs operator review. It is not a verified purchase."
-                        : "This checkout has not been verified."}
+          : expired
+            ? "This checkout has expired. No additional capture will be requested. Return to the catalog when you are ready for a new checkout."
+            : order?.state === "completed"
+              ? "PayPal Sandbox capture verified. Opening your Purchase Twin…"
+              : order?.state === "cancelled"
+                ? "Checkout cancelled. Pal Care did not request a capture for this checkout."
+                : order?.state === "created"
+                  ? "Ready for buyer approval. No completed payment has been verified."
+                  : order?.state === "pending" || order?.state === "capturing"
+                    ? "Payment confirmation is pending. No verified Purchase Twin exists yet. A status check will reconcile the original capture, not send a second one."
+                    : order?.state === "create_unknown"
+                      ? "PayPal order creation could not be confirmed. Retry the original order creation below; its saved request identifier will be reused."
+                      : order?.state === "failed"
+                        ? "The sandbox payment failed. No verified Purchase Twin was created."
+                        : order?.state === "review"
+                          ? "This checkout needs operator review. It is not a verified purchase."
+                          : "This checkout has not been verified."}
       </div>
       {error && (
         <p
@@ -178,7 +214,7 @@ export function CheckoutControls({
           {error}
         </p>
       )}
-      {order?.state === "created" && order.approvalUrl && (
+      {!expired && !busy && order?.state === "created" && order.approvalUrl && (
         <Button asChild className="w-full">
           <a href={order.approvalUrl}>
             Continue to PayPal Sandbox
@@ -187,6 +223,7 @@ export function CheckoutControls({
         </Button>
       )}
       {order &&
+        !expired &&
         ![
           "completed",
           "cancelled",
@@ -204,7 +241,7 @@ export function CheckoutControls({
             Check / complete this sandbox payment
           </Button>
         )}
-      {order?.state === "created" && (
+      {!expired && order?.state === "created" && (
         <Button
           className="w-full"
           variant="ghost"
@@ -214,7 +251,7 @@ export function CheckoutControls({
           Cancel this checkout
         </Button>
       )}
-      {order?.state === "create_unknown" && (
+      {!expired && order?.state === "create_unknown" && (
         <Button
           className="w-full"
           disabled={busy}

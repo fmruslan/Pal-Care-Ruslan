@@ -42,11 +42,14 @@ export type CheckoutState =
   | "review";
 export type CheckoutView = {
   id: string;
-  state: CheckoutState;
+  // Expiry is derived from the saved deadline, not a new persisted payment state.
+  state: CheckoutState | "expired";
   product: ProductSnapshot;
   approvalUrl: string | null;
   twinId: string | null;
   error: string | null;
+  expiresAt: string;
+  captureAttempted: boolean;
 };
 
 export class CheckoutError extends Error {
