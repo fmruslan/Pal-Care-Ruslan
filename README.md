@@ -3,11 +3,13 @@
 **Everything you buy. Taken care of.**  
 *Powered by CareOS · Independent PayPal AI Hackathon project*
 
-> **Project status: Foundation / documentation.** This repository currently defines the product, architecture, implementation contracts, and judging plan. **The application, integrations, and hosted demo are not yet implemented.** Do not mistake planned features for working features. See [Implementation Status](docs/STATUS.md).
+> **Project status: Stage 1 application foundation implemented.** Public customer and merchant dashboards, sample Purchase Twins/documents/events, PostgreSQL + Drizzle migrations, and automated tests are available. **PayPal transactions, AI, sponsor integrations, and a hosted deployment are not yet implemented.** See [Implementation Status](docs/STATUS.md).
 
 Pal Care explores a new reason to choose PayPal: the purchase becomes the beginning of a useful care experience, rather than the end of a transaction.
 
 The product's central object is a **Purchase Twin**, a durable, item-level record created from an authorized merchant's verified PayPal sandbox purchase. **CareOS** connects that record to source-backed product documentation, relevant changes, eligibility checks, and approved outcomes.
+
+**Today:** explore three fictional sample Purchase Twins. They are not verified purchases. Both demo dashboards are public with no registration or login, and expose no merchant-write or money-movement actions. Render Managed PostgreSQL and Drizzle replace the initial Supabase proposal; see [ADR 0002](docs/adr/0002-public-render-demo.md).
 
 ## Product at a glance
 
@@ -41,10 +43,11 @@ Pal Care is an independent hackathon concept and **not an official PayPal produc
 
 ## Technology
 
-| Layer | Planned technology |
+| Layer | Technology and scope |
 | --- | --- |
 | Frontend and backend | Next.js 16 App Router, React, TypeScript, Tailwind CSS, shadcn/ui |
-| Purchase records, auth, files | Supabase PostgreSQL, Supabase Auth, private Supabase Storage; Drizzle ORM |
+| Purchase records | Render Managed PostgreSQL 17; Drizzle ORM and versioned SQL migrations |
+| Demo identity and documents | Fixed fictional customer/merchant; public sample text documents; no login or uploads |
 | AI intelligence | Server-side multimodal model API, schema validation with Zod, source-grounded explanations |
 | Payment workflow | PayPal Orders v2, Payments v2, verified webhooks, Sandbox merchant and buyer |
 | Product safety | US Consumer Product Safety Commission (CPSC) public recall data |
@@ -60,9 +63,32 @@ See [Architecture](docs/ARCHITECTURE.md), [Technical Integrations](docs/INTEGRAT
 
 ## Running the project
 
-**Not yet available.** This first commit is a documentation and repository-quality foundation. After the Next.js application is bootstrapped, this section must be replaced with verified installation, environment configuration, migrations, seed commands, test commands, and sample sandbox buyer instructions. See the [Implementation Status](docs/STATUS.md) for the exact distinction between planned and working pieces.
+Requires Node.js 22.23.x and pnpm 10.34.7. For the explicitly labeled fixture preview, **no account or credentials are required**:
 
-The repository itself can currently be verified without installing dependencies:
+```bash
+corepack enable
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+Open `http://localhost:3000`. Explore `/dashboard`, `/vault`, `/documents`, and `/merchant`. Bundled preview mode is labeled on every dashboard. Database mode is separately configured and tested; no database outage silently falls back to fixtures.
+
+See [Setup & Render deployment](docs/SETUP.md) for local PostgreSQL, environment variables, migrations, idempotent fictional seeds, dedicated integration tests and hosting instructions. No PayPal buyer credentials are needed yet.
+
+Quality checks:
+
+```bash
+pnpm check
+pnpm format:check
+pnpm exec playwright install chromium
+pnpm test:e2e
+# With a dedicated TEST_DATABASE_URL configured:
+pnpm test:integration
+# Run browser tests against PostgreSQL-backed records:
+E2E_DATA_SOURCE=database pnpm test:e2e
+```
+
+Repository documentation/configuration can also be checked separately:
 
 ```bash
 node scripts/verify-repository.mjs
@@ -78,7 +104,7 @@ This verifies only repository documentation and configuration. **It is not an ap
 - **Status / reviewer guide:** [Judging & Demo](docs/JUDGING.md)
 - **Demo URL:** *Pending deployment*
 - **Public video (under 3 minutes):** *Pending recording*
-- **Demo credentials:** *Pending secure judge-access setup; never commit private secrets*
+- **Dashboard access:** Public fictional demo, no login. Future operator credentials must never be committed or given unrestricted public access.
 
 Judges should evaluate only implemented behavior. A completed submission will include verifiable screenshots, a public demo, source code, an open-source license, and real sandbox capture/refund evidence. No simulated data will be described as a live provider event.
 
@@ -86,6 +112,15 @@ Judges should evaluate only implemented behavior. A completed submission will in
 
 ```text
 .github/              Repository automation, code ownership and PR template
+src/app/              Public demo pages and read-only API routes
+src/components/       Accessible UI and original product illustrations
+src/db/               Drizzle schema, connection, read-only queries and seed service
+src/lib/demo/         Fictional fixtures, presentation and server-only repository
+drizzle/              Reviewed SQL migrations and schema snapshots
+tests/                Unit, PostgreSQL integration and browser/accessibility tests
+render.yaml           Web service + private-network PostgreSQL Blueprint
+docs/SETUP.md         Local development, tests and Render deployment
+docs/API.md           Current read-only HTTP surface and future boundaries
 docs/PRODUCT.md       Product promise, requirements, scope and boundaries
 docs/ARCHITECTURE.md  Data flows, services and payment safeguards
 docs/INTEGRATIONS.md Technology partners and external API boundaries

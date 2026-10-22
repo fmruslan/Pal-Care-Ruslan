@@ -9,6 +9,10 @@
 - **Customers** who want reliable records, timely care information, and eligible savings.
 - **Participating merchants** who want to provide aftercare and resolve legitimate adjustments under their own policies.
 
+## Hackathon access model
+
+Both dashboards are public using one fixed fictional customer and merchant. No registration, login or real customer information is collected. Stage 1 contains sample products, Twins, original documents and illustrative events, not verified payments or active monitoring. Future consequential actions require separate server-side operator authorization and abuse controls. See [ADR 0002](adr/0002-public-render-demo.md).
+
 ## Five planned capabilities
 
 1. **Purchase Vault:** Verified orders, receipt records, warranty documents, merchant information, and supported manuals.

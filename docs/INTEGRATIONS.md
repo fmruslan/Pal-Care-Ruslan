@@ -1,6 +1,6 @@
 # Integration contracts and sponsor strategy
 
-All integrations below are **planned**, not implemented. Track actual evidence in [Implementation Status](STATUS.md). Never commit real credentials.
+External PayPal, AI and sponsor integrations below remain **planned**. The local PostgreSQL/Drizzle foundation works, but Render cloud hosting is not verified. Track actual evidence in [Implementation Status](STATUS.md). Never commit real credentials.
 
 | Provider | Planned use | Reference |
 | --- | --- | --- |
@@ -8,7 +8,7 @@ All integrations below are **planned**, not implemented. Track actual evidence i
 | Official PayPal Next.js starter | Trusted checkout reference | https://developer.paypal.com/guides/nextjs-checkout |
 | PayPal Postman workspace | Create/capture/refund/error testing | https://www.postman.com/paypal |
 | Hosted AI model API | Structured product/policy understanding and care answers | Provider and model to be selected |
-| Supabase | PostgreSQL, authentication, private documents | https://supabase.com/docs |
+| Render Managed PostgreSQL + Drizzle | Sample records, reviewed migrations and idempotent seed implemented locally; cloud deployment pending | https://render.com/docs/databases |
 | CPSC | Official U.S. recall data | https://www.cpsc.gov/Recalls/CPSC-Recalls-Application-Program-Interface-API-Information |
 | Channel3 | Real replacement product search, prices and links | https://paypalaihackathon.devpost.com/resources |
 | AG Studio | Agent-driven dashboards and custom merchant widgets | https://paypalaihackathon.devpost.com/details/aggrid |

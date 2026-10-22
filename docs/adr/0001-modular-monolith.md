@@ -1,6 +1,6 @@
 # ADR 0001: Modular monolith and commerce boundaries
 
-**Status:** Accepted for initial design
+**Status:** Historical initial design. Modular monolith retained; Supabase/auth/storage superseded by [ADR 0002](0002-public-render-demo.md).
 **Date:** 2026-10-21
 
 ## Context

@@ -7,6 +7,8 @@ const required = [
   'docs/PRODUCT.md', 'docs/ARCHITECTURE.md', 'docs/INTEGRATIONS.md',
   'docs/JUDGING.md', 'docs/SECURITY.md', 'docs/STATUS.md',
   'docs/adr/0001-modular-monolith.md',
+  'docs/adr/0002-public-render-demo.md', 'docs/SETUP.md', 'docs/API.md',
+  'package.json', 'pnpm-lock.yaml', 'render.yaml', 'src/db/schema.ts',
 ];
 const errors = required.filter(path => !existsSync(join(process.cwd(), path))).map(path => 'Missing: ' + path);
 if (existsSync('README.md')) {

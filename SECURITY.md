@@ -9,11 +9,11 @@ Please use GitHub's **private vulnerability reporting** feature when it is enabl
 ## Security priorities
 
 - PayPal access tokens and service-role credentials stay on the backend.
-- All purchase and document access is explicitly scoped to the correct user and merchant.
+- Public read-only views expose fictional records scoped to the fixed demo customer and merchant. Future consequential actions require separate server-side operator authority.
 - Payment amounts come from authoritative merchant records and code-enforced policy, never unvalidated model output.
 - Refunds require merchant approval, persistent idempotency keys and verification of provider status.
 - Webhook signatures must be checked before processing; duplicate notifications are safe.
-- Uploaded documents are treated as private data and untrusted prompt inputs.
+- Personal uploads are not supported. Sample documents are public fictional text attachments. Future external documents must be treated as untrusted input.
 - Public demos use synthetic customers and sandbox transactions only.
 
 Implementation detail: [docs/SECURITY.md](docs/SECURITY.md).

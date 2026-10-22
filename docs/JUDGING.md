@@ -1,6 +1,6 @@
 # Judge-oriented guide
 
-**Current status:** Documentation scaffold only; the application is **not implemented**. See [Implementation Status](STATUS.md). This page is a planned evidence checklist, not proof of completed integration.
+**Current status:** Stage 1 foundation implemented: public dashboards, fictional Purchase Twins/documents/events, PostgreSQL migrations/seeds and tests. PayPal, AI and sponsor integrations are not implemented. See [Implementation Status](STATUS.md). The flagship flow below remains a planned evidence checklist.
 
 ## Why Pal Care?
 
@@ -29,13 +29,13 @@ AI shopping agents help consumers purchase items. Pal Care tests the idea that P
 
 ## Submission checklist
 
-- [ ] Public functional app or reproducible runnable build.
-- [ ] Complete public source and top-level open-source license.
-- [ ] Documented setup, migrations, sample data and automated tests.
+- [x] Reproducible runnable foundation build (not yet an eligible PayPal + AI submission).
+- [x] Complete foundation source and top-level MIT license.
+- [x] Documented setup, migrations, sample data and automated tests.
 - [ ] Public YouTube demo **under 3 minutes**.
 - [ ] Devpost description with genuine PayPal, AI and sponsor details.
 - [ ] Working judge access through December 15, 2026.
-- [ ] Test credentials distributed securely, never committed.
+- [x] Public browsing requires no login. Future operator/provider secrets remain private.
 
 ## Proof to add once implemented
 

@@ -8,15 +8,59 @@ permissions:
   contents: read
 
 jobs:
-  documentation:
+  foundation:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: palcare
+          POSTGRES_DB: palcare_test
+          POSTGRES_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U palcare -d palcare_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://palcare:${{ github.run_id }}-${{ github.run_attempt }}@127.0.0.1:5432/palcare_test
+      TEST_DATABASE_URL: postgresql://palcare:${{ github.run_id }}-${{ github.run_attempt }}@127.0.0.1:5432/palcare_test
+      DEMO_DATA_SOURCE: database
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - name: Verify repository baseline
         run: node scripts/verify-repository.mjs
-
-# Once the Next.js app exists, add lint, typecheck, unit and build checks.
-# This workflow intentionally does not claim an unbuilt app was tested.
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm typecheck
+      - run: pnpm test
+      - name: PostgreSQL migrations, seeds and integrity tests
+        run: pnpm test:integration
+      - run: pnpm build
+      - name: Unavailable database readiness (real production server)
+        run: pnpm test:failure
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Fixture-preview browser and accessibility tests
+        run: pnpm test:e2e
+      - name: PostgreSQL-backed browser and accessibility tests
+        run: pnpm test:e2e
+        env:
+          E2E_DATA_SOURCE: database
+      - name: Browser artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
