@@ -12,7 +12,7 @@ Last updated: 2026-10-21
 | Documents and care history | **Implemented with sample data** | Three original public text attachments/events; no real manuals, uploads or active monitoring |
 | PostgreSQL / Drizzle migrations and seed | **Implemented; local PostgreSQL verified** | Six tables, reviewed SQL, repeatable migration/seed, relational and provenance constraints |
 | Read-only access and secure configuration | **Implemented for public sample scope** | Server-only repository, fixed demo IDs, read-only database sessions, validation, bounded pool/timeouts and baseline headers |
-| CI foundation | **Configured** | GitHub Actions runs quality checks, PostgreSQL integration and both browser modes; check latest run in repository Actions |
+| CI foundation | **Verified on GitHub** | [Passing foundation run](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/39709677502) at `b5a260a`; subsequent workflow hardening pins current Node 24 actions and Ubuntu 24.04; check latest run for current commit |
 | Render deployment preparation | **Prepared, not deployed** | `render.yaml`, private-network DB, readiness, pre-deploy migration/seed and setup guide; account/billing approval needed |
 | Supabase / customer login / private uploads | **Excluded by design** | Replaced by Render PostgreSQL and public fictional identities |
 | PayPal sandbox payment capture | Not started | Verified provider response |
