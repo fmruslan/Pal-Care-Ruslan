@@ -1,0 +1,26 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+const required = [
+  'README.md', 'LICENSE', 'AGENTS.md', 'CONTRIBUTING.md', 'SECURITY.md',
+  '.env.example', '.gitignore',
+  'docs/PRODUCT.md', 'docs/ARCHITECTURE.md', 'docs/INTEGRATIONS.md',
+  'docs/JUDGING.md', 'docs/SECURITY.md', 'docs/STATUS.md',
+  'docs/adr/0001-modular-monolith.md',
+];
+const errors = required.filter(path => !existsSync(join(process.cwd(), path))).map(path => 'Missing: ' + path);
+if (existsSync('README.md')) {
+  const text = readFileSync('README.md', 'utf8').toLowerCase();
+  for (const phrase of ['Pal Care', 'PayPal', 'Purchase Twin', 'CareOS', 'not yet implemented']) {
+    if (!text.includes(phrase.toLowerCase())) errors.push('README missing: ' + phrase);
+  }
+}
+if (existsSync('LICENSE') && !readFileSync('LICENSE', 'utf8').includes('MIT License')) {
+  errors.push('Expected visible MIT license');
+}
+if (errors.length) {
+  console.error('Repository baseline verification failed:\n' + errors.join('\n'));
+  process.exit(1);
+}
+console.log('Repository baseline OK: ' + required.length + ' required files present.');
+console.log('This is not an application build, sandbox payment test, or security audit.');
