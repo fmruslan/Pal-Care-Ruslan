@@ -8,6 +8,7 @@ import {
   PaypalWalletContextShippingPreference,
   PaypalExperienceUserAction,
   ItemCategory,
+  PayeePaymentMethodPreference,
 } from "@paypal/paypal-server-sdk";
 import type { CheckoutConfig } from "./config";
 import type { CheckoutOrder } from "../../db/schema";
@@ -53,6 +54,12 @@ export function createOrderBody(order: CheckoutOrder) {
           brandName: "Pal Care Sandbox Demo",
           shippingPreference: PaypalWalletContextShippingPreference.NoShipping,
           userAction: PaypalExperienceUserAction.PayNow,
+          ...(order.paymentMethodPreference === "IMMEDIATE_PAYMENT_REQUIRED"
+            ? {
+                paymentMethodPreference:
+                  PayeePaymentMethodPreference.ImmediatePaymentRequired,
+              }
+            : {}),
           returnUrl: `${order.returnOrigin}/checkout/${order.id}`,
           cancelUrl: `${order.returnOrigin}/checkout/${order.id}?cancel=1`,
         },

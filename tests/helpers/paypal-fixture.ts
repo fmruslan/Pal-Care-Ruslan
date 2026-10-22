@@ -81,6 +81,7 @@ export function unitOrder(): CheckoutOrder {
       merchantName: "Fictional fixture",
     },
     policy: { version: "unit", title: "Unit policy", content: "Test only" },
+    paymentMethodPreference: null,
     returnOrigin: testConfig.origin,
     expectedPayeeId: testConfig.merchantId,
     amountMinor: 12900,

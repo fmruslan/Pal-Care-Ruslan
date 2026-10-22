@@ -1,6 +1,9 @@
 import { ArrowRight, Layers2, LockKeyhole } from "lucide-react";
+import { cookies } from "next/headers";
 import { getDemoData } from "@/lib/demo/repository";
 import { checkoutAvailability } from "@/lib/commerce/config";
+import { CHECKOUT_COOKIE, checkoutTokenSchema } from "@/lib/commerce/contracts";
+import { sessionHash } from "@/lib/commerce/security";
 import { money } from "@/lib/demo/presentation";
 import { Shell } from "@/components/shell";
 import { Card } from "@/components/ui/card";
@@ -20,7 +23,12 @@ const descriptions: Record<string, string> = {
 };
 export default async function Shop() {
   const data = await getDemoData();
-  const checkout = checkoutAvailability();
+  const token = checkoutTokenSchema.safeParse(
+    (await cookies()).get(CHECKOUT_COOKIE)?.value,
+  );
+  const checkout = checkoutAvailability(
+    token.success ? sessionHash(token.data) : undefined,
+  );
   return (
     <Shell active="/shop" source={data.source}>
       <PageHeading
@@ -66,7 +74,19 @@ export default async function Shop() {
                   Sandbox USD · 1 item
                 </span>
               </div>
-              <BuyButton productId={product.id} enabled={checkout.enabled} />
+              <BuyButton
+                productId={product.id}
+                enabled={
+                  checkout.enabled &&
+                  (!checkout.allowedProductId ||
+                    checkout.allowedProductId === product.id)
+                }
+                approvedRequestId={
+                  checkout.allowedProductId === product.id
+                    ? checkout.approvedRequestId
+                    : undefined
+                }
+              />
               <p className="mt-3 text-center text-xs leading-6 text-muted-foreground">
                 Buyer approval required · No real money
               </p>

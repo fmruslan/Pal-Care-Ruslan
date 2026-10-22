@@ -28,6 +28,10 @@ export const startCheckoutSchema = z
   .object({ productId: z.uuid(), requestId: z.uuid() })
   .strict();
 export const CHECKOUT_COOKIE = "palcare_checkout";
+// Fixed scope of the explicitly approved one-order Sandbox experiment.
+export const IMMEDIATE_TEST_PRODUCT_ID = "00000000-0000-4000-8000-000000000101";
+export const IMMEDIATE_TEST_AMOUNT_MINOR = 12900;
+export type PaymentMethodPreference = "IMMEDIATE_PAYMENT_REQUIRED";
 export const checkoutTokenSchema = z.string().regex(/^[a-f0-9]{64}$/);
 export const providerIdSchema = z.string().regex(/^[A-Z0-9]{10,36}$/);
 export type CheckoutState =

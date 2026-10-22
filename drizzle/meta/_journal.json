@@ -36,6 +36,13 @@
       "when": 1792702612750,
       "tag": "0004_minor_whizzer",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792706958154,
+      "tag": "0005_redundant_doomsday",
+      "breakpoints": true
     }
   ]
 }

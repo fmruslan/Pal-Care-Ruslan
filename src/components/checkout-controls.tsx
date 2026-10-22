@@ -20,7 +20,7 @@ const errorMessages: Record<string, string> = {
   checkout_session_lost:
     "This request belongs to a different or lost browser session. No new order was created. Investigate the original checkout before starting another.",
   INSTRUMENT_DECLINED:
-    "PayPal declined the sandbox funding source. Start a new checkout with another sandbox funding source.",
+    "PayPal declined the sandbox funding source. Stop and review this checkout; do not start another purchase without operator approval.",
   verification_failed:
     "The PayPal response did not match the saved purchase. This checkout needs operator review; no verified Purchase Twin was created.",
   checkout_expired:
@@ -31,6 +31,12 @@ const errorMessages: Record<string, string> = {
     "PayPal reports that the existing capture failed. No verified Purchase Twin was created. Do not repeat capture.",
   capture_declined:
     "PayPal reports that the existing capture was declined. No verified Purchase Twin was created. Do not repeat capture.",
+  sandbox_balance_confirmation_required:
+    "This test is paused until sufficient available Sandbox USD balance is confirmed. No new order was created.",
+  sandbox_test_not_authorized:
+    "Only the single approved test in its originating browser is allowed. No additional order was created.",
+  sandbox_test_price_changed:
+    "The catalog price no longer matches the approved USD 129.00 test. No order was created; stop for operator review.",
 };
 function message(code: string | null) {
   return code
@@ -42,13 +48,15 @@ function message(code: string | null) {
 export function BuyButton({
   productId,
   enabled,
+  approvedRequestId,
 }: {
   productId: string;
   enabled: boolean;
+  approvedRequestId?: string | null;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const requestId = useRef<string | null>(null);
+  const requestId = useRef<string | null>(approvedRequestId ?? null);
   const router = useRouter();
   async function buy() {
     if (busy) return;

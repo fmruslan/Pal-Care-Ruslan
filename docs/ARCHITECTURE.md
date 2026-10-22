@@ -34,6 +34,8 @@ Provider calls happen outside DB transactions, guarded by durable leases. Comple
 
 `POST /api/checkout/orders/:uuid/reconcile` is read-only at PayPal and cannot start capture. It preserves the attempted-capture marker and deadline, validates Orders v2 relationships, pins the existing capture ID and independently retrieves that ID through Payments v2. Migrations 0003/0004 separate observed capture identity/status/reason/check-time from the original completed-payment evidence reference, preserving the Twin foreign-key boundary. Pending stays unverified; failed/declined captures produce terminal failure; both providers must supply matching completed capture evidence before exactly-once local finalization. Retries and concurrent browser checks reuse leases, quotas and unique references. Future webhooks must reuse this retrieval-only reconciliation path after separate signature verification and durable deduplication; see [assessment, not implementation](PAYPAL-WEBHOOKS.md).
 
+The single immediate-payment experiment is operator-scoped to one request/session, fixed USD 129.00 headphones SKU and explicit balance confirmation. Migration 0005 adds a nullable per-order preference; legacy nulls omit the field from the SDK body. The new preference is persisted before dispatch and reused from the saved record on retries, never inferred from current configuration. Request uniqueness prevents a second checkout, and existing status/reconciliation paths are unchanged. The merchant preference is not proof of balance funding or settlement. See [ADR 0005](adr/0005-single-immediate-sandbox-test.md).
+
 ```text
 Public customer demo           Public merchant demo (+ AG Studio later)
       |                                   |

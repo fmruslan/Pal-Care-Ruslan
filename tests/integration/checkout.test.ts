@@ -16,6 +16,7 @@ import {
 import { seedDemo } from "../../src/db/seed";
 import { readDemoData } from "../../src/db/read-demo";
 import { findTwin } from "../../src/lib/demo/presentation";
+import { createOrderBody } from "../../src/lib/commerce/paypal";
 import { CheckoutService } from "../../src/lib/commerce/service";
 import { newSessionToken, sessionHash } from "../../src/lib/commerce/security";
 import { demoData } from "../../src/lib/demo/fixtures";
@@ -697,4 +698,267 @@ test("database rejects unchecked capture observations and orphaned pending reaso
     .where(eq(checkoutOrders.id, order.id));
   assert.equal(saved.captureStatus, null);
   assert.equal(saved.capturePendingReason, null);
+});
+
+function immediateScope(
+  hash = newSession(),
+  requestId = randomUUID(),
+  balanceConfirmed = true,
+) {
+  return {
+    hash,
+    requestId,
+    service: new CheckoutService(db, gateway, {
+      ...testConfig,
+      immediateTest: { sessionHash: hash, requestId, balanceConfirmed },
+    }),
+  };
+}
+
+test("unconfirmed balance blocks the new test without altering an existing pending eCheck", async () => {
+  gateway.captureStatus = "PENDING";
+  const original = await begin();
+  await service.capture(original.order.id, original.hash);
+  const [before] = await db
+    .select()
+    .from(checkoutOrders)
+    .where(eq(checkoutOrders.id, original.order.id));
+  const bodyBefore = createOrderBody(before);
+  const scope = immediateScope(original.hash, randomUUID(), false);
+  await assert.rejects(
+    scope.service.start(
+      { productId: demoData.products[0].id, requestId: scope.requestId },
+      scope.hash,
+    ),
+    { message: "sandbox_balance_confirmation_required" },
+  );
+  assert.equal(
+    (
+      await scope.service.start(
+        { productId: demoData.products[0].id, requestId: original.requestId },
+        original.hash,
+      )
+    ).id,
+    original.order.id,
+  );
+  const [after] = await db
+    .select()
+    .from(checkoutOrders)
+    .where(eq(checkoutOrders.id, original.order.id));
+  assert.deepEqual(after, before);
+  assert.deepEqual(createOrderBody(after), bodyBefore);
+  assert.equal(after.paymentMethodPreference, null);
+  assert.equal(gateway.createCalls.length, 1);
+  assert.equal(gateway.captureCalls.length, 1);
+});
+
+test("one approved immediate test snapshots preference before provider creation and cannot allocate a second order", async () => {
+  const scope = immediateScope();
+  const create = gateway.create.bind(gateway);
+  gateway.create = async (saved) => {
+    const [persisted] = await db
+      .select()
+      .from(checkoutOrders)
+      .where(eq(checkoutOrders.id, saved.id));
+    assert.equal(
+      persisted.paymentMethodPreference,
+      "IMMEDIATE_PAYMENT_REQUIRED",
+    );
+    assert.ok(persisted.createKey);
+    assert.ok(persisted.captureKey);
+    return create(saved);
+  };
+  const input = {
+    productId: demoData.products[0].id,
+    requestId: scope.requestId,
+  };
+  const result = await scope.service.start(input, scope.hash);
+  assert.equal((await scope.service.start(input, scope.hash)).id, result.id);
+  await assert.rejects(
+    scope.service.start({ ...input, requestId: randomUUID() }, scope.hash),
+    { message: "sandbox_test_not_authorized" },
+  );
+  assert.equal(gateway.createCalls.length, 1);
+  assert.equal(gateway.captureCalls.length, 0);
+  assert.equal(
+    gateway.createCalls[0].paymentMethodPreference,
+    "IMMEDIATE_PAYMENT_REQUIRED",
+  );
+  assert.equal(
+    createOrderBody(gateway.createCalls[0]).paymentSource.paypal
+      .experienceContext.paymentMethodPreference,
+    "IMMEDIATE_PAYMENT_REQUIRED",
+  );
+  assert.equal(
+    (
+      await db
+        .select()
+        .from(checkoutOrders)
+        .where(eq(checkoutOrders.sessionHash, scope.hash))
+    ).length,
+    1,
+  );
+});
+
+for (const wrong of ["session", "request", "product"]) {
+  test(`immediate test rejects the wrong ${wrong} before any provider or checkout insertion`, async () => {
+    const scope = immediateScope();
+    const hash = wrong === "session" ? newSession() : scope.hash;
+    const input = {
+      productId: demoData.products[wrong === "product" ? 1 : 0].id,
+      requestId: wrong === "request" ? randomUUID() : scope.requestId,
+    };
+    await assert.rejects(scope.service.start(input, hash), {
+      message: "sandbox_test_not_authorized",
+    });
+    assert.equal(gateway.createCalls.length, 0);
+    assert.equal(gateway.captureCalls.length, 0);
+    assert.equal(
+      (
+        await db
+          .select()
+          .from(checkoutOrders)
+          .where(eq(checkoutOrders.requestId, input.requestId))
+      ).length,
+      0,
+    );
+  });
+}
+
+test("immediate test refuses a changed catalog price rather than changing the approved USD 129 amount", async () => {
+  const scope = immediateScope();
+  try {
+    await db
+      .update(products)
+      .set({ priceMinor: 12899 })
+      .where(eq(products.id, demoData.products[0].id));
+    await assert.rejects(
+      scope.service.start(
+        { productId: demoData.products[0].id, requestId: scope.requestId },
+        scope.hash,
+      ),
+      { message: "sandbox_test_price_changed" },
+    );
+    assert.equal(gateway.createCalls.length, 0);
+  } finally {
+    await db
+      .update(products)
+      .set({ priceMinor: 12900 })
+      .where(eq(products.id, demoData.products[0].id));
+  }
+});
+
+test("concurrent requests for the immediate test still create one provider order and retain cookie ownership", async () => {
+  const scope = immediateScope();
+  const input = {
+    productId: demoData.products[0].id,
+    requestId: scope.requestId,
+  };
+  const results = await Promise.allSettled([
+    scope.service.start(input, scope.hash),
+    scope.service.start(input, scope.hash),
+  ]);
+  const fulfilled = results.filter((r) => r.status === "fulfilled");
+  assert.ok(fulfilled.length);
+  assert.equal(new Set(fulfilled.map((r) => r.value.id)).size, 1);
+  assert.equal(gateway.createCalls.length, 1);
+  await assert.rejects(scope.service.start(input, newSession()), {
+    message: "checkout_session_lost",
+  });
+});
+
+test("an immediate test creation retry preserves the saved preference, payload, keys and deadline across configuration changes", async () => {
+  const scope = immediateScope();
+  gateway.failCreate = true;
+  const created = await scope.service.start(
+    { productId: demoData.products[0].id, requestId: scope.requestId },
+    scope.hash,
+  );
+  assert.equal(created.state, "create_unknown");
+  const [before] = await db
+    .select()
+    .from(checkoutOrders)
+    .where(eq(checkoutOrders.id, created.id));
+  gateway.failCreate = false;
+  const restarted = new CheckoutService(db, gateway, testConfig);
+  assert.equal(
+    (await restarted.retryCreation(created.id, scope.hash)).state,
+    "created",
+  );
+  const [after] = await db
+    .select()
+    .from(checkoutOrders)
+    .where(eq(checkoutOrders.id, created.id));
+  assert.equal(after.paymentMethodPreference, "IMMEDIATE_PAYMENT_REQUIRED");
+  assert.equal(after.createKey, before.createKey);
+  assert.equal(after.captureKey, before.captureKey);
+  assert.equal(after.expiresAt, before.expiresAt);
+  assert.deepEqual(
+    createOrderBody(gateway.createCalls[0]),
+    createOrderBody(gateway.createCalls[1]),
+  );
+});
+
+test("a completed immediate test creates its own Twin without changing the separate pending payment", async () => {
+  gateway.captureStatus = "PENDING";
+  const original = await begin();
+  await service.capture(original.order.id, original.hash);
+  const [before] = await db
+    .select()
+    .from(checkoutOrders)
+    .where(eq(checkoutOrders.id, original.order.id));
+  gateway.status = "APPROVED";
+  gateway.captureStatus = "COMPLETED";
+  const scope = immediateScope(original.hash);
+  const created = await scope.service.start(
+    { productId: demoData.products[0].id, requestId: scope.requestId },
+    scope.hash,
+  );
+  const completed = await scope.service.capture(created.id, scope.hash);
+  assert.equal(completed.state, "completed");
+  assert.ok(completed.twinId);
+  const [after] = await db
+    .select()
+    .from(checkoutOrders)
+    .where(eq(checkoutOrders.id, original.order.id));
+  assert.deepEqual(after, before);
+  const [newOrder] = await db
+    .select()
+    .from(checkoutOrders)
+    .where(eq(checkoutOrders.id, created.id));
+  assert.notEqual(newOrder.createKey, before.createKey);
+  assert.notEqual(newOrder.captureKey, before.captureKey);
+  assert.notEqual(newOrder.providerOrderId, before.providerOrderId);
+  assert.equal(newOrder.paymentMethodPreference, "IMMEDIATE_PAYMENT_REQUIRED");
+  assert.equal(
+    (
+      await db
+        .select()
+        .from(purchaseTwins)
+        .where(eq(purchaseTwins.checkoutOrderId, original.order.id))
+    ).length,
+    0,
+  );
+  assert.equal(
+    (await scope.service.reconcile(created.id, scope.hash)).twinId,
+    completed.twinId,
+  );
+  assert.equal(gateway.captureCalls.length, 2);
+});
+
+test("an unexpected pending response on an immediate test still cannot create a verified Twin", async () => {
+  const scope = immediateScope();
+  gateway.captureStatus = "PENDING";
+  const created = await scope.service.start(
+    { productId: demoData.products[0].id, requestId: scope.requestId },
+    scope.hash,
+  );
+  const pending = await scope.service.capture(created.id, scope.hash);
+  assert.equal(pending.state, "pending");
+  assert.equal(pending.twinId, null);
+  assert.equal(
+    (await scope.service.reconcile(created.id, scope.hash)).twinId,
+    null,
+  );
+  assert.equal(gateway.captureCalls.length, 1);
 });

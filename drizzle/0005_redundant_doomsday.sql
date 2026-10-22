@@ -1,0 +1,2 @@
+ALTER TABLE "checkout_orders" ADD COLUMN "payment_method_preference" varchar(40);--> statement-breakpoint
+ALTER TABLE "checkout_orders" ADD CONSTRAINT "checkout_payment_preference" CHECK ("checkout_orders"."payment_method_preference" is null or "checkout_orders"."payment_method_preference" = 'IMMEDIATE_PAYMENT_REQUIRED');

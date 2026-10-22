@@ -11,6 +11,7 @@ const required = [
   'docs/adr/0003-sandbox-checkout.md', 'docs/PAYPAL.md',
   'docs/adr/0004-premium-appearance.md', 'docs/DESIGN.md',
   'docs/PAYPAL-WEBHOOKS.md',
+  'docs/adr/0005-single-immediate-sandbox-test.md',
   'postman/PalCare-Sandbox.postman_collection.json',
   'package.json', 'pnpm-lock.yaml', 'render.yaml', 'src/db/schema.ts',
 ];

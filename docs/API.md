@@ -28,6 +28,12 @@ Mutation routes require configured database mode, `PAYPAL_CHECKOUT_ENABLED=true`
 
 HTTP 200 is not proof of payment: inspect the returned `state`. Only `completed` with a durable `twinId` means provider evidence validated. Pending/failed/cancelled/review states create no verified Twin. HTTP 503 means disabled/misconfigured/unavailable; 403 origin rejection; 404 unknown checkout/session; 409 conflicting operation; 429 persistent safety quota (`Retry-After` supplied).
 
+### One-order immediate-payment scope
+
+The creation JSON remains strictly `{productId, requestId}`. Visitors cannot choose a payment preference, supply an amount or set the buyer-balance confirmation. An optional operator-only scope allowlists one request UUID/session digest for the fixed USD 129.00 headphones SKU. Before balance confirmation, new creation returns `sandbox_balance_confirmation_required` with no checkout insertion/provider call. Wrong browser/request/SKU returns `sandbox_test_not_authorized`; a changed catalog price returns `sandbox_test_price_changed`. Original same-session idempotent requests continue to return their existing checkout without modifying it.
+
+After confirmation, only the owning browser receives the reserved request ID as a shop control prop; this UUID is not authorization without its HttpOnly cookie and exact Origin. Request uniqueness plus the existing transaction/lease/quotas prevent another checkout. `IMMEDIATE_PAYMENT_REQUIRED` is saved before provider dispatch and used only from that order's snapshot, never from mutable retry-time configuration. Legacy null values omit the preference and preserve old create bodies. This adds no operator-grant endpoint and grants no merchant-write/refund authority. [Procedure](PAYPAL.md#one-separate-immediate-payment-test).
+
 ### Checkout deadline contract
 
 Checkout views include `expiresAt` (the saved ISO deadline) and `captureAttempted` (a boolean, never an authorization token). At or after the deadline, an unattempted nonterminal checkout reports `state: "expired"`, `error: "checkout_expired"` and `approvalUrl: null`. Expiry is derived; no database schema/state migration or deadline extension is involved. GET status remains read-only and never calls PayPal. Repeated creation/retry/capture requests cannot revive an expired unattempted checkout or dispatch another provider operation.

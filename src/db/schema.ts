@@ -18,6 +18,7 @@ import type {
   PolicySnapshot,
   CheckoutState,
   CaptureStatus,
+  PaymentMethodPreference,
 } from "../lib/commerce/contracts";
 
 export const customers = pgTable(
@@ -73,6 +74,9 @@ export const checkoutOrders = pgTable(
       .references(() => products.id),
     product: jsonb().$type<ProductSnapshot>().notNull(),
     policy: jsonb().$type<PolicySnapshot>().notNull(),
+    paymentMethodPreference: varchar("payment_method_preference", {
+      length: 40,
+    }).$type<PaymentMethodPreference>(),
     returnOrigin: text("return_origin").notNull(),
     expectedPayeeId: varchar("expected_payee_id", { length: 13 }).notNull(),
     amountMinor: integer("amount_minor").notNull(),
@@ -153,6 +157,10 @@ export const checkoutOrders = pgTable(
     check(
       "checkout_capture_identity",
       sql`${t.observedCaptureId} is null or ${t.providerCaptureId} is null or ${t.observedCaptureId} = ${t.providerCaptureId}`,
+    ),
+    check(
+      "checkout_payment_preference",
+      sql`${t.paymentMethodPreference} is null or ${t.paymentMethodPreference} = 'IMMEDIATE_PAYMENT_REQUIRED'`,
     ),
   ],
 );

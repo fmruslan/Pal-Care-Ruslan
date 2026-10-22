@@ -85,6 +85,8 @@ Expired, unattempted checkouts now show an explicit expired status and no approv
 
 For an existing attempted payment, **Check payment status** uses a reconciliation-only action: authenticated Orders v2 and Payments v2 GETs, never another capture. Pending eChecks remain unverified with an explicit explanation; failed/declined captures create no Twin. Only matching completed evidence creates the Twin, receipt, policy and purchase event exactly once. Apply reviewed migrations through `0004_minor_whizzer.sql` before using this version. [Reconciliation contract](docs/API.md#capture-reconciliation-contract) · [Future Render webhook assessment](docs/PAYPAL-WEBHOOKS.md).
 
+A separately approved, single USD 129.00 Sandbox balance experiment now has an operator-scoped immediate-payment preference. It stays paused until code checks pass and the buyer confirms sufficient available USD balance. Existing payments and payloads are unchanged; no new order or completed payment is implied by preparation. Apply reviewed migration `0005_redundant_doomsday.sql` before enabling this code. [Controlled-test procedure](docs/PAYPAL.md#one-separate-immediate-payment-test).
+
 Quality checks:
 
 ```bash

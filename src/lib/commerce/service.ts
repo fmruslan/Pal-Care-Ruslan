@@ -17,6 +17,8 @@ import {
   demoMerchantPolicy,
   productSnapshotSchema,
   startCheckoutSchema,
+  IMMEDIATE_TEST_PRODUCT_ID,
+  IMMEDIATE_TEST_AMOUNT_MINOR,
   type CheckoutView,
 } from "./contracts";
 import type { CheckoutConfig } from "./config";
@@ -55,7 +57,10 @@ export class CheckoutService {
   constructor(
     private db: Database,
     private paypal: PayPalGateway,
-    private config: Pick<CheckoutConfig, "origin" | "merchantId">,
+    private config: Pick<
+      CheckoutConfig,
+      "origin" | "merchantId" | "immediateTest"
+    >,
   ) {}
 
   async view(id: string, sessionHash: string): Promise<CheckoutView> {
@@ -123,6 +128,17 @@ export class CheckoutService {
         .from(checkoutOrders)
         .where(eq(checkoutOrders.requestId, requestId));
       if (otherSession) throw new CheckoutError("checkout_session_lost");
+      const immediateTest = this.config.immediateTest;
+      if (immediateTest) {
+        if (!immediateTest.balanceConfirmed)
+          throw new CheckoutError("sandbox_balance_confirmation_required");
+        if (
+          requestId !== immediateTest.requestId ||
+          sessionHash !== immediateTest.sessionHash ||
+          productId !== IMMEDIATE_TEST_PRODUCT_ID
+        )
+          throw new CheckoutError("sandbox_test_not_authorized", 403);
+      }
       if (!demoData.products.some((product) => product.id === productId))
         throw new CheckoutError("invalid_product", 400);
       const [product] = await tx
@@ -140,6 +156,11 @@ export class CheckoutService {
         merchantName: merchant?.name,
       });
       if (!snapshot.success) throw new CheckoutError("invalid_product", 400);
+      if (
+        immediateTest &&
+        snapshot.data.priceMinor !== IMMEDIATE_TEST_AMOUNT_MINOR
+      )
+        throw new CheckoutError("sandbox_test_price_changed");
       await takeRate(tx, "create:global-hour", 10, 3600);
       await takeRate(tx, "create:global-day", 30, 86400);
       await takeRate(tx, `create:session:${sessionHash}`, 3, 3600);
@@ -151,6 +172,9 @@ export class CheckoutService {
         productId,
         product: snapshot.data,
         policy: demoMerchantPolicy,
+        paymentMethodPreference: immediateTest
+          ? "IMMEDIATE_PAYMENT_REQUIRED"
+          : null,
         returnOrigin: this.config.origin,
         expectedPayeeId: this.config.merchantId,
         amountMinor: snapshot.data.priceMinor,
