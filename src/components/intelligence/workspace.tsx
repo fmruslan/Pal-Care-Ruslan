@@ -109,7 +109,20 @@ export function IntelligenceWorkspace({
           </select>
         </label>
       </div>
-      <IntelligenceSummary facts={facts} example={example} onStage={setStage} />
+      <p
+        aria-label="Analytics filter scope"
+        className="mb-4 text-sm text-muted-foreground"
+      >
+        Scope: {stage} · current bounded dataset. All-record totals above remain
+        unfiltered; verified-only widgets further restrict this selection.
+      </p>
+      <div data-testid="intelligence-summary">
+        <IntelligenceSummary
+          facts={facts}
+          example={example}
+          onStage={setStage}
+        />
+      </div>
       {!facts.length && (
         <p role="status" className="mt-5 rounded-xl border bg-card p-5 text-sm">
           No adjustment cases in this selection. Zero is an honest result;
@@ -144,7 +157,12 @@ export function IntelligenceWorkspace({
         )}
         {studio && (
           <div className="mt-5">
-            <Studio key={mode} dataset={{ ...data, facts }} />
+            <Studio
+              key={mode}
+              dataset={data}
+              stage={stage}
+              onStage={setStage}
+            />
           </div>
         )}
       </section>

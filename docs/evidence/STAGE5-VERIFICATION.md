@@ -42,3 +42,9 @@ Twin/document/case detail uses fixed-scope by-ID queries, independent of list wi
 **263 unit / 108 PostgreSQL tests pass**, with a 105-newer-Twins regression proving older Twin and receipt access. Lint/typecheck/build/format pass. New complete customer and reference journeys pass **4 fixture + 4 database checks** on desktop-light/mobile-dark, with attached screenshots and zero financial browser POSTs. Four existing aftercare/accessibility checks also pass. An initial desktop test needed to close the intentionally persistent assistant dock before clicking the underlying page; no force-click workaround was used. Full matrices remain final-release gates.
 
 5.1 exact-SHA CI passed: `ca7ab08571f41a41a2e524472750b792a21ef83d`, [run 39920872584](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/39920872584). A watch request encountered a transient GitHub 502; direct run readback confirmed success.
+
+## 5.5 — Analytics filter cohesion
+
+The workspace owns the selected stage. Full bounded facts go into Studio; controls, scripted tools and status-widget actions update the same page filter via supported immutable SDK state APIs. Native independent stage cross-filters are replaced by the shared page selection so they cannot silently intersect. Widget-specific verified scope and unfiltered all-record totals remain explicitly distinct. Layout restoration preserves filter scope rather than hiding a reset; no new state-management library or runtime inference is added.
+
+Lint/typecheck/unit/build pass; the original conflicting-script/outer-selector regression now passes under the actual SDK on desktop-light and mobile-dark. Tests select Pending through the scripted tool, then Approved externally and observe its $20 inside Studio, then reset to All. Full final matrices remain release gates. AG Studio local-evaluation licensing boundaries are unchanged.

@@ -92,15 +92,26 @@ test("intelligence separates real records and scenarios, with actual local Studi
   await expect(assistant.getByRole("status")).toContainText(
     "Scripted command applied: pending",
   );
+  await expect(page.getByLabel("Case stage")).toHaveValue("Pending");
   await expect(
     page.getByTestId("studio-value-recovery").locator("p").nth(1),
   ).toHaveText("$0.00");
+  await page.getByLabel("Case stage").selectOption("Approved");
+  await expect(
+    page
+      .getByTestId("studio-value-recovery")
+      .getByText("$20.00", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Analytics filter scope")).toContainText(
+    "Scope: Approved",
+  );
   await assistant
     .getByRole("button", { name: "Reset this dashboard", exact: true })
     .click();
   await expect(assistant.getByRole("status")).toContainText(
     "Scripted command applied: reset",
   );
+  await expect(page.getByLabel("Case stage")).toHaveValue("All");
   await expect(
     page.getByTestId("studio-value-recovery").locator("p").nth(1),
   ).toHaveText("$20.00");

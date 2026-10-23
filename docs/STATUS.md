@@ -4,6 +4,8 @@ Last updated: 2026-10-23
 
 ## Stage 5 in progress
 
+Studio stage selection is now shared across summary, SDK widgets and scripted tools, with explicit page/widget/all-record scopes. Focused desktop/mobile SDK browser regressions pass; public licensing and genuine inference remain separate gates.
+
 Context-preserving safety/replacement journeys and by-ID detail access are implemented and isolated-tested (263 unit / 108 PostgreSQL tests; desktop/mobile fixture and database journey checks). Insignia remains a labeled ownership example, not a purchase. Full final matrices remain pending.
 
 Per-call CareOS settlement and intent-specific dependency isolation are implemented and isolated-tested (260 unit / 107 PostgreSQL tests). Migrations through 0014 are reviewed but **not applied to the application database**. Unknown usage retains its reservation; no paid model/provider call has occurred.

@@ -31,6 +31,7 @@ import { layoutSchema, defaultPositions } from "@/lib/intelligence/layout";
 import { dashboardHarness } from "./agent";
 import type { DashboardCommand } from "@/lib/intelligence/commands";
 import { scriptedPrompts } from "@/lib/intelligence/commands";
+import { pageStage, withPageStage } from "@/lib/intelligence/filters";
 
 type WidgetId = "value-recovery" | "adjustment-status" | "evidence-freshness";
 type CustomData = AgWidgetData<
@@ -110,17 +111,7 @@ function StudioWidget(params: AgWidgetParams<CustomData>) {
         <AdjustmentStatus
           facts={facts}
           onStage={(stage) => {
-            const field = params.widgetApi
-              .getSchema()
-              .find((t) => t.id === "cases")
-              ?.fields.find((f) => f.fieldId === "cases.stage");
-            if (field)
-              params.widgetApi.toggleCrossFilter({
-                type: "value",
-                field,
-                value: stage,
-                group: 0,
-              });
+            params.context.onStage(stage);
           }}
         />
       )}
@@ -173,9 +164,19 @@ const theme = studioTheme
   );
 export function IntelligenceStudio({
   dataset,
+  stage,
+  onStage,
 }: {
   dataset: IntelligenceDataset;
+  stage: string;
+  onStage: (stage: string) => void;
 }) {
+  const stageRef = useRef(stage),
+    onStageRef = useRef(onStage);
+  useEffect(() => {
+    stageRef.current = stage;
+    onStageRef.current = onStage;
+  }, [stage, onStage]);
   const compact = useMemo(
     () =>
       typeof window !== "undefined" &&
@@ -247,8 +248,27 @@ export function IntelligenceStudio({
     }),
     [dataset.facts],
   );
-  const context = useMemo(() => ({ mode: dataset.mode }), [dataset.mode]);
-  const initial = useMemo(() => defaultReport(compact), [compact]);
+  const context = useMemo(
+    () => ({
+      mode: dataset.mode,
+      onStage: (value: string) =>
+        onStageRef.current(stageRef.current === value ? "All" : value),
+    }),
+    [dataset.mode],
+  );
+  const initial = useMemo(
+    () => withPageStage(defaultReport(compact), stage),
+    [compact, stage],
+  );
+  useEffect(() => {
+    if (!ready || !api.current) return;
+    const current = api.current.getState();
+    if (
+      pageStage(current) !== stage ||
+      current.pages?.some((p) => p.id === "care" && p.crossFilter)
+    )
+      api.current.setState(withPageStage(current, stage));
+  }, [stage, ready]);
   const ai = useMemo(
     () =>
       ({ api: studioApi }: { api: AgStudioApi }) => {
@@ -259,6 +279,7 @@ export function IntelligenceStudio({
             const current = api.current;
             if (!current) return;
             if (command.operation === "reset") {
+              onStageRef.current("All");
               current.setState(defaultReport(compact));
               return;
             }
@@ -314,18 +335,8 @@ export function IntelligenceStudio({
                 ),
               });
             } else {
-              current.setState({
-                ...state,
-                pages: state.pages?.map((p) =>
-                  p.id !== "care"
-                    ? p
-                    : {
-                        ...p,
-                        crossFilter: undefined,
-                        filter: { ...p.filter, page: [filter] },
-                      },
-                ),
-              });
+              onStageRef.current(stage);
+              current.setState(withPageStage(state, stage));
             }
             setNotice(
               `Scripted ${command.operation} applied. No commerce changes.`,
@@ -381,7 +392,9 @@ export function IntelligenceStudio({
         <Button
           variant="outline"
           onClick={() => {
-            api.current?.setState(defaultReport(compact));
+            api.current?.setState(
+              withPageStage(defaultReport(compact), stageRef.current),
+            );
             setNotice("Default layout restored. No commerce records changed.");
           }}
         >
@@ -423,8 +436,15 @@ export function IntelligenceStudio({
                   ) ?? "null",
                 ),
               );
-              const report = defaultReport(compact);
-              report.pages![0].widgetLayout = saved;
+              const report = withPageStage(
+                api.current?.getState() ?? defaultReport(compact),
+                stageRef.current,
+              );
+              report.pages = report.pages?.map((p) =>
+                p.id !== "care"
+                  ? p
+                  : { ...p, widgetLayout: { ...p.widgetLayout, ...saved } },
+              );
               api.current?.setState(report);
               setNotice("Saved layout restored. Commerce records unchanged.");
             } catch {
@@ -440,6 +460,10 @@ export function IntelligenceStudio({
       <p className="mb-3 text-xs text-muted-foreground">
         Local evaluation · vendor watermark retained · no license coverage for
         public judging established.
+      </p>
+      <p className="mb-3 text-xs text-muted-foreground">
+        Shared page filter: {stage}. An added verified-only summary intersects
+        this selection; it does not change stored totals.
       </p>
       <section
         aria-label="Scripted Studio assistant"
@@ -502,6 +526,10 @@ export function IntelligenceStudio({
             api.current = e.api as unknown as AgStudioApi<Registry>;
             ai({ api: e.api });
             setReady(true);
+          }}
+          onStateUpdated={(event) => {
+            const selected = pageStage(event.state);
+            if (selected !== stageRef.current) onStageRef.current(selected);
           }}
           onErrorRaised={() =>
             setNotice(

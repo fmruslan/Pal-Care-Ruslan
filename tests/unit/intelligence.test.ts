@@ -6,6 +6,7 @@ import {
   recordedDataset,
 } from "../../src/lib/intelligence/model";
 import { emptyOverview } from "../../src/lib/price-guardian/projections";
+import { pageStage, withPageStage } from "../../src/lib/intelligence/filters";
 import {
   layoutSchema,
   defaultPositions,
@@ -17,6 +18,42 @@ import {
   scriptedPrompts,
 } from "../../src/lib/intelligence/commands";
 describe("merchant intelligence provenance and window", () => {
+  it("one stage filter replaces hidden intersections without mutating layout or widget scope", () => {
+    const state = {
+      selectedPageId: "care",
+      pages: [
+        {
+          id: "care",
+          widgetLayout: {
+            status: { xTrack: 0, yTrack: 0, xSpan: 8, ySpan: 10 },
+          },
+          crossFilter: { values: {} },
+          filter: {
+            widget: {
+              summary: [
+                {
+                  field: { id: "cases.stage" },
+                  model: { operator: "equals" as const, value: "Verified" },
+                },
+              ],
+            },
+          },
+        },
+      ],
+    };
+    const pending = withPageStage(state, "Pending"),
+      approved = withPageStage(pending, "Approved");
+    expect(pageStage(approved)).toBe("Approved");
+    expect(approved.pages?.[0].crossFilter).toBeUndefined();
+    expect(approved.pages?.[0].widgetLayout).toEqual(
+      state.pages[0].widgetLayout,
+    );
+    expect(approved.pages?.[0].filter?.widget).toEqual(
+      state.pages[0].filter.widget,
+    );
+    expect(state.pages[0].filter).not.toHaveProperty("page");
+    expect(pageStage(withPageStage(approved, "All"))).toBe("All");
+  });
   it("cannot enable local evaluation by spoofing Host without operator configuration", () => {
     expect(studioEvaluationAllowed({}, "localhost:3000")).toBe(false);
     const env = {
