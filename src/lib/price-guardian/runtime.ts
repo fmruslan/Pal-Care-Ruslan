@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { connection } from "next/server";
 import { createDatabase } from "../../db/connection";
 import { assertDatabaseAuthority, runtimeWriterUrl } from "../../db/authority";
@@ -59,7 +60,7 @@ export async function refundRuntime() {
     scope,
   );
 }
-export async function getGuardian(twinId?: string, caseId?: string) {
+export const getGuardian = cache(async (twinId?: string, caseId?: string) => {
   await connection();
   const config = getEnvironment();
   if (config.dataSource === "fixtures") return emptyOverview();
@@ -79,7 +80,7 @@ export async function getGuardian(twinId?: string, caseId?: string) {
       "Price Guardian records are unavailable. Check the reviewed migrations; no fixture fallback was substituted.",
     );
   }
-}
+});
 export async function displayedPromise(product: {
   id: string;
   priceMinor: number;

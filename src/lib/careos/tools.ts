@@ -2,6 +2,7 @@ import type { DemoData } from "../../db/schema";
 import type { GuardianView } from "../price-guardian/contracts";
 import { recallExplanation, type RecallEvidence } from "../safety/evidence";
 import { REFERENCE_PRODUCT } from "./knowledge";
+import { projectActivity, type PurchaseActivity } from "./activity";
 import { findTwin, displayDate, money } from "../demo/presentation";
 import {
   contextOf,
@@ -58,6 +59,7 @@ export function deterministicAnswer(
   intent = input.intent ?? interpret(input.message),
   guardian: GuardianView[] = [],
   recall?: RecallEvidence,
+  activity?: PurchaseActivity,
 ): CareAnswer {
   const record = input.twinId ? findTwin(data, input.twinId) : undefined;
   const answer: CareAnswer = {
@@ -93,7 +95,7 @@ export function deterministicAnswer(
     });
     return answer;
   }
-  const { twin, documents, events, product } = record;
+  const { twin, documents, product } = record;
   const twinHref = `/vault/${twin.id}`;
   answer.sources = [
     {
@@ -191,18 +193,29 @@ export function deterministicAnswer(
     if (product.id === REFERENCE_PRODUCT)
       answer.text = `${product.name} is a real reference product with fictional sample ownership. No purchase price or payment is established. The stored zero amount is a placeholder, not a product price. Official guidance is available separately in Product care.`;
   } else if (intent === "history" || intent === "important") {
+    const view = activity ?? projectActivity(data, guardian);
+    const items = view.items
+      .filter(
+        (i) => i.twinId === twin.id && (intent !== "important" || i.attention),
+      )
+      .slice(0, 5);
     answer.text =
       intent === "important"
-        ? "Recall status, warranty coverage and live price monitoring have not been checked. A saved event is not proof of current coverage or safety."
-        : "Here is the history recorded for this purchase. Sample scenarios are not live monitoring.";
-    answer.steps = events
-      .slice(0, 3)
-      .map(
-        (e) =>
-          `${displayDate(e.occurredOn)} · ${e.origin === "sample" ? "Sample" : "Sandbox"}: ${e.title}`,
-      );
+        ? "Here are attention items in the available purchase, price-adjustment and recall records. No item is a guarantee of coverage or safety."
+        : "Here is the source-labeled purchase, document, price-adjustment and recall activity available for this purchase. Sample scenarios are not live monitoring.";
+    if (view.unavailable.length)
+      answer.text += ` Partial history: ${view.unavailable.join(", ")} unavailable; missing evidence is not an all-clear.`;
+    if (!items.length)
+      answer.text +=
+        " No matching activity is recorded in the available sources.";
+    answer.steps = items.map(
+      (i) => `${displayDate(i.at)} · ${i.provenance}: ${i.title}`,
+    );
     answer.actions = [
       { label: "View recorded history", href: `${twinHref}#history-heading` },
+      ...items
+        .filter((i) => i.attention)
+        .map((i) => ({ label: i.title, href: i.href })),
     ];
   } else {
     answer.outcome = "missing";

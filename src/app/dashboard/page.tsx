@@ -15,16 +15,21 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeading } from "@/components/page-heading";
 import { CareOSPanel } from "@/components/careos-panel";
 import { TwinList } from "@/components/vault";
-import { Events } from "@/components/events";
+import { PurchaseActivity } from "@/components/purchase-activity";
 import { CareBriefing } from "@/components/careos/briefing";
 import { buildBriefing } from "@/lib/careos/briefing";
 import { getKnowledge } from "@/lib/careos/knowledge-repository";
 import { getGuardian } from "@/lib/price-guardian/runtime";
+import { getPurchaseActivity } from "@/lib/careos/activity-repository";
 
 export const metadata = { title: "Your care space" };
 export default async function Dashboard() {
   const data = await getDemoData();
-  const guardian = await getGuardian();
+  const [guardian, activity, knowledge] = await Promise.all([
+    getGuardian(),
+    getPurchaseActivity(data),
+    getKnowledge(),
+  ]);
   return (
     <Shell active="/dashboard" source={data.source}>
       <PageHeading
@@ -41,7 +46,7 @@ export default async function Dashboard() {
         }
       />
       <CareBriefing
-        items={buildBriefing(data, await getKnowledge(), guardian.cases)}
+        items={buildBriefing(data, knowledge, guardian.cases, activity)}
       />
       <div className="mb-8 grid grid-cols-3 gap-2 sm:gap-3">
         {[
@@ -103,7 +108,9 @@ export default async function Dashboard() {
               Source-labeled history. Sample scenarios are not live monitoring.
             </p>
           </div>
-          <Events events={data.events} />
+          <PurchaseActivity
+            activity={{ ...activity, items: activity.items.slice(0, 5) }}
+          />
         </section>
         <div className="space-y-5 xl:pt-16">
           <CareOSPanel compact />

@@ -48,3 +48,11 @@ Twin/document/case detail uses fixed-scope by-ID queries, independent of list wi
 The workspace owns the selected stage. Full bounded facts go into Studio; controls, scripted tools and status-widget actions update the same page filter via supported immutable SDK state APIs. Native independent stage cross-filters are replaced by the shared page selection so they cannot silently intersect. Widget-specific verified scope and unfiltered all-record totals remain explicitly distinct. Layout restoration preserves filter scope rather than hiding a reset; no new state-management library or runtime inference is added.
 
 Lint/typecheck/unit/build pass; the original conflicting-script/outer-selector regression now passes under the actual SDK on desktop-light and mobile-dark. Tests select Pending through the scripted tool, then Approved externally and observe its $20 inside Studio, then reset to All. Full final matrices remain release gates. AG Studio local-evaluation licensing boundaries are unchanged.
+
+## 5.6 — Unified activity and merchant continuity
+
+One read-only activity projection combines purchase events, receipt references, Guardian state/history and saved recall assessments. Stable source IDs deduplicate entries; only independent completed refund evidence earns verified status; physical recall uncertainty stays explicit. Partial-source availability is disclosed. CareOS history/attention and Glance consume that projection; Twin and dashboard activity expose source links. No master writable ledger or financial backfill is created.
+
+Merchant mobile navigation now uses merchant destinations. Operator mutations consume the saved projection response and refresh server-rendered state, retaining a disabled/busy boundary and never replaying a failed mutation. A regression asserts the approved (not refunded) state appears without manual reload.
+
+Lint/typecheck/build, **267 unit tests**, **70/70 deterministic/fixture evaluations**, **18 focused fixture browser checks** and all **6 exclusive synthetic Guardian lifecycle checks** pass. The Guardian browser suite uses actual temporary restricted reader/operator logins and an injected provider, not PayPal. Screenshots are attached to the journey test reports. Intentional history-screen visual references will be reviewed in the final verification increment.

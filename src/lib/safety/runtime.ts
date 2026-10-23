@@ -7,6 +7,7 @@ import { referenceSource, REVIEWED_SOURCE_HASH } from "./reference";
 import { sourceHash, sourceSchema } from "./cpsc";
 import type { RecallSnapshot } from "./service";
 import { CUSTOMER_ID, MERCHANT_ID } from "../demo/fixtures";
+import type { RecallActivity } from "../careos/activity";
 const state = globalThis as unknown as {
   safetyDb?: ReturnType<typeof createDatabase>;
 };
@@ -82,12 +83,38 @@ export async function getTwinRecallHistory(
   const { pool } = (state.safetyDb ??= createDatabase(config.databaseUrl!, {
     readOnly: true,
   }));
+  await assertDatabaseAuthority(pool, "reader");
   const rows = await pool.query(
     "select a.id,a.state,a.reason,a.created_at,a.source_hash from recall_assessments a join purchase_twins t on t.id=a.twin_id where t.id=$1 and t.customer_id=$2 and t.merchant_id=$3 order by a.created_at desc,a.id limit 10",
     [twinId, CUSTOMER_ID, MERCHANT_ID],
   );
   return rows.rows.map((r) => ({
     id: r.id,
+    state: r.state,
+    reason: r.reason,
+    at: r.created_at.toISOString(),
+    hash: r.source_hash,
+  }));
+}
+
+export async function getRecallActivities(
+  twinIds: string[],
+): Promise<RecallActivity[]> {
+  const config = getEnvironment();
+  if (config.dataSource === "fixtures" || !twinIds.length) return [];
+  if (twinIds.length > 101 || twinIds.some((id) => !/^[a-f0-9-]{36}$/.test(id)))
+    throw new Error("Invalid activity scope");
+  const { pool } = (state.safetyDb ??= createDatabase(config.databaseUrl!, {
+    readOnly: true,
+  }));
+  await assertDatabaseAuthority(pool, "reader");
+  const result = await pool.query(
+    "select a.id,a.twin_id,a.state,a.reason,a.created_at,a.source_hash from recall_assessments a join purchase_twins t on t.id=a.twin_id where t.id=any($1::uuid[]) and t.customer_id=$2 and t.merchant_id=$3 order by a.created_at desc,a.id limit 1000",
+    [twinIds, CUSTOMER_ID, MERCHANT_ID],
+  );
+  return result.rows.map((r) => ({
+    id: r.id,
+    twinId: r.twin_id,
     state: r.state,
     reason: r.reason,
     at: r.created_at.toISOString(),

@@ -118,7 +118,7 @@ export function Shell({
       <div className="min-w-0">
         <header className="flex min-h-22 flex-wrap items-center justify-between gap-3 border-b bg-card px-5 py-4 sm:px-8 lg:px-10">
           <div className="lg:hidden">
-            <Brand href="/dashboard" />
+            <Brand href={merchant ? "/merchant" : "/dashboard"} />
           </div>
           <div className="hidden items-center gap-2 text-sm font-medium text-muted-foreground lg:flex">
             <span className="size-2 rounded-full bg-brand" aria-hidden="true" />
@@ -205,9 +205,9 @@ export function Shell({
       </div>
       <nav
         aria-label="Mobile navigation"
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t bg-card px-2 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] shadow-card lg:hidden"
+        className={`fixed inset-x-0 bottom-0 z-40 grid ${merchant ? "grid-cols-2" : "grid-cols-4"} border-t bg-card px-2 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] shadow-card lg:hidden`}
       >
-        {navigation.map(({ href, mobile, icon: Icon }) => (
+        {links.map(({ href, mobile, icon: Icon }) => (
           <Link
             key={href}
             href={href}

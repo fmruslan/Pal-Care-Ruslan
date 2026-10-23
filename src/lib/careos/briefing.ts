@@ -3,6 +3,7 @@ import { findTwin } from "../demo/presentation";
 import type { KnowledgeSource } from "./knowledge";
 import type { GuardianView } from "../price-guardian/contracts";
 import { money } from "../demo/presentation";
+import type { PurchaseActivity } from "./activity";
 
 export type BriefingItem = {
   id: string;
@@ -16,8 +17,29 @@ export function buildBriefing(
   data: DemoData,
   sources: KnowledgeSource[],
   guardian: GuardianView[] = [],
+  activity?: PurchaseActivity,
 ): BriefingItem[] {
   const items: BriefingItem[] = [];
+  for (const item of (activity?.items ?? [])
+    .filter((i) => i.kind === "recall" && i.attention)
+    .slice(0, 1))
+    items.push({
+      id: item.id,
+      title: item.title,
+      detail: item.detail,
+      provenance: item.provenance,
+      sourceHref: item.href,
+      action: { label: "Review recall evidence", href: item.href },
+    });
+  if (activity?.unavailable.length)
+    items.push({
+      id: `unavailable:${activity.unavailable.join(":")}`,
+      title: "Some aftercare evidence is unavailable",
+      detail: `${activity.unavailable.join(", ")} could not be read. Your saved purchase and receipt remain available; no all-clear is implied.`,
+      provenance: "Partial read-only activity",
+      sourceHref: "/vault",
+      action: { label: "Review saved purchases", href: "/vault" },
+    });
   for (const c of guardian
     .filter((c) => !["failed", "cancelled", "expired"].includes(c.state))
     .slice(0, 2))

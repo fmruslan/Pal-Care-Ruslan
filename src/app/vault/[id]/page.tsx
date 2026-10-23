@@ -21,7 +21,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProductArt } from "@/components/product-art";
 import { DocumentList, PurchaseBadge } from "@/components/vault";
-import { Events } from "@/components/events";
+import { PurchaseActivity } from "@/components/purchase-activity";
+import { projectActivity } from "@/lib/careos/activity";
 import {
   AskCareOS,
   CareContextRegistration,
@@ -205,7 +206,13 @@ export default async function TwinPage({
             <h2 id="history-heading" className="section-title mb-5">
               Care history
             </h2>
-            <Events events={events} />
+            <PurchaseActivity
+              activity={projectActivity(
+                data,
+                adjustment ? [adjustment] : [],
+                recallHistory.map((r) => ({ ...r, twinId: twin.id })),
+              )}
+            />
             {adjustment && <GuardianTimeline item={adjustment} />}
           </section>
           {verified && (

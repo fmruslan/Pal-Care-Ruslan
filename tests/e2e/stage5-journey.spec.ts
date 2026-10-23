@@ -95,3 +95,14 @@ test("air-fryer reference handoff stays labeled, retains CareOS and never invent
     contentType: "image/png",
   });
 });
+
+test("merchant mobile destinations stay in the merchant workspace", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/merchant/intelligence");
+  const nav = page.getByRole("navigation", { name: "Mobile navigation" });
+  await expect(nav.getByRole("link")).toHaveText(["Merchant", "Intelligence"]);
+  await nav.getByRole("link", { name: "Merchant", exact: true }).click();
+  await expect(page).toHaveURL(/\/merchant$/);
+});

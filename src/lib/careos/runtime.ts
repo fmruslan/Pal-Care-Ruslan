@@ -12,6 +12,7 @@ import { ResponsesProvider, type ModelResult } from "./providers/responses";
 import { resolveTurn } from "./service";
 import { getGuardian } from "../price-guardian/runtime";
 import { getSafety } from "../safety/runtime";
+import { getPurchaseActivity } from "./activity-repository";
 
 const state = globalThis as unknown as {
   careosMemory?: MemoryStore;
@@ -98,6 +99,7 @@ export async function answerTurn(
     call,
     load: {
       knowledge: getKnowledge,
+      activity: () => getPurchaseActivity(data, input.twinId ?? undefined),
       guardian: async () =>
         (await getGuardian(input.twinId ?? undefined)).cases,
       recall: async () => {

@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { money } from "@/lib/demo/presentation";
@@ -11,10 +12,13 @@ type Access = {
   readsEnabled: boolean;
 };
 export function OperatorPanel({ overview }: { overview: GuardianOverview }) {
+  const router = useRouter();
+  const [refreshing, startRefresh] = useTransition();
   const [access, setAccess] = useState<Access | null>(null),
     [code, setCode] = useState(""),
     [notice, setNotice] = useState(""),
-    [busy, setBusy] = useState(false);
+    [posting, setBusy] = useState(false);
+  const busy = posting || refreshing;
   useEffect(() => {
     let current = true;
     void fetch("/api/operator/session", { cache: "no-store" })
@@ -53,14 +57,19 @@ export function OperatorPanel({ overview }: { overview: GuardianOverview }) {
           "Operator capability activated for its permitted actions only.",
         );
       } else {
+        const saved = (await response.json()) as GuardianOverview;
+        if (!Array.isArray(saved.cases))
+          throw new Error("Invalid saved projection");
         setNotice(
-          "Action recorded. Reload to inspect the saved state and evidence.",
+          "Action recorded. Refreshing from saved state; a pending workflow is not a completed financial outcome.",
         );
+        startRefresh(() => router.refresh());
       }
     } catch {
       setNotice(
         "Connection interrupted. Inspect saved state before repeating any action.",
       );
+      startRefresh(() => router.refresh()); // Retrieval only; never replay a mutation.
     } finally {
       setBusy(false);
     }
@@ -167,6 +176,12 @@ export function OperatorPanel({ overview }: { overview: GuardianOverview }) {
                 <p className="text-sm font-semibold">
                   {c.productName} · revision {c.revision} ·{" "}
                   {money(c.amountMinor)}
+                </p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Saved state: {c.state.replaceAll("_", " ")} ·{" "}
+                  {c.state === "completed" && c.verifiedAt
+                    ? "independently verified Sandbox outcome"
+                    : "not a completed refund"}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-3">
                   {actions.includes("case:approve") &&

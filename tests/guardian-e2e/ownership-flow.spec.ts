@@ -68,6 +68,11 @@ test("synthetic test-DB flow: proactive opportunity → protected approval → i
     await expect(
       page.getByRole("status").filter({ hasText: "Action recorded" }),
     ).toBeVisible();
+    await expect(
+      page.getByText("Saved state: approved · not a completed refund", {
+        exact: true,
+      }),
+    ).toBeVisible();
     await page.goto(`/guardian/${fixture.caseId}`);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Approved · not submitted",

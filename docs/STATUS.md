@@ -4,6 +4,8 @@ Last updated: 2026-10-23
 
 ## Stage 5 in progress
 
+Unified read-only purchase/receipt/Guardian/recall activity, merchant mobile navigation and automatic operator view refresh are implemented. Isolated checks pass (267 unit, 70 fixture evaluations, 18 focused browser checks and six synthetic Guardian lifecycle checks). No actual refund/AI/provider result is newly established.
+
 Studio stage selection is now shared across summary, SDK widgets and scripted tools, with explicit page/widget/all-record scopes. Focused desktop/mobile SDK browser regressions pass; public licensing and genuine inference remain separate gates.
 
 Context-preserving safety/replacement journeys and by-ID detail access are implemented and isolated-tested (263 unit / 108 PostgreSQL tests; desktop/mobile fixture and database journey checks). Insignia remains a labeled ownership example, not a purchase. Full final matrices remain pending.

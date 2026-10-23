@@ -9,6 +9,7 @@ import type { CareModel, ModelResult } from "./providers/responses";
 import type { GuardianView } from "../price-guardian/contracts";
 import type { RecallEvidence } from "../safety/evidence";
 import { referenceContext } from "./journey";
+import type { PurchaseActivity } from "./activity";
 
 function modelPayload(
   task: "classify" | "care",
@@ -62,6 +63,7 @@ export async function resolveTurn(options: {
     knowledge: () => Promise<KnowledgeSource[]>;
     guardian: () => Promise<GuardianView[]>;
     recall: () => Promise<RecallEvidence>;
+    activity?: () => Promise<PurchaseActivity>;
   };
 }) {
   const { data, input, mode, model, call } = options;
@@ -205,12 +207,17 @@ export async function resolveTurn(options: {
     if (intent === "guardian") options.guardian = await options.load.guardian();
     if (intent === "recall") options.recall = await options.load.recall();
   }
+  const activity =
+    record && (intent === "history" || intent === "important")
+      ? await options.load?.activity?.()
+      : undefined;
   const base = deterministicAnswer(
     data,
     input,
     intent,
     options.guardian,
     options.recall,
+    activity,
   );
   if (classified) base.mode = "live";
   if (intent === "documents" && record && /manual/i.test(input.message)) {
