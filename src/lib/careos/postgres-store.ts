@@ -28,6 +28,7 @@ export class PostgresStore implements ConversationStore {
       budgetId: "disabled",
     },
     private requireRestrictedRole = false,
+    private now: () => number = Date.now,
   ) {}
   private async tx<T>(work: (client: PoolClient) => Promise<T>): Promise<T> {
     const client = await this.pool.connect();
@@ -193,12 +194,20 @@ export class PostgresStore implements ConversationStore {
   }
   private spendKeys() {
     return [
-      `spend:daily:${Math.floor(Date.now() / 86400000)}`,
+      `spend:daily:${Math.floor(this.now() / 86400000)}`,
       `spend:total:${this.spending.budgetId}`,
     ];
   }
   async reserve(id: string, owner: string, requestId: string) {
     return this.tx(async (client) => {
+      if (
+        (
+          await client.query("select 1 from care_buckets where key=$1", [
+            `spend:blocked:${this.spending.budgetId}`,
+          ])
+        ).rowCount
+      )
+        throw new CareError("careos_budget_blocked", 503);
       const row = await this.owned(client, id, owner);
       if (
         row.pending_id !== requestId ||
@@ -221,12 +230,22 @@ export class PostgresStore implements ConversationStore {
         [`model:hour:${hour}`, 1, 200],
         [`model:day:${day}`, 1, 500],
       ]);
+      const call = (request.rows[0].provider_calls as number) + 1;
+      await client.query(
+        "insert into care_model_calls(request_id,call,reserved_micro,bucket_keys) values($1,$2,$3,$4)",
+        [
+          requestId,
+          call,
+          CALL_RESERVATION_MICRO,
+          JSON.stringify([daily, total]),
+        ],
+      );
       await client.query(
         "update care_requests set reserved_micro=reserved_micro+$2,provider_calls=provider_calls+1 where id=$1",
         [requestId, CALL_RESERVATION_MICRO],
       );
       return {
-        call: (request.rows[0].provider_calls as number) + 1,
+        call,
         keys: [daily, total],
       };
     });
@@ -238,34 +257,57 @@ export class PostgresStore implements ConversationStore {
     reservation: { call: number; keys: string[] },
     actualMicro: number,
   ) {
-    if (
-      !Number.isSafeInteger(actualMicro) ||
-      actualMicro < 0 ||
-      actualMicro > CALL_RESERVATION_MICRO
-    )
+    if (!Number.isSafeInteger(actualMicro) || actualMicro < 0)
       throw new CareError("careos_usage_invalid");
-    await this.tx(async (client) => {
+    const overrun = await this.tx(async (client) => {
       await this.owned(client, id, owner);
       const request = await client.query(
-        "select provider_calls,settled_calls from care_requests where id=$1 and conversation_id=$2 for update",
+        "select id from care_requests where id=$1 and conversation_id=$2 for update",
         [requestId, id],
       );
+      const saved = (
+        await client.query(
+          "select * from care_model_calls where request_id=$1 and call=$2 for update",
+          [requestId, reservation.call],
+        )
+      ).rows[0];
       if (
         !request.rowCount ||
-        request.rows[0].provider_calls !== reservation.call ||
-        request.rows[0].settled_calls !== reservation.call - 1
+        !saved ||
+        JSON.stringify(saved.bucket_keys) !== JSON.stringify(reservation.keys)
       )
         throw new CareError("careos_usage_conflict", 409);
-      const released = CALL_RESERVATION_MICRO - actualMicro;
-      for (const key of [...reservation.keys].sort())
+      if (saved.actual_micro !== null) {
+        if (saved.actual_micro !== actualMicro)
+          throw new CareError("careos_usage_conflict", 409);
+        return false; // Identical replay: no second release.
+      }
+      if (actualMicro > saved.reserved_micro) {
         await client.query(
+          "insert into care_buckets(key,amount) values($1,1) on conflict(key) do nothing",
+          [`spend:blocked:${this.spending.budgetId}`],
+        );
+        return true; // Commit the block; never release an under-reservation.
+      }
+      const released = CALL_RESERVATION_MICRO - actualMicro;
+      for (const key of [...saved.bucket_keys].sort()) {
+        const result = await client.query(
           "update care_buckets set amount=amount-$2 where key=$1 and amount >= $2",
           [key, released],
         );
+        if (result.rowCount !== 1)
+          throw new CareError("careos_usage_conflict", 409);
+      }
+      await client.query(
+        "update care_model_calls set actual_micro=$3,settled_at=now() where request_id=$1 and call=$2",
+        [requestId, reservation.call, actualMicro],
+      );
       await client.query(
         "update care_requests set actual_micro=coalesce(actual_micro,0)+$2,reserved_micro=reserved_micro-$3,settled_calls=settled_calls+1 where id=$1",
         [requestId, actualMicro, released],
       );
+      return false;
     });
+    if (overrun) throw new CareError("careos_usage_exceeded_reservation");
   }
 }

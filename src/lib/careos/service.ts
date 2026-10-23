@@ -57,8 +57,14 @@ export async function resolveTurn(options: {
   ) => Promise<T>;
   guardian?: GuardianView[];
   recall?: RecallEvidence;
+  load?: {
+    knowledge: () => Promise<KnowledgeSource[]>;
+    guardian: () => Promise<GuardianView[]>;
+    recall: () => Promise<RecallEvidence>;
+  };
 }) {
-  const { data, input, sources, mode, model, call } = options;
+  const { data, input, mode, model, call } = options;
+  let sources = options.sources;
   const record = input.twinId ? findTwin(data, input.twinId) : undefined;
   if (input.twinId && !record)
     throw new CareError("careos_purchase_not_found", 404);
@@ -136,6 +142,17 @@ export async function resolveTurn(options: {
     );
     intent = classification.intent;
     classified = true;
+  }
+  // Only the requested evidence can make this answer unavailable. Never turn
+  // unavailable relevant evidence into an empty/no-match success.
+  if (options.load && record) {
+    if (
+      intent === "care" ||
+      (intent === "documents" && /manual/i.test(input.message))
+    )
+      sources = await options.load.knowledge();
+    if (intent === "guardian") options.guardian = await options.load.guardian();
+    if (intent === "recall") options.recall = await options.load.recall();
   }
   const base = deterministicAnswer(
     data,

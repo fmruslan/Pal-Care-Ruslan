@@ -9,6 +9,7 @@ import {
   index,
   timestamp,
   integer,
+  primaryKey,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { products } from "./schema";
@@ -68,6 +69,28 @@ export const careBuckets = pgTable(
     amount: integer().notNull(),
   },
   (t) => [check("care_bucket_nonnegative", sql`${t.amount} >= 0`)],
+);
+
+// Per-call identity survives process restarts; transcript deletion never releases buckets.
+export const careModelCalls = pgTable(
+  "care_model_calls",
+  {
+    requestId: uuid("request_id")
+      .notNull()
+      .references(() => careRequests.id, { onDelete: "cascade" }),
+    call: integer().notNull(),
+    reservedMicro: integer("reserved_micro").notNull(),
+    bucketKeys: jsonb("bucket_keys").$type<string[]>().notNull(),
+    actualMicro: integer("actual_micro"),
+    settledAt: timestamp("settled_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.requestId, t.call] }),
+    check(
+      "care_call_bounds",
+      sql`${t.call} between 1 and 2 and ${t.reservedMicro}=40000 and (${t.actualMicro} is null or ${t.actualMicro} between 0 and ${t.reservedMicro}) and ((${t.actualMicro} is null) = (${t.settledAt} is null))`,
+    ),
+  ],
 );
 
 export const careKnowledge = pgTable(

@@ -4,6 +4,8 @@ Last updated: 2026-10-23
 
 ## Stage 5 in progress
 
+Per-call CareOS settlement and intent-specific dependency isolation are implemented and isolated-tested (260 unit / 107 PostgreSQL tests). Migrations through 0014 are reviewed but **not applied to the application database**. Unknown usage retains its reservation; no paid model/provider call has occurred.
+
 Database authority and historical evidence hardening are implemented and isolated-tested (99 PostgreSQL tests). Explicit capability connections replace privileged fallbacks, including CareOS fixture persistence. The web Blueprint no longer runs migrations or accepts an automatic owner connection string. Actual application credential switching and Stage 5 migrations are **not applied/verified** and require separate approval. [Increment evidence](evidence/STAGE5-VERIFICATION.md).
 
 > **Continuation implemented with explicit boundaries:** actual AG Studio local components/custom widgets and scripted SDK tools; one genuinely retrieved official CPSC notice and conservative recall matching; fixture replacement experience with a real, disabled Channel3 adapter. Hosted inference, actual Channel3 acceptance, public AG Studio license coverage, webhooks and public deployment remain incomplete. Price Guardian's actual refund/recovery test still requires separate financial approval. Existing Sandbox purchases and Guardian records are preserved. [Continuation evidence](evidence/CONTINUATION-VERIFICATION.md) · [Stage 4 evidence](evidence/STAGE4-VERIFICATION.md).

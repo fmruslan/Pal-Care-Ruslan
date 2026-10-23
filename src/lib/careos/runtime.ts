@@ -57,12 +57,9 @@ export async function answerTurn(
 ) {
   const { store, config } = careRuntime();
   const deadline = Date.now() + 20000;
-  const [data, sources, conversation, guardian, safety] = await Promise.all([
+  const [data, conversation] = await Promise.all([
     getDemoData(),
-    getKnowledge(),
     store.get(conversationId, owner),
-    getGuardian(),
-    getSafety(),
   ]);
   const model =
     config.mode === "responses" ? new ResponsesProvider(config) : undefined;
@@ -94,19 +91,25 @@ export async function answerTurn(
   return resolveTurn({
     data,
     input,
-    sources,
+    sources: [],
     history: conversation.turns,
     mode: config.mode,
     model,
     call,
-    guardian: guardian.cases,
-    recall: {
-      hash: safety.snapshot.hash,
-      title: safety.snapshot.source.Title,
-      url: safety.snapshot.source.URL,
-      retrievedAt: safety.snapshot.retrievedAt,
-      mode: safety.mode,
-      unavailable: safety.unavailable,
+    load: {
+      knowledge: getKnowledge,
+      guardian: async () => (await getGuardian()).cases,
+      recall: async () => {
+        const safety = await getSafety();
+        return {
+          hash: safety.snapshot.hash,
+          title: safety.snapshot.source.Title,
+          url: safety.snapshot.source.URL,
+          retrievedAt: safety.snapshot.retrievedAt,
+          mode: safety.mode,
+          unavailable: safety.unavailable,
+        };
+      },
     },
   });
 }

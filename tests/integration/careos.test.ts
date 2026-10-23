@@ -8,6 +8,7 @@ import { PostgresStore } from "../../src/lib/careos/postgres-store";
 import { deterministicAnswer } from "../../src/lib/careos/tools";
 import { demoData } from "../../src/lib/demo/fixtures";
 import "../../scripts/environment";
+import { testRuntimeRoles } from "../helpers/runtime-roles";
 
 const url = process.env.TEST_DATABASE_URL;
 if (
@@ -168,7 +169,7 @@ test("paid reservations are atomic across concurrent sessions and survive unknow
     80000,
   );
 });
-test("known token usage releases only unused reservation and cannot settle twice", async () => {
+test("known token usage releases only unused reservation and identical settlement is idempotent", async () => {
   const s = store(),
     o = owner(),
     c = await s.create(o),
@@ -184,7 +185,8 @@ test("known token usage releases only unused reservation and cannot settle twice
     ).rows[0].amount,
     1000,
   );
-  await assert.rejects(s.settle(c.id, o, i.requestId, reservation, 1000), {
+  await s.settle(c.id, o, i.requestId, reservation, 1000);
+  await assert.rejects(s.settle(c.id, o, i.requestId, reservation, 2000), {
     status: 409,
   });
   await s.reserve(c.id, o, i.requestId);
@@ -237,4 +239,215 @@ test("CareOS interactions leave all commerce tables unchanged", async () => {
   });
   await s.clear(c.id, o);
   assert.deepEqual(await snapshot(), before);
+});
+
+for (const usages of [
+  [null, 1000],
+  [1000, null],
+  [null, null],
+  [1000, 2000],
+] as const) {
+  test(`per-call reservations settle independently: ${JSON.stringify(usages)}`, async () => {
+    const s = store(),
+      o = owner(),
+      c = await s.create(o),
+      i = input();
+    await s.claim(c.id, o, i);
+    const calls = [
+      await s.reserve(c.id, o, i.requestId),
+      await s.reserve(c.id, o, i.requestId),
+    ];
+    // Reverse order proves no sequential-settlement dependency.
+    for (const n of [1, 0])
+      if (usages[n] !== null)
+        await s.settle(c.id, o, i.requestId, calls[n], usages[n]!);
+    const expected = usages.reduce<number>((sum, v) => sum + (v ?? 40000), 0);
+    assert.equal(
+      (
+        await pool.query(
+          "select amount from care_buckets where key='spend:total:integration-only'",
+        )
+      ).rows[0].amount,
+      expected,
+    );
+    const restarted = store();
+    if (usages[1] !== null)
+      await restarted.settle(c.id, o, i.requestId, calls[1], usages[1]);
+    await s.finish(c.id, o, {
+      requestId: i.requestId,
+      message: i.message,
+      answer: deterministicAnswer(demoData, i),
+    });
+    await s.clear(c.id, o);
+    assert.equal(
+      (
+        await pool.query(
+          "select count(*)::int n from care_model_calls where request_id=$1",
+          [i.requestId],
+        )
+      ).rows[0].n,
+      0,
+    );
+    assert.equal(
+      (
+        await pool.query(
+          "select amount from care_buckets where key='spend:total:integration-only'",
+        )
+      ).rows[0].amount,
+      expected,
+    );
+  });
+}
+
+test("concurrent settlement releases once, rejects changed usage and ignores supplied bucket substitutions", async () => {
+  const s = store(),
+    o = owner(),
+    c = await s.create(o),
+    i = input();
+  await s.claim(c.id, o, i);
+  const reservation = await s.reserve(c.id, o, i.requestId);
+  await assert.rejects(
+    s.settle(c.id, o, i.requestId, { ...reservation, keys: ["wrong"] }, 1000),
+    { code: "careos_usage_conflict" },
+  );
+  await Promise.all([
+    s.settle(c.id, o, i.requestId, reservation, 1000),
+    store().settle(c.id, o, i.requestId, reservation, 1000),
+  ]);
+  await assert.rejects(s.settle(c.id, o, i.requestId, reservation, 2000), {
+    code: "careos_usage_conflict",
+  });
+  assert.equal(
+    (
+      await pool.query("select amount from care_buckets where key=$1", [
+        reservation.keys[1],
+      ])
+    ).rows[0].amount,
+    1000,
+  );
+});
+
+test("settlement uses original day buckets across UTC midnight and leaves the next reservation separate", async () => {
+  let clock = Date.now();
+  const s = new PostgresStore(
+    pool,
+    { dailyMicro: 80000, totalMicro: 80000, budgetId: "date-test" },
+    false,
+    () => clock,
+  );
+  const o = owner(),
+    c = await s.create(o),
+    i = input();
+  await s.claim(c.id, o, i);
+  const first = await s.reserve(c.id, o, i.requestId);
+  clock += 86400000;
+  const second = await s.reserve(c.id, o, i.requestId);
+  assert.notEqual(first.keys[0], second.keys[0]);
+  await s.settle(c.id, o, i.requestId, second, 2000);
+  await s.settle(c.id, o, i.requestId, first, 1000);
+  assert.equal(
+    (
+      await pool.query("select amount from care_buckets where key=$1", [
+        first.keys[0],
+      ])
+    ).rows[0].amount,
+    1000,
+  );
+  assert.equal(
+    (
+      await pool.query("select amount from care_buckets where key=$1", [
+        second.keys[0],
+      ])
+    ).rows[0].amount,
+    2000,
+  );
+  assert.equal(
+    (
+      await pool.query("select amount from care_buckets where key=$1", [
+        first.keys[1],
+      ])
+    ).rows[0].amount,
+    3000,
+  );
+});
+
+test("failed settlement rolls back all releases; an overrun commits a persistent budget block", async () => {
+  const s = store(),
+    o = owner(),
+    c = await s.create(o),
+    i = input();
+  await s.claim(c.id, o, i);
+  const reservation = await s.reserve(c.id, o, i.requestId);
+  await pool.query("delete from care_buckets where key=$1", [
+    reservation.keys[1],
+  ]);
+  await assert.rejects(s.settle(c.id, o, i.requestId, reservation, 1000), {
+    code: "careos_usage_conflict",
+  });
+  assert.equal(
+    (
+      await pool.query("select amount from care_buckets where key=$1", [
+        reservation.keys[0],
+      ])
+    ).rows[0].amount,
+    40000,
+  );
+  assert.equal(
+    (
+      await pool.query(
+        "select actual_micro from care_model_calls where request_id=$1",
+        [i.requestId],
+      )
+    ).rows[0].actual_micro,
+    null,
+  );
+  await pool.query("insert into care_buckets(key,amount) values($1,40000)", [
+    reservation.keys[1],
+  ]);
+  await assert.rejects(s.settle(c.id, o, i.requestId, reservation, 40001), {
+    code: "careos_usage_exceeded_reservation",
+  });
+  await assert.rejects(store().reserve(c.id, o, i.requestId), {
+    code: "careos_budget_blocked",
+  });
+});
+
+test("legacy aggregate usage is never fabricated; a new call can settle independently under a real CareOS login", async () => {
+  const roles = await testRuntimeRoles(url!);
+  const restricted = createDatabase(roles.urls.careos);
+  try {
+    const s = new PostgresStore(
+      restricted.pool,
+      { dailyMicro: 80000, totalMicro: 80000, budgetId: "legacy-test" },
+      true,
+    );
+    const o = owner(),
+      c = await s.create(o),
+      i = input();
+    await s.claim(c.id, o, i);
+    // Represents a pre-upgrade unknown call; no historical usage/backfill invented.
+    await pool.query(
+      "update care_requests set provider_calls=1,reserved_micro=40000 where id=$1",
+      [i.requestId],
+    );
+    const second = await s.reserve(c.id, o, i.requestId);
+    assert.equal(second.call, 2);
+    await s.settle(c.id, o, i.requestId, second, 1000);
+    assert.equal(
+      (
+        await pool.query(
+          "select reserved_micro from care_requests where id=$1",
+          [i.requestId],
+        )
+      ).rows[0].reserved_micro,
+      41000,
+    );
+    await assert.rejects(
+      restricted.pool.query("update documents set content=content"),
+      { code: "42501" },
+    );
+  } finally {
+    await restricted.pool.end();
+    await roles.close();
+  }
 });
