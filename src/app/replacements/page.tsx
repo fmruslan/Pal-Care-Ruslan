@@ -1,25 +1,66 @@
 import Link from "next/link";
 import { getDemoData } from "@/lib/demo/repository";
 import { getAlternatives } from "@/lib/discovery/runtime";
-import { categorySchema } from "@/lib/discovery/contracts";
 import { money } from "@/lib/demo/presentation";
 import { Shell } from "@/components/shell";
 import { PageHeading } from "@/components/page-heading";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Recycle, ShieldCheck, ShoppingBag } from "lucide-react";
+import { notFound } from "next/navigation";
+import { journeyContext, type JourneyQuery } from "@/lib/careos/journey";
+import { recordIdSchema } from "@/lib/demo/presentation";
+import { CareContextRegistration } from "@/components/careos/provider";
 export const metadata = { title: "Replacement Concierge" };
 export default async function ReplacementsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ category?: string }>;
+  searchParams: Promise<JourneyQuery>;
 }) {
-  const [data, query] = await Promise.all([getDemoData(), searchParams]);
-  const parsed = categorySchema.safeParse(query.category ?? "headphones"),
-    category = parsed.success ? parsed.data : "headphones";
+  const query = await searchParams;
+  if (query.twinId && !recordIdSchema.safeParse(query.twinId).success)
+    notFound();
+  const data = await getDemoData(query.twinId);
+  const journey = journeyContext(data, query);
+  if (!journey) notFound();
+  const { category } = journey;
+  if (!category)
+    return (
+      <Shell active="/vault" source={data.source}>
+        <CareContextRegistration context={journey.context} />
+        <PageHeading
+          eyebrow="CareOS · Replacement Concierge"
+          title="No matching replacement category."
+          description={`${journey.context?.name} · ${journey.context?.model}. Unrelated products will not be substituted.`}
+        />
+        <Card>
+          <Link
+            className="inline-flex min-h-11 items-center text-primary"
+            href={journey.back}
+          >
+            Return to source product →
+          </Link>
+        </Card>
+      </Shell>
+    );
   const discovery = await getAlternatives(category);
   return (
     <Shell active="/vault" source={data.source}>
+      <CareContextRegistration context={journey.context} />
+      {journey.context && (
+        <p className="mb-5 text-sm" role="note">
+          Discussing {journey.context.name} · {journey.context.model}.{" "}
+          {journey.context.example
+            ? "Fictional ownership example · no purchase or receipt."
+            : "Comparison category, not exact-model compatibility."}{" "}
+          <Link
+            className="inline-flex min-h-11 items-center font-semibold text-primary"
+            href={journey.back}
+          >
+            Return to source product →
+          </Link>
+        </p>
+      )}
       <PageHeading
         eyebrow="CareOS · Replacement Concierge"
         title="The next choice, thoughtfully."
@@ -81,6 +122,12 @@ export default async function ReplacementsPage({
           </Link>
         </nav>
       </div>
+      {journey.context && (
+        <p className="mb-4 text-xs text-muted-foreground">
+          Choosing another category leaves this product context and opens
+          category-only browsing.
+        </p>
+      )}
       {discovery.mode === "fixture" && (
         <p className="mb-6 max-w-3xl text-sm leading-7 text-muted-foreground">
           These are fictional comparison profiles, not returned Channel3
@@ -160,7 +207,7 @@ export default async function ReplacementsPage({
           Review your Purchase Twins →
         </Link>
         <Link
-          href="/safety"
+          href={journey.context ? `/safety?${journey.query}` : "/safety"}
           className="inline-flex min-h-11 items-center text-sm font-semibold text-primary"
         >
           Review official safety evidence →

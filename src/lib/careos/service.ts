@@ -8,6 +8,7 @@ import { groundedAnswer } from "./grounding";
 import type { CareModel, ModelResult } from "./providers/responses";
 import type { GuardianView } from "../price-guardian/contracts";
 import type { RecallEvidence } from "../safety/evidence";
+import { referenceContext } from "./journey";
 
 function modelPayload(
   task: "classify" | "care",
@@ -65,6 +66,56 @@ export async function resolveTurn(options: {
 }) {
   const { data, input, mode, model, call } = options;
   let sources = options.sources;
+  if (input.example) {
+    if (input.twinId) throw new CareError("careos_invalid_context", 400);
+    const intent = isProhibited(input.message)
+      ? "unsupported"
+      : (input.intent ?? interpret(input.message));
+    const recall =
+      intent === "recall" && options.load
+        ? await options.load.recall()
+        : options.recall;
+    return {
+      outcome:
+        intent === "receipt" || intent === "documents"
+          ? ("missing" as const)
+          : intent === "unsupported"
+            ? ("unsupported" as const)
+            : ("answered" as const),
+      mode: "deterministic" as const,
+      context: referenceContext,
+      revision: input.revision,
+      text:
+        intent === "unsupported"
+          ? "I cannot authorize payments, refunds or merchant changes."
+          : intent === "receipt" || intent === "documents"
+            ? "This fictional Insignia ownership example has no Purchase Twin, PayPal payment or saved receipt."
+            : intent === "recall" && recall?.unavailable
+              ? "The latest recall check is unavailable. The saved historical notice is not a current all-clear; verify the exact model and official remedy."
+              : "This is fictional ownership of an Insignia NS-AF34D2 air fryer, not your verified purchase. Review the historical official CPSC notice and exact physical identifiers first. Replacement shopping does not resolve a recall.",
+      steps: [],
+      sources: recall
+        ? [
+            {
+              id: `cpsc:${recall.hash}`,
+              title: recall.title,
+              label: "Official historical source · limited coverage",
+              href: recall.url,
+            },
+          ]
+        : [],
+      actions: [
+        {
+          label: "Review official recall evidence and limits",
+          href: "/safety?example=insignia",
+        },
+        {
+          label: "Explore air-fryer comparison profiles",
+          href: "/replacements?example=insignia",
+        },
+      ],
+    };
+  }
   const record = input.twinId ? findTwin(data, input.twinId) : undefined;
   if (input.twinId && !record)
     throw new CareError("careos_purchase_not_found", 404);

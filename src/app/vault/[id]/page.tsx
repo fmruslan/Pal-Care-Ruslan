@@ -45,13 +45,13 @@ export default async function TwinPage({
 }) {
   const { id } = await params;
   if (!recordIdSchema.safeParse(id).success) notFound();
-  const data = await getDemoData();
+  const data = await getDemoData(id);
   const record = findTwin(data, id);
   if (!record) notFound();
   const { twin, product, documents, events } = record;
   const verified = twin.origin === "sandbox";
   const reference = product.id === REFERENCE_PRODUCT;
-  const adjustment = (await getGuardian()).cases.find(
+  const adjustment = (await getGuardian(twin.id)).cases.find(
     (c) => c.twinId === twin.id,
   );
   const [safety, recallHistory] = await Promise.all([
@@ -306,6 +306,7 @@ export default async function TwinPage({
       </div>
       <section className="mt-7" aria-label="Recall Guardian evidence">
         <SafetyCard
+          twinId={twin.id}
           decision={assess(
             {
               brand: product.brand,

@@ -48,13 +48,14 @@ export function summarize(cases: GuardianView[]) {
 export async function readGuardian(
   pool: Pool,
   scheduled = false,
+  scope: { twinId?: string; caseId?: string } = {},
 ): Promise<GuardianOverview> {
   const client = await pool.connect();
   try {
     await client.query("begin isolation level repeatable read read only");
     const rows = await client.query(
-      "select c.*,t.product_snapshot,p.version,p.terms,e.origin as price_origin,e.observed_at,r.refund_id,r.provider_status,r.verified_at,r.state as refund_state,r.attempted_at,r.checked_at,(select max(a.approved_at) from guardian_approvals a where a.case_id=c.id and a.revision=c.revision) as approved_at,(select max(a.expires_at) from guardian_approvals a where a.case_id=c.id and a.revision=c.revision) as approval_expires_at from guardian_cases c join purchase_twins t on t.id=c.twin_id join guardian_policies p on p.id=c.policy_id join guardian_prices e on e.id=c.price_event_id left join guardian_refunds r on r.case_id=c.id where t.customer_id=$1 and t.merchant_id=$2 and t.origin='sandbox' order by c.created_at desc,c.id limit 500",
-      [CUSTOMER_ID, MERCHANT_ID],
+      "select c.*,t.product_snapshot,p.version,p.terms,e.origin as price_origin,e.observed_at,r.refund_id,r.provider_status,r.verified_at,r.state as refund_state,r.attempted_at,r.checked_at,(select max(a.approved_at) from guardian_approvals a where a.case_id=c.id and a.revision=c.revision) as approved_at,(select max(a.expires_at) from guardian_approvals a where a.case_id=c.id and a.revision=c.revision) as approval_expires_at from guardian_cases c join purchase_twins t on t.id=c.twin_id join guardian_policies p on p.id=c.policy_id join guardian_prices e on e.id=c.price_event_id left join guardian_refunds r on r.case_id=c.id where t.customer_id=$1 and t.merchant_id=$2 and t.origin='sandbox' and ($3::uuid is null or t.id=$3) and ($4::uuid is null or c.id=$4) order by c.created_at desc,c.id limit 500",
+      [CUSTOMER_ID, MERCHANT_ID, scope.twinId ?? null, scope.caseId ?? null],
     );
     const events = rows.rows.length
       ? await client.query(

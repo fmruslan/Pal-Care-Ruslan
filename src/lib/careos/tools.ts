@@ -116,7 +116,7 @@ export function deterministicAnswer(
           ? "Explore labeled comparison profiles"
           : "Review this product's documents",
         href: supported
-          ? "/replacements?category=headphones"
+          ? `/replacements?twinId=${twin.id}`
           : `${twinHref}#documents-heading`,
       },
     ];
@@ -124,7 +124,10 @@ export function deterministicAnswer(
     const explanation = recallExplanation(product, recall);
     answer.text = explanation.text;
     answer.actions = [
-      { label: "Review official recall evidence and limits", href: "/safety" },
+      {
+        label: "Review official recall evidence and limits",
+        href: `/safety?twinId=${twin.id}`,
+      },
     ];
     if (explanation.evidence)
       answer.sources.push({

@@ -59,7 +59,7 @@ export async function refundRuntime() {
     scope,
   );
 }
-export async function getGuardian() {
+export async function getGuardian(twinId?: string, caseId?: string) {
   await connection();
   const config = getEnvironment();
   if (config.dataSource === "fixtures") return emptyOverview();
@@ -72,6 +72,7 @@ export async function getGuardian() {
     return await readGuardian(
       database.pool,
       process.env.GUARDIAN_SCHEDULED_MONITORING_ENABLED === "true",
+      { twinId, caseId },
     );
   } catch {
     throw new Error(

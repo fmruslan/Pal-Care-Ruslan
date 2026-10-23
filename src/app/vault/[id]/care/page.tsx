@@ -22,7 +22,7 @@ export default async function CarePage({
 }) {
   const { id } = await params;
   if (!recordIdSchema.safeParse(id).success) notFound();
-  const data = await getDemoData();
+  const data = await getDemoData(id);
   const record = findTwin(data, id);
   if (!record) notFound();
   const sources = (await getKnowledge()).filter(

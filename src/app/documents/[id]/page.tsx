@@ -21,7 +21,7 @@ export default async function DocumentPage({
 }) {
   const { id } = await params;
   if (!recordIdSchema.safeParse(id).success) notFound();
-  const data = await getDemoData();
+  const data = await getDemoData(undefined, id);
   const document = data.documents.find((d) => d.id === id);
   const record = document && findTwin(data, document.twinId);
   if (!document || !record) notFound();

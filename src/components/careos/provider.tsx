@@ -29,7 +29,7 @@ import type {
 } from "@/lib/careos/contracts";
 
 type AssistantState = {
-  select: (context: CareContext) => void;
+  select: (context: CareContext | null) => void;
   open: () => void;
   ask: (message: string, intent?: Intent, context?: CareContext) => void;
 };
@@ -80,14 +80,16 @@ export function CareOSProvider({
   mode?: "fixture" | "disabled" | "responses" | "unavailable";
 }) {
   const pathname = usePathname();
-  const visible = /^\/(dashboard|vault|documents|guardian)(\/|$)/.test(
-    pathname,
-  );
+  const visible =
+    /^\/(dashboard|vault|documents|guardian|safety|replacements)(\/|$)/.test(
+      pathname,
+    );
   const [isOpen, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [mobile, setMobile] = useState(false);
   const [context, setContext] = useState<CareContext | null>(null);
   const contextRef = useRef<CareContext | null>(null);
+  const registered = useRef(false);
   const revision = useRef(0);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const conversationRef = useRef<Conversation | null>(null);
@@ -115,8 +117,9 @@ export function CareOSProvider({
       /* Navigation still works without browser storage. */
     }
   }
-  function select(value: CareContext) {
-    if (contextRef.current?.twinId === value.twinId) return;
+  function select(value: CareContext | null) {
+    registered.current = true;
+    if (JSON.stringify(contextRef.current) === JSON.stringify(value)) return;
     contextRef.current = value;
     revision.current++;
     setContext(value);
@@ -143,7 +146,8 @@ export function CareOSProvider({
       } else value = await api<Conversation>("", "POST", {});
       save(value);
       const previous = value.turns.at(-1)?.answer.context;
-      if (!contextRef.current && previous) select(previous);
+      if (!registered.current && !contextRef.current && previous)
+        select(previous);
       return value;
     })();
     try {
@@ -169,6 +173,7 @@ export function CareOSProvider({
         revision: boundRevision,
         message,
         ...(intent ? { intent } : {}),
+        ...(bound?.example ? { example: bound.example } : {}),
       });
       // Every answer keeps its original product, even if navigation changed mid-request.
       save({ ...current, turns: [...current.turns, turn] });
@@ -301,8 +306,12 @@ export function CareOSProvider({
                     <span>
                       {context.origin === "sandbox"
                         ? "Verified Sandbox purchase"
-                        : "Sample purchase"}{" "}
-                      · PC-{context.twinId.slice(-6).toUpperCase()}
+                        : context.example
+                          ? "Fictional ownership example · no purchase"
+                          : "Sample purchase"}{" "}
+                      {context.twinId && (
+                        <>· PC-{context.twinId.slice(-6).toUpperCase()}</>
+                      )}
                     </span>
                   )}
                 </span>
@@ -508,7 +517,11 @@ export function CareOSProvider({
   );
 }
 
-export function CareContextRegistration({ context }: { context: CareContext }) {
+export function CareContextRegistration({
+  context,
+}: {
+  context: CareContext | null;
+}) {
   const { select } = useCareOS();
   useEffect(() => {
     select(context);

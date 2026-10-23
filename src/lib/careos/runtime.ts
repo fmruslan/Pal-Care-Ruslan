@@ -1,7 +1,7 @@
 import "server-only";
 import { MemoryStore, type ConversationStore } from "./store";
 import { CareError, type TurnInput } from "./contracts";
-import { getDemoData } from "../demo/repository";
+import { getCareData } from "../demo/repository";
 import { getKnowledge } from "./knowledge-repository";
 import { getEnvironment } from "../config";
 import { createDatabase } from "../../db/connection";
@@ -58,7 +58,7 @@ export async function answerTurn(
   const { store, config } = careRuntime();
   const deadline = Date.now() + 20000;
   const [data, conversation] = await Promise.all([
-    getDemoData(),
+    getCareData(input.twinId),
     store.get(conversationId, owner),
   ]);
   const model =
@@ -98,7 +98,8 @@ export async function answerTurn(
     call,
     load: {
       knowledge: getKnowledge,
-      guardian: async () => (await getGuardian()).cases,
+      guardian: async () =>
+        (await getGuardian(input.twinId ?? undefined)).cases,
       recall: async () => {
         const safety = await getSafety();
         return {

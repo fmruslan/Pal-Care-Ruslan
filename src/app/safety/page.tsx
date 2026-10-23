@@ -8,21 +8,42 @@ import { PageHeading } from "@/components/page-heading";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { SafetyCard } from "@/components/safety-card";
+import { notFound } from "next/navigation";
+import { journeyContext, type JourneyQuery } from "@/lib/careos/journey";
+import { findTwin, recordIdSchema } from "@/lib/demo/presentation";
+import { CareContextRegistration } from "@/components/careos/provider";
 export const metadata = { title: "Recall Guardian" };
 export default async function SafetyPage({
   searchParams,
 }: {
-  searchParams: Promise<{ example?: string }>;
+  searchParams: Promise<JourneyQuery>;
 }) {
-  const [data, safety, query] = await Promise.all([
-    getDemoData(),
+  const query = await searchParams;
+  if (query.twinId && !recordIdSchema.safeParse(query.twinId).success)
+    notFound();
+  const [data, safety] = await Promise.all([
+    getDemoData(query.twinId),
     getSafety(),
-    searchParams,
   ]);
+  const journey = journeyContext(data, query);
+  if (!journey) notFound();
+  const record = query.twinId ? findTwin(data, query.twinId) : undefined;
   const example = query.example === "insignia",
     { source, hash, retrievedAt } = safety.snapshot;
   return (
     <Shell active="/vault" source={data.source}>
+      <CareContextRegistration context={journey.context} />
+      {journey.context && (
+        <p className="mb-5 text-sm" role="note">
+          Discussing {journey.context.name} · {journey.context.model}.{" "}
+          <Link
+            href={journey.back}
+            className="inline-flex min-h-11 items-center font-semibold text-primary"
+          >
+            Return to source product →
+          </Link>
+        </p>
+      )}
       <PageHeading
         eyebrow="CareOS · Recall Guardian"
         title="Safety starts with evidence."
@@ -46,7 +67,17 @@ export default async function SafetyPage({
           current all-clear is established.
         </p>
       )}
-      {example ? (
+      {record ? (
+        <div className="mb-6">
+          <SafetyCard
+            decision={assess(
+              { ...record.product, identifiersVerified: false },
+              hash,
+            )}
+            twinId={record.twin.id}
+          />
+        </div>
+      ) : example ? (
         <div className="mb-6">
           <SafetyCard decision={assess(fictionalOwnership, hash)} example />
           <p className="mt-3 text-sm text-muted-foreground">
@@ -120,10 +151,16 @@ export default async function SafetyPage({
             ))}
           </details>
           <Link
-            href="/replacements"
+            href={
+              journey.context && !journey.category
+                ? `${journey.back}#documents-heading`
+                : `/replacements?${journey.context ? journey.query : "category=air-fryer"}`
+            }
             className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-primary"
           >
-            Consider care and replacement options →
+            {journey.context && !journey.category
+              ? "Review this product’s documents →"
+              : "Consider care and replacement options →"}
           </Link>
         </Card>
       </div>

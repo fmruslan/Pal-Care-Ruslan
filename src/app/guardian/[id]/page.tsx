@@ -22,9 +22,11 @@ export default async function GuardianCasePage({
 }) {
   const { id } = await params;
   if (!recordIdSchema.safeParse(id).success) notFound();
-  const [data, overview] = await Promise.all([getDemoData(), getGuardian()]);
-  const item = overview.cases.find((c) => c.id === id),
-    record = item && findTwin(data, item.twinId);
+  const overview = await getGuardian(undefined, id);
+  const item = overview.cases.find((c) => c.id === id);
+  if (!item) notFound();
+  const data = await getDemoData(item.twinId);
+  const record = findTwin(data, item.twinId);
   if (!item || !record) notFound();
   return (
     <Shell active="/vault" source={data.source}>

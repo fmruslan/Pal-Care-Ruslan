@@ -8,7 +8,7 @@ export async function GET(
   const { id } = await params;
   if (!recordIdSchema.safeParse(id).success)
     return new Response("Not found", { status: 404 });
-  const data = await getDemoData();
+  const data = await getDemoData(undefined, id);
   const document = data.documents.find(
     (record) =>
       record.id === id && ["sample", "sandbox"].includes(record.origin),

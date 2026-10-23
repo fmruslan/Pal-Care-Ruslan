@@ -1,4 +1,4 @@
-import { desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { createDatabase } from "./connection";
 import {
   customers,
@@ -13,6 +13,7 @@ import { CUSTOMER_ID, MERCHANT_ID } from "../lib/demo/fixtures";
 
 export async function readDemoData(
   db: ReturnType<typeof createDatabase>["db"],
+  scope?: { twinId?: string; documentId?: string },
 ): Promise<DemoData> {
   return db.transaction(
     async (tx) => {
@@ -36,7 +37,22 @@ export async function readDemoData(
       const twins = await tx
         .select()
         .from(purchaseTwins)
-        .where(eq(purchaseTwins.customerId, CUSTOMER_ID))
+        .where(
+          and(
+            eq(purchaseTwins.customerId, CUSTOMER_ID),
+            eq(purchaseTwins.merchantId, MERCHANT_ID),
+            scope?.twinId ? eq(purchaseTwins.id, scope.twinId) : undefined,
+            scope?.documentId
+              ? inArray(
+                  purchaseTwins.id,
+                  tx
+                    .select({ id: documents.twinId })
+                    .from(documents)
+                    .where(eq(documents.id, scope.documentId)),
+                )
+              : undefined,
+          ),
+        )
         .orderBy(desc(purchaseTwins.createdAt), purchaseTwins.id)
         .limit(100);
       const twinIds = twins

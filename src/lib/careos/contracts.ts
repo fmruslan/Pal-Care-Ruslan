@@ -13,17 +13,24 @@ export const intentSchema = z.enum([
   "unsupported",
 ]);
 export type Intent = z.infer<typeof intentSchema>;
-export const turnSchema = z.strictObject({
-  requestId: z.uuid(),
-  twinId: z.uuid().nullable(),
-  revision: z.int().nonnegative().max(1000000),
-  message: z.string().trim().min(1).max(2000),
-  intent: intentSchema.optional(),
-});
+export const turnSchema = z
+  .strictObject({
+    requestId: z.uuid(),
+    twinId: z.uuid().nullable(),
+    revision: z.int().nonnegative().max(1000000),
+    message: z.string().trim().min(1).max(2000),
+    intent: intentSchema.optional(),
+    example: z.literal("insignia").optional(),
+  })
+  .refine(
+    (value) => !(value.example && value.twinId),
+    "Choose a purchase or a labeled example, never both.",
+  );
 export type TurnInput = z.infer<typeof turnSchema>;
 
 export type CareContext = {
-  twinId: string;
+  twinId: string | null;
+  example?: "insignia";
   name: string;
   model: string;
   origin: string;
