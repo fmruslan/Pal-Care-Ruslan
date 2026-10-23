@@ -72,7 +72,7 @@ export default defineConfig({
     },
   ]),
   webServer: {
-    command: `pnpm start --hostname 127.0.0.1 --port ${port}`,
+    command: `pnpm exec tsx scripts/start-test-server.ts ${port}`,
     url: `http://127.0.0.1:${port}/api/health`,
     reuseExistingServer: false,
     env: {

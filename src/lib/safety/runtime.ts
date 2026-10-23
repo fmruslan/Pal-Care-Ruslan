@@ -1,6 +1,7 @@
 import "server-only";
 import { connection } from "next/server";
 import { createDatabase } from "../../db/connection";
+import { assertDatabaseAuthority } from "../../db/authority";
 import { getEnvironment } from "../config";
 import { referenceSource, REVIEWED_SOURCE_HASH } from "./reference";
 import { sourceHash, sourceSchema } from "./cpsc";
@@ -39,6 +40,7 @@ export async function getSafety(): Promise<SafetyView> {
     readOnly: true,
   }));
   try {
+    await assertDatabaseAuthority(pool, "reader");
     const row = (
       await pool.query(
         "select c.checked_at,c.state,s.hash,s.source,s.retrieved_at,s.endpoint from recall_checks c left join recall_sources s on s.hash=c.source_hash where c.key='reference'",

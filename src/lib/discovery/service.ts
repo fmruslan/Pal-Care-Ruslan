@@ -1,4 +1,5 @@
 import type { Pool } from "pg";
+import { assertDatabaseAuthority } from "../../db/authority";
 import { transaction } from "../price-guardian/database";
 import { Channel3Gateway, normalizeProduct } from "./provider";
 import type { DiscoveryCategory } from "./contracts";
@@ -14,40 +15,11 @@ export class DiscoveryService {
   ) {}
   private async reserve(kind: "search" | "read") {
     if (this.scope.restrictedWriter) {
-      const result = await this.pool.query(
-        "select bool_or(has_table_privilege(current_user,name,'INSERT,UPDATE,DELETE,TRUNCATE') or has_any_column_privilege(current_user,name,'INSERT,UPDATE') or has_table_privilege(session_user,name,'INSERT,UPDATE,DELETE,TRUNCATE') or has_any_column_privilege(session_user,name,'INSERT,UPDATE')) unsafe from unnest($1::text[]) name",
-        [
-          [
-            "checkout_orders",
-            "purchase_twins",
-            "documents",
-            "care_events",
-            "guardian_cases",
-            "guardian_refunds",
-            "guardian_approvals",
-            "guardian_policies",
-            "operator_grants",
-            "operator_sessions",
-            "guardian_bindings",
-            "guardian_prices",
-            "guardian_counters",
-            "guardian_checks",
-            "checkout_rate_limits",
-            "products",
-            "merchants",
-            "demo_customers",
-            "care_knowledge",
-            "care_conversations",
-            "care_requests",
-            "care_buckets",
-            "recall_sources",
-            "recall_checks",
-            "recall_assessments",
-          ],
-        ],
-      );
-      if (result.rows[0].unsafe !== false)
+      try {
+        await assertDatabaseAuthority(this.pool, "discovery");
+      } catch {
         throw new Error("discovery_writer_not_restricted");
+      }
     }
     return transaction(this.pool, async (client) => {
       const key =

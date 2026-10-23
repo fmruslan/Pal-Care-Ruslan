@@ -1,5 +1,7 @@
 # Pal Care
 
+Stage 5 hardening is in progress: runtime database capabilities are explicit and privileged fallbacks are removed. Existing application credentials have **not** been switched or certified. Database mode now requires a restricted reader and separate CareOS writer; see [Stage 5 evidence and external gates](docs/evidence/STAGE5-VERIFICATION.md). No new provider activation is authorized.
+
 Webhooks are not yet implemented; actual Stage 4 refund verification still needs separate approval. Merchant intelligence uses actual AG Studio local evaluation and a clearly scripted Agent Framework. Recall Guardian uses one reviewed official CPSC notice; replacement discovery remains fixture-based until Channel3 verification. Public license coverage and hosted AI remain unverified.
 
 **Everything you buy. Taken care of.**  

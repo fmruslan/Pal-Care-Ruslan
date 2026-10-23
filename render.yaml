@@ -7,7 +7,8 @@ services:
     region: oregon
     plan: 0.5c-512mb
     buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
-    preDeployCommand: pnpm db:migrate && pnpm db:seed
+    # Migrations/seeding run in a separately authorized operator environment.
+    # Never provide owner/migration credentials to this web service.
     startCommand: pnpm start --port $PORT
     healthCheckPath: /api/ready
     autoDeployTrigger: checksPass
@@ -21,9 +22,11 @@ services:
       - key: PAYPAL_ENVIRONMENT
         value: sandbox
       - key: DATABASE_URL
-        fromDatabase:
-          name: palcare-postgres
-          property: connectionString
+        sync: false # Explicit restricted reader login, NOT the default owner URL.
+      - key: CAREOS_DATABASE_URL
+        sync: false # Explicit conversation-only writer login.
+      - key: APP_ORIGIN
+        sync: false # Exact deployed HTTPS origin; no trailing slash.
 databases:
   - name: palcare-postgres
     region: oregon

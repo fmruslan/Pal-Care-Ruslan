@@ -21,7 +21,7 @@ export async function POST(
       !["capture", "reconcile", "cancel", "retry"].includes(action)
     )
       throw new CheckoutError("checkout_not_found", 404);
-    const runtime = checkoutRuntime();
+    const runtime = await checkoutRuntime();
     requireSameOrigin(request, runtime.origin);
     if (
       !z

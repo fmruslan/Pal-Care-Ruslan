@@ -212,21 +212,10 @@ test("live permission preflight rejects a commerce-capable writer before spendin
       { dailyMicro: 80000, totalMicro: 80000, budgetId: "test-role" },
       true,
     ),
-    o = owner(),
-    c = await s.create(o),
-    i = input();
-  await s.claim(c.id, o, i);
-  await assert.rejects(s.reserve(c.id, o, i.requestId), {
+    o = owner();
+  await assert.rejects(s.create(o), {
     code: "careos_writer_not_restricted",
   });
-  assert.equal(
-    (
-      await pool.query("select provider_calls from care_requests where id=$1", [
-        i.requestId,
-      ])
-    ).rows[0].provider_calls,
-    0,
-  );
 });
 test("CareOS interactions leave all commerce tables unchanged", async () => {
   const snapshot = async () =>

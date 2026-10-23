@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import type { Pool } from "pg";
+import { assertDatabaseAuthority } from "../../db/authority";
 import type { createDatabase } from "../../db/connection";
 import { checkoutOrders, type CheckoutOrder } from "../../db/schema";
 import { GuardianError, type GuardianCase } from "../price-guardian/contracts";
@@ -46,21 +47,11 @@ export class RefundService {
   ) {}
   private async context(caseId: string) {
     if (this.scope.restrictedWriter) {
-      const permission = await this.pool.query(
-        "select bool_or(has_table_privilege(current_user,name,'INSERT,UPDATE,DELETE,TRUNCATE') or has_any_column_privilege(current_user,name,'INSERT,UPDATE')) as unsafe from unnest($1::text[]) as name",
-        [
-          [
-            "checkout_orders",
-            "purchase_twins",
-            "documents",
-            "care_events",
-            "care_knowledge",
-            "guardian_bindings",
-          ],
-        ],
-      );
-      if (permission.rows[0].unsafe !== false)
+      try {
+        await assertDatabaseAuthority(this.pool, "guardian");
+      } catch {
         throw new GuardianError("guardian_writer_not_restricted", 503);
+      }
     }
     const result = await this.pool.query(
       "select c.*,t.checkout_order_id from guardian_cases c join purchase_twins t on t.id=c.twin_id join guardian_bindings b on b.checkout_order_id=t.checkout_order_id where c.id=$1 and t.origin='sandbox' and t.customer_id=$2 and t.merchant_id=$3 and t.product_id=$4 and t.paypal_capture_id=c.capture_id and b.policy_hash=c.policy_hash",

@@ -32,6 +32,10 @@ export function parseEnvironment(env: Record<string, string | undefined>) {
 }
 
 export function getEnvironment() {
+  if (process.env.MIGRATION_DATABASE_URL || process.env.ADMIN_DATABASE_URL)
+    throw new Error(
+      "Privileged database credentials must not be present in the web runtime.",
+    );
   const result = parseEnvironment(process.env);
   // Never expose validation input: DATABASE_URL includes credentials.
   if (!result.success)

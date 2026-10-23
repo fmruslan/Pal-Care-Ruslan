@@ -11,7 +11,7 @@ import { checkoutErrorResponse } from "@/lib/commerce/http";
 
 export async function POST(request: NextRequest) {
   try {
-    const runtime = checkoutRuntime();
+    const runtime = await checkoutRuntime();
     requireSameOrigin(request, runtime.origin);
     const existing = request.cookies.get(CHECKOUT_COOKIE)?.value;
     const token = checkoutTokenSchema.safeParse(existing).success

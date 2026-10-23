@@ -1,6 +1,7 @@
 import "server-only";
 import { connection } from "next/server";
 import { createDatabase } from "../../db/connection";
+import { assertDatabaseAuthority, runtimeWriterUrl } from "../../db/authority";
 import { getEnvironment } from "../config";
 import { GuardianError } from "./contracts";
 import { GuardianService } from "./service";
@@ -22,7 +23,7 @@ const state = globalThis as unknown as {
   guardianDatabase?: ReturnType<typeof createDatabase>;
   guardianReadDatabase?: ReturnType<typeof createDatabase>;
 };
-export function guardianRuntime() {
+export async function guardianRuntime() {
   const config = getEnvironment();
   const origin = process.env.APP_ORIGIN;
   if (
@@ -32,8 +33,10 @@ export function guardianRuntime() {
   )
     throw new GuardianError("guardian_operations_disabled", 503);
   const database = (state.guardianDatabase ??= createDatabase(
-    process.env.GUARDIAN_DATABASE_URL || config.databaseUrl!,
+    runtimeWriterUrl("GUARDIAN_DATABASE_URL"),
   ));
+  runtimeWriterUrl("GUARDIAN_DATABASE_URL");
+  await assertDatabaseAuthority(database.pool, "guardian");
   return {
     ...database,
     origin,
@@ -41,11 +44,11 @@ export function guardianRuntime() {
     operator: new OperatorService(database.pool),
   };
 }
-export function refundRuntime() {
+export async function refundRuntime() {
   const scope = refundScope(process.env);
   if (!scope.readsEnabled)
     throw new GuardianError("guardian_provider_scope_disabled", 503);
-  const runtime = guardianRuntime();
+  const runtime = await guardianRuntime();
   return new RefundService(
     runtime.db,
     runtime.pool,
@@ -65,6 +68,7 @@ export async function getGuardian() {
     { readOnly: true },
   ));
   try {
+    await assertDatabaseAuthority(database.pool, "reader");
     return await readGuardian(
       database.pool,
       process.env.GUARDIAN_SCHEDULED_MONITORING_ENABLED === "true",

@@ -5,6 +5,7 @@ import { getDemoData } from "../demo/repository";
 import { getKnowledge } from "./knowledge-repository";
 import { getEnvironment } from "../config";
 import { createDatabase } from "../../db/connection";
+import { runtimeWriterUrl } from "../../db/authority";
 import { PostgresStore } from "./postgres-store";
 import { parseCareConfig } from "./config";
 import { ResponsesProvider, type ModelResult } from "./providers/responses";
@@ -34,9 +35,7 @@ export function careRuntime() {
   let store: ConversationStore;
   if (environment.dataSource === "database") {
     state.careosPostgres ??= new PostgresStore(
-      createDatabase(
-        process.env.CAREOS_DATABASE_URL || environment.databaseUrl!,
-      ).pool,
+      createDatabase(runtimeWriterUrl("CAREOS_DATABASE_URL")).pool,
       config.mode === "responses"
         ? {
             dailyMicro: config.dailyMicro,
@@ -44,7 +43,7 @@ export function careRuntime() {
             budgetId: config.budgetId,
           }
         : undefined,
-      config.mode === "responses",
+      true,
     );
     store = state.careosPostgres;
   } else store = state.careosMemory ??= new MemoryStore();

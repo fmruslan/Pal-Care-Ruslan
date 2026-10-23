@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   environment: vi.fn(),
   createDatabase: vi.fn(() => ({ db: {}, pool: {} })),
   readDemoData: vi.fn(),
+  authority: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock("server-only", () => ({}));
 vi.mock("next/server", () => ({ connection: vi.fn() }));
@@ -13,6 +14,9 @@ vi.mock("../../src/db/connection", () => ({
   createDatabase: mocks.createDatabase,
 }));
 vi.mock("../../src/db/read-demo", () => ({ readDemoData: mocks.readDemoData }));
+vi.mock("../../src/db/authority", () => ({
+  assertDatabaseAuthority: mocks.authority,
+}));
 
 import { getDemoData } from "../../src/lib/demo/repository";
 
@@ -36,6 +40,7 @@ describe("explicit data-source boundary (unit mocks, not provider evidence)", ()
     });
     mocks.readDemoData.mockResolvedValue(demoData);
     expect((await getDemoData()).source).toBe("database");
+    expect(mocks.authority).toHaveBeenCalledWith(expect.anything(), "reader");
     expect(mocks.createDatabase).toHaveBeenCalledWith(
       "postgresql://localhost/unit",
       { readOnly: true },

@@ -48,7 +48,7 @@ export function parseCheckoutConfig(env: Record<string, string | undefined>) {
     })
     .safeParse({
       origin: env.APP_ORIGIN,
-      databaseUrl: env.CHECKOUT_DATABASE_URL || env.DATABASE_URL,
+      databaseUrl: env.CHECKOUT_DATABASE_URL,
       environment: env.PAYPAL_ENVIRONMENT,
       clientId: env.PAYPAL_CLIENT_ID,
       clientSecret: env.PAYPAL_CLIENT_SECRET,

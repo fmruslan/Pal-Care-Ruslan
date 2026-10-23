@@ -12,7 +12,7 @@ import { OPERATOR_COOKIE, tokenSchema } from "@/lib/operator/service";
 
 export async function GET() {
   try {
-    const runtime = guardianRuntime();
+    const runtime = await guardianRuntime();
     return guardianResponse({
       session: await runtime.operator.view(await operatorSession()),
       refundsEnabled: process.env.GUARDIAN_REFUNDS_ENABLED === "true",
@@ -24,7 +24,7 @@ export async function GET() {
 }
 export async function POST(request: Request) {
   try {
-    const runtime = guardianRuntime();
+    const runtime = await guardianRuntime();
     const parsed = z
       .strictObject({ code: tokenSchema })
       .safeParse(await operatorJson(request, runtime.origin));

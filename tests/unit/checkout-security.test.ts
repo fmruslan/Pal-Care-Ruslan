@@ -20,7 +20,7 @@ describe("sandbox configuration and request boundaries", () => {
       PAYPAL_CHECKOUT_ENABLED: "true",
       PAYPAL_ENVIRONMENT: "sandbox",
       DEMO_DATA_SOURCE: "database",
-      DATABASE_URL: "postgresql://localhost/unit_test",
+      CHECKOUT_DATABASE_URL: "postgresql://localhost/unit_test",
       APP_ORIGIN: "https://palcare.example",
       PAYPAL_CLIENT_ID: "unit-only-not-a-credential",
       PAYPAL_CLIENT_SECRET: "unit-only-not-a-credential",

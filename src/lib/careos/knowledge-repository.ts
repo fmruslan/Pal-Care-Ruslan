@@ -1,6 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { createDatabase } from "../../db/connection";
+import { assertDatabaseAuthority } from "../../db/authority";
 import { careKnowledge } from "../../db/careos-schema";
 import { getEnvironment } from "../config";
 import { referenceSource, sourceSchema } from "./knowledge";
@@ -10,6 +11,13 @@ const state = globalThis as unknown as {
 };
 export async function getKnowledge() {
   const config = getEnvironment();
+  if (config.dataSource === "database") {
+    const database = (state.careKnowledgeDatabase ??= createDatabase(
+      config.databaseUrl!,
+      { readOnly: true },
+    ));
+    await assertDatabaseAuthority(database.pool, "reader");
+  }
   const rows =
     config.dataSource === "fixtures"
       ? [referenceSource]

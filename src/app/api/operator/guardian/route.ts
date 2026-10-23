@@ -34,7 +34,7 @@ const actionSchema = z.discriminatedUnion("action", [
 ]);
 export async function POST(request: Request) {
   try {
-    const runtime = guardianRuntime();
+    const runtime = await guardianRuntime();
     const parsed = actionSchema.safeParse(
       await operatorJson(request, runtime.origin),
     );
@@ -60,9 +60,11 @@ export async function POST(request: Request) {
         input.requestId,
       );
     if (input.action === "execute")
-      await refundRuntime().execute(session, input.caseId, input.revision);
+      await (
+        await refundRuntime()
+      ).execute(session, input.caseId, input.revision);
     if (input.action === "reconcile")
-      await refundRuntime().reconcile(session, input.caseId);
+      await (await refundRuntime()).reconcile(session, input.caseId);
     return guardianResponse(await getGuardian());
   } catch (error) {
     return guardianError(error);

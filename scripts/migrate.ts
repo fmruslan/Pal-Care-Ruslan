@@ -1,9 +1,15 @@
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { createDatabase } from "../src/db/connection";
-import { databaseUrl } from "./environment";
+import "./environment";
+import { databaseUrlSchema } from "../src/lib/config";
 
 async function main() {
-  const { db, pool } = createDatabase(databaseUrl());
+  const parsed = databaseUrlSchema.safeParse(
+    process.env.MIGRATION_DATABASE_URL,
+  );
+  if (!parsed.success)
+    throw new Error("Explicit operator MIGRATION_DATABASE_URL required.");
+  const { db, pool } = createDatabase(parsed.data);
   try {
     await migrate(db, { migrationsFolder: "./drizzle" });
     console.log("Database migrations applied.");

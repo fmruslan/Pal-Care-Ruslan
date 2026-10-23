@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { Pool, PoolClient } from "pg";
+import { assertDatabaseAuthority } from "../../db/authority";
 import {
   CareError,
   type CareTurn,
@@ -32,6 +33,13 @@ export class PostgresStore implements ConversationStore {
     const client = await this.pool.connect();
     try {
       await client.query("begin");
+      if (this.requireRestrictedRole) {
+        try {
+          await assertDatabaseAuthority(client, "careos");
+        } catch {
+          throw new CareError("careos_writer_not_restricted");
+        }
+      }
       const value = await work(client);
       await client.query("commit");
       return value;
@@ -191,40 +199,6 @@ export class PostgresStore implements ConversationStore {
   }
   async reserve(id: string, owner: string, requestId: string) {
     return this.tx(async (client) => {
-      if (this.requireRestrictedRole) {
-        const privilege = await client.query(
-          "select bool_or(has_table_privilege(current_user, name, 'INSERT,UPDATE,DELETE')) as unsafe from unnest($1::text[]) as name",
-          [
-            [
-              "checkout_orders",
-              "checkout_rate_limits",
-              "purchase_twins",
-              "products",
-              "documents",
-              "care_events",
-              "care_knowledge",
-              "guardian_policies",
-              "guardian_bindings",
-              "guardian_prices",
-              "guardian_cases",
-              "guardian_approvals",
-              "guardian_refunds",
-              "guardian_events",
-              "guardian_counters",
-              "guardian_checks",
-              "operator_grants",
-              "operator_sessions",
-              "recall_sources",
-              "recall_checks",
-              "recall_assessments",
-              "discovery_products",
-              "discovery_usage",
-            ],
-          ],
-        );
-        if (privilege.rows[0].unsafe !== false)
-          throw new CareError("careos_writer_not_restricted");
-      }
       const row = await this.owned(client, id, owner);
       if (
         row.pending_id !== requestId ||

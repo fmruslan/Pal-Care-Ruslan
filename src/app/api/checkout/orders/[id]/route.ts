@@ -13,7 +13,7 @@ export async function GET(
     const { id } = await params;
     if (!recordIdSchema.safeParse(id).success)
       throw new CheckoutError("checkout_not_found", 404);
-    const runtime = checkoutRuntime();
+    const runtime = await checkoutRuntime();
     return Response.json(
       await runtime.service.view(
         id,

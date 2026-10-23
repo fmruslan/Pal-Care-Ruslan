@@ -3,6 +3,7 @@ import { cache } from "react";
 import { connection } from "next/server";
 import { getEnvironment } from "../config";
 import { createDatabase } from "../../db/connection";
+import { assertDatabaseAuthority } from "../../db/authority";
 import { readDemoData } from "../../db/read-demo";
 import { demoData } from "./fixtures";
 
@@ -20,6 +21,10 @@ export const getDemoData = cache(async () => {
       readOnly: true,
     });
   try {
+    await assertDatabaseAuthority(
+      globalDatabase.palcareDatabase.pool,
+      "reader",
+    );
     return {
       ...(await readDemoData(globalDatabase.palcareDatabase.db)),
       source: "database" as const,
