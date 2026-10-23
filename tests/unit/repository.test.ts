@@ -10,8 +10,8 @@ const mocks = vi.hoisted(() => ({
 vi.mock("server-only", () => ({}));
 vi.mock("next/server", () => ({ connection: vi.fn() }));
 vi.mock("../../src/lib/config", () => ({ getEnvironment: mocks.environment }));
-vi.mock("../../src/db/connection", () => ({
-  createDatabase: mocks.createDatabase,
+vi.mock("../../src/db/runtime", () => ({
+  runtimeDatabase: mocks.createDatabase,
 }));
 vi.mock("../../src/db/read-demo", () => ({ readDemoData: mocks.readDemoData }));
 vi.mock("../../src/db/authority", () => ({

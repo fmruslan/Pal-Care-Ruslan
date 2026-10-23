@@ -121,6 +121,27 @@ export class DatabaseAuthorityError extends Error {
   }
 }
 
+export async function assertEvidenceGuards(
+  client: Pick<Pool | PoolClient, "query">,
+) {
+  const required = [
+    ["checkout_orders", "checkout_history_immutable"],
+    ["checkout_orders", "checkout_terminal_evidence_guard"],
+    ["purchase_twins", "twin_history_immutable"],
+    ["documents", "document_history_immutable"],
+    ["care_events", "care_event_history_immutable"],
+    ["guardian_policies", "guardian_policy_immutable"],
+    ["guardian_bindings", "guardian_binding_integrity"],
+    ["guardian_refunds", "guardian_refund_immutable"],
+    ["recall_sources", "recall_source_immutable"],
+  ].map(([table_name, trigger_name]) => ({ table_name, trigger_name }));
+  const result = await client.query(
+    `select bool_and(exists(select 1 from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname=r.table_name and t.tgname=r.trigger_name and t.tgenabled in ('O','A'))) ready from jsonb_to_recordset($1::jsonb) r(table_name text,trigger_name text)`,
+    [JSON.stringify(required)],
+  );
+  if (result.rows[0].ready !== true) throw new DatabaseAuthorityError();
+}
+
 /** Inspects effective, login AND assumable identities. No write probe on application data. */
 export async function assertDatabaseAuthority(
   client: Pick<Pool | PoolClient, "query">,
@@ -144,6 +165,8 @@ export async function assertDatabaseAuthority(
   const names = roles.rows.map((r) => r.rolname as string);
   const structure = await client.query(
     `select exists(
+    select 1 from unnest($2::text[]) r where has_database_privilege(r,current_database(),'CREATE,TEMPORARY')
+    union all
     select 1 from pg_namespace n where n.nspname in ('public','drizzle') and
       (n.nspowner=any($1::oid[]) or exists(select 1 from unnest($2::text[]) r where has_schema_privilege(r,n.oid,'CREATE')))
     union all select 1 from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname in ('public','drizzle') and c.relowner=any($1::oid[])
@@ -159,8 +182,8 @@ export async function assertDatabaseAuthority(
       else has_column_privilege(r,c.oid,a.attnum,p.privilege) end) allowed
     from pg_class c join pg_namespace n on n.oid=c.relnamespace
     cross join unnest($1::text[]) r
-    cross join (values('INSERT'),('UPDATE'),('DELETE'),('TRUNCATE'),('TRIGGER'),('REFERENCES')) p(privilege)
-    left join pg_attribute a on a.attrelid=c.oid and a.attnum>0 and not a.attisdropped and p.privilege in ('INSERT','UPDATE')
+    cross join (values('SELECT'),('INSERT'),('UPDATE'),('DELETE'),('TRUNCATE'),('TRIGGER'),('REFERENCES')) p(privilege)
+    left join pg_attribute a on a.attrelid=c.oid and a.attnum>0 and not a.attisdropped and p.privilege in ('SELECT','INSERT','UPDATE','REFERENCES')
     where n.nspname in ('public','drizzle') and c.relkind in ('r','p','v','m','f')
     group by c.relname,a.attname,p.privilege`,
     [names],
@@ -170,18 +193,49 @@ export async function assertDatabaseAuthority(
     if (!row.allowed) continue;
     const permitted = policy[row.relname] ?? [];
     if (
+      row.privilege === "SELECT" &&
+      runtimeReads[capability].includes(row.relname)
+    )
+      continue;
+    if (
       !permitted.includes(row.privilege) &&
       !permitted.includes(`${row.privilege}:${row.attname}`)
     )
       throw new DatabaseAuthorityError();
   }
+  // One bounded metadata query verifies required relations and positive grants.
+  const required = [
+    ...runtimeReads[capability].map((table_name) => ({
+      table_name,
+      column_name: null,
+      privilege: "SELECT",
+    })),
+    ...Object.entries(policy).flatMap(([table_name, grants]) =>
+      grants.map((grant) => {
+        const [privilege, column_name] = grant.split(":");
+        return { table_name, column_name: column_name ?? null, privilege };
+      }),
+    ),
+  ];
+  const access = await client.query(
+    `select coalesce(bool_and(coalesce(case when column_name is null
+    then has_table_privilege(current_user,to_regclass(format('public.%I',table_name)),privilege)
+    else has_column_privilege(current_user,to_regclass(format('public.%I',table_name)),column_name,privilege) end,false)),false) allowed
+    from jsonb_to_recordset($1::jsonb) as required(table_name text,column_name text,privilege text)`,
+    [JSON.stringify(required)],
+  );
+  if (access.rows[0].allowed !== true) throw new DatabaseAuthorityError();
 }
 
 export function runtimeWriterUrl(
   name: string,
   env: Record<string, string | undefined> = process.env,
 ) {
-  if (env.MIGRATION_DATABASE_URL || env.ADMIN_DATABASE_URL)
+  if (
+    env.MIGRATION_DATABASE_URL ||
+    env.ADMIN_DATABASE_URL ||
+    env.LOCAL_POSTGRES_PASSWORD
+  )
     throw new DatabaseAuthorityError();
   const value = env[name];
   if (

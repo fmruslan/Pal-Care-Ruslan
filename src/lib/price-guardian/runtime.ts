@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { connection } from "next/server";
-import { createDatabase } from "../../db/connection";
+import { runtimeDatabase as createDatabase } from "../../db/runtime";
 import { assertDatabaseAuthority, runtimeWriterUrl } from "../../db/authority";
 import { getEnvironment } from "../config";
 import { GuardianError } from "./contracts";

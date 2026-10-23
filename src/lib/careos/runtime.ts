@@ -4,7 +4,8 @@ import { CareError, type TurnInput } from "./contracts";
 import { getCareData } from "../demo/repository";
 import { getKnowledge } from "./knowledge-repository";
 import { getEnvironment } from "../config";
-import { createDatabase } from "../../db/connection";
+import { runtimeDatabase as createDatabase } from "../../db/runtime";
+import { validAppOrigin } from "../origin";
 import { runtimeWriterUrl } from "../../db/authority";
 import { PostgresStore } from "./postgres-store";
 import { parseCareConfig } from "./config";
@@ -20,16 +21,7 @@ const state = globalThis as unknown as {
 };
 export function careRuntime() {
   const origin = process.env.APP_ORIGIN;
-  if (
-    !origin ||
-    !URL.canParse(origin) ||
-    new URL(origin).origin !== origin ||
-    !(
-      origin.startsWith("https://") ||
-      (origin.startsWith("http://") &&
-        ["localhost", "127.0.0.1"].includes(new URL(origin).hostname))
-    )
-  )
+  if (!validAppOrigin(origin))
     throw new CareError("careos_origin_not_configured");
   const environment = getEnvironment();
   const config = parseCareConfig(process.env);

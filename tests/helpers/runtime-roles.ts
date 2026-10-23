@@ -18,6 +18,13 @@ export async function testRuntimeRoles(url: string) {
   const roles: string[] = [];
   const urls = {} as Record<DatabaseCapability, string>;
   try {
+    const databaseName = new URL(url).pathname.slice(1);
+    if (!/^[a-zA-Z0-9_]+$/.test(databaseName))
+      throw new Error("Unsupported test database name");
+    // PUBLIC grants are additive; absence of a per-login TEMP grant is not enough.
+    await admin.query(
+      `revoke temporary on database "${databaseName}" from public`,
+    );
     const existing = new Set(
       (
         await admin.query(

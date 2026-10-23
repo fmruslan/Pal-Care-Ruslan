@@ -1,6 +1,6 @@
 import "server-only";
 import { connection } from "next/server";
-import { createDatabase } from "../../db/connection";
+import { runtimeDatabase as createDatabase } from "../../db/runtime";
 import { assertDatabaseAuthority } from "../../db/authority";
 import { getEnvironment } from "../config";
 import { referenceSource, REVIEWED_SOURCE_HASH } from "./reference";

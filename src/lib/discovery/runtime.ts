@@ -1,5 +1,5 @@
 import "server-only";
-import { createDatabase } from "../../db/connection";
+import { runtimeDatabase as createDatabase } from "../../db/runtime";
 import { discoveryConfig, type DiscoveryCategory } from "./contracts";
 import { Channel3Gateway } from "./provider";
 import { DiscoveryService } from "./service";

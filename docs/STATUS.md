@@ -4,6 +4,8 @@ Last updated: 2026-10-23
 
 ## Stage 5 in progress
 
+Bounded resumable recall batches, scoped runtime pool sharing and provider-free readiness are implemented. Isolated migration rehearsal preserves every row in the 28 pre-existing tables, twice, and reconciles a historical pending injected capture after upgrading. Current checks: 270 unit / 111 PostgreSQL tests; migrations through **0015 (29 tables)** remain unapplied to the actual application database.
+
 Unified read-only purchase/receipt/Guardian/recall activity, merchant mobile navigation and automatic operator view refresh are implemented. Isolated checks pass (267 unit, 70 fixture evaluations, 18 focused browser checks and six synthetic Guardian lifecycle checks). No actual refund/AI/provider result is newly established.
 
 Studio stage selection is now shared across summary, SDK widgets and scripted tools, with explicit page/widget/all-record scopes. Focused desktop/mobile SDK browser regressions pass; public licensing and genuine inference remain separate gates.

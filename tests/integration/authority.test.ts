@@ -4,7 +4,12 @@ import { after, before, test } from "node:test";
 import { Pool } from "pg";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { createDatabase } from "../../src/db/connection";
-import { assertDatabaseAuthority } from "../../src/db/authority";
+import {
+  assertDatabaseAuthority,
+  assertEvidenceGuards,
+  runtimeReads,
+} from "../../src/db/authority";
+import { testRuntimeRoles } from "../helpers/runtime-roles";
 import "../../scripts/environment";
 const url = process.env.TEST_DATABASE_URL;
 if (
@@ -16,6 +21,54 @@ if (
 const { db, pool } = createDatabase(url);
 before(async () => {
   await migrate(db, { migrationsFolder: "./drizzle" });
+  const name = new URL(url!).pathname.slice(1);
+  if (!/^[a-zA-Z0-9_]+$/.test(name))
+    throw new Error("Invalid dedicated DB name");
+  await pool.query(`revoke temporary on database "${name}" from public`);
+});
+
+test("positive readiness detects missing grants and enabled-feature schema without write probes", async () => {
+  const roles = await testRuntimeRoles(url!);
+  const reader = new Pool({ connectionString: roles.urls.reader, max: 1 });
+  const careos = new Pool({ connectionString: roles.urls.careos, max: 1 });
+  const readerName = new URL(roles.urls.reader).username;
+  try {
+    await assertDatabaseAuthority(reader, "reader");
+    await assertEvidenceGuards(reader);
+    await pool.query(
+      "alter table checkout_orders disable trigger checkout_terminal_evidence_guard",
+    );
+    try {
+      await assert.rejects(assertEvidenceGuards(reader));
+    } finally {
+      await pool.query(
+        "alter table checkout_orders enable trigger checkout_terminal_evidence_guard",
+      );
+    }
+    await assertDatabaseAuthority(careos, "careos");
+    await pool.query(`revoke select on recall_assessments from ${readerName}`);
+    await assert.rejects(assertDatabaseAuthority(reader, "reader"));
+    await pool.query(`grant select on recall_assessments to ${readerName}`);
+    await pool.query(
+      "alter table care_model_calls rename to care_model_calls_unavailable",
+    );
+    try {
+      await assert.rejects(assertDatabaseAuthority(careos, "careos"));
+    } finally {
+      await pool.query(
+        "alter table care_model_calls_unavailable rename to care_model_calls",
+      );
+    }
+    await assertDatabaseAuthority(careos, "careos");
+    await assert.rejects(
+      reader.query("create temporary table forbidden_probe(id integer)"),
+      { code: "42501" },
+    );
+  } finally {
+    await reader.end();
+    await careos.end();
+    await roles.close();
+  }
 });
 after(async () => {
   await pool.end();
@@ -38,7 +91,7 @@ test("actual reader login rejects column writes, TRUNCATE, assumable writer, own
   });
   try {
     await pool.query(
-      `grant usage on schema public to ${role}; grant select on products to ${role}`,
+      `grant usage on schema public to ${role}; grant select on ${runtimeReads.reader.join(",")} to ${role}`,
     );
     await assertDatabaseAuthority(restricted, "reader");
     await assert.rejects(

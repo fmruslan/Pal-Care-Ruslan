@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { connection } from "next/server";
 import { getEnvironment } from "../config";
-import { createDatabase } from "../../db/connection";
+import { runtimeDatabase as createDatabase } from "../../db/runtime";
 import { assertDatabaseAuthority } from "../../db/authority";
 import { readDemoData } from "../../db/read-demo";
 import { demoData } from "./fixtures";

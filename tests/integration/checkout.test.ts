@@ -696,6 +696,8 @@ test("historical checkout, Twin, document and event values reject rewriting whil
     "verified_at=null",
     "captured_at=now()",
     "state='pending'",
+    "capture_status='PENDING'",
+    "approval_url='https://www.sandbox.paypal.com/changed'",
   ]) {
     await assert.rejects(
       pool.query(`update checkout_orders set ${assignment} where id=$1`, [

@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { createDatabase } from "../../db/connection";
+import { runtimeDatabase as createDatabase } from "../../db/runtime";
 import { assertDatabaseAuthority } from "../../db/authority";
 import { careKnowledge } from "../../db/careos-schema";
 import { getEnvironment } from "../config";

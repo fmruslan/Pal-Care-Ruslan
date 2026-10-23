@@ -24,6 +24,7 @@ const child = spawn(
       ...process.env,
       MIGRATION_DATABASE_URL: "",
       ADMIN_DATABASE_URL: "",
+      LOCAL_POSTGRES_PASSWORD: "",
       DATABASE_URL: roles?.urls.reader ?? "",
       CAREOS_DATABASE_URL: roles?.urls.careos ?? "",
       GUARDIAN_DATABASE_URL: roles?.urls.guardian ?? "",

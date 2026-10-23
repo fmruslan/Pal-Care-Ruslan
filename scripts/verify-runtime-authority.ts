@@ -11,6 +11,7 @@ const names: [DatabaseCapability, string][] = [
   ["checkout", "CHECKOUT_DATABASE_URL"],
   ["guardian", "GUARDIAN_DATABASE_URL"],
   ["discovery", "DISCOVERY_DATABASE_URL"],
+  ["recall", "RECALL_DATABASE_URL"],
 ];
 let failed = false;
 for (const [capability, name] of names) {
@@ -18,9 +19,10 @@ for (const [capability, name] of names) {
     console.log(`${capability}: NOT CONFIGURED`);
     continue;
   }
-  const { pool } = createDatabase(runtimeWriterUrl(name), { readOnly: true });
+  let database: ReturnType<typeof createDatabase> | undefined;
   try {
-    await assertDatabaseAuthority(pool, capability);
+    database = createDatabase(runtimeWriterUrl(name), { readOnly: true });
+    await assertDatabaseAuthority(database.pool, capability);
     console.log(
       `${capability}: PASS actual login, effective/assumable roles, ownership and write grants (read-only inspection)`,
     );
@@ -30,7 +32,7 @@ for (const [capability, name] of names) {
       `${capability}: BLOCKED unsafe or unavailable actual authority; no credentials printed`,
     );
   } finally {
-    await pool.end();
+    await database?.pool.end();
   }
 }
 if (failed) process.exitCode = 2;
