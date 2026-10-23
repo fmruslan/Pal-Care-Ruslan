@@ -1,6 +1,6 @@
 # Integration contracts and sponsor strategy
 
-PayPal checkout is implemented and independently tested. **The separately approved immediate-payment case has actual completed Orders/Payments capture evidence and exactly one durable Twin/receipt/policy/event. Repeated read-only verification passed without duplicates; Stage 2's bounded purchase/Twin slice is complete.** The separate eCheck remains preserved and is not claimed cleared. AI/sponsor integrations and webhooks remain planned. Local PostgreSQL works; Render hosting is unverified. Track [acceptance evidence](evidence/STAGE2-VERIFICATION.md) and [Implementation Status](STATUS.md). Never commit real credentials.
+PayPal checkout has actual Stage 2 completed-capture/Twin evidence; the separate pending eCheck is preserved. Price Guardian is implemented with actual refund acceptance deferred. The continuation uses actual local AG Studio and scripted SDK tools plus one verified official CPSC retrieval; Channel3 and hosted models remain fixture-tested/unverified externally. Public licensing, webhooks and Render deployment are incomplete. Track [continuation evidence](evidence/CONTINUATION-VERIFICATION.md), [payment evidence](evidence/STAGE2-VERIFICATION.md) and [status](STATUS.md). Never commit real credentials.
 
 | Provider | Planned use | Reference |
 | --- | --- | --- |
@@ -9,13 +9,15 @@ PayPal checkout is implemented and independently tested. **The separately approv
 | PayPal Postman workspace | Create/capture/refund/error testing | https://www.postman.com/paypal |
 | Hosted AI model API | Official OpenAI Responses adapter implemented with Zod and persistent resource gates; fixture mode verified, actual runtime inference awaiting separate approval/key | [CareOS contract](CAREOS.md); initial transport-tested candidate `gpt-5.4-mini-2026-03-17` |
 | Render Managed PostgreSQL + Drizzle | Sample records, reviewed migrations and idempotent seed implemented locally; cloud deployment pending | https://render.com/docs/databases |
-| CPSC | Official U.S. recall data | https://www.cpsc.gov/Recalls/CPSC-Recalls-Application-Program-Interface-API-Information |
-| Channel3 | Real replacement product search, prices and links | https://paypalaihackathon.devpost.com/resources |
+| CPSC | Actual retrieved historical notice 24-159, pinned exact-model rules, limited coverage/physical-identity uncertainty | [Recall contract](RECALL-GUARDIAN.md) |
+| Channel3 | Real adapter/fresh-offer infrastructure + labeled fixture UX; actual API acceptance pending credentials/free-credit authorization | [Discovery contract](REPLACEMENT-CONCIERGE.md) |
 | AG Studio | Actual 3.0.0 local-evaluation component, three custom widgets and data-engine cross-filtering; hosted AI/public license coverage pending | [Contract](INTELLIGENCE.md) · https://paypalaihackathon.devpost.com/details/aggrid |
 | Render | Hosting and background tasks | https://render.com/docs |
 | APIMatic (optional) | PayPal API context in coding assistant | https://paypalaihackathon.devpost.com/resources |
 
 ## Engineering boundaries
+
+Continuation truth: actual AG Studio 3.0.0 components/custom widgets and scripted SDK tools are locally verified, not hosted AI/public license coverage. One historical CPSC notice is genuinely retrieved and reviewed, not comprehensive continuous monitoring. Channel3 has an injected-transport-tested real REST adapter and fixture UX; **no actual Channel3 call is verified**, so sponsor qualification is not claimed. Price Guardian financial acceptance and genuine CareOS/Studio inference remain the highest-priority external proof gates. [Verification ledger](evidence/CONTINUATION-VERIFICATION.md).
 
 - Refund execution must be authorized server-side, never delegated directly to AI or a dashboard agent.
 - PayPal purchase and refund evidence must come from actual Sandbox responses, not a mocked state.

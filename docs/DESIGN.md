@@ -50,11 +50,13 @@ The package's early theme script sets the HTML class before page content. The se
 
 ## Navigation and screen hierarchy
 
+Continuation preserves the passport identity and paperwork hierarchy. The merchant workspace adds three evidence-led summary/custom-widget views, explicit sample/recorded selectors, browser-local layout tools and a visibly scripted assistant. Recall evidence and replacement profiles use existing semantic cards, conditional provenance and readable source limits. A redundant mobile Guardian-page Ask action is hidden because the existing global launcher remains available; no checkout or financial behavior changes. Vendor workbench default minimum width/scroll containment is explicitly tested rather than assuming a desktop canvas fits a phone. No third-party watermark or license notice is hidden.
+
 - Desktop: persistent sidebar, readable breadcrumb, appearance selector and Customer/Merchant workspace switch.
 - Mobile/tablet: four labeled bottom destinations (Home, Vault, Documents, Shop), safe-area padding and an accessible workspace switch. No horizontally scrolling navigation.
 - Dashboard: welcome, compact factual counts and Purchase Twins first, then source-labeled events and planned care features. The large promotional hero belongs on the homepage, not above a returning customer's purchases.
 - Purchase Twin: passport identity and evidence summary first; paperwork/history and planned intelligence form the second level. Missing manuals/warranties and unverified recall/return status are stated explicitly.
-- Merchant: an accessible inventory table and document-type bars computed from actual available demo records. The AG Studio panel is explicitly planned.
+- Merchant: accessible inventory/document views plus a separate evidence-led intelligence workspace, actual AG Studio local evaluation and visibly scripted presentation tools. Public licensing and hosted AI are not implied by polish.
 - Checkout: styled within Pal Care only. Approval/capture/retry/cancellation handlers, initial effects, ownership, deadlines and financial authorization are unchanged. No attempt is made to restyle PayPal's hosted UI.
 
 ## Visual review and regression references

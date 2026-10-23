@@ -39,6 +39,10 @@ The seed inserts a fictional customer/merchant, three fictional-product Twins an
 
 ## Schema changes
 
+Continuation requires reviewed migrations through **0012** (28 tables). For an existing local application database, `pnpm exec tsx scripts/verify-continuation-upgrade.ts --apply` compares every pre-existing public-table row around migration; it performs no seeding, source/provider call or financial action. `pnpm cpsc:verify` is a separate free official-source GET; the explicitly enabled private `cpsc:refresh` writes only recall evidence/assessments. Never run integration tests against the application database. [Source scope](RECALL-GUARDIAN.md).
+
+Actual Studio local evaluation uses `AG_STUDIO_LOCAL_EVALUATION_ENABLED=true` and an exact local `APP_ORIGIN`, retaining vendor warnings/watermark. This is not public license coverage; obtain owner-approved coverage through judging before deploying. Channel3 defaults to `DISCOVERY_PROVIDER=fixture`; leave its key/activation flags blank/off until separately authorized. [License contract](INTELLIGENCE.md) · [credential and budget procedure](REPLACEMENT-CONCIERGE.md).
+
 1. Edit `src/db/schema.ts`, `src/db/careos-schema.ts` or `src/db/guardian-schema.ts`.
 2. `pnpm db:generate` creates SQL and a snapshot in `drizzle/`.
 3. Review and commit them; then `pnpm db:migrate`.

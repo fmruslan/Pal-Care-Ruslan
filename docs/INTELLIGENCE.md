@@ -8,6 +8,8 @@ Three custom widgets share validated facts: **Value Recovery**, **Adjustment Sta
 
 ## Actual AG Studio, local evaluation only
 
+Current evaluation gate additionally requires **`AG_STUDIO_LOCAL_EVALUATION_ENABLED=true`**, exact local `APP_ORIGIN` and matching request Host. Host alone cannot enable it. Default is off. For example, `APP_ORIGIN=http://localhost:3000 AG_STUDIO_LOCAL_EVALUATION_ENABLED=true pnpm dev` enables permitted local evaluation, not public deployment. The initial mobile layout stacks custom widgets; saved layout remains presentation only.
+
 Exact-pinned `ag-studio` / `ag-studio-react` **3.0.0**. Published React peer range includes 19; documented TypeScript minimum is 5.8.3 (application uses 5.9.3). Matched transitive Grid/Charts versions are lockfile-pinned. Loaded dynamically only when opened; customer routes do not import the runtime. No Google Fonts loading. Theme uses the existing light/dark identity.
 
 The real React component hosts the three application widgets, which query the Studio data engine and support cross-filtering. Layout editing changes browser presentation only. Saving/restoring validates the three known widget positions, bounded dimensions and no extra keys. Layout is local to dataset mode; it confers no authorization.
@@ -15,6 +17,8 @@ The real React component hosts the three application widgets, which query the St
 The vendor explicitly permits **local testing without a license**, with its original watermark/warnings intact. Workbench access is limited to local hostnames as a UX guard, not a security boundary or a substitute license. Public deployment is not enabled. No owner account/trial has been activated, no key has been obtained, and coverage through **December 15, 2026** is **not established**. Owner action is needed to obtain an appropriate trial/extension or license before relying on it for public judging. A 45-day trial started in October can expire too soon. Custom widgets do not embed standalone Grid/Charts Enterprise instances requiring separate licenses.
 
 ## Verification and future AI
+
+For public acceptance, request a trial/extension covering the actual feature set (the runtime identifies **AG Studio Pro with AI** when the Agent Framework module is enabled) through the full judging period. Local unlocked evaluation does not prove licensed public use. Owner-provided coverage and deployment-gate wiring remain required; no key/account/trial was activated here.
 
 Unit tests cover provenance/window accounting, stage separation, untrusted layouts, scripted commands and rejected planner outputs. Six-project browser checks verify actual widget data/cross-filtering, accessible summary, sample isolation, layout reset, actual scripted harness runs and absence of financial POSTs. The first workspace commit `94c400a` passes exact-SHA CI ([run](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/39906192558)).
 

@@ -5,6 +5,7 @@ import { recordedDataset } from "@/lib/intelligence/model";
 import { Shell } from "@/components/shell";
 import { PageHeading } from "@/components/page-heading";
 import { IntelligenceWorkspace } from "@/components/intelligence/workspace";
+import { studioEvaluationAllowed } from "@/lib/intelligence/access";
 export const metadata = { title: "CareOS Merchant Intelligence" };
 export default async function IntelligencePage() {
   const [data, guardian, h] = await Promise.all([
@@ -12,9 +13,8 @@ export default async function IntelligencePage() {
     getGuardian(),
     headers(),
   ]);
-  // Host is a local-evaluation UX gate, never financial authorization or a licence.
-  const host = h.get("host") ?? "";
-  const local = /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(host);
+  // Explicit operator configuration plus local trusted origin; Host alone cannot enable evaluation.
+  const local = studioEvaluationAllowed(process.env, h.get("host") ?? "");
   return (
     <Shell active="/merchant/intelligence" source={data.source} merchant>
       <PageHeading

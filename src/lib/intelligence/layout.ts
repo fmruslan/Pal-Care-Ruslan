@@ -12,3 +12,20 @@ export const layoutSchema = z.strictObject({
   status: position,
   evidence: position,
 });
+export function defaultPositions(compact = false) {
+  return {
+    recovery: { xTrack: 0, yTrack: 0, xSpan: compact ? 24 : 8, ySpan: 28 },
+    status: {
+      xTrack: compact ? 0 : 8,
+      yTrack: compact ? 28 : 0,
+      xSpan: compact ? 24 : 8,
+      ySpan: 28,
+    },
+    evidence: {
+      xTrack: compact ? 0 : 16,
+      yTrack: compact ? 56 : 0,
+      xSpan: compact ? 24 : 8,
+      ySpan: 28,
+    },
+  };
+}

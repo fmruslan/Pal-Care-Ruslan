@@ -89,6 +89,12 @@ export default defineConfig({
       GUARDIAN_REFUNDS_ENABLED: "false",
       GUARDIAN_PROVIDER_READS_ENABLED: "false",
       PRICE_GUARDIAN_CHECKOUT_ENABLED: "false",
+      DISCOVERY_PROVIDER: "fixture",
+      CHANNEL3_LIVE_ENABLED: "false",
+      CHANNEL3_FREE_CREDITS_CONFIRMED: "false",
+      CHANNEL3_API_KEY: "",
+      DISCOVERY_DATABASE_URL: "",
+      AG_STUDIO_LOCAL_EVALUATION_ENABLED: "true",
     },
   },
 });

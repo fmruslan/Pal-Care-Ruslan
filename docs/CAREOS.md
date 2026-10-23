@@ -4,7 +4,7 @@
 
 CareOS is implemented as one persistent customer assistant plus deterministic briefing/actions, inline documents and scoped product-care sources. The default provider is **fixture**, clearly labeled **Demo responses · no live AI**. The official OpenAI Responses adapter is implemented and tested using injected HTTP transport. **Hosted inference is not activated or verified.** ChatGPT/OpenCode subscription credentials are never reused by the website.
 
-No CareOS operation can create/capture/reconcile/refund a PayPal payment or mutate a merchant/purchase/document record. There is no new customer account, upload, arbitrary-web-fetch, background monitoring, CPSC, Channel3 or AG Studio integration.
+No CareOS operation can create/capture/reconcile/refund a PayPal payment or mutate a merchant/purchase/document/Guardian/recall record. There is no customer account, upload, arbitrary-web-fetch or continuously deployed monitoring. Continuation adds deterministic scoped CPSC explanations and replacement navigation, not hosted inference. Merchant AG Studio assistance is a separate, explicitly scripted runner; it is not this customer's model or financial authority.
 
 ## Try it without paid APIs
 
@@ -14,7 +14,7 @@ APP_ORIGIN=http://localhost:3000 pnpm dev
 
 With `DEMO_DATA_SOURCE=fixtures` (default), no database or provider credentials are required. Open `/dashboard`: receipt and care suggestions go directly to records. Open a Twin and Ask CareOS to find its receipt. The separate Raspberry Pi 5 sample has a documented safe-shutdown example; Forma F-01 correctly has no manufacturer guide. [Source attribution and licence](CARE-SOURCES.md).
 
-For database mode, review/apply migrations through **0007**, then run the idempotent sample seed. It adds one reference sample, no fake Sandbox capture. Database errors never substitute fixtures. The explicitly local-only `pnpm exec tsx scripts/verify-careos-upgrade.ts --apply` also compares every pre-existing row in all eight original tables before/after the additive migration/seed; it never calls PayPal or a model.
+For current database mode, review/apply migrations through **0012**, then run the idempotent sample seed. No fake Sandbox capture is seeded. Database errors never substitute fixtures. The historical CareOS upgrade compared the original eight tables; the continuation's `pnpm exec tsx scripts/verify-continuation-upgrade.ts --apply` compared every row across all 23 pre-existing public tables before/after its additive migration. Neither command calls PayPal or a model.
 
 ## Architecture
 
@@ -76,6 +76,8 @@ Budgets use **integer micro-USD** (1 USD = 1,000,000). Maximum configured caps a
 Official references: [Responses structured outputs](https://platform.openai.com/docs/guides/structured-outputs), [JavaScript SDK](https://github.com/openai/openai-node), [model and pricing](https://developers.openai.com/api/docs/models/gpt-5.4-mini), [spend limits](https://developers.openai.com/api/docs/guides/spend-limits), [data controls](https://developers.openai.com/api/docs/guides/your-data), [separate ChatGPT/API billing](https://help.openai.com/en/articles/9039756-billing-settings-in-chatgpt-vs-platform).
 
 ## Verification and remaining work
+
+`pnpm careos:evaluate` runs **70 versioned deterministic/fixture tasks** (v2), including scoped recall questions, unsupported replacement categories and unauthorized financial requests. Separate tests validate changed/failed official sources, unsafe citations and exact Twin context. These are reproducible task checks, not hosted-model accuracy or safety certification. The existing Responses adapter is unchanged and remains disabled. [Recall contract](RECALL-GUARDIAN.md) · [replacement contract](REPLACEMENT-CONCIERGE.md) · [merchant scripted framework](INTELLIGENCE.md).
 
 CI runs deterministic/fixture evaluations, injected Responses protocol tests, dedicated PostgreSQL concurrency/budget tests, and browser/accessibility checks in both data modes. No CI secrets can enable paid models or PayPal.
 

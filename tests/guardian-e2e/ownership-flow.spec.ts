@@ -25,6 +25,13 @@ test("synthetic test-DB flow: proactive opportunity → protected approval → i
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
       "Awaiting merchant approval",
     );
+    if (info.project.name.startsWith("mobile"))
+      await expect(
+        page.getByRole("button", {
+          name: "Ask about this adjustment",
+          exact: true,
+        }),
+      ).toHaveCount(0);
     await expect(
       page.getByText("Controlled demo merchant price change", { exact: false }),
     ).toBeVisible();

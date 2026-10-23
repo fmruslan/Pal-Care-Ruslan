@@ -1,5 +1,6 @@
 import type { DemoData } from "../../db/schema";
 import type { GuardianView } from "../price-guardian/contracts";
+import { recallExplanation, type RecallEvidence } from "../safety/evidence";
 import { REFERENCE_PRODUCT } from "./knowledge";
 import { findTwin, displayDate, money } from "../demo/presentation";
 import {
@@ -31,6 +32,7 @@ export function interpret(message: string): Intent {
   if (/receipt|invoice|proof of payment/.test(text)) return "receipt";
   if (/price|adjustment|saving|qualif|refund/.test(text)) return "guardian";
   if (/replace|replacement|alternative/.test(text)) return "replacement";
+  if (/recall|safety|hazard|safe to use/.test(text)) return "recall";
   if (
     /clean|wash|maintain|maintenance|care|repair|setup|set up|troubleshoot|shut.*down|shutdown|power off|disconnect.*power/.test(
       text,
@@ -55,6 +57,7 @@ export function deterministicAnswer(
   input: TurnInput,
   intent = input.intent ?? interpret(input.message),
   guardian: GuardianView[] = [],
+  recall?: RecallEvidence,
 ): CareAnswer {
   const record = input.twinId ? findTwin(data, input.twinId) : undefined;
   const answer: CareAnswer = {
@@ -67,12 +70,10 @@ export function deterministicAnswer(
     sources: [],
     actions: [],
   };
-  if (intent === "replacement" || intent === "unsupported") {
+  if (intent === "unsupported") {
     answer.outcome = "unsupported";
     answer.text =
-      intent === "replacement"
-        ? "Live replacement discovery will use Channel3 in a later stage. No live alternatives or prices have been checked."
-        : "I can help with saved purchase details, receipts, documents and available product-care guidance. I cannot make payments, refunds or merchant changes.";
+      "I can help with saved purchase details, receipts, documents, scoped recall evidence and available product-care guidance. I cannot make payments, refunds or merchant changes.";
     return answer;
   }
   if (!record) {
@@ -105,7 +106,34 @@ export function deterministicAnswer(
       href: twinHref,
     },
   ];
-  if (intent === "guardian") {
+  if (intent === "replacement") {
+    const supported = product.illustration === "headphones";
+    answer.outcome = supported ? "answered" : "unsupported";
+    answer.text = `For ${product.brand} ${product.model}, review exact-model care and any official remedy before replacement. ${supported ? "A comparison workspace is available for headphones. No live alternatives, prices or availability have been checked in this conversation; illustrative profiles are not buying recommendations." : "This product category has no replacement adapter yet. I won’t substitute headphones or unrelated products."}`;
+    answer.actions = [
+      {
+        label: supported
+          ? "Explore labeled comparison profiles"
+          : "Review this product's documents",
+        href: supported
+          ? "/replacements?category=headphones"
+          : `${twinHref}#documents-heading`,
+      },
+    ];
+  } else if (intent === "recall") {
+    const explanation = recallExplanation(product, recall);
+    answer.text = explanation.text;
+    answer.actions = [
+      { label: "Review official recall evidence and limits", href: "/safety" },
+    ];
+    if (explanation.evidence)
+      answer.sources.push({
+        id: `cpsc:${explanation.evidence.hash}`,
+        title: explanation.evidence.title,
+        label: "Official historical CPSC source · limited coverage",
+        href: explanation.evidence.url,
+      });
+  } else if (intent === "guardian") {
     const item = guardian.find((c) => c.twinId === twin.id);
     answer.text = item
       ? `${money(item.amountMinor)} merchant price adjustment: ${item.state.replaceAll("_", " ")}. Original ${money(item.originalMinor)}; compared merchant price ${money(item.comparedMinor)}; capped at $20 under ${item.policyVersion}. ${item.state === "completed" && item.verifiedAt ? "Refund independently verified in PayPal Sandbox." : "This is not a completed refund."} No customer claim is needed; merchant approval is required.`

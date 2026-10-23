@@ -1,11 +1,11 @@
 # Pal Care
 
-Webhooks are not yet implemented; actual Stage 4 refund verification still needs separate approval. Merchant intelligence now has actual AG Studio local-evaluation implementation in verification; public license coverage and live AI remain unverified. [Contract](docs/INTELLIGENCE.md).
+Webhooks are not yet implemented; actual Stage 4 refund verification still needs separate approval. Merchant intelligence uses actual AG Studio local evaluation and a clearly scripted Agent Framework. Recall Guardian uses one reviewed official CPSC notice; replacement discovery remains fixture-based until Channel3 verification. Public license coverage and hosted AI remain unverified.
 
 **Everything you buy. Taken care of.**  
 *Powered by CareOS · Independent PayPal AI Hackathon project*
 
-> **Stage 4 Price Guardian is implemented with financial activation off; actual Sandbox refund acceptance is pending separate approval.** CareOS proactively discovers deterministic price adjustments, supports protected merchant approval, preserves Twin history and exposes read-only analytics for future AG Studio. Tests use injected gateways, not actual refunds. The new inactive `demo-price-v2` policy never retroactively covers existing purchases. Stage 2's completed $129 capture/Twin and separate pending eCheck are preserved. Live AI, sponsors, webhooks and public deployment remain incomplete. See [Price Guardian](docs/PRICE-GUARDIAN.md), [CareOS](docs/CAREOS.md), [verification](docs/evidence/STAGE4-VERIFICATION.md) and [status](docs/STATUS.md).
+> **Price Guardian remains financially disabled pending separate actual-refund acceptance.** The continuation adds real local AG Studio widgets/scripted SDK tools, genuinely retrieved historical CPSC evidence, and a care-first replacement experience with disabled Channel3 API infrastructure. Existing purchases and Guardian records are preserved. Scripted/fixture assistance is not live AI; public licensing, actual Channel3, genuine runtime inference, webhooks and deployment remain incomplete. [Current status](docs/STATUS.md) · [continuation evidence](docs/evidence/CONTINUATION-VERIFICATION.md) · [Price Guardian](docs/PRICE-GUARDIAN.md).
 
 Pal Care explores a new reason to choose PayPal: the purchase becomes the beginning of a useful care experience, rather than the end of a transaction.
 
@@ -60,9 +60,9 @@ Pal Care is an independent hackathon concept and **not an official PayPal produc
 | Demo identity and documents | Fixed fictional customer/merchant; public sample text documents; no login or uploads |
 | CareOS intelligence | Deterministic assistance + explicit fixtures; official Responses/Zod adapter implemented, hosted inference not activated/verified |
 | Payment workflow | Official PayPal Server SDK 2.5.0; actual Sandbox Orders/Payments completed-capture and Twin verification passed; webhooks deferred |
-| Product safety | Planned CPSC source-backed matching; no live recall monitoring |
-| Replacement discovery | Planned Channel3 integration; not connected |
-| Merchant intelligence | Planned AG Studio integration; not connected |
+| Product safety | Real historical official CPSC source, conservative exact-model matching and assessment history; limited to one reviewed notice, no continuous monitoring |
+| Replacement discovery | Care-first fixture comparison; real Channel3 adapter/fresh-offer infrastructure tested, actual provider acceptance pending |
+| Merchant intelligence | Actual AG Studio 3.0.0 local evaluation, three custom widgets and scripted SDK tools; public license coverage/hosted AI pending |
 | Deployment | Render preparation exists; public deployment and workers not verified |
 | Testing | Vitest, Playwright, Postman; GitHub Actions CI |
 | Development | OpenCode on a Tailscale-connected remote server; Mac client |
@@ -81,7 +81,7 @@ pnpm install --frozen-lockfile
 APP_ORIGIN=http://localhost:3000 pnpm dev
 ```
 
-Open `http://localhost:3000`. Explore `/dashboard`, `/vault`, `/documents`, `/shop`, and `/merchant`. Bundled preview mode is labeled on every dashboard; checkout requires database mode and explicit Sandbox configuration. No database/provider outage silently falls back to mock payments.
+Open `http://localhost:3000`. Explore `/dashboard`, `/vault`, `/documents`, `/shop`, `/merchant`, `/merchant/intelligence`, `/safety` and `/replacements`. Bundled preview mode is labeled; checkout requires separate explicit Sandbox configuration. No database/provider outage silently falls back to mock payments. For permitted local Studio evaluation, set `AG_STUDIO_LOCAL_EVALUATION_ENABLED=true` with an exact local `APP_ORIGIN`; the original vendor watermark remains. This does not establish public/judging license coverage.
 
 See [Setup & Render deployment](docs/SETUP.md) for PostgreSQL and hosting, and [PayPal Sandbox setup](docs/PAYPAL.md) for credentials, safety limits and the actual end-to-end verification checklist. Browsing needs no PayPal account. Sandbox checkout needs a fictional PayPal buyer; never commit buyer passwords.
 
@@ -91,10 +91,13 @@ For an existing attempted payment, **Check payment status** uses a reconciliatio
 
 A separately approved, single USD 129.00 Sandbox balance experiment completed after tests and explicit buyer balance confirmation. Its snapshotted immediate-payment preference did not alter older payloads or the separate eCheck. The reserved request remains one-order scoped—do not rotate it or create additional purchases without approval. Apply reviewed migrations through `0005_redundant_doomsday.sql` before enabling this code. [Controlled-test procedure](docs/PAYPAL.md#one-separate-immediate-payment-test).
 
+Continuation contracts: [Merchant intelligence and AG Studio licensing](docs/INTELLIGENCE.md), [Recall Guardian and actual CPSC evidence](docs/RECALL-GUARDIAN.md), [Replacement Concierge and Channel3 activation gates](docs/REPLACEMENT-CONCIERGE.md), [verification ledger](docs/evidence/CONTINUATION-VERIFICATION.md). Real inference, Channel3 acceptance, public licensing/deployment and the actual Price Guardian refund remain separate gates; fixtures are not a substitute for that final proof.
+
 Quality checks:
 
 ```bash
 pnpm check
+pnpm careos:evaluate # Versioned deterministic/fixture scenarios, not hosted inference
 pnpm format:check
 pnpm exec playwright install chromium
 pnpm test:e2e
@@ -104,6 +107,8 @@ E2E_PORT=3104 pnpm test:e2e
 pnpm test:integration
 # Run browser tests against PostgreSQL-backed records:
 E2E_DATA_SOURCE=database pnpm test:e2e
+# Exclusive synthetic Guardian test DB flow: never overlap with other DB suites
+pnpm test:guardian:e2e
 ```
 
 Repository documentation/configuration can also be checked separately:

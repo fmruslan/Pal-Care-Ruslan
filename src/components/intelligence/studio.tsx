@@ -27,7 +27,7 @@ import {
 } from "@/lib/intelligence/model";
 import { ValueRecovery, AdjustmentStatus, EvidenceFreshness } from "./summary";
 import { Button } from "../ui/button";
-import { layoutSchema } from "@/lib/intelligence/layout";
+import { layoutSchema, defaultPositions } from "@/lib/intelligence/layout";
 import { dashboardHarness } from "./agent";
 import type { DashboardCommand } from "@/lib/intelligence/commands";
 import { scriptedPrompts } from "@/lib/intelligence/commands";
@@ -127,7 +127,7 @@ function StudioWidget(params: AgWidgetParams<CustomData>) {
     </div>
   );
 }
-export function defaultReport(): AgReportState<Registry> {
+export function defaultReport(compact = false): AgReportState<Registry> {
   return {
     pages: [
       {
@@ -137,11 +137,7 @@ export function defaultReport(): AgReportState<Registry> {
           status: { type: "adjustment-status", dataMapping: {} },
           evidence: { type: "evidence-freshness", dataMapping: {} },
         },
-        widgetLayout: {
-          recovery: { xTrack: 0, yTrack: 0, xSpan: 8, ySpan: 28 },
-          status: { xTrack: 8, yTrack: 0, xSpan: 8, ySpan: 28 },
-          evidence: { xTrack: 16, yTrack: 0, xSpan: 8, ySpan: 28 },
-        },
+        widgetLayout: defaultPositions(compact),
       },
     ],
     selectedPageId: "care",
@@ -180,6 +176,12 @@ export function IntelligenceStudio({
 }: {
   dataset: IntelligenceDataset;
 }) {
+  const compact = useMemo(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 900px)").matches,
+    [],
+  );
   const { resolvedTheme } = useTheme(),
     api = useRef<AgStudioApi<Registry> | null>(null);
   const harness = useRef<AgAiHarness | null>(null),
@@ -246,7 +248,7 @@ export function IntelligenceStudio({
     [dataset.facts],
   );
   const context = useMemo(() => ({ mode: dataset.mode }), [dataset.mode]);
-  const initial = useMemo(() => defaultReport(), []);
+  const initial = useMemo(() => defaultReport(compact), [compact]);
   const ai = useMemo(
     () =>
       ({ api: studioApi }: { api: AgStudioApi }) => {
@@ -257,7 +259,7 @@ export function IntelligenceStudio({
             const current = api.current;
             if (!current) return;
             if (command.operation === "reset") {
-              current.setState(defaultReport());
+              current.setState(defaultReport(compact));
               return;
             }
             const state = current.getState();
@@ -288,7 +290,12 @@ export function IntelligenceStudio({
                         },
                         widgetLayout: {
                           ...p.widgetLayout,
-                          [id]: { xTrack: 0, yTrack: 30, xSpan: 12, ySpan: 28 },
+                          [id]: {
+                            xTrack: 0,
+                            yTrack: compact ? 86 : 30,
+                            xSpan: compact ? 24 : 12,
+                            ySpan: 28,
+                          },
                         },
                         filter: {
                           ...p.filter,
@@ -327,7 +334,7 @@ export function IntelligenceStudio({
         );
         return harness.current;
       },
-    [setNotice],
+    [setNotice, compact],
   );
   async function runScript(prompt: string) {
     if (!harness.current || busy) return;
@@ -374,7 +381,7 @@ export function IntelligenceStudio({
         <Button
           variant="outline"
           onClick={() => {
-            api.current?.setState(defaultReport());
+            api.current?.setState(defaultReport(compact));
             setNotice("Default layout restored. No commerce records changed.");
           }}
         >
@@ -384,14 +391,18 @@ export function IntelligenceStudio({
           variant="outline"
           onClick={() => {
             try {
+              const positions = api.current
+                ?.getState()
+                .pages?.find((p) => p.id === "care")?.widgetLayout;
+              const baseLayout = Object.fromEntries(
+                ["recovery", "status", "evidence"].map((id) => [
+                  id,
+                  positions?.[id],
+                ]),
+              );
               localStorage.setItem(
                 `palcare-studio-layout:${dataset.mode}`,
-                JSON.stringify(
-                  layoutSchema.parse(
-                    api.current?.getState().pages?.find((p) => p.id === "care")
-                      ?.widgetLayout,
-                  ),
-                ),
+                JSON.stringify(layoutSchema.parse(baseLayout)),
               );
               setNotice("Three-widget layout saved in this browser only.");
             } catch {
@@ -412,7 +423,7 @@ export function IntelligenceStudio({
                   ) ?? "null",
                 ),
               );
-              const report = defaultReport();
+              const report = defaultReport(compact);
               report.pages![0].widgetLayout = saved;
               api.current?.setState(report);
               setNotice("Saved layout restored. Commerce records unchanged.");
@@ -470,7 +481,7 @@ export function IntelligenceStudio({
         )}
       </section>
       <div
-        className="ag-theme-mode h-[640px] min-w-0 rounded-2xl border"
+        className="ag-theme-mode relative h-[640px] min-w-0 overflow-hidden rounded-2xl border"
         data-ag-theme-mode={resolvedTheme === "dark" ? "dark" : "light"}
       >
         <AgStudio<Registry>
@@ -480,6 +491,7 @@ export function IntelligenceStudio({
           context={context}
           initialState={initial}
           theme={theme}
+          layout={{ minWidth: 0, columns: 24, rowHeight: 16 }}
           loadThemeGoogleFonts={false}
           mode={edit ? "edit" : "view"}
           panels={{ view: { left: [], right: [] } }}

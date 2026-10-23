@@ -33,6 +33,8 @@ it.each(careEvaluation)(
       expect(answer.mode).toBe("fixture");
     }
     for (const action of answer.actions)
-      expect(action.href).toMatch(/^\/(vault|documents|guardian)(\/|$)/);
+      expect(action.href).toMatch(
+        /^\/(vault|documents|guardian|safety|replacements)(\/|\?|$)/,
+      );
   },
 );

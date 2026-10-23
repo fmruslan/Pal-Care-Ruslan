@@ -8,6 +8,8 @@ export default defineConfig({
     "./src/db/schema.ts",
     "./src/db/careos-schema.ts",
     "./src/db/guardian-schema.ts",
+    "./src/db/safety-schema.ts",
+    "./src/db/discovery-schema.ts",
   ],
   out: "./drizzle",
 });

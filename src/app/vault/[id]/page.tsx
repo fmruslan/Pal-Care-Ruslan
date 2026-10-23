@@ -33,6 +33,9 @@ import { REFERENCE_PRODUCT } from "@/lib/careos/knowledge";
 import { getGuardian } from "@/lib/price-guardian/runtime";
 import { GuardianCard } from "@/components/guardian";
 import { GuardianTimeline } from "@/components/guardian-timeline";
+import { getSafety, getTwinRecallHistory } from "@/lib/safety/runtime";
+import { assess } from "@/lib/safety/service";
+import { SafetyCard } from "@/components/safety-card";
 
 export const metadata = { title: "Purchase Twin" };
 export default async function TwinPage({
@@ -51,6 +54,10 @@ export default async function TwinPage({
   const adjustment = (await getGuardian()).cases.find(
     (c) => c.twinId === twin.id,
   );
+  const [safety, recallHistory] = await Promise.all([
+    getSafety(),
+    getTwinRecallHistory(twin.id),
+  ]);
   const careSources = (await getKnowledge()).filter(
     (s) =>
       s.productId === product.id &&
@@ -297,6 +304,50 @@ export default async function TwinPage({
           </Card>
         </div>
       </div>
+      <section className="mt-7" aria-label="Recall Guardian evidence">
+        <SafetyCard
+          decision={assess(
+            {
+              brand: product.brand,
+              model: product.model,
+              identifiersVerified: false,
+            },
+            safety.snapshot.hash,
+          )}
+        />
+        <p className="mt-3 text-xs leading-6 text-muted-foreground">
+          Limited to official CPSC notice 24-159 ·{" "}
+          {safety.mode === "bundled_official_snapshot"
+            ? "bundled historical source"
+            : "saved official retrieval"}{" "}
+          · not continuous monitoring or a safety certification.
+        </p>
+        {recallHistory.length > 0 && (
+          <details className="mt-4 rounded-xl border p-4">
+            <summary className="min-h-11 cursor-pointer text-sm font-semibold">
+              Saved recall assessment history
+            </summary>
+            <ol className="mt-3 space-y-4">
+              {recallHistory.map((e) => (
+                <li key={e.id} className="text-sm leading-7">
+                  <p>
+                    {e.state.replaceAll("_", " ")} · {e.reason}
+                  </p>
+                  <time
+                    dateTime={e.at}
+                    className="text-xs text-muted-foreground"
+                  >
+                    {e.at}
+                  </time>
+                  <p className="break-all font-mono text-xs text-muted-foreground">
+                    {e.hash}
+                  </p>
+                </li>
+              ))}
+            </ol>
+          </details>
+        )}
+      </section>
     </Shell>
   );
 }

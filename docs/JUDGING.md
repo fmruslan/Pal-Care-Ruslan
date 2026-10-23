@@ -1,5 +1,9 @@
 # Judge-oriented guide
 
+## Current continuation update
+
+Stage 4 infrastructure and the continuation are implemented with explicit evidence boundaries: real AG Studio local evaluation, three custom widgets and scripted actual SDK tools; genuinely retrieved historical CPSC evidence with conservative matching; fixture replacement profiles and a real but unverified Channel3 adapter. The core PayPal purchase evidence is preserved, while actual price-adjustment refund acceptance remains pending separate approval. Neither scripted assistance nor fixture responses establishes the required genuine runtime AI integration. Public AG Studio license coverage, Channel3 verification, live inference, refund acceptance and a final video remain outstanding. [Current status](STATUS.md) · [continuation ledger](evidence/CONTINUATION-VERIFICATION.md). Earlier stage descriptions below are historical where superseded.
+
 **Current status:** **Stage 2's bounded Sandbox purchase/Twin flow is complete and locally verified.** The separately approved USD 129.00 immediate-payment case has matching actual completed Orders/Payments capture evidence, a displayed Purchase Twin, exactly one receipt/policy/purchase event and two read-only verifier passes without changed records or duplicates. The earlier eCheck is preserved separately and is not claimed cleared. AI, refunds, sponsors, webhooks and public Render deployment remain incomplete; the broader flagship flow is still a target. See [actual-provider evidence](evidence/STAGE2-VERIFICATION.md), [Implementation Status](STATUS.md) and [visual references](DESIGN.md).
 
 ## Why Pal Care?

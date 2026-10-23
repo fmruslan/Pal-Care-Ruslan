@@ -59,6 +59,15 @@ test("intelligence separates real records and scenarios, with actual local Studi
   await expect(page.getByTestId("studio-value-recovery")).toContainText(
     "$20.00",
   );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > innerWidth,
+    ),
+  ).toBe(false);
+  await page.screenshot({
+    path: `test-results/intelligence-studio-${info.project.name}.png`,
+    fullPage: true,
+  });
   await page
     .getByTestId("studio-adjustment-status")
     .getByRole("button", { name: "Pending 1", exact: true })
@@ -95,5 +104,15 @@ test("intelligence separates real records and scenarios, with actual local Studi
   await expect(
     page.getByTestId("studio-value-recovery").locator("p").nth(1),
   ).toHaveText("$20.00");
+  await assistant
+    .getByRole("button", { name: "Add a verified-refund summary", exact: true })
+    .click();
+  await expect(assistant.getByRole("status")).toContainText(
+    "Scripted command applied: add-summary",
+  );
+  await assistant
+    .getByRole("button", { name: "Add a verified-refund summary", exact: true })
+    .click();
+  await expect(page.getByTestId("studio-value-recovery")).toHaveCount(2);
   expect(financial).toBe(0);
 });

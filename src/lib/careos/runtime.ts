@@ -10,6 +10,7 @@ import { parseCareConfig } from "./config";
 import { ResponsesProvider, type ModelResult } from "./providers/responses";
 import { resolveTurn } from "./service";
 import { getGuardian } from "../price-guardian/runtime";
+import { getSafety } from "../safety/runtime";
 
 const state = globalThis as unknown as {
   careosMemory?: MemoryStore;
@@ -57,11 +58,12 @@ export async function answerTurn(
 ) {
   const { store, config } = careRuntime();
   const deadline = Date.now() + 20000;
-  const [data, sources, conversation, guardian] = await Promise.all([
+  const [data, sources, conversation, guardian, safety] = await Promise.all([
     getDemoData(),
     getKnowledge(),
     store.get(conversationId, owner),
     getGuardian(),
+    getSafety(),
   ]);
   const model =
     config.mode === "responses" ? new ResponsesProvider(config) : undefined;
@@ -99,5 +101,13 @@ export async function answerTurn(
     model,
     call,
     guardian: guardian.cases,
+    recall: {
+      hash: safety.snapshot.hash,
+      title: safety.snapshot.source.Title,
+      url: safety.snapshot.source.URL,
+      retrievedAt: safety.snapshot.retrievedAt,
+      mode: safety.mode,
+      unavailable: safety.unavailable,
+    },
   });
 }

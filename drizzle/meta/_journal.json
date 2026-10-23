@@ -71,6 +71,27 @@
       "when": 1792721605516,
       "tag": "0009_guardian_integrity",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792733818672,
+      "tag": "0010_sweet_galactus",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792733833046,
+      "tag": "0011_recall_integrity",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792734283618,
+      "tag": "0012_calm_randall_flagg",
+      "breakpoints": true
     }
   ]
 }

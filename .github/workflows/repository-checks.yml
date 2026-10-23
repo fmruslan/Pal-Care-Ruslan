@@ -35,6 +35,10 @@ jobs:
       GUARDIAN_REFUNDS_ENABLED: "false"
       GUARDIAN_PROVIDER_READS_ENABLED: "false"
       PRICE_GUARDIAN_CHECKOUT_ENABLED: "false"
+      DISCOVERY_PROVIDER: "fixture"
+      CHANNEL3_LIVE_ENABLED: "false"
+      CHANNEL3_FREE_CREDITS_CONFIRMED: "false"
+      CPSC_REFRESH_ENABLED: "false"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -51,6 +55,8 @@ jobs:
       - run: pnpm format:check
       - run: pnpm typecheck
       - run: pnpm test
+      - name: Versioned CareOS deterministic and fixture evaluations (no model calls)
+        run: pnpm careos:evaluate
       - name: PostgreSQL migrations, seeds and integrity tests
         run: pnpm test:integration
       - run: pnpm build

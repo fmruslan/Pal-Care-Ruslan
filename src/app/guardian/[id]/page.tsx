@@ -40,9 +40,11 @@ export default async function GuardianCasePage({
         title={guardianLabels[item.state]}
         description="The purchase, merchant promise, price observation, approval and provider outcome stay connected."
         action={
-          <AskCareOS context={contextOf(record)}>
-            Ask about this adjustment
-          </AskCareOS>
+          <div className="hidden sm:block">
+            <AskCareOS context={contextOf(record)}>
+              Ask about this adjustment
+            </AskCareOS>
+          </div>
         }
       />
       <Card className="intelligence-wash">

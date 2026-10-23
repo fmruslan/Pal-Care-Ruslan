@@ -116,9 +116,9 @@ export default async function Dashboard() {
             },
             {
               icon: CalendarDays,
-              title: "Purchase Protection",
+              title: "Recall Guardian",
               description:
-                "A place for return dates, supplied warranty terms, and official recall evidence. Live checks are not active.",
+                "Real official CPSC evidence with conservative exact-model matching. One reviewed notice—not continuous monitoring or a safety certification.",
             },
           ].map(({ icon: Icon, title, description }) => (
             <Card key={title} className="rounded-2xl">
@@ -130,7 +130,7 @@ export default async function Dashboard() {
                 <Badge>
                   {title === "Price Guardian"
                     ? "Sandbox test pending"
-                    : "Not active"}
+                    : "Limited official evidence"}
                 </Badge>
               </div>
               <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -142,6 +142,14 @@ export default async function Dashboard() {
                   href="/guardian"
                 >
                   Explore Price Guardian →
+                </Link>
+              )}
+              {title === "Recall Guardian" && (
+                <Link
+                  className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-primary"
+                  href="/safety"
+                >
+                  Explore official recall evidence →
                 </Link>
               )}
             </Card>

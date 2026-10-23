@@ -6,13 +6,38 @@ import {
   recordedDataset,
 } from "../../src/lib/intelligence/model";
 import { emptyOverview } from "../../src/lib/price-guardian/projections";
-import { layoutSchema } from "../../src/lib/intelligence/layout";
+import {
+  layoutSchema,
+  defaultPositions,
+} from "../../src/lib/intelligence/layout";
+import { studioEvaluationAllowed } from "../../src/lib/intelligence/access";
 import {
   scriptedCommand,
   plannedCommand,
   scriptedPrompts,
 } from "../../src/lib/intelligence/commands";
 describe("merchant intelligence provenance and window", () => {
+  it("cannot enable local evaluation by spoofing Host without operator configuration", () => {
+    expect(studioEvaluationAllowed({}, "localhost:3000")).toBe(false);
+    const env = {
+      AG_STUDIO_LOCAL_EVALUATION_ENABLED: "true",
+      APP_ORIGIN: "http://127.0.0.1:3110",
+    };
+    expect(studioEvaluationAllowed(env, "127.0.0.1:3110")).toBe(true);
+    expect(
+      studioEvaluationAllowed(
+        { ...env, APP_ORIGIN: "https://public.example" },
+        "localhost:3000",
+      ),
+    ).toBe(false);
+    expect(studioEvaluationAllowed(env, "evil.example")).toBe(false);
+  });
+  it("stacks mobile Studio widgets within the same bounded saved-layout schema", () => {
+    const positions = defaultPositions(true);
+    expect(layoutSchema.safeParse(positions).success).toBe(true);
+    expect(positions.status.xSpan).toBe(24);
+    expect(positions.evidence.yTrack).toBeGreaterThan(positions.status.yTrack);
+  });
   it("scripts only known commands and refuses injection or financial requests", () => {
     for (const [prompt, operation] of scriptedPrompts)
       expect(scriptedCommand(prompt)).toEqual({ operation });

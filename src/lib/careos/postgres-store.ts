@@ -214,6 +214,11 @@ export class PostgresStore implements ConversationStore {
               "guardian_checks",
               "operator_grants",
               "operator_sessions",
+              "recall_sources",
+              "recall_checks",
+              "recall_assessments",
+              "discovery_products",
+              "discovery_usage",
             ],
           ],
         );

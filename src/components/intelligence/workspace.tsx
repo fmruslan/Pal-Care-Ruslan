@@ -137,9 +137,9 @@ export function IntelligenceWorkspace({
         </div>
         {!studioAllowed && (
           <p className="mt-4 text-sm text-warning">
-            Studio evaluation is available on local development origins only.
-            Production/judging access requires owner-provided license coverage
-            through December 15, 2026.
+            Studio evaluation requires explicit local enablement and a
+            configured local origin. Production/judging access requires
+            owner-provided license coverage through December 15, 2026.
           </p>
         )}
         {studio && (

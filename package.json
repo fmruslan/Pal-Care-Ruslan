@@ -24,9 +24,13 @@
     "db:seed": "tsx scripts/seed.ts",
     "paypal:verify": "tsx scripts/verify-paypal.ts",
     "careos:cleanup": "tsx scripts/cleanup-careos.ts",
+    "careos:evaluate": "tsx scripts/evaluate-careos.ts",
     "operator": "tsx scripts/operator.ts",
     "guardian:job": "tsx scripts/guardian-job.ts",
     "guardian:verify": "tsx scripts/verify-guardian.ts",
+    "cpsc:verify": "tsx scripts/cpsc.ts verify",
+    "cpsc:refresh": "tsx scripts/cpsc.ts refresh",
+    "channel3:verify": "tsx scripts/verify-channel3.ts",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "pnpm": {

@@ -122,7 +122,7 @@ describe("CareOS receipt vertical slice", () => {
         ...input(),
         message: "Find a replacement",
       }).text,
-    ).toContain("later stage");
+    ).toContain("No live alternatives");
   });
   it("cookie-scopes conversations, deduplicates completed requests and limits in-flight turns", async () => {
     const store = new MemoryStore();
