@@ -15,7 +15,7 @@ export class DiscoveryService {
   private async reserve(kind: "search" | "read") {
     if (this.scope.restrictedWriter) {
       const result = await this.pool.query(
-        "select bool_or(has_table_privilege(current_user,name,'INSERT,UPDATE,DELETE,TRUNCATE') or has_any_column_privilege(current_user,name,'INSERT,UPDATE')) unsafe from unnest($1::text[]) name",
+        "select bool_or(has_table_privilege(current_user,name,'INSERT,UPDATE,DELETE,TRUNCATE') or has_any_column_privilege(current_user,name,'INSERT,UPDATE') or has_table_privilege(session_user,name,'INSERT,UPDATE,DELETE,TRUNCATE') or has_any_column_privilege(session_user,name,'INSERT,UPDATE')) unsafe from unnest($1::text[]) name",
         [
           [
             "checkout_orders",

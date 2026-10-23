@@ -61,4 +61,6 @@ Use fictional identities and PayPal sandbox operations only. Never commit buyer 
 
 ## Scope disclaimer
 
+Discovery preflight checks both `current_user` and `session_user`, including column-level writes: authenticating as an evidence-capable owner and merely using `SET ROLE` is not accepted as least privilege. Dedicated-test-DB verification uses an actual temporary restricted login (random runtime-only credential, revoked/dropped afterward) and explicitly rejects the narrowed-owner session. This creates no application or external-provider account.
+
 Pal Care does not independently underwrite warranties, issue insurance, decide PayPal Purchase Protection eligibility, or guarantee merchant price-match terms.

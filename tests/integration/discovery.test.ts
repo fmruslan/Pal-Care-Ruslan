@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { before, after, beforeEach, test } from "node:test";
-import { randomUUID } from "node:crypto";
+import { randomUUID, randomBytes } from "node:crypto";
 import { Pool } from "pg";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { createDatabase } from "../../src/db/connection";
@@ -142,22 +142,39 @@ test("real-provider permission preflight rejects an evidence-capable writer befo
 });
 test("a real least-privilege PostgreSQL role passes provider preflight without commerce authority", async () => {
   const role = `discovery_test_${randomUUID().replaceAll("-", "")}`;
+  const password = randomBytes(32).toString("hex");
   await pool.query(
-    `create role ${role} nologin nosuperuser nocreatedb nocreaterole noinherit`,
+    // Identifier and temporary password are generated hex, never visitor text or committed credentials.
+    `create role ${role} login password '${password}' nosuperuser nocreatedb nocreaterole noinherit`,
   );
   let restricted: Pool | undefined;
+  let narrowedOwner: Pool | undefined;
   try {
     await pool.query(`grant usage on schema public to ${role}`);
     await pool.query(
       `grant select,insert,update on discovery_usage to ${role}`,
     );
     await pool.query(`grant select,insert on discovery_products to ${role}`);
-    restricted = new Pool({
+    const loginUrl = new URL(url!);
+    loginUrl.username = role;
+    loginUrl.password = password;
+    restricted = new Pool({ connectionString: loginUrl.toString(), max: 2 });
+    const gateway = new Double();
+    narrowedOwner = new Pool({
       connectionString: url,
       options: `-c role=${role}`,
-      max: 2,
+      max: 1,
     });
-    const gateway = new Double();
+    const masquerading = new DiscoveryService(narrowedOwner, gateway, {
+      budgetId: "owner-session",
+      maxSearches: 1,
+      restrictedWriter: true,
+    });
+    await assert.rejects(
+      masquerading.discover("headphones"),
+      /discovery_writer_not_restricted/,
+    );
+    assert.equal(gateway.calls, 0);
     const service = new DiscoveryService(restricted, gateway, {
       budgetId: "least-privilege",
       maxSearches: 1,
@@ -175,6 +192,7 @@ test("a real least-privilege PostgreSQL role passes provider preflight without c
     assert.equal(gateway.calls, 1);
   } finally {
     await restricted?.end();
+    await narrowedOwner?.end();
     await pool.query(
       `revoke all on discovery_usage,discovery_products from ${role}`,
     );
