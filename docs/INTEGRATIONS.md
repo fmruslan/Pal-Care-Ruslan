@@ -11,7 +11,7 @@ PayPal checkout is implemented and independently tested. **The separately approv
 | Render Managed PostgreSQL + Drizzle | Sample records, reviewed migrations and idempotent seed implemented locally; cloud deployment pending | https://render.com/docs/databases |
 | CPSC | Official U.S. recall data | https://www.cpsc.gov/Recalls/CPSC-Recalls-Application-Program-Interface-API-Information |
 | Channel3 | Real replacement product search, prices and links | https://paypalaihackathon.devpost.com/resources |
-| AG Studio | Agent-driven dashboards and custom merchant widgets | https://paypalaihackathon.devpost.com/details/aggrid |
+| AG Studio | Actual 3.0.0 local-evaluation component, three custom widgets and data-engine cross-filtering; hosted AI/public license coverage pending | [Contract](INTELLIGENCE.md) · https://paypalaihackathon.devpost.com/details/aggrid |
 | Render | Hosting and background tasks | https://render.com/docs |
 | APIMatic (optional) | PayPal API context in coding assistant | https://paypalaihackathon.devpost.com/resources |
 

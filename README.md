@@ -1,6 +1,6 @@
 # Pal Care
 
-Webhooks and sponsor integrations are not yet implemented; actual Stage 4 refund verification still needs separate approval.
+Webhooks are not yet implemented; actual Stage 4 refund verification still needs separate approval. Merchant intelligence now has actual AG Studio local-evaluation implementation in verification; public license coverage and live AI remain unverified. [Contract](docs/INTELLIGENCE.md).
 
 **Everything you buy. Taken care of.**  
 *Powered by CareOS · Independent PayPal AI Hackathon project*

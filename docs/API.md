@@ -4,6 +4,8 @@ Customer/merchant dashboards remain public and read-only. CareOS writes only its
 
 ## Stage 4 Guardian contract
 
+`GET /merchant/intelligence` adds a read-only merchant workspace over the existing Guardian projection. Actual AG Studio 3.0.0 is dynamically opened for local evaluation; it adds no financial endpoint or authority. Separate illustrative data never enters financial tables. Dashboard filters describe the bounded fact window, not the separate all-record totals. See [intelligence contract/licensing](INTELLIGENCE.md).
+
 - `GET /guardian`, `GET /guardian/:uuid`: proactive opportunity/evidence pages; no customer claim workflow. Unknown/malformed cases return 404.
 - `GET /api/guardian`: fixed-scope read-only overview, evidence and state-separated analytics. Database failure returns sanitized 503, never fixture substitution.
 - `GET /api/guardian/analytics`: versioned `guardian-analytics-v1` USD minor-unit metrics and 500-newest-case facts with timestamps, states and links. Totals cover all scoped cases; sample illustrations are excluded. AG Studio not connected.

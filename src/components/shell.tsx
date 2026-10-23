@@ -8,6 +8,7 @@ import {
   ShieldCheck,
   ShoppingBag,
   Sparkles,
+  ChartNoAxesCombined,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Brand } from "./brand";
@@ -50,6 +51,12 @@ export function Shell({
           label: "Merchant overview",
           mobile: "Merchant",
           icon: Building2,
+        },
+        {
+          href: "/merchant/intelligence",
+          label: "CareOS Intelligence",
+          mobile: "Intelligence",
+          icon: ChartNoAxesCombined,
         },
       ]
     : navigation;
@@ -121,7 +128,8 @@ export function Shell({
             </span>
             <span className="text-foreground">
               {merchant
-                ? "Merchant overview"
+                ? (links.find((link) => link.href === active)?.label ??
+                  "Merchant workspace")
                 : (navigation.find((link) => link.href === active)?.label ??
                   "Purchase Twin")}
             </span>

@@ -31,7 +31,7 @@ Last updated: 2026-10-23
 | CareOS conversations / quotas | **Implemented** | Separate cookie capability, PostgreSQL persistence, bounded same-Twin history, expiry/clear, request fingerprints, concurrent leases and atomic resource reservations; fixture-data preview is ephemeral |
 | Runtime Responses adapter | **Implemented; hosted inference NOT activated/verified** | Official exact-pinned SDK + Zod, two-call ceiling, no provider retries/storage, gated API key/budgets/restricted DB writer; injected transport tests are not real model evidence |
 | Channel3 discovery | Not started | Live product results and retailer links |
-| AG Studio intelligence | **Read-only data foundation implemented; integration not started** | Versioned analytics/facts API separates proposed, approved, provider-pending, unresolved and verified amounts. No AG Studio widgets or agent interaction |
+| AG Studio intelligence | **Actual local component/widget evaluation passes** | Pinned Studio 3.0.0, three custom widgets, real data-engine queries/cross-filtering, recorded/illustrative isolation and bounded browser-local layout. Lint/typecheck/build, 218 unit and six-project actual-widget browser checkpoint pass. No paid model; public/judging license coverage not established. [Contract](INTELLIGENCE.md) |
 | Public deployment and demo | Not started | Accessible URL and public video |
 
 ## Stage 4 verification

@@ -69,7 +69,8 @@ export default async function Merchant() {
         </h2>
         <p className="mt-3 text-sm text-muted-foreground">
           Read-only, all recorded Guardian cases. No sample scenarios are
-          included. AG Studio is not connected yet.
+          included. Explore the separate merchant intelligence workspace for
+          local AG Studio evaluation.
         </p>
         <dl className="mt-5 grid grid-cols-2 gap-5 sm:grid-cols-4">
           {[
@@ -97,6 +98,12 @@ export default async function Merchant() {
           ))}
         </dl>
         <div className="mt-5 flex flex-wrap gap-5">
+          <Link
+            href="/merchant/intelligence"
+            className="inline-flex min-h-11 items-center text-sm font-semibold text-primary"
+          >
+            Open CareOS Intelligence →
+          </Link>
           <Link
             href="/guardian"
             className="inline-flex min-h-11 items-center text-sm font-semibold text-primary"
