@@ -94,8 +94,8 @@ test("sample twins cannot be relabeled as verified sandbox payments", async () =
 
 test("documents cannot reference a missing Purchase Twin", async () => {
   await rejectedWrite(
-    "update documents set twin_id = $1 where id = $2",
-    [randomUUID(), demoData.documents[0].id],
+    "insert into documents(id,twin_id,title,kind,content,origin) values($1,$2,'Test','receipt','Test','sample')",
+    [randomUUID(), randomUUID()],
     "23503",
   );
 });
@@ -110,10 +110,10 @@ test("product and merchant identity are constrained together", async () => {
       [merchantId],
     );
     await assert.rejects(
-      client.query("update purchase_twins set merchant_id = $1 where id = $2", [
-        merchantId,
-        demoData.twins[0].id,
-      ]),
+      client.query(
+        "insert into purchase_twins(id,customer_id,merchant_id,product_id,purchased_on,purchase_price_minor,currency,origin) values($1,$2,$3,$4,'2026-10-23',1,'USD','sample')",
+        [randomUUID(), CUSTOMER_ID, merchantId, demoData.products[0].id],
+      ),
       { code: "23503" },
     );
   } finally {

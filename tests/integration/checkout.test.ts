@@ -1,7 +1,7 @@
 // Real PostgreSQL + injected test PayPal gateway. These tests are NOT sandbox evidence.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { before, after, beforeEach, afterEach, test } from "node:test";
+import { before, after, beforeEach, afterEach, test, mock } from "node:test";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { eq, inArray } from "drizzle-orm";
 import { createDatabase } from "../../src/db/connection";
@@ -22,6 +22,8 @@ import { newSessionToken, sessionHash } from "../../src/lib/commerce/security";
 import { demoData } from "../../src/lib/demo/fixtures";
 import { FakePayPal, testConfig } from "../helpers/paypal-fixture";
 import "../../scripts/environment";
+import { testRuntimeRoles } from "../helpers/runtime-roles";
+import { assertDatabaseAuthority } from "../../src/db/authority";
 
 const url = process.env.TEST_DATABASE_URL;
 if (!url || !new URL(url).pathname.endsWith("_test"))
@@ -59,6 +61,7 @@ beforeEach(async () => {
   await db.delete(checkoutRateLimits);
 });
 afterEach(async () => {
+  mock.restoreAll();
   const orders = await db
     .select()
     .from(checkoutOrders)
@@ -262,10 +265,7 @@ test("per-session order budget is persistent", async () => {
 });
 test("expired orders cannot initiate a capture", async () => {
   const { hash, order } = await begin();
-  await db
-    .update(checkoutOrders)
-    .set({ expiresAt: new Date(Date.now() - 1000).toISOString() })
-    .where(eq(checkoutOrders.id, order.id));
+  mock.method(Date, "now", () => Date.parse(order.expiresAt) + 1000);
   const result = await service.capture(order.id, hash);
   assert.equal(result.error, "checkout_expired");
   assert.equal(result.state, "expired");
@@ -278,10 +278,7 @@ test("expired orders cannot initiate a capture", async () => {
 test("view derives expiry without mutation and repeated start/capture cannot revive an unapproved order", async () => {
   gateway.status = "CREATED";
   const { hash, order, requestId } = await begin();
-  await db
-    .update(checkoutOrders)
-    .set({ expiresAt: new Date(Date.now() - 1000).toISOString() })
-    .where(eq(checkoutOrders.id, order.id));
+  mock.method(Date, "now", () => Date.parse(order.expiresAt) + 1000);
   const [before] = await db
     .select()
     .from(checkoutOrders)
@@ -321,10 +318,7 @@ test("view derives expiry without mutation and repeated start/capture cannot rev
 test("expired ambiguous creation cannot retry the provider with an expired idempotency window", async () => {
   gateway.failCreate = true;
   const { hash, order } = await begin();
-  await db
-    .update(checkoutOrders)
-    .set({ expiresAt: new Date(Date.now() - 1000).toISOString() })
-    .where(eq(checkoutOrders.id, order.id));
+  mock.method(Date, "now", () => Date.parse(order.expiresAt) + 1000);
   assert.equal((await service.retryCreation(order.id, hash)).state, "expired");
   assert.equal(gateway.createCalls.length, 1);
   assert.equal(gateway.captureCalls.length, 0);
@@ -335,10 +329,7 @@ test("an already attempted capture reconciles after expiry without another captu
   gateway.completeBeforeError = true;
   const { hash, order } = await begin();
   assert.equal((await service.capture(order.id, hash)).state, "pending");
-  await db
-    .update(checkoutOrders)
-    .set({ expiresAt: new Date(Date.now() - 1000).toISOString() })
-    .where(eq(checkoutOrders.id, order.id));
+  mock.method(Date, "now", () => Date.parse(order.expiresAt) + 1000);
   const pending = await service.view(order.id, hash);
   assert.equal(pending.state, "pending");
   assert.equal(pending.captureAttempted, true);
@@ -399,28 +390,25 @@ test("saved product/price survives later catalog changes and is used by the vaul
 
 test("a document-write failure rolls back completion and later reconciles without another capture", async () => {
   const { hash, order } = await begin();
-  const [saved] = await db
-    .select()
-    .from(checkoutOrders)
-    .where(eq(checkoutOrders.id, order.id));
-  await db
-    .update(checkoutOrders)
-    .set({ policy: { ...saved.policy, content: "" } })
-    .where(eq(checkoutOrders.id, order.id));
-  const failed = await service.capture(order.id, hash);
-  assert.equal(failed.state, "pending");
-  assert.equal(failed.twinId, null);
-  const [pending] = await db
-    .select()
-    .from(checkoutOrders)
-    .where(eq(checkoutOrders.id, order.id));
-  assert.equal(pending.providerCaptureId, null); // Verified-payment reference is atomic with Twin finalization.
-  assert.ok(pending.observedCaptureId); // Keep the observed identity despite local finalization rollback.
-  assert.equal(pending.verifiedAt, null);
-  await db
-    .update(checkoutOrders)
-    .set({ policy: saved.policy })
-    .where(eq(checkoutOrders.id, order.id));
+  // Inject a local storage failure, never rewrite an immutable saved policy.
+  await pool.query(`create function test_document_failure() returns trigger language plpgsql as $$ begin raise exception 'Injected document failure'; end $$;
+    create trigger test_document_failure before insert on documents for each row execute function test_document_failure()`);
+  try {
+    const failed = await service.capture(order.id, hash);
+    assert.equal(failed.state, "pending");
+    assert.equal(failed.twinId, null);
+    const [pending] = await db
+      .select()
+      .from(checkoutOrders)
+      .where(eq(checkoutOrders.id, order.id));
+    assert.equal(pending.providerCaptureId, null); // Verified-payment reference is atomic with Twin finalization.
+    assert.ok(pending.observedCaptureId); // Keep the observed identity despite local finalization rollback.
+    assert.equal(pending.verifiedAt, null);
+  } finally {
+    await pool.query(
+      "drop trigger test_document_failure on documents; drop function test_document_failure()",
+    );
+  }
   assert.equal((await service.capture(order.id, hash)).state, "completed");
   assert.equal(gateway.captureCalls.length, 1);
 });
@@ -442,10 +430,8 @@ async function pendingAfterDeadline() {
   assert.equal(pending.state, "pending");
   assert.equal(pending.pendingReason, "ECHECK");
   assert.equal(pending.captureStatus, "PENDING");
-  await db
-    .update(checkoutOrders)
-    .set({ expiresAt: new Date(Date.now() - 3600000).toISOString() })
-    .where(eq(checkoutOrders.id, context.order.id));
+  // Keep within the same provider quota bucket; only expiry's JS clock advances.
+  mock.method(Date, "now", () => Date.parse(context.order.expiresAt) + 1000);
   const [saved] = await db
     .select()
     .from(checkoutOrders)
@@ -667,13 +653,115 @@ test("concurrent reconciliation checks share the lease and finalize once", async
 
 test("reconciliation retains persistent per-order provider limits", async () => {
   const { hash, order } = await pendingAfterDeadline();
-  // Creation and initial capture already consumed two leases in this bucket.
-  for (let i = 0; i < 18; i++)
+  // Clock advanced beyond the original deadline into a new hourly bucket.
+  for (let i = 0; i < 20; i++)
     assert.equal((await service.reconcile(order.id, hash)).state, "pending");
   await assert.rejects(service.reconcile(order.id, hash), {
     message: "demo_limit_reached",
   });
   assert.equal(gateway.captureCalls.length, 1);
+});
+
+test("historical checkout, Twin, document and event values reject rewriting while first finalization succeeds", async () => {
+  const { hash, order } = await begin();
+  for (const assignment of [
+    "amount_minor=1",
+    "policy='{}'::jsonb",
+    "product='{}'::jsonb",
+    "expires_at=expires_at+interval '1 hour'",
+    "create_key=gen_random_uuid()",
+    "capture_key=gen_random_uuid()",
+    "payment_method_preference='IMMEDIATE_PAYMENT_REQUIRED'",
+  ]) {
+    await assert.rejects(
+      pool.query(`update checkout_orders set ${assignment} where id=$1`, [
+        order.id,
+      ]),
+      { code: "23514" },
+    );
+  }
+  const done = await service.capture(order.id, hash);
+  assert.equal(done.state, "completed");
+  const before = (
+    await pool.query(
+      "select to_jsonb(o) row from checkout_orders o where id=$1",
+      [order.id],
+    )
+  ).rows;
+  for (const assignment of [
+    "provider_order_id='REPLACED'",
+    "observed_capture_id='REPLACED'",
+    "provider_capture_id=null",
+    "capture_attempted_at=null",
+    "verified_at=null",
+    "captured_at=now()",
+    "state='pending'",
+  ]) {
+    await assert.rejects(
+      pool.query(`update checkout_orders set ${assignment} where id=$1`, [
+        order.id,
+      ]),
+      { code: "23514" },
+    );
+  }
+  for (const [table, assignment] of [
+    ["purchase_twins", "purchase_price_minor=1"],
+    ["documents", "content='Rewritten'"],
+    ["care_events", "description='Rewritten'"],
+  ]) {
+    await assert.rejects(
+      pool.query(
+        `update ${table} set ${assignment} where ${table === "purchase_twins" ? "id" : "twin_id"}=$1`,
+        [done.twinId],
+      ),
+      { code: "23514" },
+    );
+  }
+  assert.deepEqual(
+    (
+      await pool.query(
+        "select to_jsonb(o) row from checkout_orders o where id=$1",
+        [order.id],
+      )
+    ).rows,
+    before,
+  );
+  assert.equal((await service.reconcile(order.id, hash)).twinId, done.twinId);
+});
+
+test("actual restricted checkout login finalizes injected capture and cannot rewrite or delete history", async () => {
+  const roles = await testRuntimeRoles(url!);
+  const restricted = createDatabase(roles.urls.checkout);
+  try {
+    await assertDatabaseAuthority(restricted.pool, "checkout");
+    const checkout = new CheckoutService(restricted.db, gateway, testConfig),
+      hash = newSession();
+    const order = await checkout.start(
+      { productId: demoData.products[0].id, requestId: randomUUID() },
+      hash,
+    );
+    const done = await checkout.capture(order.id, hash);
+    assert.equal(done.state, "completed");
+    await assert.rejects(
+      restricted.pool.query(
+        "update documents set content='Changed' where twin_id=$1",
+        [done.twinId],
+      ),
+      { code: "42501" },
+    );
+    await assert.rejects(
+      restricted.pool.query("delete from checkout_orders where id=$1", [
+        order.id,
+      ]),
+      { code: "42501" },
+    );
+    await assert.rejects(restricted.pool.query("truncate documents"), {
+      code: "42501",
+    });
+  } finally {
+    await restricted.pool.end();
+    await roles.close();
+  }
 });
 
 test("database rejects unchecked capture observations and orphaned pending reasons", async () => {

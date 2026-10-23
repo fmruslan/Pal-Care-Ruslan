@@ -20,3 +20,11 @@ Actual application credential changes/migrations remain **blocked pending separa
 Test results are recorded as execution completes below. No real PayPal/model/Channel3 calls or paid deployment are authorized.
 
 5.1 isolated verification: lint, typecheck, build, format and **258 unit / 97 PostgreSQL tests** pass. Four focused database-backed browser checks pass under real disposable reader/CareOS/Guardian logins. Initial typecheck/mock failures were corrected before commit. Tests cover rejected column-only writes, TRUNCATE, assumable writer roles, ownership, narrowed-owner sessions and forbidden direct UPDATE. Existing application baseline hashes/counts for all 28 public tables were saved read-only outside Git for final comparison.
+
+Actual read-only authority verification returned **BLOCKED** for the configured application reader (existing excessive authority); scoped writers are **NOT CONFIGURED**. No role, password or environment value was changed to bypass this gate.
+
+## 5.2 — Historical evidence
+
+Reviewed additive migration 0013 adds UPDATE guards for original checkout intent, write-once provider IDs/attempt/completion evidence, Twins, documents and purchase events. Leases, error observations and legitimate first finalization remain mutable. No historical row is changed. Runtime roles lack DELETE/TRUNCATE/DDL authority; owner/superuser maintenance is not described as tamper-proof.
+
+All **99 dedicated PostgreSQL tests pass**, including first finalization under an actual restricted checkout login, immutable-field rejection, document failure rollback/reconciliation, pending-to-completed transitions after expiry, and untouched original receipts. Expiry tests advance the clock instead of rewriting deadlines; storage-failure tests inject a storage failure instead of corrupting saved policies. Application migration is **not applied**, pending separate approval.
