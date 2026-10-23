@@ -25,7 +25,14 @@ export const demoMerchantPolicy: PolicySnapshot = {
     "DEMO MERCHANT POLICY — VERSION demo-v1\nFictional goods, PayPal Sandbox money only. Nothing ships. No real warranty, insurance or coverage is provided. No automated price adjustment or refund is offered in this stage. These are demonstration terms, not terms for real commerce.",
 };
 export const startCheckoutSchema = z
-  .object({ productId: z.uuid(), requestId: z.uuid() })
+  .object({
+    productId: z.uuid(),
+    requestId: z.uuid(),
+    offerHash: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
+  })
   .strict();
 export const CHECKOUT_COOKIE = "palcare_checkout";
 // Fixed scope of the explicitly approved one-order Sandbox experiment.

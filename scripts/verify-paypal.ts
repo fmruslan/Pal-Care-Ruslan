@@ -7,6 +7,7 @@ import { SandboxPayPal } from "../src/lib/commerce/paypal";
 import {
   inspectCapturedPayment,
   inspectOrder,
+  inspectPaymentLifecycle,
 } from "../src/lib/commerce/verification";
 import { recordIdSchema } from "../src/lib/demo/presentation";
 import "./environment";
@@ -36,19 +37,33 @@ async function main() {
       "Local order must have a PayPal reference.",
     );
     const gateway = new SandboxPayPal(config);
-    const evidence = inspectOrder(
-      await gateway.retrieve(order.providerOrderId),
-      order,
-    );
+    const orderEvidence = await gateway.retrieve(order.providerOrderId);
+    const lifecycle =
+      order.state === "completed" && order.providerCaptureId
+        ? inspectPaymentLifecycle(
+            orderEvidence,
+            await gateway.retrieveCapture(order.providerCaptureId),
+            order,
+          )
+        : null;
+    const evidence = lifecycle
+      ? {
+          capture: {
+            id: order.providerCaptureId!,
+            capturedAt: order.capturedAt!,
+          },
+        }
+      : inspectOrder(orderEvidence, order);
     assert.ok(
       evidence.capture,
       "PayPal must return a matching completed capture.",
     );
-    inspectCapturedPayment(
-      await gateway.retrieveCapture(evidence.capture.id),
-      order,
-      evidence.capture,
-    );
+    if (!lifecycle)
+      inspectCapturedPayment(
+        await gateway.retrieveCapture(evidence.capture.id),
+        order,
+        evidence.capture,
+      );
     const [twin] = await db
       .select()
       .from(purchaseTwins)
@@ -74,7 +89,7 @@ async function main() {
           verification: "actual-paypal-sandbox",
           localCheckoutId: id,
           purchaseTwinId: twin.id,
-          captureStatus: "COMPLETED",
+          captureStatus: lifecycle?.captureStatus ?? "COMPLETED",
           receiptStored: true,
           webhookVerification: "not-implemented",
         },

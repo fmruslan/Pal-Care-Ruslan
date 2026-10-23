@@ -9,6 +9,10 @@ import type { CheckoutView } from "@/lib/commerce/contracts";
 import { checkoutHasExpired } from "@/lib/commerce/expiry";
 
 const errorMessages: Record<string, string> = {
+  guardian_offer_changed:
+    "The displayed price promise or price changed. Reload the shop and review the current terms before buying. No new order was created.",
+  guardian_policy_unavailable:
+    "The new merchant policy is not active. No covered checkout was created.",
   checkout_unavailable:
     "Sandbox checkout is unavailable. No payment is marked complete.",
   operation_in_progress:
@@ -49,10 +53,12 @@ export function BuyButton({
   productId,
   enabled,
   approvedRequestId,
+  offerHash,
 }: {
   productId: string;
   enabled: boolean;
   approvedRequestId?: string | null;
+  offerHash?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -67,7 +73,11 @@ export function BuyButton({
       const response = await fetch("/api/checkout/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId, requestId: requestId.current }),
+        body: JSON.stringify({
+          productId,
+          requestId: requestId.current,
+          ...(offerHash ? { offerHash } : {}),
+        }),
       });
       const data = await response.json();
       if (!response.ok) {

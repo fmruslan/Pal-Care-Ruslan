@@ -2,6 +2,8 @@
 
 ## Product direction
 
+Stage 4 Guardian screens reuse these semantic surfaces and original Blue/Lavender identity. Proactive briefing, opportunity/evidence cards and Twin history distinguish proposed, approved, pending/unresolved and provider-verified states without turning the customer experience into a claims form. The expandable price illustration is explicitly non-entitlement sample content. Desktop-light/mobile-dark synthetic opportunity views were inspected; six-project axe/browser flow passes. No actual-provider refund screenshot exists yet; ignored synthetic test artifacts are not financial evidence.
+
 Pal Care is a purchase companion, not an administrative ledger. The signature object is the **Purchase Twin**: a digital product passport that brings identity, purchase evidence, documents and care history together. The visual language uses an original interlocking P mark, layered passport frames, restrained orbital illustration details and a perforated document divider. No third-party logos or proprietary artwork are copied.
 
 Blue represents commerce and navigation. Lavender represents planned CareOS intelligence. Neutral surfaces provide breathing room. Neither a purple accent nor a polished panel implies that an AI service is connected.

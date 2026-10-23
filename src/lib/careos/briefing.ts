@@ -1,6 +1,8 @@
 import type { DemoData } from "../../db/schema";
 import { findTwin } from "../demo/presentation";
 import type { KnowledgeSource } from "./knowledge";
+import type { GuardianView } from "../price-guardian/contracts";
+import { money } from "../demo/presentation";
 
 export type BriefingItem = {
   id: string;
@@ -13,8 +15,26 @@ export type BriefingItem = {
 export function buildBriefing(
   data: DemoData,
   sources: KnowledgeSource[],
+  guardian: GuardianView[] = [],
 ): BriefingItem[] {
   const items: BriefingItem[] = [];
+  for (const c of guardian
+    .filter((c) => !["failed", "cancelled", "expired"].includes(c.state))
+    .slice(0, 2))
+    items.push({
+      id: `guardian:${c.id}:${c.revision}:${c.state}`,
+      title:
+        c.state === "completed"
+          ? `${money(c.amountMinor)} refunded in PayPal Sandbox`
+          : `${money(c.amountMinor)} merchant price adjustment found`,
+      detail:
+        c.state === "completed"
+          ? "The refund was independently verified. Your original receipt is unchanged."
+          : `CareOS found the opportunity automatically. ${c.state === "awaiting_approval" ? "Awaiting merchant approval; you don’t need to submit a claim." : c.state === "pending" ? "PayPal reports pending, not completed." : c.state === "unknown" || c.state === "review" ? "The outcome needs review. Further refunds are blocked." : "Approval or submission is recorded, not a completed refund."}`,
+      provenance: `${c.priceOrigin === "controlled_demo" ? "Controlled demo price" : "Recorded merchant price"} · ${c.policyVersion}`,
+      sourceHref: `/guardian/${c.id}`,
+      action: { label: "View price adjustment", href: `/guardian/${c.id}` },
+    });
   const receipts = data.twins
     .map((twin) => findTwin(data, twin.id))
     .filter((r) => r && r.documents.some((d) => d.kind === "receipt"));

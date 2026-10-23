@@ -1,15 +1,17 @@
 # Pal Care
 
+Webhooks and sponsor integrations are not yet implemented; actual Stage 4 refund verification still needs separate approval.
+
 **Everything you buy. Taken care of.**  
 *Powered by CareOS · Independent PayPal AI Hackathon project*
 
-> **CareOS Stage 3 now has Glance, Tap and Talk in explicitly labeled fixture mode.** Briefings and receipt/document actions use saved records; one persistent product-aware assistant follows customer navigation. The server-side Responses adapter and budget safeguards are implemented, but **live AI inference is not activated or verified**. Stage 2's actual USD 129.00 Sandbox capture/Twin and separate pending eCheck remain preserved. Refunds, sponsor integrations and webhooks are not yet implemented; public Render deployment remains incomplete. See [CareOS](docs/CAREOS.md), [Stage 2 evidence](docs/evidence/STAGE2-VERIFICATION.md) and [Implementation Status](docs/STATUS.md).
+> **Stage 4 Price Guardian is implemented with financial activation off; actual Sandbox refund acceptance is pending separate approval.** CareOS proactively discovers deterministic price adjustments, supports protected merchant approval, preserves Twin history and exposes read-only analytics for future AG Studio. Tests use injected gateways, not actual refunds. The new inactive `demo-price-v2` policy never retroactively covers existing purchases. Stage 2's completed $129 capture/Twin and separate pending eCheck are preserved. Live AI, sponsors, webhooks and public deployment remain incomplete. See [Price Guardian](docs/PRICE-GUARDIAN.md), [CareOS](docs/CAREOS.md), [verification](docs/evidence/STAGE4-VERIFICATION.md) and [status](docs/STATUS.md).
 
 Pal Care explores a new reason to choose PayPal: the purchase becomes the beginning of a useful care experience, rather than the end of a transaction.
 
 The product's central object is a **Purchase Twin**, a durable, item-level record created from an authorized merchant's verified PayPal sandbox purchase. **CareOS** connects that record to source-backed product documentation, relevant changes, eligibility checks, and approved outcomes.
 
-**Today:** bundled preview contains three fictional-product sample Twins and one Raspberry Pi 5 reference sample with official, attributed care guidance. The local database also contains the actually verified Sandbox purchase; it is not seeded into fixtures. Checkout defaults off, requires explicit Sandbox configuration and has no mock payment fallback. Purchase records remain read-only without registration; CareOS only writes its own bounded conversations/quotas. No merchant-edit or refund actions are exposed. See [PayPal setup](docs/PAYPAL.md), [ADR 0002](docs/adr/0002-public-render-demo.md), [ADR 0003](docs/adr/0003-sandbox-checkout.md) and [CareOS sources](docs/CARE-SOURCES.md).
+**Today:** bundled preview contains three fictional-product sample Twins and one Raspberry Pi 5 reference sample with official, attributed care guidance. The local database also contains the actually verified Sandbox purchase; it is not seeded into fixtures. Checkout defaults off and has no mock fallback. Public purchase records remain read-only without registration; CareOS only writes its own bounded conversations/quotas. Separate private Guardian capabilities do not grant authority to visitors; financial dispatch remains disabled. See [PayPal setup](docs/PAYPAL.md), [Guardian contract](docs/PRICE-GUARDIAN.md), [ADR 0002](docs/adr/0002-public-render-demo.md), [ADR 0003](docs/adr/0003-sandbox-checkout.md) and [CareOS sources](docs/CARE-SOURCES.md).
 
 ## Appearance
 

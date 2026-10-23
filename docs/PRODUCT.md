@@ -2,6 +2,8 @@
 
 ## North star
 
+**Stage 4:** proactive Price Guardian and protected merchant approval are implemented with financial activation off. The future-only inactive `demo-price-v2` promise covers the exact SKU for 14 days, one adjustment/capture, up to $20. Customers never initiate claims. Actual new purchase/refund and unknown-ID recovery acceptance require separate approval. Existing `demo-v1` purchases are never retroactively eligible. [Contract](PRICE-GUARDIAN.md).
+
 **Pal Care makes the purchase the beginning of a useful care relationship.** A verified PayPal sandbox order creates a Purchase Twin, connecting product identity, trusted documents, applicable terms, and meaningful after-purchase events.
 
 ## Who it serves

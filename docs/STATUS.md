@@ -2,7 +2,7 @@
 
 Last updated: 2026-10-23
 
-> **Stage 3 CareOS is implemented in explicit fixture mode; live hosted inference remains unverified and disabled.** Stage 2's actual completed USD 129.00 Sandbox capture/Twin and the separate pending eCheck are preserved. CareOS adds assistance, not financial authority; the original blue/lavender design and checkout logic remain intact. Webhooks, refunds, sponsor integrations and public deployment remain incomplete. [Stage 2 evidence](evidence/STAGE2-VERIFICATION.md) · [CareOS contract](CAREOS.md).
+> **Stage 4 Price Guardian is implemented with financial activation off; actual Sandbox refund and unknown-ID recovery acceptance remain unverified pending separate approval.** Stage 2's completed USD 129.00 capture/Twin and separate pending eCheck are preserved. CareOS remains read-only assistance, not financial authority. Hosted inference, AG Studio, other sponsors, webhooks and public deployment remain incomplete. [Guardian contract](PRICE-GUARDIAN.md) · [Stage 4 evidence](evidence/STAGE4-VERIFICATION.md) · [Stage 2 evidence](evidence/STAGE2-VERIFICATION.md).
 
 | Component | Status | Evidence / remaining work |
 | --- | --- | --- |
@@ -12,7 +12,7 @@ Last updated: 2026-10-23
 | Public customer and merchant dashboards | **Implemented** | Browsable without login; trusted purchase/merchant records are read-only. CareOS's separate conversation writes grant no commerce authority |
 | Purchase Vault and Twin detail pages | **Implemented; actual Sandbox Twin displayed and verified** | User confirmed the completed Twin in Mac Chrome; snapshots/provider references match PostgreSQL and retrieved payment evidence; samples remain separate |
 | Documents and care history | **Implemented; actual completed-purchase persistence verified** | Exactly one Sandbox receipt, one sample demo policy and one Sandbox purchase event for the completed case; no manufacturer manual/warranty fabricated |
-| PostgreSQL / Drizzle migrations and seed | **Implemented; local PostgreSQL verified** | Twelve tables; additive 0006/0007 add knowledge/conversations/requests/budgets. All pre-existing rows in the original eight tables compared unchanged around the local upgrade. No mock capture seeded or old keys/deadlines changed |
+| PostgreSQL / Drizzle migrations and seed | **Implemented; local preservation verified** | 23 tables; additive 0008/0009 add Guardian/operator records and integrity triggers. Two local migration/seed checks preserve every row in all twelve prior tables. Only inactive v2 draft seeded; no synthetic financial records, old keys or deadlines changed |
 | Read-only dashboards + bounded checkout | **Implemented; independent tests pass** | Separate write service, cookie authorization, exact Origin, bounded JSON, DB-backed quotas/leases/idempotency |
 | Expired-checkout controls | **Implemented; local regression suite passes** | Derived expiry, redacted approval link, no automatic return capture on expired checkout, client-only deadline timer and preserved post-deadline reconciliation for attempted captures; no schema or design change |
 | Existing-capture reconciliation | **Implemented; actual pending path verified** | Separate provider-read-only action, pinned capture ID, independent Orders/Payments retrieval, checked status and eCheck reason; failed/declined states create no Twin; completed evidence finalizes exactly once in domain tests, including after the original deadline |
@@ -24,17 +24,21 @@ Last updated: 2026-10-23
 | PayPal Sandbox create/approval/capture | **Actual completed-purchase flow verified** | Case B: both APIs report completed final USD 129.00 capture, correct Business payee and Personal payer. Case A remains separate pending eCheck evidence, untouched by case B verification |
 | Automatic Purchase Twin generation | **Implemented; actual provider/DB acceptance passed** | Case B has exactly one matching durable Twin/receipt/policy/event. `pnpm paypal:verify` passed twice, with identical before/after records. Provider-double tests remain labeled independent regression evidence |
 | Webhooks | **Assessed, not implemented or verified** | [Render prerequisites, signature verification, inbox/deduplication, durable retries and actual-delivery acceptance plan](PAYPAL-WEBHOOKS.md); no listener or signature/delivery claim |
-| Price Guardian and partial refund | Not started | Authorized merchant approval and verified PayPal refund |
+| Price Guardian and partial refund | **Implemented; actual refund acceptance pending** | Future-only inactive v2 draft, deterministic 14-day/$20 eligibility, bounded catalog jobs, proactive customer briefing/evidence/Twin history, protected exact-case approval, once-only refund intent, independent verification and retrieval-only recovery. Financial flags remain off; real optional recovery fields are unproven |
 | CPSC candidate matching | Not started | Real source data and model verification |
 | CareOS Glance / Tap / Talk | **Implemented with explicit fixtures** | Factual briefing, direct receipt/document/care actions and persistent desktop panel/mobile sheet; sample/Sandbox/source labels remain distinct |
 | Product Care evidence | **Implemented for one reference sample** | Exact-model Raspberry Pi 5 official shutdown guidance, CC BY-SA attribution, reviewed hash, missing/conflicting-source handling; Forma F-01 has no manual |
 | CareOS conversations / quotas | **Implemented** | Separate cookie capability, PostgreSQL persistence, bounded same-Twin history, expiry/clear, request fingerprints, concurrent leases and atomic resource reservations; fixture-data preview is ephemeral |
 | Runtime Responses adapter | **Implemented; hosted inference NOT activated/verified** | Official exact-pinned SDK + Zod, two-call ceiling, no provider retries/storage, gated API key/budgets/restricted DB writer; injected transport tests are not real model evidence |
 | Channel3 discovery | Not started | Live product results and retailer links |
-| AG Studio intelligence | Not started | Real custom widget and agent interaction |
+| AG Studio intelligence | **Read-only data foundation implemented; integration not started** | Versioned analytics/facts API separates proposed, approved, provider-pending, unresolved and verified amounts. No AG Studio widgets or agent interaction |
 | Public deployment and demo | Not started | Accessible URL and public video |
 
-## Stage 3 verification
+## Stage 4 verification
+
+Lint, typecheck, final build and **215 unit tests pass**. All **88 dedicated PostgreSQL tests** pass, preserving the 63 prior cases. Full browser suites pass **312 fixture + 312 database-backed checks** with existing screenshot baselines unchanged; final focused Guardian checks pass 18/18. Exclusive synthetic customer→operator approval→injected refund flow passes all six desktop/tablet/mobile light/dark projects, including its hardening rerun. Production-server outage test, formatting, frozen install, repository/diff checks and production audit pass. Real provider execution remains unauthorized and unperformed. Two local migration/seed checks preserve every existing row across all twelve prior tables; policy remains inactive and no operational/financial records were seeded. [Full evidence and remaining external acceptance](evidence/STAGE4-VERIFICATION.md). Exact-commit CI is checked and linked at delivery; it does not prove actual PayPal execution.
+
+## Historical Stage 3 verification
 
 Implementation increments now include receipt retrieval, product-care evidence, Glance/Tap briefing, durable context-aware conversation and the gated Responses adapter. No additional Sandbox purchase/refund, paid API call or infrastructure deployment is authorized or performed. Final verification results are recorded separately with release evidence; Stage 2 historical results are retained verbatim.
 

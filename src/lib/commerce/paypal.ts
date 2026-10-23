@@ -14,6 +14,7 @@ import type { CheckoutConfig } from "./config";
 import type { CheckoutOrder } from "../../db/schema";
 import { CheckoutError } from "./contracts";
 import { minorToDecimal } from "./verification";
+import { refundBody, type RefundGateway } from "./refund-contracts";
 
 export interface PayPalGateway {
   create(order: CheckoutOrder): Promise<unknown>;
@@ -93,7 +94,7 @@ export function safeProviderError(error: unknown) {
   return new CheckoutError(code, 502);
 }
 
-export class SandboxPayPal implements PayPalGateway {
+export class SandboxPayPal implements PayPalGateway, RefundGateway {
   private orders: OrdersController;
   private payments: PaymentsController;
   constructor(config: Pick<CheckoutConfig, "clientId" | "clientSecret">) {
@@ -148,6 +149,27 @@ export class SandboxPayPal implements PayPalGateway {
         paypalRequestId,
         prefer: "return=representation",
       });
+    } catch (error) {
+      throw safeProviderError(error);
+    }
+  }
+  async refund(captureId: string, requestKey: string, amountMinor: number) {
+    try {
+      return (
+        await this.payments.refundCapturedPayment({
+          captureId,
+          paypalRequestId: requestKey,
+          prefer: "return=representation",
+          body: refundBody(requestKey, amountMinor),
+        })
+      ).result;
+    } catch (error) {
+      throw safeProviderError(error);
+    }
+  }
+  async retrieveRefund(refundId: string) {
+    try {
+      return (await this.payments.getRefund({ refundId })).result;
     } catch (error) {
       throw safeProviderError(error);
     }

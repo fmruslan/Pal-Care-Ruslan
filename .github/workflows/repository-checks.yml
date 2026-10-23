@@ -32,6 +32,9 @@ jobs:
       PAYPAL_CHECKOUT_ENABLED: "false"
       CAREOS_PROVIDER: "fixture"
       CAREOS_LIVE_ENABLED: "false"
+      GUARDIAN_REFUNDS_ENABLED: "false"
+      GUARDIAN_PROVIDER_READS_ENABLED: "false"
+      PRICE_GUARDIAN_CHECKOUT_ENABLED: "false"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -60,6 +63,8 @@ jobs:
         run: pnpm test:e2e
         env:
           E2E_DATA_SOURCE: database
+      - name: Exclusive Guardian flow (test DB and injected provider only)
+        run: pnpm test:guardian:e2e
       - name: Browser artifacts
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

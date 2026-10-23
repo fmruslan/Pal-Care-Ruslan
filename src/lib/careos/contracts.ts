@@ -7,6 +7,7 @@ export const intentSchema = z.enum([
   "history",
   "care",
   "important",
+  "guardian",
   "replacement",
   "unsupported",
 ]);

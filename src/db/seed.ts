@@ -10,6 +10,15 @@ import {
 import { demoData } from "../lib/demo/fixtures";
 import { careKnowledge } from "./careos-schema";
 import { referenceSource } from "../lib/careos/knowledge";
+import { guardianPolicies } from "./guardian-schema";
+import {
+  GUARDIAN_POLICY_ID,
+  guardianRules,
+  guardianTerms,
+  guardianPolicyHash,
+  GUARDIAN_PRODUCT,
+  MERCHANT_ID,
+} from "../lib/price-guardian/policy";
 
 export async function seedDemo(db: ReturnType<typeof createDatabase>["db"]) {
   await db.transaction(async (tx) => {
@@ -23,6 +32,18 @@ export async function seedDemo(db: ReturnType<typeof createDatabase>["db"]) {
     await tx
       .insert(careKnowledge)
       .values(referenceSource)
+      .onConflictDoNothing();
+    await tx
+      .insert(guardianPolicies)
+      .values({
+        id: GUARDIAN_POLICY_ID,
+        version: guardianRules.version,
+        merchantId: MERCHANT_ID,
+        productId: GUARDIAN_PRODUCT,
+        rules: guardianRules,
+        terms: guardianTerms,
+        hash: guardianPolicyHash,
+      })
       .onConflictDoNothing();
   });
 }

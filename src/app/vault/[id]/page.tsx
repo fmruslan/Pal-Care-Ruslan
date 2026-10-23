@@ -30,6 +30,9 @@ import { contextOf } from "@/lib/careos/contracts";
 import { Button } from "@/components/ui/button";
 import { getKnowledge } from "@/lib/careos/knowledge-repository";
 import { REFERENCE_PRODUCT } from "@/lib/careos/knowledge";
+import { getGuardian } from "@/lib/price-guardian/runtime";
+import { GuardianCard } from "@/components/guardian";
+import { GuardianTimeline } from "@/components/guardian-timeline";
 
 export const metadata = { title: "Purchase Twin" };
 export default async function TwinPage({
@@ -45,6 +48,9 @@ export default async function TwinPage({
   const { twin, product, documents, events } = record;
   const verified = twin.origin === "sandbox";
   const reference = product.id === REFERENCE_PRODUCT;
+  const adjustment = (await getGuardian()).cases.find(
+    (c) => c.twinId === twin.id,
+  );
   const careSources = (await getKnowledge()).filter(
     (s) =>
       s.productId === product.id &&
@@ -169,6 +175,11 @@ export default async function TwinPage({
           </div>
         </div>
       </article>
+      {adjustment && (
+        <section className="mt-7" aria-label="Price Guardian adjustment">
+          <GuardianCard item={adjustment} />
+        </section>
+      )}
       <div className="mt-8 grid items-start gap-7 xl:grid-cols-[1.4fr_1fr]">
         <div>
           <section aria-labelledby="documents-heading">
@@ -188,6 +199,7 @@ export default async function TwinPage({
               Care history
             </h2>
             <Events events={events} />
+            {adjustment && <GuardianTimeline item={adjustment} />}
           </section>
           {verified && (
             <section className="mt-8" aria-labelledby="evidence-heading">

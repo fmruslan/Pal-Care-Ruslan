@@ -6,7 +6,11 @@ Sensitive assets include database URLs, PayPal app credentials/OAuth tokens, ano
 
 ## Current public-demo boundary
 
-- No Supabase, login, registration or personal uploads. Public read-only dashboards plus an explicitly enabled, cookie-authorized sandbox checkout are the only surface. No merchant-edit, refund, seed or DB-admin endpoints.
+Stage 4 adds a separately protected operator surface, not public merchant authority. [Guardian security/state-machine contract](PRICE-GUARDIAN.md) supersedes earlier no-refund-route descriptions: all financial/provider flags default off; actual refund testing requires separate approval. CLI-issued single-use 256-bit hashed capabilities have short expiry, revocation, exact action/case scope, a separate HttpOnly cookie, exact Origin, bounded strict JSON and persistent limits. The read-only customer/merchant views grant none of these permissions. CareOS cannot mutate any Guardian/operator table.
+
+Provider access requires an explicitly scoped Sandbox case/capture/experiment and separate restricted database writer; evidence-write privileges are rejected before reads/dispatch. Refund intent, hash, stable key and capture reservation commit before one POST. A saved operation blocks every later POST; uncertain results reconcile via retrieval only. Optional absent/ambiguous fields never establish successful recovery. Independent refund and capture-parent/lifecycle evidence is required. Original receipts/policy bindings/payment references remain untouched. The first-release isolated-capture limitation and inability to prove absence of external pending refunds are explicit; no production multi-actor guarantee is made. No provider/model calls occur in automated tests.
+
+- No Supabase, customer login, registration or personal uploads. Public read-only dashboards, bounded cookie-authorized Sandbox checkout and separately gated operator actions only. No seed or DB-admin endpoints.
 - Server-only repository and PostgreSQL read-only sessions; scoped queries use fixed demo identities and bind parameters. Connection/query timeouts and pool size are bounded.
 - Sample/sandbox provenance and USD integer prices are database-constrained. Sandbox checkout prices are positive and capped at USD 200.00; one item per order. Samples never imply payment; sandbox receipts require validated captured-payment evidence.
 - Database mode reports errors instead of falling back; readiness returns 503. Browser-visible errors never include connection strings or raw SQL. Migration/seed errors are also redacted.

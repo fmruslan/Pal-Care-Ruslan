@@ -24,6 +24,7 @@ import {
 import type { CheckoutConfig } from "./config";
 import type { PayPalGateway } from "./paypal";
 import { checkoutHasExpired } from "./expiry";
+import { checkoutPromise, bindPromise } from "../price-guardian/checkout";
 import {
   approvalLink,
   inspectCaptureStatus,
@@ -60,7 +61,7 @@ export class CheckoutService {
     private config: Pick<
       CheckoutConfig,
       "origin" | "merchantId" | "immediateTest"
-    >,
+    > & { guardianPolicyEnabled?: boolean },
   ) {}
 
   async view(id: string, sessionHash: string): Promise<CheckoutView> {
@@ -103,7 +104,7 @@ export class CheckoutService {
   async start(input: unknown, sessionHash: string) {
     const parsed = startCheckoutSchema.safeParse(input);
     if (!parsed.success) throw new CheckoutError("invalid_request", 400);
-    const { productId, requestId } = parsed.data;
+    const { productId, requestId, offerHash } = parsed.data;
     const id = await this.db.transaction(async (tx) => {
       // Small DB-only transaction. Never hold locks over a provider network call.
       await tx.execute(
@@ -156,6 +157,12 @@ export class CheckoutService {
         merchantName: merchant?.name,
       });
       if (!snapshot.success) throw new CheckoutError("invalid_product", 400);
+      const promise = await checkoutPromise(
+        tx,
+        snapshot.data,
+        this.config.guardianPolicyEnabled === true,
+        offerHash,
+      );
       if (
         immediateTest &&
         snapshot.data.priceMinor !== IMMEDIATE_TEST_AMOUNT_MINOR
@@ -171,7 +178,8 @@ export class CheckoutService {
         sessionHash,
         productId,
         product: snapshot.data,
-        policy: demoMerchantPolicy,
+        policy: promise ?? demoMerchantPolicy,
+        ...(promise ? { createdAt: sql`clock_timestamp()` } : {}),
         paymentMethodPreference: immediateTest
           ? "IMMEDIATE_PAYMENT_REQUIRED"
           : null,
@@ -183,6 +191,7 @@ export class CheckoutService {
         captureKey: randomUUID(),
         expiresAt: new Date(Date.now() + 2 * 3600_000).toISOString(),
       });
+      if (promise) await bindPromise(tx, id);
       return id;
     });
     const current = await this.view(id, sessionHash);

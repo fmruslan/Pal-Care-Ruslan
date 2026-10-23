@@ -19,10 +19,12 @@ import { Events } from "@/components/events";
 import { CareBriefing } from "@/components/careos/briefing";
 import { buildBriefing } from "@/lib/careos/briefing";
 import { getKnowledge } from "@/lib/careos/knowledge-repository";
+import { getGuardian } from "@/lib/price-guardian/runtime";
 
 export const metadata = { title: "Your care space" };
 export default async function Dashboard() {
   const data = await getDemoData();
+  const guardian = await getGuardian();
   return (
     <Shell active="/dashboard" source={data.source}>
       <PageHeading
@@ -38,7 +40,9 @@ export default async function Dashboard() {
           </Button>
         }
       />
-      <CareBriefing items={buildBriefing(data, await getKnowledge())} />
+      <CareBriefing
+        items={buildBriefing(data, await getKnowledge(), guardian.cases)}
+      />
       <div className="mb-8 grid grid-cols-3 gap-2 sm:gap-3">
         {[
           { icon: Archive, value: data.twins.length, label: "Purchase Twins" },
@@ -108,7 +112,7 @@ export default async function Dashboard() {
               icon: CircleDollarSign,
               title: "Price Guardian",
               description:
-                "Find eligible price opportunities under a merchant’s policy. Price monitoring and refunds are not connected.",
+                "Merchant price comparisons and approval workflows are implemented. Actual Sandbox refund verification awaits a separately approved test.",
             },
             {
               icon: CalendarDays,
@@ -123,11 +127,23 @@ export default async function Dashboard() {
                   <Icon className="size-4 text-primary" aria-hidden="true" />
                   {title}
                 </h3>
-                <Badge>Not active</Badge>
+                <Badge>
+                  {title === "Price Guardian"
+                    ? "Sandbox test pending"
+                    : "Not active"}
+                </Badge>
               </div>
               <p className="mt-3 text-sm leading-7 text-muted-foreground">
                 {description}
               </p>
+              {title === "Price Guardian" && (
+                <Link
+                  className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-primary"
+                  href="/guardian"
+                >
+                  Explore Price Guardian →
+                </Link>
+              )}
             </Card>
           ))}
         </div>

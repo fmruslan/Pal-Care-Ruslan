@@ -9,6 +9,7 @@ import { PostgresStore } from "./postgres-store";
 import { parseCareConfig } from "./config";
 import { ResponsesProvider, type ModelResult } from "./providers/responses";
 import { resolveTurn } from "./service";
+import { getGuardian } from "../price-guardian/runtime";
 
 const state = globalThis as unknown as {
   careosMemory?: MemoryStore;
@@ -56,10 +57,11 @@ export async function answerTurn(
 ) {
   const { store, config } = careRuntime();
   const deadline = Date.now() + 20000;
-  const [data, sources, conversation] = await Promise.all([
+  const [data, sources, conversation, guardian] = await Promise.all([
     getDemoData(),
     getKnowledge(),
     store.get(conversationId, owner),
+    getGuardian(),
   ]);
   const model =
     config.mode === "responses" ? new ResponsesProvider(config) : undefined;
@@ -96,5 +98,6 @@ export async function answerTurn(
     mode: config.mode,
     model,
     call,
+    guardian: guardian.cases,
   });
 }

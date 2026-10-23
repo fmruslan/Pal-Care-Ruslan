@@ -80,7 +80,9 @@ export function CareOSProvider({
   mode?: "fixture" | "disabled" | "responses" | "unavailable";
 }) {
   const pathname = usePathname();
-  const visible = /^\/(dashboard|vault|documents)(\/|$)/.test(pathname);
+  const visible = /^\/(dashboard|vault|documents|guardian)(\/|$)/.test(
+    pathname,
+  );
   const [isOpen, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [mobile, setMobile] = useState(false);

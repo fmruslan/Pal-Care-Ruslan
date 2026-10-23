@@ -13,10 +13,12 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeading } from "@/components/page-heading";
 import { Events } from "@/components/events";
 import { REFERENCE_PRODUCT } from "@/lib/careos/knowledge";
+import { getGuardian } from "@/lib/price-guardian/runtime";
 
 export const metadata = { title: "Merchant workspace" };
 export default async function Merchant() {
   const data = await getDemoData();
+  const guardian = await getGuardian();
   const docTypes = [
     { kind: "receipt", label: "Receipts" },
     { kind: "care-card", label: "Care cards" },
@@ -58,6 +60,57 @@ export default async function Merchant() {
           </Card>
         ))}
       </div>
+      <section
+        aria-labelledby="guardian-analytics"
+        className="mb-7 rounded-3xl border bg-card p-5 sm:p-7"
+      >
+        <h2 id="guardian-analytics" className="section-title">
+          CareOS Price Intelligence
+        </h2>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Read-only, all recorded Guardian cases. No sample scenarios are
+          included. AG Studio is not connected yet.
+        </p>
+        <dl className="mt-5 grid grid-cols-2 gap-5 sm:grid-cols-4">
+          {[
+            ["Opportunities", String(guardian.analytics.opportunities)],
+            ["Proposed", money(guardian.analytics.proposedMinor)],
+            [
+              "Approved · not submitted",
+              money(guardian.analytics.approvedMinor),
+            ],
+            ["Provider pending", money(guardian.analytics.pendingMinor)],
+            [
+              "Unresolved / reserved",
+              money(guardian.analytics.unresolvedMinor),
+            ],
+            ["Verified refunded", money(guardian.analytics.verifiedMinor)],
+            ["Verified refunds", String(guardian.analytics.verifiedCount)],
+            ["Failed / cancelled", String(guardian.analytics.failedCount)],
+          ].map(([label, value]) => (
+            <div key={label}>
+              <dt className="text-xs text-muted-foreground">{label}</dt>
+              <dd className="mt-2 text-xl font-semibold tabular-nums">
+                {value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        <div className="mt-5 flex flex-wrap gap-5">
+          <Link
+            href="/guardian"
+            className="inline-flex min-h-11 items-center text-sm font-semibold text-primary"
+          >
+            Inspect case evidence →
+          </Link>
+          <Link
+            href="/merchant/operator"
+            className="inline-flex min-h-11 items-center text-sm font-semibold text-primary"
+          >
+            Protected operator workspace →
+          </Link>
+        </div>
+      </section>
       <section aria-labelledby="inventory-heading">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <h2 id="inventory-heading" className="section-title">
@@ -208,8 +261,9 @@ export default async function Merchant() {
           </section>
           <p className="flex gap-2 px-1 text-sm leading-7 text-muted-foreground">
             <ShieldCheck className="mt-1 size-4 shrink-0" aria-hidden="true" />
-            No catalog editing, merchant approvals, refunds or paid AI calls are
-            exposed here.
+            This public dashboard cannot approve refunds or edit trusted prices.
+            Scoped controls live in the separate operator workspace. Paid AI
+            remains disabled.
           </p>
         </div>
       </div>

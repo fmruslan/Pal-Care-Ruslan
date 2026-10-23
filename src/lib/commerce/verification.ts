@@ -187,6 +187,67 @@ export function inspectCapturedPayment(
   return expected;
 }
 
+// AFTERCARE ONLY: never used to authorize a first capture or create a Twin.
+// Historical capture proof remains immutable after a legitimate refund.
+export function inspectPaymentLifecycle(
+  orderPayload: unknown,
+  capturePayload: unknown,
+  expected: CheckoutOrder,
+) {
+  if (
+    expected.state !== "completed" ||
+    !expected.providerCaptureId ||
+    !expected.capturedAt ||
+    !expected.verifiedAt
+  )
+    throw new CheckoutError("verification_failed");
+  const order = validatedOrder(orderPayload, expected);
+  const captures = order.purchaseUnits[0].payments?.captures;
+  const capture = captureSchema.safeParse(capturePayload);
+  const allowed = ["COMPLETED", "PARTIALLY_REFUNDED", "REFUNDED"];
+  if (
+    order.status !== "COMPLETED" ||
+    captures?.length !== 1 ||
+    !capture.success ||
+    !allowed.includes(captures[0].status) ||
+    !allowed.includes(capture.data.status) ||
+    captures[0].status !== capture.data.status
+  )
+    throw new CheckoutError("verification_failed");
+  const normalized = structuredClone(orderPayload) as {
+    purchaseUnits: { payments: { captures: { status: string }[] } }[];
+  };
+  normalized.purchaseUnits[0].payments.captures[0].status = "COMPLETED";
+  const inspected = inspectOrderCapture(normalized, expected);
+  if (
+    !inspected.capture ||
+    inspected.capture.id !== expected.providerCaptureId ||
+    Date.parse(inspected.capture.capturedAt) !== Date.parse(expected.capturedAt)
+  )
+    throw new CheckoutError("verification_failed");
+  inspectCapturedPayment({ ...capture.data, status: "COMPLETED" }, expected, {
+    id: expected.providerCaptureId,
+    capturedAt: expected.capturedAt,
+  });
+  const collection = z
+    .object({
+      purchaseUnits: z
+        .array(
+          z.object({
+            payments: z.object({
+              refunds: z.array(z.unknown()).max(20).optional(),
+            }),
+          }),
+        )
+        .length(1),
+    })
+    .parse(orderPayload);
+  return {
+    captureStatus: capture.data.status,
+    refunds: collection.purchaseUnits[0].payments.refunds ?? null,
+  };
+}
+
 export function approvalLink(payload: unknown) {
   const parsed = z
     .object({

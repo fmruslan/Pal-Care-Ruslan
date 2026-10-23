@@ -12,6 +12,7 @@ import { PageHeading } from "@/components/page-heading";
 import { ProductArt } from "@/components/product-art";
 import { BuyButton } from "@/components/checkout-controls";
 import { REFERENCE_PRODUCT } from "@/lib/careos/knowledge";
+import { displayedPromise } from "@/lib/price-guardian/runtime";
 
 export const metadata = { title: "Demo shop" };
 const descriptions: Record<string, string> = {
@@ -29,6 +30,12 @@ export default async function Shop() {
   );
   const checkout = checkoutAvailability(
     token.success ? sessionHash(token.data) : undefined,
+  );
+  const promises = await Promise.all(
+    data.products.map(async (p) => ({
+      id: p.id,
+      promise: await displayedPromise(p),
+    })),
   );
   return (
     <Shell active="/shop" source={data.source}>
@@ -79,6 +86,10 @@ export default async function Shop() {
                 </div>
                 <BuyButton
                   productId={product.id}
+                  offerHash={
+                    promises.find((p) => p.id === product.id)?.promise
+                      ?.offerHash
+                  }
                   enabled={
                     checkout.enabled &&
                     (!checkout.allowedProductId ||
@@ -90,6 +101,19 @@ export default async function Shop() {
                       : undefined
                   }
                 />
+                {promises.find((p) => p.id === product.id)?.promise && (
+                  <details className="mt-4 rounded-xl border p-3 text-xs leading-6">
+                    <summary className="min-h-11 cursor-pointer font-semibold">
+                      Included demo-price-v2 price promise
+                    </summary>
+                    <p>
+                      {
+                        promises.find((p) => p.id === product.id)!.promise!
+                          .terms
+                      }
+                    </p>
+                  </details>
+                )}
                 <p className="mt-3 text-center text-xs leading-6 text-muted-foreground">
                   Buyer approval required · No real money
                 </p>

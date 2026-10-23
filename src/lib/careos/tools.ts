@@ -1,4 +1,5 @@
 import type { DemoData } from "../../db/schema";
+import type { GuardianView } from "../price-guardian/contracts";
 import { REFERENCE_PRODUCT } from "./knowledge";
 import { findTwin, displayDate, money } from "../demo/presentation";
 import {
@@ -10,14 +11,25 @@ import {
 
 // Read tools have no commerce runtime dependency and no visitor identity arguments.
 export function isProhibited(message: string) {
-  return /refund|capture|^buy\b|buy (another|a new|now)|purchase (another|a new)|ignore .*instruction|system prompt|api.?key|secret/i.test(
-    message,
+  const readRefund =
+    /^(where|what|has|have|is|why|when|show|tell|explain)\b.*refund/i.test(
+      message.trim(),
+    ) &&
+    !/issue|execute|approve|send|process|ignore|give|trigger|now/i.test(
+      message,
+    );
+  return (
+    (!readRefund && /refund/i.test(message)) ||
+    /capture|^buy\b|buy (another|a new|now)|purchase (another|a new)|ignore .*instruction|system prompt|api.?key|secret/i.test(
+      message,
+    )
   );
 }
 export function interpret(message: string): Intent {
   const text = message.toLowerCase();
   if (isProhibited(text)) return "unsupported";
   if (/receipt|invoice|proof of payment/.test(text)) return "receipt";
+  if (/price|adjustment|saving|qualif|refund/.test(text)) return "guardian";
   if (/replace|replacement|alternative/.test(text)) return "replacement";
   if (
     /clean|wash|maintain|maintenance|care|repair|setup|set up|troubleshoot|shut.*down|shutdown|power off|disconnect.*power/.test(
@@ -42,6 +54,7 @@ export function deterministicAnswer(
   data: DemoData,
   input: TurnInput,
   intent = input.intent ?? interpret(input.message),
+  guardian: GuardianView[] = [],
 ): CareAnswer {
   const record = input.twinId ? findTwin(data, input.twinId) : undefined;
   const answer: CareAnswer = {
@@ -92,7 +105,25 @@ export function deterministicAnswer(
       href: twinHref,
     },
   ];
-  if (intent === "receipt" || intent === "documents") {
+  if (intent === "guardian") {
+    const item = guardian.find((c) => c.twinId === twin.id);
+    answer.text = item
+      ? `${money(item.amountMinor)} merchant price adjustment: ${item.state.replaceAll("_", " ")}. Original ${money(item.originalMinor)}; compared merchant price ${money(item.comparedMinor)}; capped at $20 under ${item.policyVersion}. ${item.state === "completed" && item.verifiedAt ? "Refund independently verified in PayPal Sandbox." : "This is not a completed refund."} No customer claim is needed; merchant approval is required.`
+      : "No Price Guardian adjustment is recorded for this purchase. Existing demo-v1 purchases are not covered by the new future-purchase promise. External refund status has not been checked.";
+    answer.actions = [
+      {
+        label: item ? "Inspect adjustment evidence" : "Explore Price Guardian",
+        href: item ? `/guardian/${item.id}` : "/guardian",
+      },
+    ];
+    if (item)
+      answer.sources.push({
+        id: item.id,
+        title: `${item.policyVersion} · price and approval evidence`,
+        label: "Recorded merchant adjustment · price is not PayPal-verified",
+        href: `/guardian/${item.id}`,
+      });
+  } else if (intent === "receipt" || intent === "documents") {
     const docs =
       intent === "receipt"
         ? documents.filter((d) => d.kind === "receipt")

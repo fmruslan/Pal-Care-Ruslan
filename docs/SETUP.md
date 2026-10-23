@@ -35,11 +35,11 @@ pnpm dev
 
 Local database port 55432 binds to loopback only. From the Mac, use an SSH tunnel for development if necessary; do not expose PostgreSQL publicly. `docker compose --env-file .env.local stop` stops the local database without deleting its volume. Never run a volume reset against an unknown database.
 
-The seed inserts a fictional customer/merchant, three fictional-product Twins and one reference Raspberry Pi 5 sample with attributed official care guidance. The reference is not sold in the Sandbox shop. Deterministic IDs and `ON CONFLICT DO NOTHING` preserve existing rows. Apply reviewed migrations through 0007 first. No mock Sandbox capture is seeded. A configured but unavailable/unseeded database produces an error, not a fixture fallback.
+The seed inserts a fictional customer/merchant, three fictional-product Twins and one reference Raspberry Pi 5 sample with attributed official care guidance, plus an inactive future-only Guardian policy draft. The reference is not sold in the Sandbox shop. Deterministic IDs and `ON CONFLICT DO NOTHING` preserve existing rows. Apply reviewed migrations through 0009 first. No mock Sandbox capture/refund, policy approval or operational grant is seeded. A configured but unavailable/unseeded database produces an error, not a fixture fallback.
 
 ## Schema changes
 
-1. Edit `src/db/schema.ts` or the separate CareOS tables in `src/db/careos-schema.ts`.
+1. Edit `src/db/schema.ts`, `src/db/careos-schema.ts` or `src/db/guardian-schema.ts`.
 2. `pnpm db:generate` creates SQL and a snapshot in `drizzle/`.
 3. Review and commit them; then `pnpm db:migrate`.
 
@@ -65,9 +65,10 @@ Integration tests require an **explicit dedicated `TEST_DATABASE_URL` with a dat
 ```bash
 pnpm test:integration
 E2E_DATA_SOURCE=database pnpm test:e2e
+pnpm test:guardian:e2e
 ```
 
-The latter is pinned to the explicitly dedicated, migrated and seeded **`TEST_DATABASE_URL`**, never the application/deployed database. The browser config rejects a nonlocal or non-`_test` target and overrides CareOS write credentials with that same test URL. Browser tests use fixtures by default even if development uses database mode. Both modes are tested in CI; model/PayPal activation is forced off.
+Database browser tests are pinned to the explicit local **`TEST_DATABASE_URL`** ending `_test`, never the application/deployed database. CareOS and Guardian write URLs are overridden to the same test URL. Model/PayPal activation is forced off. Run the exclusive Guardian suite **after**, never concurrently with, integration or normal database browser suites: its Node-side injected gateway creates/cleans synthetic evidence only in the dedicated test DB. See [Guardian setup/disabled environment flags, restricted role, CLI and optional future cron](PRICE-GUARDIAN.md). Nothing there deploys or authorizes actual transactions.
 
 ## Render deployment preparation
 

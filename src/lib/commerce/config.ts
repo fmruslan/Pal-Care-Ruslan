@@ -68,7 +68,11 @@ export function parseCheckoutConfig(env: Record<string, string | undefined>) {
       reason:
         "Sandbox checkout configuration is incomplete. See docs/PAYPAL.md.",
     };
-  return { enabled: true as const, ...parsed.data };
+  return {
+    enabled: true as const,
+    ...parsed.data,
+    guardianPolicyEnabled: env.PRICE_GUARDIAN_CHECKOUT_ENABLED === "true",
+  };
 }
 export type CheckoutConfig = Extract<
   ReturnType<typeof parseCheckoutConfig>,

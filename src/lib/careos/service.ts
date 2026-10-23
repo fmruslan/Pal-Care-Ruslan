@@ -6,6 +6,7 @@ import { deterministicAnswer, interpret, isProhibited } from "./tools";
 import { fixtureCare } from "./providers/fixture";
 import { groundedAnswer } from "./grounding";
 import type { CareModel, ModelResult } from "./providers/responses";
+import type { GuardianView } from "../price-guardian/contracts";
 
 function modelPayload(
   task: "classify" | "care",
@@ -53,6 +54,7 @@ export async function resolveTurn(options: {
   call?: <T>(
     work: (signal: AbortSignal) => Promise<ModelResult<T>>,
   ) => Promise<T>;
+  guardian?: GuardianView[];
 }) {
   const { data, input, sources, mode, model, call } = options;
   const record = input.twinId ? findTwin(data, input.twinId) : undefined;
@@ -133,7 +135,7 @@ export async function resolveTurn(options: {
     intent = classification.intent;
     classified = true;
   }
-  const base = deterministicAnswer(data, input, intent);
+  const base = deterministicAnswer(data, input, intent, options.guardian);
   if (classified) base.mode = "live";
   if (intent === "documents" && record && /manual/i.test(input.message)) {
     const matched = sources.some(
