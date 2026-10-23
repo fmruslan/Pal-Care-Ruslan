@@ -34,10 +34,10 @@ test("migrations and sample seed can run twice without duplicate records", async
   const data = await readDemoData(db);
   assert.equal(data.customer.id, CUSTOMER_ID);
   assert.equal(data.merchant.id, MERCHANT_ID);
-  assert.equal(data.products.length, 3);
-  assert.equal(data.twins.length, 3);
-  assert.equal(data.documents.length, 3);
-  assert.equal(data.events.length, 3);
+  assert.equal(data.products.length, 4);
+  assert.equal(data.twins.length, 4);
+  assert.equal(data.documents.length, 4);
+  assert.equal(data.events.length, 4);
   assert.deepEqual(data.products, demoData.products);
 });
 

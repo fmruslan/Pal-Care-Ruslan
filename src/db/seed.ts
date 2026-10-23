@@ -8,6 +8,8 @@ import {
   careEvents,
 } from "./schema";
 import { demoData } from "../lib/demo/fixtures";
+import { careKnowledge } from "./careos-schema";
+import { referenceSource } from "../lib/careos/knowledge";
 
 export async function seedDemo(db: ReturnType<typeof createDatabase>["db"]) {
   await db.transaction(async (tx) => {
@@ -18,5 +20,9 @@ export async function seedDemo(db: ReturnType<typeof createDatabase>["db"]) {
     await tx.insert(purchaseTwins).values(demoData.twins).onConflictDoNothing();
     await tx.insert(documents).values(demoData.documents).onConflictDoNothing();
     await tx.insert(careEvents).values(demoData.events).onConflictDoNothing();
+    await tx
+      .insert(careKnowledge)
+      .values(referenceSource)
+      .onConflictDoNothing();
   });
 }

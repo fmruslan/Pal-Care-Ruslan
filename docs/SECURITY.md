@@ -30,6 +30,12 @@ Sensitive assets include database URLs, PayPal app credentials/OAuth tokens, ano
 
 ## Required safeguards
 
+### Stage 3 CareOS boundary (implemented, no live inference claim)
+
+CareOS adds bounded conversation writes, not purchase/merchant authority. A separate 256-bit HttpOnly capability (digest only in PostgreSQL), exact Origin, strict 16 KiB JSON/2,000-character message schemas, session/global quotas, single-turn leases and persisted request fingerprints protect its endpoints. Public visitors cannot supply trusted history, tools, identities, provider URLs, prices or payment actions. Responses and transcript reads are private/no-store. Knowledge is product/brand/model filtered, hash-checked and treated as untrusted text.
+
+The Responses adapter has no tools, automatic retries, arbitrary URLs or financial privileges. Strict output, allowlisted source/quote checks and escaped components constrain output; none eliminates prompt injection or proves truth. Runtime activation requires a separately configured restricted CareOS DB role, explicitly approved API credentials/budgets and atomic pre-dispatch reservations. Unknown calls retain their charge reservation. Clear never resets budgets. `store:false` is not a zero-retention guarantee. Expired conversations are inaccessible after 24 hours; operator `careos:cleanup` removes expired content physically. See [operational limits and remaining risks](CAREOS.md).
+
 1. **Authorization:** public reads expose fictional records only; future consequential operations must verify operator authority and exact merchant/record/action scope and limits on the server.
 2. **Secret isolation:** only trusted server processes access database/provider secrets. Never commit `.env`, tokens or sandbox passwords. Use separate migration credentials and a least-privilege runtime database role before expanding to write workflows.
 3. **Payment integrity:** use integer minor currency units, trusted PayPal captures and verified authorization and remaining refundable amount.

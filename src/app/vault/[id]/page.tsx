@@ -28,6 +28,8 @@ import {
 } from "@/components/careos/provider";
 import { contextOf } from "@/lib/careos/contracts";
 import { Button } from "@/components/ui/button";
+import { getKnowledge } from "@/lib/careos/knowledge-repository";
+import { REFERENCE_PRODUCT } from "@/lib/careos/knowledge";
 
 export const metadata = { title: "Purchase Twin" };
 export default async function TwinPage({
@@ -42,6 +44,14 @@ export default async function TwinPage({
   if (!record) notFound();
   const { twin, product, documents, events } = record;
   const verified = twin.origin === "sandbox";
+  const reference = product.id === REFERENCE_PRODUCT;
+  const careSources = (await getKnowledge()).filter(
+    (s) =>
+      s.productId === product.id &&
+      s.model === product.model &&
+      s.brand === product.brand &&
+      s.status === "approved",
+  );
   return (
     <Shell active="/vault" source={data.source}>
       <CareContextRegistration context={contextOf(record)} />
@@ -83,7 +93,9 @@ export default async function TwinPage({
             <div className="relative min-w-0 lg:col-start-1 lg:row-start-1 lg:row-span-2">
               <ProductArt kind={product.illustration} large />
               <span className="absolute right-4 bottom-4 rounded-full border bg-card px-3 py-1.5 text-xs font-medium text-intelligence-foreground">
-                CareOS ready · Intelligence planned
+                {careSources.length
+                  ? "Source-backed care available"
+                  : "CareOS · Purchase assistance"}
               </span>
             </div>
             <div className="min-w-0 lg:col-start-2">
@@ -95,7 +107,9 @@ export default async function TwinPage({
                   ],
                   [
                     verified ? "Sandbox price paid" : "Sample price paid",
-                    money(twin.purchasePriceMinor),
+                    reference
+                      ? "Not a purchase · reference sample"
+                      : money(twin.purchasePriceMinor),
                   ],
                   [
                     "Fictional merchant",
@@ -133,6 +147,12 @@ export default async function TwinPage({
                     </Button>
                   ))}
                 <AskCareOS context={contextOf(record)} />
+                <Button asChild variant="outline">
+                  <Link href={`/vault/${id}/care`}>
+                    <BookOpen aria-hidden="true" />
+                    Product care
+                  </Link>
+                </Button>
               </div>
             </div>
           </div>
@@ -201,30 +221,27 @@ export default async function TwinPage({
                 <Sparkles className="size-4" aria-hidden="true" />
                 CareOS intelligence
               </span>
-              <Badge tone="intelligence">Planned</Badge>
+              <Badge tone="intelligence">Available documents only</Badge>
             </div>
             <h2
               id="care-heading"
               className="mt-6 text-2xl font-semibold tracking-tight"
             >
-              Care that knows
-              <br />
-              where to start.
+              A useful next step.
             </h2>
-            <h3 className="mt-5 text-base font-semibold">AI Product Care</h3>
+            <h3 className="mt-5 text-base font-semibold">Product care</h3>
             <p className="mt-3 text-sm leading-7 text-muted-foreground">
-              Source-backed setup and troubleshooting are planned. No AI model
-              is connected.
+              {careSources.length
+                ? "Explore matched manufacturer guidance for this reference product. Ownership is sample-only; documentation has its own source."
+                : `No manufacturer care guide is available for ${product.brand} ${product.model}. CareOS can still find your receipt and explain saved purchase details.`}{" "}
+              No live AI model is connected in fixture mode.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
-              {["Setup", "Maintenance", "Troubleshooting"].map((label) => (
-                <span
-                  key={label}
-                  className="rounded-lg border bg-card px-3 py-2 text-xs text-intelligence-foreground"
-                >
-                  {label} · planned
-                </span>
-              ))}
+              <Button asChild variant="outline">
+                <Link href={`/vault/${id}/care`}>
+                  Explore available guidance
+                </Link>
+              </Button>
             </div>
           </section>
           <Card>
@@ -236,7 +253,9 @@ export default async function TwinPage({
                 {
                   icon: BookOpen,
                   label: "Manufacturer manual",
-                  value: "Not supplied",
+                  value: careSources.length
+                    ? "Matched official guidance available"
+                    : "Not supplied",
                 },
                 {
                   icon: ShieldCheck,

@@ -13,6 +13,7 @@ import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import type { CareDocument, DemoData } from "@/db/schema";
 import { findTwin, money, displayDate } from "@/lib/demo/presentation";
+import { REFERENCE_PRODUCT } from "@/lib/careos/knowledge";
 import { ProductArt } from "./product-art";
 
 export function PurchaseBadge({ origin }: { origin: string }) {
@@ -80,7 +81,9 @@ export function TwinList({ data, ids }: { data: DemoData; ids?: string[] }) {
                   {displayDate(twin.purchasedOn)}
                 </span>
                 <span className="font-medium tabular-nums text-foreground">
-                  {money(twin.purchasePriceMinor)}
+                  {twin.productId === REFERENCE_PRODUCT
+                    ? "Reference sample"
+                    : money(twin.purchasePriceMinor)}
                 </span>
               </div>
               <div className="passport-divider mt-5 flex flex-wrap items-center justify-between gap-2 pt-3">

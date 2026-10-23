@@ -42,6 +42,17 @@ export const demoData: DemoData = {
       priceMinor: 6900,
       currency: "USD",
     },
+    {
+      id: "00000000-0000-4000-8000-000000000104",
+      merchantId: MERCHANT_ID,
+      name: "Raspberry Pi 5",
+      brand: "Raspberry Pi",
+      model: "5",
+      category: "Computing",
+      illustration: "computer",
+      priceMinor: 0,
+      currency: "USD",
+    },
   ],
   twins: [
     {
@@ -92,6 +103,22 @@ export const demoData: DemoData = {
       productSnapshot: null,
       createdAt: "2026-10-08T12:00:00Z",
     },
+    {
+      id: "00000000-0000-4000-8000-000000000204",
+      customerId: CUSTOMER_ID,
+      merchantId: MERCHANT_ID,
+      productId: "00000000-0000-4000-8000-000000000104",
+      purchasedOn: "2026-10-07",
+      purchasePriceMinor: 0,
+      currency: "USD",
+      origin: "sample",
+      checkoutOrderId: null,
+      paypalOrderId: null,
+      paypalCaptureId: null,
+      verifiedAt: null,
+      productSnapshot: null,
+      createdAt: "2026-10-07T12:00:00Z",
+    },
   ],
   documents: [
     {
@@ -121,8 +148,27 @@ export const demoData: DemoData = {
       content:
         "PAL CARE — SAMPLE CARE CARD\nFictional product: Forma Everywhere speaker F-03\n\nThis original demo document illustrates where product documentation will live. It is not a manufacturer manual and contains no verified product-specific instructions. Source-grounded AI care is not implemented in Stage 1.",
     },
+    {
+      id: "00000000-0000-4000-8000-000000000304",
+      twinId: "00000000-0000-4000-8000-000000000204",
+      title: "Raspberry Pi 5 · sample ownership note",
+      kind: "care-card",
+      origin: "sample",
+      content:
+        "SAMPLE OWNERSHIP RECORD\nRaspberry Pi 5 is a real reference product; ownership, merchant, date and USD 0.00 placeholder are fictional. No payment or receipt is claimed.\n\nOfficial Raspberry Pi Ltd documentation is available separately in Product care, with exact-model scope, attribution and CC BY-SA 4.0 licensing. No affiliation or endorsement is implied.",
+    },
   ],
   events: [
+    {
+      id: "00000000-0000-4000-8000-000000000404",
+      twinId: "00000000-0000-4000-8000-000000000204",
+      kind: "care",
+      title: "A reference for source-backed care",
+      occurredOn: "2026-10-07",
+      origin: "sample",
+      description:
+        "Sample ownership only. The care guide links to real Raspberry Pi Ltd documentation; no payment, warranty or monitoring is implied.",
+    },
     {
       id: "00000000-0000-4000-8000-000000000401",
       twinId: "00000000-0000-4000-8000-000000000201",

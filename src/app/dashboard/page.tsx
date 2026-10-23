@@ -16,6 +16,9 @@ import { PageHeading } from "@/components/page-heading";
 import { CareOSPanel } from "@/components/careos-panel";
 import { TwinList } from "@/components/vault";
 import { Events } from "@/components/events";
+import { CareBriefing } from "@/components/careos/briefing";
+import { buildBriefing } from "@/lib/careos/briefing";
+import { getKnowledge } from "@/lib/careos/knowledge-repository";
 
 export const metadata = { title: "Your care space" };
 export default async function Dashboard() {
@@ -24,8 +27,8 @@ export default async function Dashboard() {
     <Shell active="/dashboard" source={data.source}>
       <PageHeading
         eyebrow="Your everyday, beautifully connected."
-        title={`A little less to think about, ${data.customer.name}.`}
-        description="Your purchases, paperwork, and product stories. All in a good place."
+        title={`Your care space, ${data.customer.name}.`}
+        description="Your purchases, useful guidance, and the paperwork that belongs with them."
         action={
           <Button asChild variant="outline" className="hidden sm:inline-flex">
             <Link href="/shop">
@@ -35,6 +38,7 @@ export default async function Dashboard() {
           </Button>
         }
       />
+      <CareBriefing items={buildBriefing(data, await getKnowledge())} />
       <div className="mb-8 grid grid-cols-3 gap-2 sm:gap-3">
         {[
           { icon: Archive, value: data.twins.length, label: "Purchase Twins" },

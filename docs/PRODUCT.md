@@ -37,6 +37,14 @@ No barcode scanning; no universal access to PayPal consumer history; no general-
 
 ## Service principles
 
+### CareOS interaction principle: assistant-first, not chat-first
+
+- **Glance:** one or two factual, dismissible suggestions from saved records. No invented price monitoring, coverage or recalls.
+- **Tap:** direct receipt/document/guide/history navigation. Conversation is optional.
+- **Talk:** one persistent customer assistant, always explicit about the selected Purchase Twin and execution mode. Switching products must not mix receipts or care evidence.
+
+Stage 3 implements these interactions in explicit fixture mode plus a gated Responses adapter. Live model inference and accuracy remain unverified. One sample Raspberry Pi 5 ownership record demonstrates real, licensed exact-model documentation; the verified fictional Forma F-01 has no manufacturer manual. Reference ownership is not a verified payment, and a stored zero placeholder is not a market price. See [CareOS](CAREOS.md) and [source register](CARE-SOURCES.md).
+
 - Minimize customer effort. Integrating a merchant should automatically create the Purchase Twin.
 - Ground consequential explanations in a stored policy or original official source.
 - Show distinct states: identified, eligible, awaiting approval, submitted, processing, completed, and failed.

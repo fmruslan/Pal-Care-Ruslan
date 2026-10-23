@@ -10,16 +10,15 @@ export function CareOSPanel({ compact = false }: { compact?: boolean }) {
           <Sparkles className="size-4" aria-hidden="true" />
           CareOS intelligence
         </span>
-        <Badge tone="intelligence">Planned</Badge>
+        <Badge tone="intelligence">Records & guidance</Badge>
       </div>
       <h2 className="mt-5 text-xl font-semibold">
-        More than a receipt.
-        <br />A little peace of mind.
+        The details, already together.
       </h2>
       <p className="mt-3 text-sm leading-7 text-muted-foreground">
         {compact
-          ? "Your product passport is ready for smarter care. AI guidance and monitoring are not connected yet."
-          : "A home for source-backed product guidance, helpful reminders, and better next steps. AI Product Care, Price Guardian, and recall monitoring are not active yet."}
+          ? "Find saved receipts, explore matched guidance and keep purchase details close. Live monitoring is not active."
+          : "CareOS brings receipts, purchase details and available product guidance together. Fixture answers are demonstrations; no live AI inference is claimed."}
       </p>
       {!compact && (
         <Link

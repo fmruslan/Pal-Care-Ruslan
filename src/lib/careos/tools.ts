@@ -1,4 +1,5 @@
 import type { DemoData } from "../../db/schema";
+import { REFERENCE_PRODUCT } from "./knowledge";
 import { findTwin, displayDate, money } from "../demo/presentation";
 import {
   contextOf,
@@ -8,18 +9,18 @@ import {
 } from "./contracts";
 
 // Read tools have no commerce runtime dependency and no visitor identity arguments.
+export function isProhibited(message: string) {
+  return /refund|capture|^buy\b|buy (another|a new|now)|purchase (another|a new)|ignore .*instruction|system prompt|api.?key|secret/i.test(
+    message,
+  );
+}
 export function interpret(message: string): Intent {
   const text = message.toLowerCase();
-  if (
-    /refund|capture|buy |purchase (another|a new)|ignore .*instruction|system prompt|api.?key|secret/.test(
-      text,
-    )
-  )
-    return "unsupported";
+  if (isProhibited(text)) return "unsupported";
   if (/receipt|invoice|proof of payment/.test(text)) return "receipt";
   if (/replace|replacement|alternative/.test(text)) return "replacement";
   if (
-    /clean|maintain|maintenance|care|repair|setup|set up|troubleshoot/.test(
+    /clean|wash|maintain|maintenance|care|repair|setup|set up|troubleshoot|shut.*down|shutdown|power off|disconnect.*power/.test(
       text,
     )
   )
@@ -125,6 +126,8 @@ export function deterministicAnswer(
       { label: "View purchase", href: twinHref },
       { label: "Review documents", href: `${twinHref}#documents-heading` },
     ];
+    if (product.id === REFERENCE_PRODUCT)
+      answer.text = `${product.name} is a real reference product with fictional sample ownership. No purchase price or payment is established. The stored zero amount is a placeholder, not a product price. Official guidance is available separately in Product care.`;
   } else if (intent === "history" || intent === "important") {
     answer.text =
       intent === "important"

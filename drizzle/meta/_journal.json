@@ -43,6 +43,20 @@
       "when": 1792706958154,
       "tag": "0005_redundant_doomsday",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792713678455,
+      "tag": "0006_perfect_prism",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792714163659,
+      "tag": "0007_stormy_anita_blake",
+      "breakpoints": true
     }
   ]
 }

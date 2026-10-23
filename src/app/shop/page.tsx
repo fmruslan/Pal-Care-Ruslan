@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { PageHeading } from "@/components/page-heading";
 import { ProductArt } from "@/components/product-art";
 import { BuyButton } from "@/components/checkout-controls";
+import { REFERENCE_PRODUCT } from "@/lib/careos/knowledge";
 
 export const metadata = { title: "Demo shop" };
 const descriptions: Record<string, string> = {
@@ -49,50 +50,52 @@ export default async function Shop() {
         </p>
       </div>
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-        {data.products.map((product) => (
-          <Card key={product.id} className="motion-card p-4 sm:p-5">
-            <ProductArt kind={product.illustration} />
-            <div className="px-1 pt-5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm text-muted-foreground">
-                  {product.brand} · {product.model}
+        {data.products
+          .filter((product) => product.id !== REFERENCE_PRODUCT)
+          .map((product) => (
+            <Card key={product.id} className="motion-card p-4 sm:p-5">
+              <ProductArt kind={product.illustration} />
+              <div className="px-1 pt-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm text-muted-foreground">
+                    {product.brand} · {product.model}
+                  </p>
+                  <Badge>Fictional product</Badge>
+                </div>
+                <h2 className="mt-3 text-xl font-semibold tracking-tight">
+                  {product.name}
+                </h2>
+                <p className="mt-3 min-h-21 text-sm leading-7 text-muted-foreground">
+                  {descriptions[product.illustration] ??
+                    "A fictional demo product. No real goods are sold."}
                 </p>
-                <Badge>Fictional product</Badge>
-              </div>
-              <h2 className="mt-3 text-xl font-semibold tracking-tight">
-                {product.name}
-              </h2>
-              <p className="mt-3 min-h-21 text-sm leading-7 text-muted-foreground">
-                {descriptions[product.illustration] ??
-                  "A fictional demo product. No real goods are sold."}
-              </p>
-              <div className="my-5 flex items-end justify-between gap-3 border-t pt-5">
-                <p className="text-2xl font-semibold tabular-nums">
-                  {money(product.priceMinor)}
+                <div className="my-5 flex items-end justify-between gap-3 border-t pt-5">
+                  <p className="text-2xl font-semibold tabular-nums">
+                    {money(product.priceMinor)}
+                  </p>
+                  <span className="text-xs text-muted-foreground">
+                    Sandbox USD · 1 item
+                  </span>
+                </div>
+                <BuyButton
+                  productId={product.id}
+                  enabled={
+                    checkout.enabled &&
+                    (!checkout.allowedProductId ||
+                      checkout.allowedProductId === product.id)
+                  }
+                  approvedRequestId={
+                    checkout.allowedProductId === product.id
+                      ? checkout.approvedRequestId
+                      : undefined
+                  }
+                />
+                <p className="mt-3 text-center text-xs leading-6 text-muted-foreground">
+                  Buyer approval required · No real money
                 </p>
-                <span className="text-xs text-muted-foreground">
-                  Sandbox USD · 1 item
-                </span>
               </div>
-              <BuyButton
-                productId={product.id}
-                enabled={
-                  checkout.enabled &&
-                  (!checkout.allowedProductId ||
-                    checkout.allowedProductId === product.id)
-                }
-                approvedRequestId={
-                  checkout.allowedProductId === product.id
-                    ? checkout.approvedRequestId
-                    : undefined
-                }
-              />
-              <p className="mt-3 text-center text-xs leading-6 text-muted-foreground">
-                Buyer approval required · No real money
-              </p>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          ))}
       </div>
       <section
         className="hero-wash mt-8 grid gap-5 rounded-3xl border p-7 sm:p-8 md:grid-cols-[auto_1fr]"

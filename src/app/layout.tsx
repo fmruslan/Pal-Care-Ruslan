@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { ThemeProvider } from "@/components/theme-provider";
 import { CareOSProvider } from "@/components/careos/provider";
+import { parseCareConfig } from "@/lib/careos/config";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -25,6 +26,12 @@ export const viewport: Viewport = {
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  let mode: "fixture" | "disabled" | "responses" | "unavailable";
+  try {
+    mode = parseCareConfig(process.env).mode;
+  } catch {
+    mode = "unavailable";
+  }
   return (
     <html lang="en" suppressHydrationWarning className={GeistSans.variable}>
       <body>
@@ -35,7 +42,7 @@ export default function RootLayout({
           >
             Skip to content
           </a>
-          <CareOSProvider>{children}</CareOSProvider>
+          <CareOSProvider mode={mode}>{children}</CareOSProvider>
         </ThemeProvider>
       </body>
     </html>

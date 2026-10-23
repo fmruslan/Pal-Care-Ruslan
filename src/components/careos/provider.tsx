@@ -40,6 +40,14 @@ export function useCareOS() {
   return value;
 }
 const storageKey = "palcare-careos-conversation";
+class CareHttpError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
 async function api<T>(
   path: string,
   method = "GET",
@@ -53,7 +61,8 @@ async function api<T>(
     cache: "no-store",
   });
   if (!response.ok)
-    throw new Error(
+    throw new CareHttpError(
+      response.status,
       response.status === 429
         ? "CareOS has reached its demo limit. Please try later; your documents are still available."
         : response.status === 409
@@ -63,7 +72,13 @@ async function api<T>(
   return response.json() as Promise<T>;
 }
 
-export function CareOSProvider({ children }: { children: ReactNode }) {
+export function CareOSProvider({
+  children,
+  mode = "fixture",
+}: {
+  children: ReactNode;
+  mode?: "fixture" | "disabled" | "responses" | "unavailable";
+}) {
   const pathname = usePathname();
   const visible = /^\/(dashboard|vault|documents)(\/|$)/.test(pathname);
   const [isOpen, setOpen] = useState(false);
@@ -118,11 +133,15 @@ export function CareOSProvider({ children }: { children: ReactNode }) {
       if (id && /^[a-f0-9-]{36}$/.test(id)) {
         try {
           value = await api<Conversation>(`/${id}`);
-        } catch {
+        } catch (error) {
+          if (!(error instanceof CareHttpError) || error.status !== 404)
+            throw error;
           value = await api<Conversation>("", "POST", {});
         }
       } else value = await api<Conversation>("", "POST", {});
       save(value);
+      const previous = value.turns.at(-1)?.answer.context;
+      if (!contextRef.current && previous) select(previous);
       return value;
     })();
     try {
@@ -230,8 +249,17 @@ export function CareOSProvider({ children }: { children: ReactNode }) {
                     id="careos-description"
                     className="mt-1 text-xs text-muted-foreground"
                   >
-                    Your purchase companion · no payment actions
+                    Your purchase companion
                   </Dialog.Description>
+                  <p className="mt-1 text-xs font-medium text-intelligence-foreground">
+                    {mode === "fixture"
+                      ? "Demo responses · no live AI"
+                      : mode === "responses"
+                        ? "Live model enabled · answers cite sources"
+                        : mode === "disabled"
+                          ? "Model disabled · saved records only"
+                          : "Model configuration unavailable"}
+                  </p>
                 </div>
                 <div className="flex gap-1">
                   <Button
@@ -271,7 +299,8 @@ export function CareOSProvider({ children }: { children: ReactNode }) {
                     <span>
                       {context.origin === "sandbox"
                         ? "Verified Sandbox purchase"
-                        : "Sample purchase"}
+                        : "Sample purchase"}{" "}
+                      · PC-{context.twinId.slice(-6).toUpperCase()}
                     </span>
                   )}
                 </span>
@@ -300,25 +329,35 @@ export function CareOSProvider({ children }: { children: ReactNode }) {
                 )}
                 {conversation?.turns.map((turn, index) => (
                   <article key={turn.requestId} className="space-y-3">
-                    {(index === 0 ||
-                      conversation.turns[index - 1].answer.context?.twinId !==
-                        turn.answer.context?.twinId) && (
+                    {((index === 0 &&
+                      turn.answer.context?.twinId !== context?.twinId) ||
+                      (index > 0 &&
+                        conversation.turns[index - 1].answer.context?.twinId !==
+                          turn.answer.context?.twinId)) && (
                       <p className="border-t pt-3 text-xs text-muted-foreground">
                         {turn.answer.context
                           ? `${turn.answer.context.name} · ${turn.answer.context.model} · ${turn.answer.context.origin === "sandbox" ? "Sandbox" : "Sample"}`
                           : "General assistance"}
                       </p>
                     )}
-                    <p className="ml-8 rounded-2xl bg-secondary px-4 py-3 text-sm text-secondary-foreground">
-                      {turn.message}
-                    </p>
+                    {![
+                      "Product care",
+                      "Find receipt",
+                      "Purchase summary",
+                    ].includes(turn.message) && (
+                      <p className="ml-8 rounded-2xl bg-secondary px-4 py-3 text-sm text-secondary-foreground">
+                        {turn.message}
+                      </p>
+                    )}
                     <div className="text-sm leading-7">
                       <p className="mb-1 text-xs font-semibold text-intelligence-foreground">
-                        {turn.answer.mode === "fixture"
-                          ? "Demo response · no live AI"
-                          : turn.answer.mode === "live"
-                            ? "Live AI · check sources"
-                            : "From saved records · no model call"}
+                        {turn.answer.outcome === "unavailable"
+                          ? "CareOS unavailable · no answer generated"
+                          : turn.answer.mode === "fixture"
+                            ? "Demo response · no live AI"
+                            : turn.answer.mode === "live"
+                              ? "Live AI · check sources"
+                              : "From saved records · no model call"}
                       </p>
                       <p>{turn.answer.text}</p>
                       {!!turn.answer.steps.length && (
@@ -379,11 +418,16 @@ export function CareOSProvider({ children }: { children: ReactNode }) {
                     )}
                   </article>
                 ))}
-                {busy && (
-                  <p role="status" className="text-sm text-muted-foreground">
-                    Retrieving your purchase information…
-                  </p>
-                )}
+                <p
+                  role="status"
+                  className={busy ? "text-sm text-muted-foreground" : "sr-only"}
+                >
+                  {busy
+                    ? "Retrieving your purchase information…"
+                    : conversation?.turns.length
+                      ? "CareOS answer ready. Review the answer and sources above."
+                      : ""}
+                </p>
                 {error && (
                   <p
                     role="alert"
@@ -429,7 +473,7 @@ export function CareOSProvider({ children }: { children: ReactNode }) {
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
                     maxLength={2000}
-                    rows={2}
+                    rows={1}
                     placeholder="Ask about your purchase…"
                     className="min-w-0 flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2 text-base focus-visible:outline-2 focus-visible:outline-ring"
                   />

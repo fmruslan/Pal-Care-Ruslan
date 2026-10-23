@@ -26,7 +26,44 @@ export function ProductArt({
           fill="var(--art-shadow)"
           opacity=".12"
         />
-        {kind === "headphones" ? (
+        {kind === "computer" ? (
+          <>
+            <rect
+              x="57"
+              y="55"
+              width="166"
+              height="118"
+              rx="16"
+              fill="var(--art-body)"
+              stroke="var(--art-edge)"
+              strokeWidth="3"
+            />
+            <rect
+              x="106"
+              y="90"
+              width="55"
+              height="48"
+              rx="7"
+              fill="var(--art-edge)"
+            />
+            <path
+              d="M75 75h130M78 153h125M90 90v48M175 90v48"
+              stroke="var(--art-highlight)"
+              strokeWidth="4"
+              strokeDasharray="4 5"
+            />
+            <rect
+              x="192"
+              y="100"
+              width="38"
+              height="48"
+              rx="5"
+              fill="var(--art-alt)"
+              stroke="var(--art-edge)"
+              strokeWidth="3"
+            />
+          </>
+        ) : kind === "headphones" ? (
           <>
             <path
               d="M72 126V94a68 68 0 0 1 136 0v32"

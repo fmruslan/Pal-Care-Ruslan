@@ -1,8 +1,14 @@
-# HTTP surface — Stage 2 Sandbox purchase/Twin flow verified
+# HTTP surface — Sandbox commerce and bounded CareOS
 
-Stage 3 increment 1 adds `/documents/:uuid` for scoped inline text viewing, `POST /api/careos/conversations` (empty JSON), owned `GET`/`DELETE /api/careos/conversations/:uuid`, and `POST /api/careos/conversations/:uuid/turns` (`requestId`, nullable `twinId`, `revision`, `message`, optional allowlisted `intent`). Mutations require exact configured `APP_ORIGIN`, bounded JSON and a separate HttpOnly CareOS capability. Initial conversations use a bounded, expiring preview store. These deterministic reads never invoke a model or PayPal.
+Customer/merchant purchase records remain public and read-only. CareOS writes only its own bounded cookie-scoped conversations/quotas. Explicitly enabled checkout endpoints can create/capture **Sandbox-only** orders for the originating anonymous browser, with durable global/session/order limits. They default off. No refunds, merchant editing or real money; model inference remains separately gated and unverified.
 
-Customer/merchant dashboards remain public and read-only. Explicitly enabled checkout endpoints can create/capture **Sandbox-only** orders for the originating anonymous browser, with durable global/session/order limits. They default off. No refunds, merchant editing, AI or real money.
+## CareOS final contract
+
+`POST /api/careos/conversations` accepts empty JSON and issues a separate HttpOnly cookie. Owned `GET`/`DELETE /api/careos/conversations/:uuid` restores/clears a transcript; cookie mismatch/expiry returns 404. `POST .../:uuid/turns` accepts only `{requestId, twinId: UUID|null, revision: integer, message: string, intent?: allowlisted}`. It returns a saved turn containing typed outcome, server-assigned execution mode, bound context/revision, concise text/steps, sources and application-generated navigation actions. Repeated IDs return the original result; changed payloads return 409. An unknown/in-progress dispatch is never blindly repeated.
+
+Mutations require exact configured `APP_ORIGIN`; JSON is at most 16 KiB and messages at most 2,000 characters. History, customer/merchant IDs, arbitrary tools/URLs and financial parameters are rejected. Database mode persists conversations/quotas in CareOS-only tables; fixture-data mode uses bounded ephemeral memory and cannot activate paid inference. HTTP 429 supplies `Retry-After`; safe 503 failures never fall back to fixtures. No conversation data is publicly cacheable. [Limits and activation gates](CAREOS.md).
+
+`GET /documents/:uuid` renders the actual scoped document with its provenance and original download link. `GET /vault/:uuid/care` displays only exact-product documentation with attribution/revision/hash; neither route calls a model. Dashboard suggestions are deterministic server projections and cost no model credits.
 
 Actual Orders/Payments completed-capture and exactly-one Twin/receipt/policy/event acceptance passed for the separately approved USD 129.00 case. Repeated read-only verification preserved all records. This is not a webhook, production-readiness or blanket provider-negative-testing claim; the separate eCheck remains preserved. [Evidence](evidence/STAGE2-VERIFICATION.md).
 
@@ -56,4 +62,4 @@ Checkout JSON adds `captureStatus`, `pendingReason` (`ECHECK` or null) and ISO `
 
 Attempted checkouts display **Check payment status**, which posts only to `reconcile`; returning already-attempted checkouts reconcile once rather than calling capture. No status polling or appearance-triggered requests are introduced. The legacy capture action also cannot recapture an attempted checkout.
 
-GET routes also support framework HEAD handling. No webhook, refund, merchant-approval, catalog-write, AI or seed HTTP routes exist. See [future verified-webhook assessment](PAYPAL-WEBHOOKS.md). CLI migrations/seeds are operator tasks. `pnpm paypal:verify LOCAL_CHECKOUT_UUID` is an operator-only, read-only actual-provider verification command; no browser/API endpoint can fake its result.
+GET routes also support framework HEAD handling. No webhook, refund, merchant-approval, catalog-write or seed HTTP routes exist. CareOS endpoints are separately bounded as above. See [future verified-webhook assessment](PAYPAL-WEBHOOKS.md). CLI migrations/seeds are operator tasks. `pnpm paypal:verify LOCAL_CHECKOUT_UUID` is an operator-only, read-only actual-provider verification command; no browser/API endpoint can fake its result.

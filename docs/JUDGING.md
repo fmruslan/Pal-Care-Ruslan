@@ -4,6 +4,8 @@
 
 ## Why Pal Care?
 
+**Stage 3 update:** Glance/Tap/Talk works in explicitly labeled fixture mode: open a receipt directly, navigate with one persistent product-aware assistant, and inspect official Raspberry Pi 5 care guidance on a separate sample ownership record. The Responses adapter is implemented but **no actual hosted inference is verified yet**. [CareOS contract and remaining acceptance](CAREOS.md). Do not present fixtures as the AI integration required for submission.
+
 AI shopping agents help consumers purchase items. Pal Care tests the idea that PayPal can keep helping **after checkout** through a persistent, evidence-backed Purchase Twin, proactive care, and verified outcomes.
 
 ## Planned flagship demonstration

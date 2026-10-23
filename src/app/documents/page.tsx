@@ -26,8 +26,9 @@ export default async function Documents() {
         <ShieldCheck className="mt-1 size-4 shrink-0" aria-hidden="true" />
         <p>
           Sample documents are fictional. Sandbox receipts appear only after a
-          verified capture. No real-money receipts, manufacturer manuals,
-          uploads, or warranty coverage are implied.
+          verified capture. Official guidance for the Raspberry Pi 5 reference
+          sample is available in Product care with its own attribution. No
+          real-money receipts, uploads, or warranty coverage are implied.
         </p>
       </div>
     </Shell>

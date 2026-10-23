@@ -4,7 +4,7 @@
 
 **Modular monolith** using Next.js 16 App Router, React, TypeScript and Drizzle on Render Managed PostgreSQL. Both dashboards are public demo views with one fixed fictional customer and merchant. No Supabase, customer registration, login, personal uploads or real-money payments are included. [ADR 0002](adr/0002-public-render-demo.md) supersedes the initial infrastructure/auth proposal.
 
-Stage 1 and the bounded Stage 2 Sandbox purchase/Twin flow are implemented and locally verified. A separately authorized USD 129.00 immediate-payment purchase has matching actual completed Orders/Payments evidence and exactly one durable Twin/receipt/policy/event; two read-only verifier runs preserved all records. The earlier eCheck remains separately pending/unverified locally and unchanged by that verification. The approved premium UI is preserved. AI, refunds, sponsors, workers and webhooks remain planned. See [acceptance evidence](evidence/STAGE2-VERIFICATION.md) and [ADR 0003](adr/0003-sandbox-checkout.md).
+Stage 1 and the bounded Stage 2 Sandbox purchase/Twin flow are implemented and locally verified. A separately authorized USD 129.00 immediate-payment purchase has matching actual completed Orders/Payments evidence and exactly one durable Twin/receipt/policy/event; two read-only verifier runs preserved all records. The earlier eCheck remains separately pending/unverified locally and unchanged by that verification. Stage 3 adds CareOS fixture assistance and a gated runtime adapter while retaining the premium identity and financial logic. Actual hosted inference, refunds, sponsors, workers and webhooks remain incomplete. See [payment evidence](evidence/STAGE2-VERIFICATION.md), [ADR 0003](adr/0003-sandbox-checkout.md) and [CareOS](CAREOS.md).
 
 ## Frontend appearance
 
@@ -21,7 +21,7 @@ The original Blue & Lavender identity uses semantic CSS tokens for dedicated lig
 - `DEMO_DATA_SOURCE=fixtures` is a labeled, account-free preview. `database` reads PostgreSQL sample records. Configuration or database failures never silently trigger fixture fallback.
 - Stage 1 sample constraints are extended by migration 0001. Sandbox Twins require checkout evidence references, a snapshot and verification time; unique keys prevent duplicate Twins for one capture. Existing sample rows remain sample-only.
 - Original sample text documents are stored in PostgreSQL and returned as attachments. No object-storage service, private upload or real manufacturer content is claimed.
-- Dashboards remain read-only. Stage 2 adds bounded, session-authorized sandbox checkout endpoints only; no refunds, merchant approvals, catalog-edit, AI or seed endpoints. Migration/seed commands are operator CLI tasks.
+- Purchase records remain read-only. Stage 2 adds bounded session-authorized Sandbox checkout; Stage 3 adds separately scoped CareOS conversation writes only. No refunds, merchant approvals, catalog-edit or seed endpoints exist. Migration/seed commands remain operator CLI tasks.
 - `/api/health` checks process liveness; `/api/ready` verifies the selected data source and seed presence. Render uses readiness.
 
 ## Stage 2 checkout boundary
@@ -94,6 +94,12 @@ Store amounts as integer minor currency units, with a separate ISO currency code
 7. Do not issue a second refund when the original result is ambiguous. Keep it pending until reconciled.
 
 ## AI and trust boundaries
+
+### Stage 3 implementation
+
+CareOS now has one persistent root-layout host, deterministic dashboard briefings/direct document actions, inline document views and product-care pages. `src/lib/careos/` owns contracts, context-bound read tools, lexical/tag retrieval, evidence validation, providers and conversation/budget stores. PostgreSQL tables in `src/db/careos-schema.ts` are additive migrations 0006/0007; the original financial schema/service is unchanged.
+
+`fixture` is the default and visibly labeled; the official Responses adapter is implemented but no hosted inference is claimed. Paid inference requires an explicit enable flag, separate API credentials, reviewed model/endpoint, a restricted writer and atomic persistent budget reservations. No AI tool can call commerce. Conversation state is application-controlled and cookie-scoped, not provider-hosted memory. Source text/history remains untrusted; quote/schema checks are not proof of semantic grounding. See [full contract](CAREOS.md) and [ADR 0006](adr/0006-careos-assistant.md).
 
 AI may interpret product data, explain policy, retrieve manual passages and propose recall candidate matches. It never authorizes or executes unrestricted financial actions. Every consequential decision must be checked with deterministic code. Uploaded documents and external pages are untrusted data and must not override system rules.
 

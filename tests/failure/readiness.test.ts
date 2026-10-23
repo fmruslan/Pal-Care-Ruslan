@@ -23,6 +23,11 @@ test(
           ...process.env,
           DEMO_DATA_SOURCE: "database",
           DATABASE_URL: "postgresql://127.0.0.1:1/unavailable",
+          CAREOS_DATABASE_URL: "postgresql://127.0.0.1:1/unavailable",
+          CAREOS_PROVIDER: "fixture",
+          CAREOS_LIVE_ENABLED: "false",
+          CAREOS_API_KEY: "",
+          APP_ORIGIN: "http://127.0.0.1:3102",
         },
         stdio: ["ignore", "pipe", "pipe"],
       },
@@ -55,6 +60,19 @@ test(
       assert.equal(response.status, 503);
       assert.deepEqual(await response.json(), { status: "unavailable" });
       assert.equal(response.headers.get("cache-control"), "no-store");
+      const assistant = await fetch(
+        "http://127.0.0.1:3102/api/careos/conversations",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Origin: "http://127.0.0.1:3102",
+          },
+          body: "{}",
+        },
+      );
+      assert.equal(assistant.status, 503);
+      assert.deepEqual(await assistant.json(), { error: "careos_unavailable" });
       assert.doesNotMatch(logs, /postgresql:\/\//);
     } finally {
       if (server.exitCode === null) {

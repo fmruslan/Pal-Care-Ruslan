@@ -3,17 +3,17 @@
 **Everything you buy. Taken care of.**  
 *Powered by CareOS · Independent PayPal AI Hackathon project*
 
-> **Stage 2 is complete for the bounded Sandbox checkout and automatic Purchase Twin flow.** Actual Orders v2 and Payments v2 both confirmed a completed USD 129.00 capture; PostgreSQL contains exactly one Twin, receipt, policy snapshot and purchase event. `pnpm paypal:verify` passed twice without changes or duplicates. The separate pending eCheck is preserved and is not claimed cleared. **Refunds, AI, sponsor integrations and webhooks are not yet implemented. Public Render deployment remains incomplete.** See [verification evidence](docs/evidence/STAGE2-VERIFICATION.md) and [Implementation Status](docs/STATUS.md).
+> **CareOS Stage 3 now has Glance, Tap and Talk in explicitly labeled fixture mode.** Briefings and receipt/document actions use saved records; one persistent product-aware assistant follows customer navigation. The server-side Responses adapter and budget safeguards are implemented, but **live AI inference is not activated or verified**. Stage 2's actual USD 129.00 Sandbox capture/Twin and separate pending eCheck remain preserved. Refunds, sponsor integrations and webhooks are not yet implemented; public Render deployment remains incomplete. See [CareOS](docs/CAREOS.md), [Stage 2 evidence](docs/evidence/STAGE2-VERIFICATION.md) and [Implementation Status](docs/STATUS.md).
 
 Pal Care explores a new reason to choose PayPal: the purchase becomes the beginning of a useful care experience, rather than the end of a transaction.
 
 The product's central object is a **Purchase Twin**, a durable, item-level record created from an authorized merchant's verified PayPal sandbox purchase. **CareOS** connects that record to source-backed product documentation, relevant changes, eligibility checks, and approved outcomes.
 
-**Today:** bundled preview mode still contains three explicitly fictional sample Twins. The local database also contains the actually verified Sandbox purchase; it is not seeded into fixtures. Checkout defaults off, requires explicit Sandbox configuration and has no mock payment fallback. Both dashboards remain read-only without registration, and no merchant-edit or refund actions are exposed. See [PayPal setup and verification](docs/PAYPAL.md), [ADR 0002](docs/adr/0002-public-render-demo.md) and [ADR 0003](docs/adr/0003-sandbox-checkout.md).
+**Today:** bundled preview contains three fictional-product sample Twins and one Raspberry Pi 5 reference sample with official, attributed care guidance. The local database also contains the actually verified Sandbox purchase; it is not seeded into fixtures. Checkout defaults off, requires explicit Sandbox configuration and has no mock payment fallback. Purchase records remain read-only without registration; CareOS only writes its own bounded conversations/quotas. No merchant-edit or refund actions are exposed. See [PayPal setup](docs/PAYPAL.md), [ADR 0002](docs/adr/0002-public-render-demo.md), [ADR 0003](docs/adr/0003-sandbox-checkout.md) and [CareOS sources](docs/CARE-SOURCES.md).
 
 ## Appearance
 
-Stage 3 is in progress: the first CareOS slice adds a persistent customer assistant, deterministic scoped receipt lookup and inline document views. It makes no model or payment calls. Product-care intelligence and the runtime model adapter are not yet implemented in this increment.
+CareOS adds a persistent customer assistant, deterministic scoped receipt lookup, a factual briefing and inline document/care views. The verified fictional Forma F-01 still has no manufacturer manual. Care fixtures say **no live AI**; the implemented runtime adapter remains gated pending separate API-key/spending approval. See [CareOS engineering and activation](docs/CAREOS.md).
 
 Pal Care's original product-passport identity uses blue for commerce, lavender for planned CareOS intelligence, and spacious white or midnight surfaces. **System is the default:** Light/Dark overrides are available from the appearance selector and persist locally. Geist Sans uses the maintained package's bundled, self-hosted fonts—no custom font service or browser request to Google Fonts.
 
@@ -56,7 +56,7 @@ Pal Care is an independent hackathon concept and **not an official PayPal produc
 | Frontend and backend | Next.js 16 App Router, React, TypeScript, Tailwind CSS, shadcn/ui |
 | Purchase records | Render Managed PostgreSQL 17; Drizzle ORM and versioned SQL migrations |
 | Demo identity and documents | Fixed fictional customer/merchant; public sample text documents; no login or uploads |
-| AI intelligence | Planned server-side model API and grounded explanations; not connected |
+| CareOS intelligence | Deterministic assistance + explicit fixtures; official Responses/Zod adapter implemented, hosted inference not activated/verified |
 | Payment workflow | Official PayPal Server SDK 2.5.0; actual Sandbox Orders/Payments completed-capture and Twin verification passed; webhooks deferred |
 | Product safety | Planned CPSC source-backed matching; no live recall monitoring |
 | Replacement discovery | Planned Channel3 integration; not connected |
@@ -76,7 +76,7 @@ Requires Node.js 22.23.x and pnpm 10.34.7. For the explicitly labeled fixture pr
 ```bash
 corepack enable
 pnpm install --frozen-lockfile
-pnpm dev
+APP_ORIGIN=http://localhost:3000 pnpm dev
 ```
 
 Open `http://localhost:3000`. Explore `/dashboard`, `/vault`, `/documents`, `/shop`, and `/merchant`. Bundled preview mode is labeled on every dashboard; checkout requires database mode and explicit Sandbox configuration. No database/provider outage silently falls back to mock payments.
@@ -133,6 +133,7 @@ src/components/       Accessible UI and original product illustrations
 src/db/               Drizzle schema, connection, read-only queries and seed service
 src/lib/demo/         Fictional fixtures, presentation and server-only repository
 src/lib/commerce/     Sandbox adapter, verification, authorization and checkout services
+src/lib/careos/       Scoped assistance, evidence retrieval, providers and bounded conversations/budgets
 drizzle/              Reviewed SQL migrations and schema snapshots
 tests/                Unit, PostgreSQL integration and browser/accessibility tests
 render.yaml           Web service + private-network PostgreSQL Blueprint
@@ -147,6 +148,8 @@ docs/INTEGRATIONS.md Technology partners and external API boundaries
 docs/JUDGING.md      Judge-oriented evidence and demonstration criteria
 docs/STATUS.md       Explicit working vs. planned functionality
 docs/DESIGN.md       Light/dark tokens, component rules and visual references
+docs/CAREOS.md       Glance/Tap/Talk architecture, limits and gated runtime activation
+docs/CARE-SOURCES.md Official reference documentation and licence register
 docs/SECURITY.md     Threat model and authorization requirements
 docs/adr/             Architecture decisions
 AGENTS.md             OpenCode engineering expectations
@@ -156,6 +159,6 @@ LICENSE               MIT open-source license
 
 ## Contributing and license
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). Application code is licensed under [MIT](LICENSE). Geist fonts retain their [SIL Open Font License](public/licenses/geist-OFL.txt), also served at `/licenses/geist-OFL.txt`.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md). Application code is licensed under [MIT](LICENSE). Raspberry Pi guidance excerpts and derived care summaries retain [CC BY-SA 4.0 with attribution](docs/CARE-SOURCES.md). Geist fonts retain their [SIL Open Font License](public/licenses/geist-OFL.txt), also served at `/licenses/geist-OFL.txt`.
 
 **Brand note:** “Pal Care” is a provisional project name. The project uses its own identity and does not imply affiliation or endorsement by PayPal. Product names and trademarks belong to their respective owners.

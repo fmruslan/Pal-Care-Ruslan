@@ -1,18 +1,18 @@
 # Implementation status
 
-Last updated: 2026-10-22
+Last updated: 2026-10-23
 
-> **Stage 2 is complete for the bounded PayPal Sandbox checkout → verified capture → automatic Purchase Twin flow.** The separately authorized USD 129.00 immediate-payment purchase has actual `COMPLETED` Orders v2 and Payments v2 evidence, exactly one Twin/receipt/policy/purchase event, and two successful read-only verifier runs with no changed records or duplicates. The earlier pending eCheck is preserved separately and is not claimed cleared. The approved UI is unchanged. Webhooks, refunds, AI, sponsors and public Render deployment remain incomplete. [Acceptance evidence](evidence/STAGE2-VERIFICATION.md).
+> **Stage 3 CareOS is implemented in explicit fixture mode; live hosted inference remains unverified and disabled.** Stage 2's actual completed USD 129.00 Sandbox capture/Twin and the separate pending eCheck are preserved. CareOS adds assistance, not financial authority; the original blue/lavender design and checkout logic remain intact. Webhooks, refunds, sponsor integrations and public deployment remain incomplete. [Stage 2 evidence](evidence/STAGE2-VERIFICATION.md) · [CareOS contract](CAREOS.md).
 
 | Component | Status | Evidence / remaining work |
 | --- | --- | --- |
 | Next.js 16 / React / TypeScript / Tailwind / shadcn-based UI | **Implemented** | Production build, lint and typecheck pass; premium responsive shell and original illustrations |
 | Blue & Lavender identity and Purchase Twin passport | **Implemented** | Original interlocking mark, theme-aware product SVGs, passport frame, document divider and reusable semantic components across all existing screens; [design system and screenshots](DESIGN.md) |
 | System / Light / Dark appearance | **Implemented** | System default, live OS changes, browser-local persisted overrides, hydration-safe selector, native/browser color synchronization and locally bundled Geist Sans; no checkout remount or financial requests on appearance change |
-| Public customer and merchant dashboards | **Implemented** | Browsable without login; no mutation controls/endpoints |
+| Public customer and merchant dashboards | **Implemented** | Browsable without login; trusted purchase/merchant records are read-only. CareOS's separate conversation writes grant no commerce authority |
 | Purchase Vault and Twin detail pages | **Implemented; actual Sandbox Twin displayed and verified** | User confirmed the completed Twin in Mac Chrome; snapshots/provider references match PostgreSQL and retrieved payment evidence; samples remain separate |
 | Documents and care history | **Implemented; actual completed-purchase persistence verified** | Exactly one Sandbox receipt, one sample demo policy and one Sandbox purchase event for the completed case; no manufacturer manual/warranty fabricated |
-| PostgreSQL / Drizzle migrations and seed | **Implemented; local PostgreSQL verified** | Eight tables; reviewed migrations through 0005 cover checkout/rates/provenance, separate observed identity and nullable per-order immediate preference; no mock capture seeded or old keys/deadlines changed |
+| PostgreSQL / Drizzle migrations and seed | **Implemented; local PostgreSQL verified** | Twelve tables; additive 0006/0007 add knowledge/conversations/requests/budgets. All pre-existing rows in the original eight tables compared unchanged around the local upgrade. No mock capture seeded or old keys/deadlines changed |
 | Read-only dashboards + bounded checkout | **Implemented; independent tests pass** | Separate write service, cookie authorization, exact Origin, bounded JSON, DB-backed quotas/leases/idempotency |
 | Expired-checkout controls | **Implemented; local regression suite passes** | Derived expiry, redacted approval link, no automatic return capture on expired checkout, client-only deadline timer and preserved post-deadline reconciliation for attempted captures; no schema or design change |
 | Existing-capture reconciliation | **Implemented; actual pending path verified** | Separate provider-read-only action, pinned capture ID, independent Orders/Payments retrieval, checked status and eCheck reason; failed/declined states create no Twin; completed evidence finalizes exactly once in domain tests, including after the original deadline |
@@ -26,16 +26,28 @@ Last updated: 2026-10-22
 | Webhooks | **Assessed, not implemented or verified** | [Render prerequisites, signature verification, inbox/deduplication, durable retries and actual-delivery acceptance plan](PAYPAL-WEBHOOKS.md); no listener or signature/delivery claim |
 | Price Guardian and partial refund | Not started | Authorized merchant approval and verified PayPal refund |
 | CPSC candidate matching | Not started | Real source data and model verification |
-| Product Care assistant | Not started | Grounded answer from actual manual |
+| CareOS Glance / Tap / Talk | **Implemented with explicit fixtures** | Factual briefing, direct receipt/document/care actions and persistent desktop panel/mobile sheet; sample/Sandbox/source labels remain distinct |
+| Product Care evidence | **Implemented for one reference sample** | Exact-model Raspberry Pi 5 official shutdown guidance, CC BY-SA attribution, reviewed hash, missing/conflicting-source handling; Forma F-01 has no manual |
+| CareOS conversations / quotas | **Implemented** | Separate cookie capability, PostgreSQL persistence, bounded same-Twin history, expiry/clear, request fingerprints, concurrent leases and atomic resource reservations; fixture-data preview is ephemeral |
+| Runtime Responses adapter | **Implemented; hosted inference NOT activated/verified** | Official exact-pinned SDK + Zod, two-call ceiling, no provider retries/storage, gated API key/budgets/restricted DB writer; injected transport tests are not real model evidence |
 | Channel3 discovery | Not started | Live product results and retailer links |
 | AG Studio intelligence | Not started | Real custom widget and agent interaction |
 | Public deployment and demo | Not started | Accessible URL and public video |
 
-## Local verification
+## Stage 3 verification
 
-### Stage 3 — increment 1 (implementation in progress)
+Implementation increments now include receipt retrieval, product-care evidence, Glance/Tap briefing, durable context-aware conversation and the gated Responses adapter. No additional Sandbox purchase/refund, paid API call or infrastructure deployment is authorized or performed. Final verification results are recorded separately with release evidence; Stage 2 historical results are retained verbatim.
 
-Persistent root-level CareOS host, product context registration, cookie-scoped preview conversations, deterministic receipt/purchase/document tools and inline document viewing are implemented. No model is invoked. New regression checks cover receipt scope, authorization, request validation and navigation continuity. Later Stage 3 increments will add care evidence, PostgreSQL conversation persistence and the explicitly gated runtime API adapter. Stage 2 payment code is unchanged. This paragraph is not a live-AI or completed-Stage-3 claim.
+- Local lint, typecheck, build and **195 unit tests pass**, including 50 versioned deterministic/fixture task evaluations and injected Responses transport/error/grounding/prompt-injection tests. No hosted inference was used.
+- **63 dedicated PostgreSQL integration tests pass**: all 53 existing tests plus 10 CareOS ownership, persistence, expiry, replay, concurrent-turn, atomic budget, permission and commerce-immutability cases.
+- Production-server outage test passes for both readiness and CareOS: unavailable database produces sanitized 503, never fixtures or credential disclosure.
+- Formatting, frozen-lockfile install, repository validation and diff checks pass. `pnpm audit --prod` reports no known vulnerabilities (2026-10-23); this is not a security certification.
+- Additive local migrations/seed preservation verification passed twice: every pre-existing row in the original eight tables is unchanged; the second run is idempotent. No PayPal or model calls were made.
+- Thirty fixture screenshot references were generated and representative finished dashboard/Twin/assistant views inspected across desktop/mobile and both themes. Full fixture/database browser reruns are the final release gate; commit-specific GitHub Actions is checked at delivery.
+
+See [verification report](evidence/STAGE3-VERIFICATION.md), [CareOS contract](CAREOS.md), [source register](CARE-SOURCES.md) and [ADR 0006](adr/0006-careos-assistant.md). Hosted inference, live model accuracy, first-time-user research, real-device checks and public deployment remain incomplete.
+
+## Historical Stage 2 local verification
 
 - `pnpm install --frozen-lockfile`: reproducible installation.
 - `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm format:check`, repository validation and `git diff --check`: pass.

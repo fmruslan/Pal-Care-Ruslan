@@ -6,7 +6,7 @@ import {
   careResponse,
   readTurn,
 } from "@/lib/careos/security";
-import type { CareAnswer } from "@/lib/careos/contracts";
+import { CareError, type CareAnswer } from "@/lib/careos/contracts";
 
 export async function POST(
   request: Request,
@@ -20,9 +20,11 @@ export async function POST(
     const prior = await runtime.store.claim(id, owner, input);
     if (prior) return careResponse(prior);
     let answer: CareAnswer;
+    let failure: unknown;
     try {
-      answer = await answerTurn(input);
-    } catch {
+      answer = await answerTurn(input, id, owner);
+    } catch (error) {
+      failure = error;
       answer = {
         outcome: "unavailable",
         mode: "deterministic",
@@ -36,6 +38,12 @@ export async function POST(
     }
     const turn = { requestId: input.requestId, message: input.message, answer };
     await runtime.store.finish(id, owner, turn);
+    if (failure)
+      return careError(
+        failure instanceof CareError
+          ? failure
+          : new CareError("careos_model_unavailable"),
+      );
     return careResponse(turn);
   } catch (error) {
     return careError(error);

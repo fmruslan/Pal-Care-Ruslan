@@ -13,6 +13,7 @@ const required = [
   'docs/PAYPAL-WEBHOOKS.md',
   'docs/adr/0005-single-immediate-sandbox-test.md',
   'docs/evidence/STAGE2-VERIFICATION.md',
+  'docs/CAREOS.md', 'docs/CARE-SOURCES.md', 'docs/adr/0006-careos-assistant.md',
   'postman/PalCare-Sandbox.postman_collection.json',
   'package.json', 'pnpm-lock.yaml', 'render.yaml', 'src/db/schema.ts',
 ];

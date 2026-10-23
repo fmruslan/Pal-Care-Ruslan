@@ -7,7 +7,7 @@ PayPal checkout is implemented and independently tested. **The separately approv
 | PayPal Sandbox | Actual completed Orders/Payments capture and automatic Twin verified via official SDK 2.5.0; refunds/webhooks deferred | https://developer.paypal.com/ |
 | Official PayPal Next.js starter | Trusted checkout reference | https://developer.paypal.com/guides/nextjs-checkout |
 | PayPal Postman workspace | Create/capture/refund/error testing | https://www.postman.com/paypal |
-| Hosted AI model API | Structured product/policy understanding and care answers | Provider and model to be selected |
+| Hosted AI model API | Official OpenAI Responses adapter implemented with Zod and persistent resource gates; fixture mode verified, actual runtime inference awaiting separate approval/key | [CareOS contract](CAREOS.md); initial transport-tested candidate `gpt-5.4-mini-2026-03-17` |
 | Render Managed PostgreSQL + Drizzle | Sample records, reviewed migrations and idempotent seed implemented locally; cloud deployment pending | https://render.com/docs/databases |
 | CPSC | Official U.S. recall data | https://www.cpsc.gov/Recalls/CPSC-Recalls-Application-Program-Interface-API-Information |
 | Channel3 | Real replacement product search, prices and links | https://paypalaihackathon.devpost.com/resources |

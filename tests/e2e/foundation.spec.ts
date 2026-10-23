@@ -13,9 +13,7 @@ test("public landing page opens customer demo without registration", async ({
     .click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Alex");
-  await expect(page.getByRole("note")).toContainText(
-    "Fictional products and customer",
-  );
+  await expect(page.getByRole("note")).toContainText("Fictional customer");
 });
 
 test("vault search, filter and empty state work", async ({ page }) => {
@@ -52,7 +50,9 @@ test("Purchase Twin and downloadable receipt remain explicitly sample-only", asy
   );
   await expect(page.getByText("Not connected", { exact: true })).toBeVisible();
   await expect(
-    page.getByText("No AI model is connected.", { exact: false }),
+    page.getByText("No live AI model is connected in fixture mode.", {
+      exact: false,
+    }),
   ).toBeVisible();
   const download = await request.get(
     "/api/documents/00000000-0000-4000-8000-000000000301/download",
@@ -133,6 +133,8 @@ for (const path of [
   "/merchant",
   "/shop",
   "/vault/00000000-0000-4000-8000-000000000201",
+  "/documents/00000000-0000-4000-8000-000000000301",
+  "/vault/00000000-0000-4000-8000-000000000204/care",
 ]) {
   test(`accessible and responsive: ${path}`, async ({ page }) => {
     await page.goto(path);

@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeading } from "@/components/page-heading";
 import { Events } from "@/components/events";
+import { REFERENCE_PRODUCT } from "@/lib/careos/knowledge";
 
 export const metadata = { title: "Merchant workspace" };
 export default async function Merchant() {
@@ -113,7 +114,9 @@ export default async function Merchant() {
                     {product.category}
                   </td>
                   <td className="px-3 py-5 font-medium tabular-nums">
-                    {money(product.priceMinor)}
+                    {product.id === REFERENCE_PRODUCT
+                      ? "Not for sale · reference"
+                      : money(product.priceMinor)}
                   </td>
                   <td className="px-3 py-4">
                     {data.twins

@@ -96,7 +96,7 @@ export function Shell({
               <br />A more thoughtful future.
             </p>
             <Badge tone="intelligence" className="mt-3">
-              AI features planned
+              CareOS · records & guidance
             </Badge>
           </div>
           <Link
@@ -168,7 +168,8 @@ export function Shell({
                 <strong className="font-medium text-foreground">
                   Sandbox demo.
                 </strong>{" "}
-                Fictional products and customer. No real money.
+                Fictional customer. Sample and verified Sandbox records. No real
+                money.
               </span>
             </span>
             <details className="relative">
@@ -176,8 +177,9 @@ export function Shell({
                 About this demo
               </summary>
               <div className="mt-2 max-w-xl text-sm leading-6">
-                Sample records are labeled. Only completed PayPal Sandbox
-                captures are labeled verified.{" "}
+                Forma and Hearth products are fictional. The Raspberry Pi 5
+                reference has sample ownership only. Sample records are labeled.
+                Only completed PayPal Sandbox captures are labeled verified.{" "}
                 {source === "database"
                   ? "PostgreSQL demo records."
                   : "Bundled preview · database not in use."}{" "}

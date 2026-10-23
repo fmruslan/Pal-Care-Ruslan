@@ -22,6 +22,7 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
     "paypal:verify": "tsx scripts/verify-paypal.ts",
+    "careos:cleanup": "tsx scripts/cleanup-careos.ts",
     "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "pnpm": {

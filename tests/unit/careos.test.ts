@@ -4,6 +4,13 @@ import { demoData } from "../../src/lib/demo/fixtures";
 import { deterministicAnswer, interpret } from "../../src/lib/careos/tools";
 import { MemoryStore } from "../../src/lib/careos/store";
 import { assertOrigin, readTurn } from "../../src/lib/careos/security";
+import {
+  referenceSource,
+  retrievePassages,
+  sourceSchema,
+} from "../../src/lib/careos/knowledge";
+import { fixtureCare } from "../../src/lib/careos/providers/fixture";
+import { buildBriefing } from "../../src/lib/careos/briefing";
 
 const input = () => ({
   requestId: randomUUID(),
@@ -12,6 +19,81 @@ const input = () => ({
   message: "Where’s my receipt?",
 });
 describe("CareOS receipt vertical slice", () => {
+  it("permits only reviewed official HTTPS source destinations", () => {
+    expect(sourceSchema.safeParse(referenceSource).success).toBe(true);
+    for (const url of [
+      "javascript:alert(1)",
+      "https://evil.example/documentation/",
+      "https://www.raspberrypi.com.evil.example/documentation/",
+      "http://www.raspberrypi.com/documentation/",
+      "https://user:password@www.raspberrypi.com/documentation/",
+    ])
+      expect(sourceSchema.safeParse({ ...referenceSource, url }).success).toBe(
+        false,
+      );
+  });
+  it("never presents the reference sample's zero placeholder as a real product price", () => {
+    const answer = deterministicAnswer(demoData, {
+      ...input(),
+      twinId: demoData.twins[3].id,
+      message: "How much did I pay?",
+    });
+    expect(answer.text).toContain("not a product price");
+    expect(answer.text).not.toContain("$0.00");
+  });
+  it("builds only source-backed briefing suggestions and never promotes sample events to monitoring", () => {
+    const items = buildBriefing(demoData, [referenceSource]);
+    expect(items).toHaveLength(2);
+    expect(items[0].provenance).toContain("sample");
+    expect(items[1].sourceHref).toContain(referenceSource.id);
+    expect(
+      buildBriefing({ ...demoData, twins: [], documents: [] }, []),
+    ).toEqual([]);
+  });
+  it("retrieves exact-model relevant evidence, never a different product's manual", () => {
+    expect(
+      retrievePassages([referenceSource], demoData.products[0], "care")
+        .passages,
+    ).toEqual([]);
+    const evidence = retrievePassages(
+      [referenceSource],
+      demoData.products[3],
+      "How do I shut it down?",
+    );
+    expect(evidence.passages).toHaveLength(1);
+    const answer = fixtureCare(
+      deterministicAnswer(demoData, {
+        ...input(),
+        twinId: demoData.twins[3].id,
+        message: "Product care",
+      }),
+      evidence.passages,
+    );
+    expect(answer.mode).toBe("fixture");
+    expect(answer.text).toContain("Raspberry Pi OS");
+    expect(answer.sources[0].excerpt).toContain("Raspberry Pi 5");
+    expect(
+      retrievePassages(
+        [referenceSource],
+        demoData.products[3],
+        "clean with water",
+      ).passages,
+    ).toEqual([]);
+    expect(
+      retrievePassages(
+        [{ ...referenceSource, status: "conflicting" }],
+        demoData.products[3],
+        "care",
+      ).conflict,
+    ).toBe(true);
+    expect(
+      retrievePassages(
+        [{ ...referenceSource, status: "withdrawn" }],
+        demoData.products[3],
+        "care",
+      ).passages,
+    ).toEqual([]);
+  });
   it("finds the actual scoped receipt with sample provenance and no model", () => {
     const answer = deterministicAnswer(demoData, input());
     expect(answer.mode).toBe("deterministic");

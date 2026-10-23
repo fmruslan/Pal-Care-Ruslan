@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import {
   CareError,
   type CareTurn,
@@ -13,7 +13,11 @@ export interface ConversationStore {
   claim(id: string, owner: string, input: TurnInput): Promise<CareTurn | null>;
   finish(id: string, owner: string, turn: CareTurn): Promise<void>;
 }
-type Entry = Conversation & { owner: string; pending?: string };
+type Entry = Conversation & {
+  owner: string;
+  pending?: string;
+  fingerprints: Map<string, string>;
+};
 
 // Credential-free preview only. No paid inference is allowed with this store.
 export class MemoryStore implements ConversationStore {
@@ -33,6 +37,7 @@ export class MemoryStore implements ConversationStore {
       owner,
       expiresAt: new Date(now + 86400000).toISOString(),
       turns: [],
+      fingerprints: new Map<string, string>(),
     };
     this.entries.set(entry.id, entry);
     return this.get(entry.id, owner);
@@ -56,8 +61,15 @@ export class MemoryStore implements ConversationStore {
     const prior = conversation.turns.find(
       (t) => t.requestId === input.requestId,
     );
-    if (prior) return prior;
     const entry = this.entries.get(id)!;
+    const fingerprint = createHash("sha256")
+      .update(JSON.stringify(input))
+      .digest("hex");
+    if (prior) {
+      if (entry.fingerprints.get(input.requestId) !== fingerprint)
+        throw new CareError("careos_request_conflict", 409);
+      return prior;
+    }
     if (entry.pending) throw new CareError("careos_turn_in_progress", 409);
     if (entry.turns.length >= 40)
       throw new CareError("careos_conversation_full", 429);
@@ -71,6 +83,7 @@ export class MemoryStore implements ConversationStore {
       count: count?.minute === minute ? count.count + 1 : 1,
     });
     entry.pending = input.requestId;
+    entry.fingerprints.set(input.requestId, fingerprint);
     return null;
   }
   async finish(id: string, owner: string, turn: CareTurn) {

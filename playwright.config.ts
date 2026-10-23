@@ -1,4 +1,21 @@
 import { defineConfig, devices } from "@playwright/test";
+import { config } from "dotenv";
+
+config({ path: ".env.local", quiet: true });
+const dataSource = process.env.E2E_DATA_SOURCE ?? "fixtures";
+if (!["fixtures", "database"].includes(dataSource))
+  throw new Error("E2E_DATA_SOURCE must be fixtures or database.");
+const testDatabase = process.env.TEST_DATABASE_URL;
+if (
+  dataSource === "database" &&
+  (!testDatabase ||
+    !URL.canParse(testDatabase) ||
+    !["localhost", "127.0.0.1"].includes(new URL(testDatabase).hostname) ||
+    !new URL(testDatabase).pathname.endsWith("_test"))
+)
+  throw new Error(
+    "Database browser tests require an explicit local dedicated TEST_DATABASE_URL ending _test.",
+  );
 
 const port = Number(process.env.E2E_PORT ?? 3100);
 if (!Number.isInteger(port) || port < 1024 || port > 65535)
@@ -6,11 +23,18 @@ if (!Number.isInteger(port) || port < 1024 || port > 65535)
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  outputDir: `test-results/${dataSource}`,
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   workers: 2,
-  reporter: [["list"], ["html", { open: "never" }]],
+  reporter: [
+    ["list"],
+    [
+      "html",
+      { open: "never", outputFolder: `playwright-report/${dataSource}` },
+    ],
+  ],
   use: { baseURL: `http://127.0.0.1:${port}`, trace: "retain-on-failure" },
   snapshotPathTemplate: "{testDir}/visual/{projectName}/{arg}{ext}",
   expect: {
@@ -52,9 +76,14 @@ export default defineConfig({
     url: `http://127.0.0.1:${port}/api/health`,
     reuseExistingServer: false,
     env: {
-      DEMO_DATA_SOURCE: process.env.E2E_DATA_SOURCE ?? "fixtures",
+      DEMO_DATA_SOURCE: dataSource,
+      DATABASE_URL: dataSource === "database" ? testDatabase! : "",
+      CAREOS_DATABASE_URL: dataSource === "database" ? testDatabase! : "",
+      CAREOS_API_KEY: "",
       PAYPAL_CHECKOUT_ENABLED: "false",
       APP_ORIGIN: `http://127.0.0.1:${port}`,
+      CAREOS_PROVIDER: "fixture",
+      CAREOS_LIVE_ENABLED: "false",
     },
   },
 });
