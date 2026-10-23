@@ -51,6 +51,7 @@ export default async function Vault({
         }
       />
       <form
+        key={JSON.stringify([q, category])}
         action="/vault"
         role="search"
         className="mb-6 flex flex-col gap-3 rounded-2xl border bg-card p-4 sm:flex-row"

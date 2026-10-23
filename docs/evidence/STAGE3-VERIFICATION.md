@@ -17,6 +17,8 @@ The full suite contains **294 checks per data mode**, across six Chromium projec
 
 An initial parallel run had shared Playwright trace-directory `ENOENT` failures; it is **not counted as a passing suite**. Artifacts/reports now use separate `fixtures`/`database` directories. The isolated full reruns and commit-specific [GitHub Actions](https://github.com/fmruslan/Pal-Care-Ruslan/actions) are the final delivery gate. The delivery report identifies the exact commit SHA and run result; fixture results are not model-quality evidence.
 
+The isolated run also exposed a Vault reset race: uncontrolled search/category fields could retain an earlier query after “Show all purchases.” The fix keys **only the Vault search form** to its URL filter values; it does not key/remount checkout or the CareOS host. Regression coverage now waits for reset navigation and asserts both input values before applying another category.
+
 ## Existing application records
 
 `pnpm exec tsx scripts/verify-careos-upgrade.ts --apply` passed twice against the existing local application database. It snapshots/hashes each existing row in all eight original tables, applies only reviewed versioned migrations and idempotent seeds, then compares every existing row unchanged. The repeat run did not duplicate reference/knowledge records. Migration 0006 adds knowledge; 0007 adds CareOS conversations/requests/budgets. No financial schema, key, deadline, capture marker or existing receipt/policy/event was rewritten.

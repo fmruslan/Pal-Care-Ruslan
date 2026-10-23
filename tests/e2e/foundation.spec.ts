@@ -32,6 +32,9 @@ test("vault search, filter and empty state work", async ({ page }) => {
     }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Show all purchases" }).click();
+  await expect(page).toHaveURL(/\/vault$/);
+  await expect(page.getByLabel("Search purchases")).toHaveValue("");
+  await expect(page.getByLabel("Category", { exact: true })).toHaveValue("all");
   await page.getByLabel("Category", { exact: true }).selectOption("Kitchen");
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("1 purchase");
