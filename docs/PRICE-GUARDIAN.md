@@ -1,6 +1,6 @@
 # Price Guardian — Stage 4 contract
 
-**Implemented locally; actual Sandbox refund/recovery acceptance is not yet authorized or verified.** No new purchase, refund, paid inference, scheduled cloud worker or deployment is performed by implementation tests. AG Studio is not connected. See [status](STATUS.md) and [verification evidence](evidence/STAGE4-VERIFICATION.md).
+**Implemented locally; actual Sandbox refund/recovery acceptance is not yet authorized or verified.** Implementation tests make no actual purchase/refund, paid inference, cloud worker or deployment. AG Studio is connected for local read-only evaluation with scripted tools, not live inference/public licensing. See [status](STATUS.md), [Stage 4 evidence](evidence/STAGE4-VERIFICATION.md) and [Stage 5 hardening](evidence/STAGE5-VERIFICATION.md).
 
 ## Effortless customer experience
 
@@ -30,6 +30,8 @@ pnpm operator revoke GRANT_UUID
 Do not issue/activate financial capabilities until separately authorized. Approval binds case revision, amount, currency, policy hash, price-event ID, actor and expiry (at most 15 minutes). It is not submission or completion. Mutation endpoints enforce exact Origin, JSON ≤2 KiB, strict allowlists and persistent limits. Activation attempts are globally bounded (100/hour); authorized nonfinancial actions are limited to 30/grant/hour and 100/hour globally.
 
 `GUARDIAN_OPERATIONS_ENABLED` defaults false. `scripts/guardian-role.sql` is a reviewed role template, not an executed deployment: configure login/credentials privately. It grants no writes to checkout/Twin/document evidence or policy bindings, no grant issuance, and no deletes. Provider-access runtime requires a separate `GUARDIAN_DATABASE_URL` and rejects evidence-capable writers before provider access. Never use the CareOS writer or expose credentials client-side.
+
+Stage 5 applies shared login/effective/assumable-role and positive/negative grant checks to operator runtime and private catalog jobs, even when provider reads are off. No Guardian job falls back to the general reader/owner URL. Private grant issuance/revocation uses a separate **`OPERATOR_DATABASE_URL`**, never supplied to the web service; a runtime Guardian login cannot issue grants. Current migrations through 0015 must be separately approved/applied, and actual environment credentials remain unverified until provisioning passes.
 
 ## Refund safety and state machine
 

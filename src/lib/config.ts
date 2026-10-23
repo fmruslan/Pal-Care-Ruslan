@@ -35,6 +35,7 @@ export function getEnvironment() {
   if (
     process.env.MIGRATION_DATABASE_URL ||
     process.env.ADMIN_DATABASE_URL ||
+    process.env.OPERATOR_DATABASE_URL ||
     process.env.LOCAL_POSTGRES_PASSWORD
   )
     throw new Error(

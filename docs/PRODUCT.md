@@ -13,9 +13,9 @@
 
 ## Hackathon access model
 
-Both dashboards are public using one fixed fictional customer and merchant. No registration, login or real customer information is collected. Stage 1's sample records remain explicitly labeled. Stage 2's separately authorized, bounded anonymous Sandbox checkout now has actual completed-capture/Twin acceptance evidence; the separate pending eCheck remains unverified and is not relabeled. Merchant editing/refunds remain unavailable and will need separate operator authority. See [evidence](evidence/STAGE2-VERIFICATION.md), [ADR 0002](adr/0002-public-render-demo.md) and [ADR 0003](adr/0003-sandbox-checkout.md).
+Both dashboards are public using one fixed fictional customer and merchant. No registration, login or real customer information is collected. Sample records remain explicitly labeled. Bounded anonymous Sandbox checkout has historical actual completed-capture/Twin acceptance evidence; the separate pending eCheck remains unverified and is not relabeled. Fixed merchant price/policy/approval actions have separate private operator capabilities; actual refund execution remains disabled pending independent acceptance. Stage 5 unifies read-only activity and product-aware journeys without expanding financial authority. See [status](STATUS.md), [evidence](evidence/STAGE2-VERIFICATION.md), [ADR 0002](adr/0002-public-render-demo.md) and [ADR 0003](adr/0003-sandbox-checkout.md).
 
-## Five planned capabilities
+## Five capability areas (see STATUS for implemented versus planned behavior)
 
 1. **Purchase Vault:** Verified orders, receipt records, warranty documents, merchant information, and supported manuals.
 2. **Price Guardian:** Price-change monitoring and merchant-approved adjustments subject to recorded policy.

@@ -75,6 +75,9 @@ export default defineConfig({
     command: `pnpm exec tsx scripts/start-test-server.ts ${port}`,
     url: `http://127.0.0.1:${port}/api/health`,
     reuseExistingServer: false,
+    // Allow the test-server wrapper to revoke/drop its disposable logins.
+    // Playwright's default force-kill bypasses asynchronous cleanup.
+    gracefulShutdown: { signal: "SIGTERM", timeout: 10_000 },
     env: {
       DEMO_DATA_SOURCE: dataSource,
       DATABASE_URL: dataSource === "database" ? testDatabase! : "",

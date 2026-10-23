@@ -1,6 +1,6 @@
 # Pal Care
 
-Stage 5 hardening is in progress: runtime database capabilities are explicit and privileged fallbacks are removed. Existing application credentials have **not** been switched or certified. Database mode now requires a restricted reader and separate CareOS writer; see [Stage 5 evidence and external gates](docs/evidence/STAGE5-VERIFICATION.md). No new provider activation is authorized.
+Stage 5 hardening connects the existing product journeys and removes privileged database fallbacks. **Implementation and isolated tests are not actual-environment verification:** the existing application credentials have not been switched, and migrations through **0015** have not been applied to the application database. Database mode requires a restricted reader and separate CareOS writer. See [Stage 5 evidence and external gates](docs/evidence/STAGE5-VERIFICATION.md) and [current setup](docs/SETUP.md). No new provider activation is authorized.
 
 Webhooks are not yet implemented; actual Stage 4 refund verification still needs separate approval. Merchant intelligence uses actual AG Studio local evaluation and a clearly scripted Agent Framework. Recall Guardian uses one reviewed official CPSC notice; replacement discovery remains fixture-based until Channel3 verification. Public license coverage and hosted AI remain unverified.
 
@@ -89,9 +89,9 @@ See [Setup & Render deployment](docs/SETUP.md) for PostgreSQL and hosting, and [
 
 Expired, unattempted checkouts now show an explicit expired status and no approval/capture/retry controls; they cannot be revived by a stale return URL. Previously attempted captures remain reconcilable after the deadline without a second capture. [Deadline contract](docs/API.md#checkout-deadline-contract).
 
-For an existing attempted payment, **Check payment status** uses a reconciliation-only action: authenticated Orders v2 and Payments v2 GETs, never another capture. Pending eChecks remain unverified with an explicit explanation; failed/declined captures create no Twin. Only matching completed evidence creates the Twin, receipt, policy and purchase event exactly once. Apply reviewed migrations through `0004_minor_whizzer.sql` before using this version. [Reconciliation contract](docs/API.md#capture-reconciliation-contract) · [Future Render webhook assessment](docs/PAYPAL-WEBHOOKS.md).
+For an existing attempted payment, **Check payment status** uses a reconciliation-only action: authenticated Orders v2 and Payments v2 GETs, never another capture. Pending eChecks remain unverified with an explicit explanation; failed/declined captures create no Twin. Only matching completed evidence creates the Twin, receipt, policy and purchase event exactly once. Current database mode requires all reviewed migrations through **0015**, applied only in an authorized operator environment. [Reconciliation contract](docs/API.md#capture-reconciliation-contract) · [Future Render webhook assessment](docs/PAYPAL-WEBHOOKS.md).
 
-A separately approved, single USD 129.00 Sandbox balance experiment completed after tests and explicit buyer balance confirmation. Its snapshotted immediate-payment preference did not alter older payloads or the separate eCheck. The reserved request remains one-order scoped—do not rotate it or create additional purchases without approval. Apply reviewed migrations through `0005_redundant_doomsday.sql` before enabling this code. [Controlled-test procedure](docs/PAYPAL.md#one-separate-immediate-payment-test).
+A separately approved, single USD 129.00 Sandbox balance experiment completed after tests and explicit buyer balance confirmation. Its snapshotted immediate-payment preference did not alter older payloads or the separate eCheck. The reserved request remains one-order scoped—do not rotate it or create additional purchases without approval. Migration 0005 is the historical preference addition, not the complete current migration baseline. [Controlled-test procedure](docs/PAYPAL.md#one-separate-immediate-payment-test).
 
 Continuation contracts: [Merchant intelligence and AG Studio licensing](docs/INTELLIGENCE.md), [Recall Guardian and actual CPSC evidence](docs/RECALL-GUARDIAN.md), [Replacement Concierge and Channel3 activation gates](docs/REPLACEMENT-CONCIERGE.md), [verification ledger](docs/evidence/CONTINUATION-VERIFICATION.md). Real inference, Channel3 acceptance, public licensing/deployment and the actual Price Guardian refund remain separate gates; fixtures are not a substitute for that final proof.
 
@@ -101,6 +101,7 @@ Quality checks:
 pnpm check
 pnpm careos:evaluate # Versioned deterministic/fixture scenarios, not hosted inference
 pnpm format:check
+pnpm test:failure # Outage redaction + disposable test-login cleanup
 pnpm exec playwright install chromium
 pnpm test:e2e
 # If another local preview uses port 3100:
@@ -111,6 +112,9 @@ pnpm test:integration
 E2E_DATA_SOURCE=database pnpm test:e2e
 # Exclusive synthetic Guardian test DB flow: never overlap with other DB suites
 pnpm test:guardian:e2e
+# Focused Firefox + WebKit essential journeys; emulation, not actual-device proof:
+pnpm exec playwright install --with-deps firefox webkit
+E2E_PORT=3108 pnpm test:compat
 ```
 
 Repository documentation/configuration can also be checked separately:
@@ -137,7 +141,7 @@ Judges should evaluate only implemented behavior. A completed submission will in
 
 ```text
 .github/              Repository automation, code ownership and PR template
-src/app/              Public demo pages and read-only API routes
+src/app/              Public demo pages, bounded checkout/CareOS and protected operator routes
 src/components/       Accessible UI and original product illustrations
 src/db/               Drizzle schema, connection, read-only queries and seed service
 src/lib/demo/         Fictional fixtures, presentation and server-only repository
@@ -147,7 +151,7 @@ drizzle/              Reviewed SQL migrations and schema snapshots
 tests/                Unit, PostgreSQL integration and browser/accessibility tests
 render.yaml           Web service + private-network PostgreSQL Blueprint
 docs/SETUP.md         Local development, tests and Render deployment
-docs/API.md           Current read-only HTTP surface and future boundaries
+docs/API.md           Current HTTP surface, scopes and future boundaries
 docs/PAYPAL.md        Secure Sandbox configuration and actual verification checklist
 docs/PAYPAL-WEBHOOKS.md Planned verified-delivery design and Render prerequisites
 postman/              Credential-free Pal Care checkout API collection

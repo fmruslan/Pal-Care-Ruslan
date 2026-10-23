@@ -10,6 +10,8 @@ import {
   runtimeReads,
 } from "../../src/db/authority";
 import { testRuntimeRoles } from "../helpers/runtime-roles";
+import { readDemoData } from "../../src/db/read-demo";
+import { seedDemo } from "../../src/db/seed";
 import "../../scripts/environment";
 const url = process.env.TEST_DATABASE_URL;
 if (
@@ -21,6 +23,7 @@ if (
 const { db, pool } = createDatabase(url);
 before(async () => {
   await migrate(db, { migrationsFolder: "./drizzle" });
+  await seedDemo(db);
   const name = new URL(url!).pathname.slice(1);
   if (!/^[a-zA-Z0-9_]+$/.test(name))
     throw new Error("Invalid dedicated DB name");
@@ -29,7 +32,8 @@ before(async () => {
 
 test("positive readiness detects missing grants and enabled-feature schema without write probes", async () => {
   const roles = await testRuntimeRoles(url!);
-  const reader = new Pool({ connectionString: roles.urls.reader, max: 1 });
+  const readerDatabase = createDatabase(roles.urls.reader);
+  const reader = readerDatabase.pool;
   const careos = new Pool({ connectionString: roles.urls.careos, max: 1 });
   const readerName = new URL(roles.urls.reader).username;
   try {
@@ -48,6 +52,24 @@ test("positive readiness detects missing grants and enabled-feature schema witho
     await assertDatabaseAuthority(careos, "careos");
     await pool.query(`revoke select on recall_assessments from ${readerName}`);
     await assert.rejects(assertDatabaseAuthority(reader, "reader"));
+    // An unrelated auxiliary grant outage blocks full readiness, not core receipt reads.
+    await assert.doesNotReject(
+      assertDatabaseAuthority(reader, "reader", {
+        requiredReads: [
+          "demo_customers",
+          "merchants",
+          "products",
+          "purchase_twins",
+          "documents",
+          "care_events",
+        ],
+      }),
+    );
+    assert.ok(
+      (await readDemoData(readerDatabase.db)).documents.some(
+        (d) => d.kind === "receipt",
+      ),
+    );
     await pool.query(`grant select on recall_assessments to ${readerName}`);
     await pool.query(
       "alter table care_model_calls rename to care_model_calls_unavailable",

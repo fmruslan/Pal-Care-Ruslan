@@ -208,7 +208,7 @@ export default async function TwinPage({
             </h2>
             <PurchaseActivity
               activity={projectActivity(
-                data,
+                { ...data, twins: [twin], documents, events },
                 adjustment ? [adjustment] : [],
                 recallHistory.map((r) => ({ ...r, twinId: twin.id })),
               )}

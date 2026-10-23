@@ -33,6 +33,18 @@ describe("explicit data-source boundary (unit mocks, not provider evidence)", ()
     expect(mocks.createDatabase).not.toHaveBeenCalled();
     expect(mocks.readDemoData).not.toHaveBeenCalled();
   });
+  it("fixture detail scope matches database scope and never mixes another Twin's activity", async () => {
+    mocks.environment.mockReturnValue({ dataSource: "fixtures" });
+    const id = demoData.twins[0].id;
+    const data = await getDemoData(id);
+    expect(data.twins.map((t) => t.id)).toEqual([id]);
+    expect(data.documents.every((d) => d.twinId === id)).toBe(true);
+    expect(data.events.every((e) => e.twinId === id)).toBe(true);
+    expect(
+      (await getDemoData(undefined, "00000000-0000-4000-8000-000000009999"))
+        .twins,
+    ).toEqual([]);
+  });
   it("database mode opens a read-only connection and reports its true source", async () => {
     mocks.environment.mockReturnValue({
       dataSource: "database",
@@ -40,7 +52,13 @@ describe("explicit data-source boundary (unit mocks, not provider evidence)", ()
     });
     mocks.readDemoData.mockResolvedValue(demoData);
     expect((await getDemoData()).source).toBe("database");
-    expect(mocks.authority).toHaveBeenCalledWith(expect.anything(), "reader");
+    expect(mocks.authority).toHaveBeenCalledWith(
+      expect.anything(),
+      "reader",
+      expect.objectContaining({
+        requiredReads: expect.arrayContaining(["documents", "purchase_twins"]),
+      }),
+    );
     expect(mocks.createDatabase).toHaveBeenCalledWith(
       "postgresql://localhost/unit",
       { readOnly: true },

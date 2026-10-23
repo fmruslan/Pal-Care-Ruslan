@@ -10,7 +10,7 @@ permissions:
 jobs:
   foundation:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 35
     services:
       postgres:
         image: postgres:17-alpine
@@ -62,7 +62,7 @@ jobs:
       - run: pnpm build
       - name: Unavailable database readiness (real production server)
         run: pnpm test:failure
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright install --with-deps chromium firefox webkit
       - name: Fixture-preview browser and accessibility tests
         run: pnpm test:e2e
       - name: PostgreSQL-backed browser and accessibility tests
@@ -71,6 +71,10 @@ jobs:
           E2E_DATA_SOURCE: database
       - name: Exclusive Guardian flow (test DB and injected provider only)
         run: pnpm test:guardian:e2e
+      - name: Firefox and WebKit essential journeys (emulation, not real-device certification)
+        run: pnpm test:compat
+        env:
+          E2E_PORT: "3108"
       - name: Browser artifacts
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

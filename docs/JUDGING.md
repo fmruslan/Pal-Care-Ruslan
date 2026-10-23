@@ -2,6 +2,8 @@
 
 ## Current continuation update
 
+**Stage 5 hardening:** runtime capabilities no longer fall back to owner/general credentials; historical fields and per-call budgets are protected; customer journeys retain product identity; activity/filter/operator/mobile views are connected. These are code and isolated-test improvements, not actual environment provisioning or new provider acceptance. The configured application reader remains blocked pending owner action, and migrations through 0015 are not applied there. [Current completion matrix](STATUS.md) · [Stage 5 evidence](evidence/STAGE5-VERIFICATION.md).
+
 Stage 4 infrastructure and the continuation are implemented with explicit evidence boundaries: real AG Studio local evaluation, three custom widgets and scripted actual SDK tools; genuinely retrieved historical CPSC evidence with conservative matching; fixture replacement profiles and a real but unverified Channel3 adapter. The core PayPal purchase evidence is preserved, while actual price-adjustment refund acceptance remains pending separate approval. Neither scripted assistance nor fixture responses establishes the required genuine runtime AI integration. Public AG Studio license coverage, Channel3 verification, live inference, refund acceptance and a final video remain outstanding. [Current status](STATUS.md) · [continuation ledger](evidence/CONTINUATION-VERIFICATION.md). Earlier stage descriptions below are historical where superseded.
 
 **Current status:** **Stage 2's bounded Sandbox purchase/Twin flow is complete and locally verified.** The separately approved USD 129.00 immediate-payment case has matching actual completed Orders/Payments capture evidence, a displayed Purchase Twin, exactly one receipt/policy/purchase event and two read-only verifier passes without changed records or duplicates. The earlier eCheck is preserved separately and is not claimed cleared. AI, refunds, sponsors, webhooks and public Render deployment remain incomplete; the broader flagship flow is still a target. See [actual-provider evidence](evidence/STAGE2-VERIFICATION.md), [Implementation Status](STATUS.md) and [visual references](DESIGN.md).
@@ -48,14 +50,14 @@ AI shopping agents help consumers purchase items. Pal Care tests the idea that P
 
 - [Sanitized Stage 2 acceptance report](evidence/STAGE2-VERIFICATION.md): actual APIs, correct USD amount/merchant, exact PostgreSQL counts, two exit-0 verification runs and preservation of the separate pending case. Full provider references/logs remain private; the report is not mock evidence.
 
-## Remaining proof once implemented
+## Remaining external proof
 
 - Actual PayPal refund IDs/status and refund reconciliation (redacted as appropriate); capture evidence already exists for Stage 2.
-- Code references for idempotency, approval, webhook signature validation and deduplication.
-- Actual CPSC source records and documented product matching.
+- Actual HTTPS webhook signature/delivery/deduplication evidence if webhooks are implemented; current capture/refund idempotency/approval code and synthetic tests already exist.
+- Broader recall coverage is not claimed; the one reviewed historical CPSC source and conservative matching are already evidenced.
 - Channel3 returned product records with source/price timestamps.
-- Working AG Studio custom widgets and agent dashboard updates.
-- Results of duplicate refund, provider timeout and unauthorized-access tests.
+- Public AG Studio licensing/access through judging and genuine runtime inference; actual local widgets/scripted SDK tools already work.
+- Actual refund/recovery acceptance beyond existing synthetic duplicate/timeout/unauthorized-access tests.
 
 ## References
 

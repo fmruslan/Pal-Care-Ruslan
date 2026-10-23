@@ -1,9 +1,17 @@
 import { z } from "zod";
 import { createDatabase } from "../src/db/connection";
 import { OperatorService, operatorActions } from "../src/lib/operator/service";
-import { databaseUrl } from "./environment";
+import "./environment";
+import { databaseUrlSchema } from "../src/lib/config";
 
-const { pool } = createDatabase(databaseUrl());
+const parsedUrl = databaseUrlSchema.safeParse(
+  process.env.OPERATOR_DATABASE_URL,
+);
+if (!parsedUrl.success)
+  throw new Error(
+    "Private operator-issuance OPERATOR_DATABASE_URL required; never use the web reader.",
+  );
+const { pool } = createDatabase(parsedUrl.data);
 try {
   const service = new OperatorService(pool);
   const [command, scope, actions] = process.argv.slice(2);

@@ -41,7 +41,9 @@ export async function getSafety(): Promise<SafetyView> {
     readOnly: true,
   }));
   try {
-    await assertDatabaseAuthority(pool, "reader");
+    await assertDatabaseAuthority(pool, "reader", {
+      requiredReads: ["recall_sources", "recall_checks"],
+    });
     const row = (
       await pool.query(
         "select c.checked_at,c.state,s.hash,s.source,s.retrieved_at,s.endpoint from recall_checks c left join recall_sources s on s.hash=c.source_hash where c.key='reference'",
@@ -83,7 +85,9 @@ export async function getTwinRecallHistory(
   const { pool } = (state.safetyDb ??= createDatabase(config.databaseUrl!, {
     readOnly: true,
   }));
-  await assertDatabaseAuthority(pool, "reader");
+  await assertDatabaseAuthority(pool, "reader", {
+    requiredReads: ["purchase_twins", "recall_assessments"],
+  });
   const rows = await pool.query(
     "select a.id,a.state,a.reason,a.created_at,a.source_hash from recall_assessments a join purchase_twins t on t.id=a.twin_id where t.id=$1 and t.customer_id=$2 and t.merchant_id=$3 order by a.created_at desc,a.id limit 10",
     [twinId, CUSTOMER_ID, MERCHANT_ID],
@@ -107,7 +111,9 @@ export async function getRecallActivities(
   const { pool } = (state.safetyDb ??= createDatabase(config.databaseUrl!, {
     readOnly: true,
   }));
-  await assertDatabaseAuthority(pool, "reader");
+  await assertDatabaseAuthority(pool, "reader", {
+    requiredReads: ["purchase_twins", "recall_assessments"],
+  });
   const result = await pool.query(
     "select a.id,a.twin_id,a.state,a.reason,a.created_at,a.source_hash from recall_assessments a join purchase_twins t on t.id=a.twin_id where t.id=any($1::uuid[]) and t.customer_id=$2 and t.merchant_id=$3 order by a.created_at desc,a.id limit 1000",
     [twinIds, CUSTOMER_ID, MERCHANT_ID],

@@ -17,13 +17,14 @@ APP_ORIGIN=
 PAYPAL_CLIENT_ID=
 PAYPAL_CLIENT_SECRET=
 PAYPAL_MERCHANT_ID=
+CHECKOUT_DATABASE_URL=
 ```
 
-Blank values above are intentional, **not credentials**. Fill them privately. Keep the existing `DATABASE_URL`; optionally use a dedicated `CHECKOUT_DATABASE_URL` credential for the write service **pointing to the same database**, not a second database. No `NEXT_PUBLIC_` PayPal variables are used. Client ID, secret and OAuth tokens never reach the browser.
+Blank values above are intentional, **not credentials**. Fill them privately. `DATABASE_URL` is now a restricted reader; enabled checkout **requires** a separate restricted `CHECKOUT_DATABASE_URL` pointing to the same database. No fallback to the reader/owner is permitted. Apply the current reviewed migration baseline through 0015 only with separate authorization, outside the web runtime. No `NEXT_PUBLIC_` PayPal variables are used. Client ID, secret and OAuth tokens never reach the browser. [Current role/setup procedure](SETUP.md).
 
 `APP_ORIGIN` is the exact canonical origin without a trailing slash/path: local testing can use `http://localhost:3000` or `http://127.0.0.1:3000`; deployed testing should use your Render HTTPS origin. Tailscale/other plain-HTTP hostnames are not accepted. Use an SSH tunnel and localhost origin when working from the Mac, or deploy on HTTPS. Do not derive callbacks or authorize mutations from a request's untrusted Host header. Restart the application after configuration changes.
 
-5. Apply migrations and seed with `pnpm db:migrate` and `pnpm db:seed`.
+5. Follow [current setup](SETUP.md): separately authorized operator migrations through 0015 and sample seeding only for a new database. Do not migrate/seed existing application evidence during Stage 5 or use owner credentials in the web environment.
 6. Render's Blueprint deliberately leaves checkout **disabled**. After deployment/configuration, explicitly enable it in Render. Review Blueprint re-sync behavior so a later sync does not unexpectedly re-disable checkout. Keep public database access blocked and use least-privilege application roles before expanding beyond this demo.
 
 ## Actual end-to-end verification checklist

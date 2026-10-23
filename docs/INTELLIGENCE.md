@@ -6,6 +6,8 @@
 
 Three custom widgets share validated facts: **Value Recovery**, **Adjustment Status**, and **Evidence & Freshness**. Counts and amounts distinguish proposed, approved, provider-pending, unresolved, verified and closed. Case links are application-generated. Zero/empty data is not replaced by invented business activity. No merchant action, financial tool, arbitrary SQL or paid model is exposed.
 
+When the optional Studio workbench opens, the semantic summary is available through an accessible disclosure rather than stacking two full dashboards on a mobile screen. Dataset/provenance/filter-scope labels stay visible. Closing the workbench reopens the summary. This presentation preference grants no commerce authority and does not remount checkout.
+
 ## Actual AG Studio, local evaluation only
 
 Current evaluation gate additionally requires **`AG_STUDIO_LOCAL_EVALUATION_ENABLED=true`**, exact local `APP_ORIGIN` and matching request Host. Host alone cannot enable it. Default is off. For example, `APP_ORIGIN=http://localhost:3000 AG_STUDIO_LOCAL_EVALUATION_ENABLED=true pnpm dev` enables permitted local evaluation, not public deployment. The initial mobile layout stacks custom widgets; saved layout remains presentation only.

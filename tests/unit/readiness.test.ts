@@ -18,6 +18,8 @@ describe("provider-free readiness configuration", () => {
       { APP_ORIGIN: "https://palcare.example/" },
       { CAREOS_DATABASE_URL: "" },
       { MIGRATION_DATABASE_URL: "postgresql://localhost/owner" },
+      { OPERATOR_DATABASE_URL: "postgresql://localhost/issuer" },
+      { LOCAL_POSTGRES_PASSWORD: "test-bootstrap-only" },
     ])
       expect(() => readinessPlan({ ...base, ...bad })).toThrow();
     expect(validAppOrigin("https://user:password@palcare.example")).toBe(false);

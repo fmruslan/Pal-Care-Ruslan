@@ -21,8 +21,25 @@ export const getDemoData = cache(
       throw new Error("Invalid record scope.");
     await connection(); // Never pre-render a database-backed page during a build.
     const config = getEnvironment();
-    if (config.dataSource === "fixtures")
-      return { ...demoData, source: "fixtures" as const };
+    if (config.dataSource === "fixtures") {
+      const selected =
+        twinId ??
+        (documentId
+          ? demoData.documents.find((d) => d.id === documentId)?.twinId
+          : undefined);
+      const twins =
+        twinId || documentId
+          ? demoData.twins.filter((t) => t.id === selected)
+          : demoData.twins;
+      const ids = new Set(twins.map((t) => t.id));
+      return {
+        ...demoData,
+        twins,
+        documents: demoData.documents.filter((d) => ids.has(d.twinId)),
+        events: demoData.events.filter((e) => ids.has(e.twinId)),
+        source: "fixtures" as const,
+      };
+    }
     if (!globalDatabase.palcareDatabase)
       globalDatabase.palcareDatabase = createDatabase(config.databaseUrl!, {
         readOnly: true,
@@ -31,6 +48,16 @@ export const getDemoData = cache(
       await assertDatabaseAuthority(
         globalDatabase.palcareDatabase.pool,
         "reader",
+        {
+          requiredReads: [
+            "demo_customers",
+            "merchants",
+            "products",
+            "purchase_twins",
+            "documents",
+            "care_events",
+          ],
+        },
       );
       return {
         ...(await readDemoData(

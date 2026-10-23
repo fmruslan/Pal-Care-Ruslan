@@ -18,7 +18,7 @@ The structured API `Products[].Model` was empty in the actual response. Six mode
 
 States distinguish not assessed, possible match, identifiers match, more information and no match. Brand/model normalization only normalizes Unicode, casing and surrounding whitespace; it does not perform fuzzy name confirmation. Matching a saved sample model never verifies the physical item. Every serial/date/batch restriction must be independently validated; merely providing a value is insufficient. Current stored purchase assessments always leave physical identifier verification false. No-match explicitly means **this limited notice did not match**, never “no recalls exist” or “safe to use”.
 
-The new Twin section links evidence and shows bounded saved assessment history. CareOS uses deterministic scoped explanations and official citations; it cannot manufacture recall status, prescribe repairs, authorize refunds or change recall applicability through conversation.
+The Twin section and unified purchase activity link evidence with bounded saved history. CareOS uses deterministic scoped explanations; it cannot manufacture recall status, prescribe repairs or authorize refunds. Safety/replacement navigation preserves a saved Twin or the explicit Insignia example; server-derived category mapping prevents unrelated headphones being shown for an air-fryer handoff.
 
 ## Sources and persistence
 
@@ -37,7 +37,7 @@ pnpm cpsc:verify                    # Free official provider GET, no DB writes
 CPSC_REFRESH_ENABLED=true pnpm cpsc:refresh  # Private CLI; writes recall tables only
 ```
 
-The persistent default remains false; no public refresh route, paid service or cloud schedule exists. Broad API filters must not be assumed to work: one exploratory Title/date query returned a much broader set, so the implemented path pins one recall number and validates the returned identity. Comprehensive CPSC ingestion/coverage is future work, not shipped monitoring.
+Refresh requires an explicit restricted `RECALL_DATABASE_URL` in the separately authorized private ingestion environment, verified before the source GET; it never uses the web reader/owner fallback. It commits up to 20 batches of 100 unassessed Twin/source/engine records per invocation, returns `remaining`, resumes after interruption and includes later UUIDs behind a previous cursor. A successful source retrieval is not proof that all assessments completed. The default remains off; no public refresh route, paid service or cloud schedule exists. Broad API filters must not be assumed correct. Comprehensive CPSC coverage remains out of scope.
 
 For the recalled models the official notice says stop using the product. Pal Care attributes the official remedy and links the notice; it does not provide DIY destruction/repair instructions or establish entitlement to a manufacturer refund. Existing PayPal refund approval is unrelated.
 

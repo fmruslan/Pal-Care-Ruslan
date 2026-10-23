@@ -116,13 +116,18 @@ export function IntelligenceWorkspace({
         Scope: {stage} · current bounded dataset. All-record totals above remain
         unfiltered; verified-only widgets further restrict this selection.
       </p>
-      <div data-testid="intelligence-summary">
-        <IntelligenceSummary
-          facts={facts}
-          example={example}
-          onStage={setStage}
-        />
-      </div>
+      <details open={!studio} className="rounded-2xl border bg-card p-4">
+        <summary className="min-h-11 cursor-pointer text-sm font-semibold">
+          Accessible summary · same selected data
+        </summary>
+        <div data-testid="intelligence-summary" className="mt-3">
+          <IntelligenceSummary
+            facts={facts}
+            example={example}
+            onStage={setStage}
+          />
+        </div>
+      </details>
       {!facts.length && (
         <p role="status" className="mt-5 rounded-xl border bg-card p-5 text-sm">
           No adjustment cases in this selection. Zero is an honest result;

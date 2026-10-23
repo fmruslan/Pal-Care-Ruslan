@@ -17,6 +17,7 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "test:guardian:e2e": "E2E_DATA_SOURCE=database E2E_PORT=3106 playwright test --config=playwright.guardian.config.ts",
+    "test:compat": "playwright test --config=playwright.compat.config.ts",
     "test:failure": "tsx --test tests/failure/*.test.ts",
     "test:integration": "tsx --test --test-concurrency=1 tests/integration/*.test.ts",
     "db:generate": "drizzle-kit generate",

@@ -16,7 +16,9 @@ export async function getKnowledge() {
       config.databaseUrl!,
       { readOnly: true },
     ));
-    await assertDatabaseAuthority(database.pool, "reader");
+    await assertDatabaseAuthority(database.pool, "reader", {
+      requiredReads: ["care_knowledge"],
+    });
   }
   const rows =
     config.dataSource === "fixtures"

@@ -19,6 +19,9 @@ This is an independent PayPal AI Hackathon project. Treat `docs/STATUS.md` as th
 - Keep fictional customer/merchant scope fixed server-side; do not accept arbitrary customer or merchant IDs from visitors.
 - Bundled fixtures are a labeled preview; database mode must fail visibly rather than silently substitute fixtures. Preserve distinct sample and verified-sandbox provenance. Never seed mock sandbox captures into the application database.
 - Review generated SQL in `drizzle/`; apply versioned migrations only. Never use schema-push or automatically reset a database.
+- Stage 5 runtime URLs are explicit capabilities: reader, CareOS (including fixture persistence), checkout, Guardian and discovery. Never fall back to an owner/general URL. Inspect actual login/effective/assumable roles, object ownership, column grants, PUBLIC TEMP and required positive grants. SQL templates are not actual-environment verification.
+- Migration/admin/Docker bootstrap credentials must remain outside the running web environment and its readable deployment files. No web-service migration/seed command. Actual credential provisioning and application migrations need separate owner approval; do not weaken guards to keep an unsafe local setup working.
+- Preserve original checkout snapshots/keys/deadlines, established provider IDs/attempt markers, completed evidence, receipts and policy documents. Operational leases and valid first finalization/reconciliation must still work. Unknown AI-call usage retains its own reservation; transcript cleanup never replenishes budgets.
 - Use PostgreSQL for immutable transaction references, auditable resolution actions, policy versions and event history.
 - Use server-side PayPal calls; keep database URLs, PayPal credentials, operator credentials and model credentials off the client. Never enable production money movement in this demo.
 - Merchant policies must be approved and snapshotted. LLM extraction is *proposed interpretation*, not permission to refund.
@@ -43,5 +46,6 @@ This is an independent PayPal AI Hackathon project. Treat `docs/STATUS.md` as th
 - Verify external sandbox API calls separately from mocks.
 - Run PostgreSQL integration tests against an explicit dedicated `TEST_DATABASE_URL`. Never point tests at a deployed database.
 - Update `docs/STATUS.md`, API docs and README as behavior changes.
+- Report separately: implemented, isolated-test verified, actual-application verified, and externally blocked. Cross-engine/mobile emulation is not real-device testing; synthetic provider proof is not live integration acceptance.
 - Never store personal account secrets, customer documents, test-buyer passwords, or production PII in Git.
 - Make the judging experience honest, simple and repeatable.

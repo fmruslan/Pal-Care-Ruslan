@@ -2,31 +2,33 @@
 
 ## Approach
 
-Continuation adds `src/lib/intelligence` (typed bounded analytics, isolated scenarios and validated dashboard commands), dynamically loaded actual AG Studio/custom widgets, `src/lib/safety` (fixed official CPSC retrieval, pinned reviewed rules, append-only assessment history), and `src/lib/discovery` (server-only Channel3 REST adapter, persistent usage reservations and fresh curated-ID offers). Five additive tables in separate safety/discovery schemas bring the total to 28. There is no new service deployment or framework. Financial services/schema are unchanged. The Studio runner is scripted; genuine planner transport, public commercial-license coverage and actual Channel3 acceptance remain separate gates. [Intelligence](INTELLIGENCE.md) · [recalls](RECALL-GUARDIAN.md) · [discovery](REPLACEMENT-CONCIERGE.md).
+The continuation adds typed merchant analytics/custom AG Studio widgets, fixed official CPSC retrieval and conservative assessment history, and a server-only Channel3 adapter with bounded usage/curated fresh offers. Its five tables are defined in safety/discovery TypeScript modules, all in PostgreSQL's public schema. There is no new service deployment or framework. The Studio runner remains scripted; genuine inference, public commercial-license coverage and actual Channel3 acceptance are separate gates. [Intelligence](INTELLIGENCE.md) · [recalls](RECALL-GUARDIAN.md) · [discovery](REPLACEMENT-CONCIERGE.md).
 
-Stage 4 adds `src/lib/price-guardian` deterministic policy/detection/projections, `src/lib/operator` private capabilities, separate refund contracts/service/verification and eleven additive tables in `src/db/guardian-schema.ts` (23 total). Background CLI jobs share services and never auto-dispatch refunds. Original financial evidence remains unchanged; aftercare lifecycle verification is separate from first-capture verification. Public analytics is read-only; future AG Studio is not implemented. Financial activation and actual Sandbox acceptance remain pending. [ADR 0007](adr/0007-price-guardian.md) · [contract](PRICE-GUARDIAN.md). Earlier stage descriptions below are historical where superseded.
+Stage 4 adds `src/lib/price-guardian` deterministic policy/detection/projections, `src/lib/operator` private capabilities and separate refund contracts/service/verification. Background CLI jobs share services and never auto-dispatch refunds. Aftercare lifecycle verification is separate from first-capture verification. Public analytics is read-only; actual AG Studio components run locally with scripted tools, not live model inference. Financial activation and actual refund acceptance remain pending. [ADR 0007](adr/0007-price-guardian.md) · [contract](PRICE-GUARDIAN.md).
+
+Stage 5 adds field-specific evidence guards (0013/0015), independent per-call model reservations (0014), explicit database capabilities and a unified read-only activity projection. There are **29 tables**, all in the existing public schema (split into TypeScript schema modules, not separate PostgreSQL schemas). No source ledger is rewritten to create the unified view. Actual application migration/credential verification remains a separate gate; see [evidence](evidence/STAGE5-VERIFICATION.md).
 
 **Modular monolith** using Next.js 16 App Router, React, TypeScript and Drizzle on Render Managed PostgreSQL. Both dashboards are public demo views with one fixed fictional customer and merchant. No Supabase, customer registration, login, personal uploads or real-money payments are included. [ADR 0002](adr/0002-public-render-demo.md) supersedes the initial infrastructure/auth proposal.
 
-Stage 1 and the bounded Stage 2 Sandbox purchase/Twin flow are implemented and locally verified. A separately authorized USD 129.00 immediate-payment purchase has matching actual completed Orders/Payments evidence and exactly one durable Twin/receipt/policy/event; two read-only verifier runs preserved all records. The earlier eCheck remains separately pending/unverified locally and unchanged by that verification. Stage 3 adds CareOS fixture assistance and a gated runtime adapter while retaining the premium identity and financial logic. Actual hosted inference, refunds, sponsors, workers and webhooks remain incomplete. See [payment evidence](evidence/STAGE2-VERIFICATION.md), [ADR 0003](adr/0003-sandbox-checkout.md) and [CareOS](CAREOS.md).
+The bounded Sandbox purchase/Twin flow has historical actual acceptance evidence: one separately authorized USD 129.00 immediate-payment purchase, matching Orders/Payments evidence and exactly one durable Twin/receipt/policy/event. The eCheck remains separately preserved/unverified. CareOS uses deterministic/fixture assistance and a gated runtime adapter. Actual hosted inference, refund/provider acceptance, public sponsor licensing, deployed workers and webhooks remain incomplete. See [payment evidence](evidence/STAGE2-VERIFICATION.md), [ADR 0003](adr/0003-sandbox-checkout.md) and [CareOS](CAREOS.md).
 
 ## Frontend appearance
 
-The original Blue & Lavender identity uses semantic CSS tokens for dedicated light/dark palettes, original theme-aware SVGs and reusable passport/card/status components. Geist Sans is self-hosted from the maintained `geist` package. `next-themes` wraps the root once, defaults to System and stores only appearance preference under `palcare-appearance`. The accessible selector and browser/native color-scheme synchronization do not call an API or remount checkout controls. Mobile/tablet navigation uses four bottom destinations; desktop retains a sidebar. See [ADR 0004](adr/0004-premium-appearance.md) and [Design system](DESIGN.md).
+The original Blue & Lavender identity uses semantic light/dark tokens, original SVGs and shared passport/card/status components. Geist is self-hosted; System is the default. Appearance changes neither remount checkout nor call financial APIs. Desktop retains a sidebar; mobile uses workspace-specific customer or merchant destinations. See [ADR 0004](adr/0004-premium-appearance.md) and [Design system](DESIGN.md).
 
 ## Implemented foundation
 
 - `src/db/schema.ts` defines `demo_customers`, `merchants`, `products`, `purchase_twins`, `documents` and `care_events`.
 - `drizzle/` is the authoritative migration history. Drizzle Kit generates reviewed SQL; no schema-push or second migration system.
-- `scripts/migrate.ts` applies migrations; `scripts/seed.ts` creates deterministic fictional records with transactional `ON CONFLICT DO NOTHING`. Reruns do not overwrite existing data.
-- `src/lib/demo/repository.ts` is server-only. Runtime sessions default to read-only; queries use repeatable-read, read-only transactions. The connection pool and timeouts are bounded.
+- `scripts/migrate.ts` and `scripts/seed.ts` require an explicit private operator `MIGRATION_DATABASE_URL`, never web-service runtime authority. The sample seed uses `ON CONFLICT DO NOTHING`; it creates no synthetic Sandbox purchases/refunds.
+- `src/lib/demo/repository.ts` is server-only. Runtime readers use read-only sessions/transactions. Compatible readers share a maximum-three pool; distinct writer credentials use maximum-two pools. Plan aggregate connections across instances, overlapping deploys and private jobs.
 - Queries use fixed server-side demo IDs and join-derived document/event scopes, not visitor-supplied customer or merchant IDs. `findTwin` validates IDs and product/merchant association.
-- Public purchase reads are bounded to the 100 newest Twins; counts/search describe that current demo window, not lifetime commerce metrics.
+- List/search reads describe the newest 100-Twin window, not lifetime metrics. Twin, document and case detail is fixed-scope by ID and does not depend on that window. Guardian lists use a 500-case window with separately labeled all-record totals.
 - `DEMO_DATA_SOURCE=fixtures` is a labeled, account-free preview. `database` reads PostgreSQL sample records. Configuration or database failures never silently trigger fixture fallback.
 - Stage 1 sample constraints are extended by migration 0001. Sandbox Twins require checkout evidence references, a snapshot and verification time; unique keys prevent duplicate Twins for one capture. Existing sample rows remain sample-only.
 - Original sample text documents are stored in PostgreSQL and returned as attachments. No object-storage service, private upload or real manufacturer content is claimed.
-- Purchase records remain read-only. Stage 2 adds bounded session-authorized Sandbox checkout; Stage 3 adds separately scoped CareOS conversation writes only. No refunds, merchant approvals, catalog-edit or seed endpoints exist. Migration/seed commands remain operator CLI tasks.
-- `/api/health` checks process liveness; `/api/ready` verifies the selected data source and seed presence. Render uses readiness.
+- Public purchase reads grant no mutation authority. Bounded cookie-authorized checkout, isolated CareOS persistence and separately scoped private operator mutations are implemented. No seed, grant-issuance or DB-admin endpoint exists.
+- `/api/health` is liveness. `/api/ready` checks exact origin, enabled local capabilities, required schema/grants/evidence guards and seed presence, under a three-second deadline. Metadata is briefly cached; no external provider is called or verified.
 
 ## Stage 2 checkout boundary
 
@@ -41,17 +43,17 @@ Provider calls happen outside DB transactions, guarded by durable leases. Comple
 The single immediate-payment experiment is operator-scoped to one request/session, fixed USD 129.00 headphones SKU and explicit balance confirmation. Migration 0005 adds a nullable per-order preference; legacy nulls omit the field from the SDK body. The new preference is persisted before dispatch and reused from the saved record on retries, never inferred from current configuration. Request uniqueness prevents a second checkout, and existing status/reconciliation paths are unchanged. The merchant preference is not proof of balance funding or settlement. See [ADR 0005](adr/0005-single-immediate-sandbox-test.md).
 
 ```text
-Public customer demo           Public merchant demo (+ AG Studio later)
+Public customer demo           Public merchant demo (+ local AG Studio)
       |                                   |
       +----------- Next.js API -----------+
                          |
              Purchase Twin service
                          |
-               CareOS event engine
+               CareOS read projections
                  /       |        \
            AI advisor  Policy    Payments
                  |       |          |
-                 +-- Render PG     PayPal Sandbox (later)
+                  +-- Render PG     PayPal Sandbox (gated)
                        |
                Sample text documents (private files later)
                        |
@@ -60,9 +62,9 @@ Public customer demo           Public merchant demo (+ AG Studio later)
 
 ## Domain services
 
-The following is the **target architecture**, not a list of shipped services.
+These are domain responsibilities inside the monolith, not claims that every external workflow has passed actual provider acceptance.
 
-- **Demo identity and permissions:** fixed fictional records for public reading; future operator authorization for consequential actions (no customer login in this MVP).
+- **Demo identity and permissions:** fixed fictional public records; separate bounded operator capabilities for consequential actions (no customer login).
 - **Commerce:** trusted catalog SKUs, PayPal orders, captures and refunds.
 - **Purchase Twin:** item-level identifiers, order link, policy versions, document references, event history and verified outcomes.
 - **Care events:** typed price changes, recall candidates and dates; each with provenance, timestamp and deduplication key.
@@ -71,9 +73,9 @@ The following is the **target architecture**, not a list of shipped services.
 - **Payment operations:** persistent idempotency key, provider IDs, attempt status and reconciliation.
 - **Care knowledge:** approved source passages from manuals, merchant policies and official notices.
 
-## Future database tables
+## Current persistence boundaries
 
-Extend Stage 1 tables with `merchant_prices`, `orders`, `order_items`, `policy_versions`, `opportunities`, `approval_decisions`, `refund_operations` and `background_jobs`. Operator authorization is separate from dashboard visibility; do not reintroduce customer accounts without an explicit architecture decision.
+Checkout/Twins/documents retain original evidence. Guardian policies/bindings/prices/cases/approvals/refunds/events retain the aftercare lifecycle. Recall sources/checks/assessments retain provenance and uncertainty. Discovery stores curated IDs/usage, not stale offers. CareOS stores conversations, requests, usage buckets and per-call reservations. Operator capabilities are separate from dashboard visibility; no customer accounts are added.
 
 Store amounts as integer minor currency units, with a separate ISO currency code. Use transactional reservations/locking for concurrent refunds, and unique indexes for external capture/refund/event IDs.
 
@@ -85,16 +87,16 @@ Store amounts as integer minor currency units, with a separate ISO currency code
 4. Capture payment and verify its amount/currency and provider state.
 5. Transactionally create/reconcile Purchase Twins for each purchased item.
 6. Attach available receipt and manufacturer documents; never invent documents that were not supplied.
-7. Record the `order.captured` event.
+7. Record the source-labeled `purchase` care event.
 
 ## Price adjustment lifecycle
 
 1. Save a merchant catalog price change with timestamp and source.
 2. Evaluate the customer's captured purchase against the applicable snapshotted merchant policy.
-3. AI explains evidence but cannot decide the refund amount or override the policy.
+3. Deterministic projections explain the evidence. Future live AI cannot decide the refund amount or override policy.
 4. An authorized merchant user approves the exact adjustment.
 5. Atomically reserve refundable funds and persist an idempotency key **before** the provider request.
-6. Issue PayPal's permitted partial refund, reconcile status via provider response/retrieval and verified webhooks.
+6. Under separate activation/acceptance, issue the bounded Sandbox partial refund and independently retrieve refund/capture evidence. Webhooks are not implemented.
 7. Do not issue a second refund when the original result is ambiguous. Keep it pending until reconciled.
 
 ## AI and trust boundaries

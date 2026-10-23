@@ -2,13 +2,21 @@
 
 Customer/merchant dashboards remain public and read-only. CareOS writes only its own bounded cookie-scoped conversations/quotas. Explicitly enabled checkout endpoints create/capture **Sandbox-only** orders for the originating browser. Stage 4 adds separate protected operator actions; financial dispatch defaults off and actual refund acceptance remains unverified. Model inference is separately gated and unverified. No real money.
 
+## Stage 5 cohesion and local readiness
+
+- Database runtime connections are explicit least-privilege capabilities, including fixture-mode CareOS persistence. Missing writers never use the reader/owner URL. Actual credentials and migrations must be separately provisioned/verified; see [setup](SETUP.md).
+- `/safety` and `/replacements` accept a validated `twinId` or allowlisted `example=insignia`, never both. Saved product/category is resolved server-side; category-only browsing accepts `headphones` or `air-fryer`. Unsupported products never substitute unrelated categories. Invalid contexts return 404. Reference ownership is never represented as a verified purchase/receipt.
+- Twin, document/download and Guardian case detail resolve by scoped ID, independently of bounded list windows. Purchase activity joins existing source ledgers read-only, with partial-source disclosure and separate proposed/pending/verified states.
+- Operator action responses contain the current Guardian projection; successful mutations refresh the saved UI state, never optimistically declare completion or replay a timed-out action.
+- Readiness checks exact origin, enabled-feature local configuration, required schema/positive grants/forbidden authority and active evidence guards. It has a three-second response deadline; metadata is cached for 30 seconds, connectivity/seed presence checked every time. Success is not provider compatibility, license coverage or production certification. No paid, financial or external-source call occurs.
+
 ## Stage 4 Guardian contract
 
 `GET /merchant/intelligence` adds a read-only merchant workspace over the existing Guardian projection. Actual AG Studio 3.0.0 is dynamically opened for local evaluation; it adds no financial endpoint or authority. Separate illustrative data never enters financial tables. Dashboard filters describe the bounded fact window, not the separate all-record totals. See [intelligence contract/licensing](INTELLIGENCE.md).
 
 - `GET /guardian`, `GET /guardian/:uuid`: proactive opportunity/evidence pages; no customer claim workflow. Unknown/malformed cases return 404.
 - `GET /api/guardian`: fixed-scope read-only overview, evidence and state-separated analytics. Database failure returns sanitized 503, never fixture substitution.
-- `GET /api/guardian/analytics`: versioned `guardian-analytics-v1` USD minor-unit metrics and 500-newest-case facts with timestamps, states and links. Totals cover all scoped cases; sample illustrations are excluded. AG Studio not connected.
+- `GET /api/guardian/analytics`: versioned `guardian-analytics-v1` USD minor-unit metrics and 500-newest-case facts with timestamps, states and links. Totals cover all scoped cases; sample illustrations are excluded. Local AG Studio uses validated Guardian projections; no financial tool is exposed.
 - `GET /api/operator/session`: private session/action scope and enabled-state view; no grant issuance.
 - `POST /api/operator/session`: strict `{code}` (64 hex chars), one-use CLI-issued capability → separate one-hour HttpOnly cookie. Exact Origin/JSON ≤2 KiB required; persistent global activation budget. This is not customer sign-in.
 - `POST /api/operator/guardian`: strict discriminated action body: `{action:"publish-policy"}`, `{action:"publish-price",requestId,direction:"drop"|"restore"}`, `{action:"approve",caseId,revision,requestId}`, `{action:"execute",caseId,revision}`, or `{action:"reconcile",caseId}`. Server-authorized exact action/case only; no visitor amount/capture/merchant IDs. Publishes only fixed $109/$129 catalog prices. Approval does not dispatch. Execute additionally requires explicit financial scope/restricted writer/budget; reconcile retrieves only an attempted refund. Both default off.
@@ -21,7 +29,7 @@ New checkout JSON permits only optional `offerHash` in addition to the original 
 
 Continuation adds read-only page routes `/merchant/intelligence`, `/safety` (optional allowlisted `example=insignia`) and `/replacements` (two validated categories). These introduce no public source-refresh, credit-spending search or financial endpoint. CPSC GET pages read bundled/stored official snapshots, not live remote queries. Replacement pages default to clearly labeled fixtures; the separately gated real mode refreshes curated product IDs under a persistent read cap and fails visibly without fixture substitution. CareOS's intent allowlist now includes `recall`; explanations cite supplied validated historical evidence and do not establish physical identity or full recall coverage. Replacement navigation never dispatches a search/model/payment.
 
-`POST /api/careos/conversations` accepts empty JSON and issues a separate HttpOnly cookie. Owned `GET`/`DELETE /api/careos/conversations/:uuid` restores/clears a transcript; cookie mismatch/expiry returns 404. `POST .../:uuid/turns` accepts only `{requestId, twinId: UUID|null, revision: integer, message: string, intent?: allowlisted}`. It returns a saved turn containing typed outcome, server-assigned execution mode, bound context/revision, concise text/steps, sources and application-generated navigation actions. Repeated IDs return the original result; changed payloads return 409. An unknown/in-progress dispatch is never blindly repeated.
+`POST /api/careos/conversations` accepts empty JSON and issues a separate HttpOnly cookie. Owned `GET`/`DELETE /api/careos/conversations/:uuid` restores/clears a transcript; cookie mismatch/expiry returns 404. `POST .../:uuid/turns` accepts only `{requestId, twinId: UUID|null, revision: integer, message: string, intent?: allowlisted, example?: "insignia"}`. An example requires `twinId:null`; mixed scopes are rejected. It returns a saved turn containing typed outcome, server-assigned execution mode, bound context/revision, concise text/steps, sources and application-generated navigation actions. Repeated IDs return the original result; changed payloads return 409. An unknown/in-progress dispatch is never blindly repeated. Independent internal per-call settlement does not expose a spending or settlement endpoint.
 
 Mutations require exact configured `APP_ORIGIN`; JSON is at most 16 KiB and messages at most 2,000 characters. History, customer/merchant IDs, arbitrary tools/URLs and financial parameters are rejected. Database mode persists conversations/quotas in CareOS-only tables; fixture-data mode uses bounded ephemeral memory and cannot activate paid inference. HTTP 429 supplies `Retry-After`; safe 503 failures never fall back to fixtures. No conversation data is publicly cacheable. [Limits and activation gates](CAREOS.md).
 
@@ -36,12 +44,12 @@ The premium appearance layer adds no HTTP endpoints. Light/Dark/System preferenc
 | GET | `/` | Product landing page and links to both demos |
 | GET | `/dashboard` | Fictional customer overview, sample counts, Twins and events |
 | GET | `/vault?q=…&category=…` | Search/category filter over up to 100 most recent demo Twins; no writes; source labels separate samples from sandbox |
-| GET | `/vault/:uuid` | Twin snapshot, documents and evidence; 404 if malformed/unknown/not in current demo window |
+| GET | `/vault/:uuid` | Scoped Twin snapshot, documents and evidence by ID, including older records outside list windows; malformed/unknown/out-of-scope returns 404 |
 | GET | `/documents` | Public fictional documents; no upload capability |
-| GET | `/merchant` | Read-only sample inventory/events; future analytics placeholder |
+| GET | `/merchant` | Public read-only merchant overview with separate intelligence/operator navigation |
 | GET | `/api/documents/:uuid/download` | Scoped sample/sandbox text attachment with provenance-specific filename; 404 if malformed/unknown; POST returns 405 |
 | GET | `/api/health` | Liveness JSON, `payments: sandbox-configurable`; not evidence of provider access |
-| GET | `/api/ready` | Selected data source readiness; 503 on invalid config, unavailable DB or missing seed |
+| GET | `/api/ready` | Local readiness as above; sanitized 503 on unsafe/missing required configuration, grants, schema/guards, seed or database; no provider calls |
 | GET | `/shop` | Public fictional catalog; disabled buttons if Sandbox configuration is unavailable |
 | GET | `/checkout/:uuid` | Browser checkout status UI; GET/query parameters do not perform capture |
 | POST | `/api/checkout/orders` | JSON `{productId, requestId}` UUIDs only; trusted server price/product/policy; returns local checkout view and an HttpOnly cookie |

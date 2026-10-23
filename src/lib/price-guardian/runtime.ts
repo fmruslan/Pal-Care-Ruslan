@@ -69,7 +69,18 @@ export const getGuardian = cache(async (twinId?: string, caseId?: string) => {
     { readOnly: true },
   ));
   try {
-    await assertDatabaseAuthority(database.pool, "reader");
+    await assertDatabaseAuthority(database.pool, "reader", {
+      requiredReads: [
+        "purchase_twins",
+        "guardian_cases",
+        "guardian_policies",
+        "guardian_prices",
+        "guardian_refunds",
+        "guardian_approvals",
+        "guardian_events",
+        "guardian_checks",
+      ],
+    });
     return await readGuardian(
       database.pool,
       process.env.GUARDIAN_SCHEDULED_MONITORING_ENABLED === "true",

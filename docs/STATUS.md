@@ -2,19 +2,18 @@
 
 Last updated: 2026-10-23
 
-## Stage 5 in progress
+## Stage 5 — code complete; isolated verification passed
 
-Bounded resumable recall batches, scoped runtime pool sharing and provider-free readiness are implemented. Isolated migration rehearsal preserves every row in the 28 pre-existing tables, twice, and reconciles a historical pending injected capture after upgrading. Current checks: 270 unit / 111 PostgreSQL tests; migrations through **0015 (29 tables)** remain unapplied to the actual application database.
+| Area | Implemented | Isolated verification | Actual application environment |
+| --- | --- | --- | --- |
+| Explicit runtime roles, shared preflights and migration isolation | Yes | Real restricted logins; required/forbidden grants, ownership, SET ROLE, column writes and PUBLIC TEMP | **Blocked**: current reader is unsafe; dedicated writers unconfigured; no credentials changed |
+| Historical evidence guards (0013/0015) | Yes | Capture/reconciliation regressions; all rows in 28 original tables unchanged around 0012→0015 rehearsal, twice | **Blocked**: application migrations not applied |
+| Independent per-call accounting (0014), receipt failure isolation | Yes | Unknown/known, replay, concurrency, cleanup, date-boundary and dependency regressions | **Blocked**: application migration/configuration pending; no live AI |
+| Product-aware safety/replacement, persistent CareOS, by-ID detail | Yes | Complete fixture/database journeys, older-record regression | Not newly verified on actual database/physical device |
+| Shared Studio filters, activity, mobile navigation and operator refresh | Yes | Actual local SDK tests and synthetic Guardian lifecycle | Public license/provider acceptance still blocked |
+| Resumable recall batches, bounded readiness and compatible pool sharing | Yes | 271 unit / 111 PostgreSQL tests and outage/readiness/cleanup checks pass | Deployment/configuration pending |
 
-Unified read-only purchase/receipt/Guardian/recall activity, merchant mobile navigation and automatic operator view refresh are implemented. Isolated checks pass (267 unit, 70 fixture evaluations, 18 focused browser checks and six synthetic Guardian lifecycle checks). No actual refund/AI/provider result is newly established.
-
-Studio stage selection is now shared across summary, SDK widgets and scripted tools, with explicit page/widget/all-record scopes. Focused desktop/mobile SDK browser regressions pass; public licensing and genuine inference remain separate gates.
-
-Context-preserving safety/replacement journeys and by-ID detail access are implemented and isolated-tested (263 unit / 108 PostgreSQL tests; desktop/mobile fixture and database journey checks). Insignia remains a labeled ownership example, not a purchase. Full final matrices remain pending.
-
-Per-call CareOS settlement and intent-specific dependency isolation are implemented and isolated-tested (260 unit / 107 PostgreSQL tests). Migrations through 0014 are reviewed but **not applied to the application database**. Unknown usage retains its reservation; no paid model/provider call has occurred.
-
-Database authority and historical evidence hardening are implemented and isolated-tested (99 PostgreSQL tests). Explicit capability connections replace privileged fallbacks, including CareOS fixture persistence. The web Blueprint no longer runs migrations or accepts an automatic owner connection string. Actual application credential switching and Stage 5 migrations are **not applied/verified** and require separate approval. [Increment evidence](evidence/STAGE5-VERIFICATION.md).
+Current baseline: **0015 / 29 tables**. The existing application database remains at its previous baseline, with all rows/counts/hashes in all 28 original tables unchanged. Final isolated checks pass: **271 unit, 111 PostgreSQL, 348 fixture browser, 348 database browser, six synthetic Guardian lifecycle, eight Firefox/WebKit checks, two outage/cleanup checks and 70/70 deterministic/fixture evaluations**, plus lint/typecheck/build/format, frozen install and production dependency audit. Exact-commit CI and screenshot evidence are tracked in the [Stage 5 ledger](evidence/STAGE5-VERIFICATION.md); final run URL/SHA are provided at delivery. No actual purchase/refund/model/Channel3 call, application migration, real credential rotation or paid deployment occurred.
 
 > **Continuation implemented with explicit boundaries:** actual AG Studio local components/custom widgets and scripted SDK tools; one genuinely retrieved official CPSC notice and conservative recall matching; fixture replacement experience with a real, disabled Channel3 adapter. Hosted inference, actual Channel3 acceptance, public AG Studio license coverage, webhooks and public deployment remain incomplete. Price Guardian's actual refund/recovery test still requires separate financial approval. Existing Sandbox purchases and Guardian records are preserved. [Continuation evidence](evidence/CONTINUATION-VERIFICATION.md) · [Stage 4 evidence](evidence/STAGE4-VERIFICATION.md).
 
@@ -26,13 +25,13 @@ Database authority and historical evidence hardening are implemented and isolate
 | Public customer and merchant dashboards | **Implemented** | Browsable without login; trusted purchase/merchant records are read-only. CareOS's separate conversation writes grant no commerce authority |
 | Purchase Vault and Twin detail pages | **Implemented; actual Sandbox Twin displayed and verified** | User confirmed the completed Twin in Mac Chrome; snapshots/provider references match PostgreSQL and retrieved payment evidence; samples remain separate |
 | Documents and care history | **Implemented; actual completed-purchase persistence verified** | Exactly one Sandbox receipt, one sample demo policy and one Sandbox purchase event for the completed case; no manufacturer manual/warranty fabricated |
-| PostgreSQL / Drizzle migrations and seed | **Implemented; local preservation verified** | 28 tables; additive 0010–0012 add recall evidence/history and discovery IDs/budgets. All rows in all 23 prior public tables compared unchanged around the local upgrade. New CPSC records are separate; no synthetic application captures/refunds or old keys/deadlines changed |
+| PostgreSQL / Drizzle migrations and seed | **Implemented; isolated Stage 5 preservation verified** | Schema baseline 0015 / 29 tables. Actual application still has its previous 28-table baseline, pending separate migration approval. Historical continuation preserved all 23 prior tables; Stage 5 rehearsal preserves all 28 pre-existing tables twice. No historical financial rewrite |
 | Read-only dashboards + bounded checkout | **Implemented; independent tests pass** | Separate write service, cookie authorization, exact Origin, bounded JSON, DB-backed quotas/leases/idempotency |
 | Expired-checkout controls | **Implemented; local regression suite passes** | Derived expiry, redacted approval link, no automatic return capture on expired checkout, client-only deadline timer and preserved post-deadline reconciliation for attempted captures; no schema or design change |
 | Existing-capture reconciliation | **Implemented; actual pending path verified** | Separate provider-read-only action, pinned capture ID, independent Orders/Payments retrieval, checked status and eCheck reason; failed/declined states create no Twin; completed evidence finalizes exactly once in domain tests, including after the original deadline |
 | Single immediate-payment experiment | **Actual completed capture and Twin verified** | Tests passed before activation; buyer confirmed available USD balance and selected balance on PayPal; only the new order has the immediate preference. Reserved request is consumed; no additional purchase authorized. [Evidence](evidence/STAGE2-VERIFICATION.md) |
-| CI pipeline | **Configured; use commit-specific run evidence** | Commit-pinned Node 24 actions on Ubuntu 24.04 run quality checks, real PostgreSQL tests and both browser modes. See [latest runs](https://github.com/fmruslan/Pal-Care-Ruslan/actions) for the current commit; CI deliberately has no PayPal credentials and cannot prove actual Sandbox completion |
-| Render deployment preparation | **Prepared, not deployed** | `render.yaml`, private-network DB, readiness, pre-deploy migration/seed and setup guide; account/billing approval needed |
+| CI pipeline | **Configured; use exact-commit run evidence** | Pinned actions (Node 24 internally) run the application with pinned Node 22.23.x on Ubuntu 24.04. Quality, actual PostgreSQL roles, both Chromium data modes, synthetic Guardian and focused Firefox/WebKit checks are included. No PayPal/model credentials or actual-provider proof |
+| Render deployment preparation | **Prepared, not deployed** | Private-network DB, required exact origin/scoped URLs and provider-free readiness. No web migration/seed or automatic owner URL. Separate operator migration environment and account/billing approval required |
 | Supabase / customer login / private uploads | **Excluded by design** | Replaced by Render PostgreSQL and public fictional identities |
 | Demo merchant catalog | **Implemented** | `/shop`, trusted allowlisted products and integer USD prices, clear disabled/configuration state |
 | PayPal Sandbox create/approval/capture | **Actual completed-purchase flow verified** | Case B: both APIs report completed final USD 129.00 capture, correct Business payee and Personal payer. Case A remains separate pending eCheck evidence, untouched by case B verification |
@@ -48,7 +47,7 @@ Database authority and historical evidence hardening are implemented and isolate
 | AG Studio intelligence | **Actual local widgets and scripted Agent Framework pass** | Pinned Studio 3.0.0, three custom widgets, real data-engine cross-filtering, isolated sample/recorded data and local layout. Six-project checks exercise actual scripted schema/presentation tools. First workspace exact-SHA CI green (`94c400a`); scripted interaction is not hosted AI. Public/judging license coverage not established. [Contract](INTELLIGENCE.md) |
 | Public deployment and demo | Not started | Accessible URL and public video |
 
-## Continuation verification
+## Historical continuation verification
 
 Checkpoint: **257 unit tests**, **96 dedicated PostgreSQL tests** (including actual least-privilege test role), **70/70** versioned deterministic/fixture evaluations, lint/typecheck/build and format checks pass. Full browser suites pass **330 fixture + 330 database checks**, retaining original screenshot references; final mobile/security focused reruns are recorded in the [ledger](evidence/CONTINUATION-VERIFICATION.md). Actual CPSC API and official-page evidence is separate from mocks. Hosted models/Channel3/financial execution are unperformed. Studio workspace CI (`94c400a`) and corrected scripted-runner CI (`0fe701b`) pass; the intermediate runner commit's formatting-only CI failure was corrected, not hidden. Final exact-SHA CI is verified at delivery.
 

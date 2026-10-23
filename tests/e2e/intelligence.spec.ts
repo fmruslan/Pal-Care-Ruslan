@@ -115,6 +115,14 @@ test("intelligence separates real records and scenarios, with actual local Studi
   await expect(
     page.getByTestId("studio-value-recovery").locator("p").nth(1),
   ).toHaveText("$20.00");
+  // The semantic fallback remains available without stacking two full dashboards.
+  await page
+    .getByText("Accessible summary · same selected data", { exact: true })
+    .click();
+  await expect(page.getByTestId("intelligence-summary")).toBeVisible();
+  await page
+    .getByText("Accessible summary · same selected data", { exact: true })
+    .click();
   await assistant
     .getByRole("button", { name: "Add a verified-refund summary", exact: true })
     .click();

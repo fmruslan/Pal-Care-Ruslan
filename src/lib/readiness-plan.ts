@@ -9,6 +9,7 @@ export function readinessPlan(env: Record<string, string | undefined>) {
   if (
     env.MIGRATION_DATABASE_URL ||
     env.ADMIN_DATABASE_URL ||
+    env.OPERATOR_DATABASE_URL ||
     env.LOCAL_POSTGRES_PASSWORD ||
     !validAppOrigin(env.APP_ORIGIN)
   )

@@ -3,12 +3,12 @@ import { GuardianService } from "../src/lib/price-guardian/service";
 import { RefundService } from "../src/lib/commerce/refund-service";
 import { refundScope } from "../src/lib/commerce/refund-contracts";
 import { SandboxPayPal } from "../src/lib/commerce/paypal";
-import { databaseUrl } from "./environment";
+import "./environment";
+import { assertDatabaseAuthority, runtimeWriterUrl } from "../src/db/authority";
 
-const { db, pool } = createDatabase(
-  process.env.GUARDIAN_DATABASE_URL || databaseUrl(),
-);
+const { db, pool } = createDatabase(runtimeWriterUrl("GUARDIAN_DATABASE_URL"));
 try {
+  await assertDatabaseAuthority(pool, "guardian");
   const detected = await new GuardianService(pool).detect();
   const scope = refundScope(process.env);
   if (scope.readsEnabled && scope.caseId) {

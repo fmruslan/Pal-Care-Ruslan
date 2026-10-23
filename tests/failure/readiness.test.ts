@@ -23,6 +23,7 @@ test(
           ...process.env,
           MIGRATION_DATABASE_URL: "",
           ADMIN_DATABASE_URL: "",
+          OPERATOR_DATABASE_URL: "",
           LOCAL_POSTGRES_PASSWORD: "",
           DEMO_DATA_SOURCE: "database",
           DATABASE_URL: "postgresql://127.0.0.1:1/unavailable",

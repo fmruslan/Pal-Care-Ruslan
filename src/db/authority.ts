@@ -146,7 +146,11 @@ export async function assertEvidenceGuards(
 export async function assertDatabaseAuthority(
   client: Pick<Pool | PoolClient, "query">,
   capability: DatabaseCapability,
+  options: { requiredReads?: readonly string[] } = {},
 ) {
+  const requiredReads = options.requiredReads ?? runtimeReads[capability];
+  if (requiredReads.some((name) => !runtimeReads[capability].includes(name)))
+    throw new DatabaseAuthorityError();
   const roles =
     await client.query(`select oid,rolname,rolsuper,rolcreatedb,rolcreaterole,rolreplication,rolbypassrls
     from pg_roles where rolname=current_user or rolname=session_user or pg_has_role(session_user,oid,'SET')`);
@@ -205,7 +209,7 @@ export async function assertDatabaseAuthority(
   }
   // One bounded metadata query verifies required relations and positive grants.
   const required = [
-    ...runtimeReads[capability].map((table_name) => ({
+    ...requiredReads.map((table_name) => ({
       table_name,
       column_name: null,
       privilege: "SELECT",
@@ -234,6 +238,7 @@ export function runtimeWriterUrl(
   if (
     env.MIGRATION_DATABASE_URL ||
     env.ADMIN_DATABASE_URL ||
+    env.OPERATOR_DATABASE_URL ||
     env.LOCAL_POSTGRES_PASSWORD
   )
     throw new DatabaseAuthorityError();
