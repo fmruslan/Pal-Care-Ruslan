@@ -74,5 +74,12 @@ test("intelligence separates real records and scenarios, with actual local Studi
   await expect(page.getByRole("status")).toContainText(
     "Default layout restored",
   );
+  const assistant=page.getByRole("region",{name:"Scripted Studio assistant"});
+  await assistant.getByRole("button",{name:"Show pending refunds",exact:true}).click();
+  await expect(assistant.getByRole("status")).toContainText("Scripted command applied: pending");
+  await expect(page.getByTestId("studio-value-recovery").locator("p").nth(1)).toHaveText("$0.00");
+  await assistant.getByRole("button",{name:"Reset this dashboard",exact:true}).click();
+  await expect(assistant.getByRole("status")).toContainText("Scripted command applied: reset");
+  await expect(page.getByTestId("studio-value-recovery").locator("p").nth(1)).toHaveText("$20.00");
   expect(financial).toBe(0);
 });

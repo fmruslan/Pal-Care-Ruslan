@@ -16,7 +16,11 @@ The vendor explicitly permits **local testing without a license**, with its orig
 
 ## Verification and future AI
 
-Unit tests cover provenance/window accounting, stage separation and untrusted layouts. Browser tests verify actual widget mounting/data, accessible summary, sample isolation, layout reset and absence of financial POSTs. Final counts/CI are recorded in STATUS after execution. Scripted assistance and genuine hosted inference are separate milestones; no live AI is claimed by the widgets. A future approved model may manipulate allowlisted dashboard presentation/tools, never trusted commerce records.
+Unit tests cover provenance/window accounting, stage separation, untrusted layouts, scripted commands and rejected planner outputs. Six-project browser checks verify actual widget data/cross-filtering, accessible summary, sample isolation, layout reset, actual scripted harness runs and absence of financial POSTs. The first workspace commit `94c400a` passes exact-SHA CI ([run](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/39906192558)).
+
+The actual Studio Agent Framework now runs the explicitly named **CareOS · scripted demo** custom runner. It invokes Studio's built-in schema tool and an SDK-defined `care_dashboard` tool, with at most two calls per run. Six exact prompts filter proposed/pending/verified cases, focus evidence, add one idempotently named verified-only summary, or reset layout. The runner emits real protocol/tool events; displaying an event is not mistaken for executing a tool. Inputs are not natural-language AI interpretation. No model request, raw SQL, arbitrary URL or financial tool is available. Cancellation is checked before actions. A separate `DashboardPlanner` interface accepts only schema-validated commands for future approved inference; its runtime transport/paid endpoint is not activated or claimed implemented.
+
+Scripted assistance and genuine hosted inference remain separate milestones. A future model may use the same bounded presentation vocabulary, never trusted commerce authority. OpenCode development-model access is not runtime model activation.
 
 ## Official references
 

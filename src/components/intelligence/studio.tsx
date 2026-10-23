@@ -8,6 +8,7 @@ import {
 } from "ag-studio-react";
 import {
   studioTheme,
+  AgStudioAiModule,
   type AgBaseRegistry,
   type AgDefaultWidgetDefinition,
   type AgWidgetData,
@@ -16,6 +17,8 @@ import {
   type AgReportState,
   type AgStudioApi,
   type AgDataSourcesDefinition,
+  type AgAiHarness,
+  type AgAiChatSession,
 } from "ag-studio";
 import {
   factSchema,
@@ -25,6 +28,9 @@ import {
 import { ValueRecovery, AdjustmentStatus, EvidenceFreshness } from "./summary";
 import { Button } from "../ui/button";
 import { layoutSchema } from "@/lib/intelligence/layout";
+import { dashboardHarness } from "./agent";
+import type { DashboardCommand } from "@/lib/intelligence/commands";
+import { scriptedPrompts } from "@/lib/intelligence/commands";
 
 type WidgetId = "value-recovery" | "adjustment-status" | "evidence-freshness";
 type CustomData = AgWidgetData<
@@ -176,8 +182,13 @@ export function IntelligenceStudio({
 }) {
   const { resolvedTheme } = useTheme(),
     api = useRef<AgStudioApi<Registry> | null>(null);
+  const harness = useRef<AgAiHarness | null>(null),
+    session = useRef<AgAiChatSession | null>(null);
   const [edit, setEdit] = useState(false),
     [notice, setNotice] = useState("");
+  const [ready, setReady] = useState(false),
+    [busy, setBusy] = useState(false),
+    [reply, setReply] = useState("");
   const widgets = useMemo(
     () =>
       createWidgets<Registry>({
@@ -236,6 +247,124 @@ export function IntelligenceStudio({
   );
   const context = useMemo(() => ({ mode: dataset.mode }), [dataset.mode]);
   const initial = useMemo(() => defaultReport(), []);
+  const ai = useMemo(
+    () =>
+      ({ api: studioApi }: { api: AgStudioApi }) => {
+        if (harness.current) return harness.current;
+        harness.current = dashboardHarness(
+          studioApi,
+          (command: DashboardCommand) => {
+            const current = api.current;
+            if (!current) return;
+            if (command.operation === "reset") {
+              current.setState(defaultReport());
+              return;
+            }
+            const state = current.getState();
+            const page = state.pages?.find((p) => p.id === "care");
+            if (!page) return;
+            const stage =
+              command.operation === "proposed"
+                ? "Proposed"
+                : command.operation === "pending"
+                  ? "Pending"
+                  : "Verified";
+            const filter = {
+              field: { id: "cases.stage" },
+              model: { operator: "equals" as const, value: stage },
+            };
+            if (command.operation === "add-summary") {
+              const id = "verified-summary";
+              current.setState({
+                ...state,
+                pages: state.pages?.map((p) =>
+                  p.id !== "care"
+                    ? p
+                    : {
+                        ...p,
+                        widgets: {
+                          ...p.widgets,
+                          [id]: { type: "value-recovery", dataMapping: {} },
+                        },
+                        widgetLayout: {
+                          ...p.widgetLayout,
+                          [id]: { xTrack: 0, yTrack: 30, xSpan: 12, ySpan: 28 },
+                        },
+                        filter: {
+                          ...p.filter,
+                          widget: { ...p.filter?.widget, [id]: [filter] },
+                        },
+                      },
+                ),
+              });
+            } else if (command.operation === "evidence") {
+              current.setState({
+                ...state,
+                pages: state.pages?.map((p) =>
+                  p.id !== "care"
+                    ? p
+                    : { ...p, selection: { type: "widget", id: "evidence" } },
+                ),
+              });
+            } else {
+              current.setState({
+                ...state,
+                pages: state.pages?.map((p) =>
+                  p.id !== "care"
+                    ? p
+                    : {
+                        ...p,
+                        crossFilter: undefined,
+                        filter: { ...p.filter, page: [filter] },
+                      },
+                ),
+              });
+            }
+            setNotice(
+              `Scripted ${command.operation} applied. No commerce changes.`,
+            );
+          },
+        );
+        return harness.current;
+      },
+    [setNotice],
+  );
+  async function runScript(prompt: string) {
+    if (!harness.current || busy) return;
+    setBusy(true);
+    try {
+      if (!session.current) {
+        session.current = await harness.current.createThread({
+          agentId: "care-scripted",
+        });
+        session.current.addEventListener("changed", () => {
+          const s = session.current;
+          if (!s) return;
+          setBusy(s.status === "running");
+          const last = s.messages.filter((m) => m.role === "assistant").at(-1);
+          setReply(
+            last?.parts
+              .filter((p) => p.type === "text")
+              .map((p) => p.text)
+              .join("") ?? "",
+          );
+        });
+      }
+      session.current.sendMessage(prompt);
+    } catch {
+      setBusy(false);
+      setReply(
+        "Scripted command unavailable. No financial operation occurred.",
+      );
+    }
+  }
+  useEffect(
+    () => () => {
+      session.current?.cancel();
+      session.current?.close();
+    },
+    [],
+  );
   return (
     <>
       <div className="mb-3 flex flex-wrap gap-3">
@@ -301,6 +430,45 @@ export function IntelligenceStudio({
         Local evaluation · vendor watermark retained · no license coverage for
         public judging established.
       </p>
+      <section
+        aria-label="Scripted Studio assistant"
+        className="intelligence-wash mb-4 rounded-2xl border p-4"
+      >
+        <p className="text-sm font-semibold text-intelligence-foreground">
+          Studio assistant · scripted demonstration · no live AI
+        </p>
+        <p className="mt-2 text-xs leading-6 text-muted-foreground">
+          These supported prompts run through the actual Studio Agent Framework
+          and allowlisted presentation tools. No financial tools or paid
+          inference.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {scriptedPrompts.map(([prompt]) => (
+            <Button
+              key={prompt}
+              variant="outline"
+              size="sm"
+              disabled={!ready || busy}
+              onClick={() => void runScript(prompt)}
+            >
+              {prompt}
+            </Button>
+          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={!busy}
+            onClick={() => session.current?.cancel()}
+          >
+            Cancel command
+          </Button>
+        </div>
+        {reply && (
+          <p role="status" className="mt-3 text-sm">
+            {reply}
+          </p>
+        )}
+      </section>
       <div
         className="ag-theme-mode h-[640px] min-w-0 rounded-2xl border"
         data-ag-theme-mode={resolvedTheme === "dark" ? "dark" : "light"}
@@ -315,9 +483,13 @@ export function IntelligenceStudio({
           loadThemeGoogleFonts={false}
           mode={edit ? "edit" : "view"}
           panels={{ view: { left: [], right: [] } }}
+          modules={[AgStudioAiModule]}
+          ai={ai}
           onApiReady={(e) => {
             // The v3 event type erases this instance's custom registry.
             api.current = e.api as unknown as AgStudioApi<Registry>;
+            ai({ api: e.api });
+            setReady(true);
           }}
           onErrorRaised={() =>
             setNotice(
