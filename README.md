@@ -1,6 +1,8 @@
 # Pal Care
 
-Stage 5 hardening connects the existing product journeys and removes privileged database fallbacks. **Implementation and isolated tests are not actual-environment verification:** the existing application credentials have not been switched, and migrations through **0015** have not been applied to the application database. Database mode requires a restricted reader and separate CareOS writer. See [Stage 5 evidence and external gates](docs/evidence/STAGE5-VERIFICATION.md) and [current setup](docs/SETUP.md). No new provider activation is authorized.
+**Local security cutover passed:** verified Phase A recovery/Mac backup, migrations through 0015 and actual restricted reader/CareOS connections. The private app runs on loopback with fixture assistance and financial/provider activation off. Linux OS isolation and public deployment remain blocked; see [Phase B evidence](docs/evidence/PHASEB-CUTOVER.md) and the [completed checklist](docs/DATABASE-CUTOVER.md).
+
+Stage 5 hardening connects existing journeys and removes privileged database fallbacks. The separately approved Phase B cutover verified the existing local application with migrations through **0015**, a restricted reader and a separate CareOS writer. This is not public-runtime isolation or provider acceptance. See [historical Stage 5 evidence](docs/evidence/STAGE5-VERIFICATION.md) and [current setup](docs/SETUP.md). No provider activation is authorized.
 
 Webhooks are not yet implemented; actual Stage 4 refund verification still needs separate approval. Merchant intelligence uses actual AG Studio local evaluation and a clearly scripted Agent Framework. Recall Guardian uses one reviewed official CPSC notice; replacement discovery remains fixture-based until Channel3 verification. Public license coverage and hosted AI remain unverified.
 

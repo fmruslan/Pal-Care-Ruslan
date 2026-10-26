@@ -1,5 +1,7 @@
 # Stage 5 verification ledger
 
+**Historical release ledger.** The later separately approved [Phase B local cutover](PHASEB-CUTOVER.md) closes the original local application migration/reader/CareOS credential gates below. OS runtime isolation, public exposure and provider activation remain blocked; historical unapplied/unsafe-reader observations are retained as evidence of the pre-cutover state.
+
 Baseline: `611e5d8`. Stage 5 implements the approved bounded security/cohesion fixes, without provider activation or application-database migrations.
 
 ## Completion labels
@@ -121,7 +123,7 @@ The final verification/documentation increment also runs the complete workflow, 
 
 ## Remaining external gates — intentionally not closed
 
-1. Separately authorize/apply migrations through 0015 with writers stopped and preservation verification. Provision actual restricted reader/writers, remove privileged secrets from the web execution/filesystem boundary, and verify actual logins/readiness. **Current reader remains a superuser; writers are unconfigured.**
+1. **Local database portion closed by Phase B:** migrations through 0015, actual restricted reader/CareOS, clean web credentials and readiness passed. Other capabilities remain unconfigured. **Still blocked before public exposure:** separate unprivileged OS runtime identity/filesystem isolation; current private app uses the Docker-capable development account. [Actual evidence](PHASEB-CUTOVER.md).
 2. Approve and verify genuine CareOS runtime inference with the fixed model/endpoint, provider spend limits and semantic grounding evaluations. Scripted/fixture checks are not live AI.
 3. Separately authorize the exact eligible future Sandbox purchase/refund/recovery acceptance; preserve the legacy completed purchase and original pending eCheck. No new financial approval is inferred.
 4. Obtain appropriate public AG Studio AI-feature license coverage through December 15 and wire/verify public access. Local watermark-preserving evaluation is not public licensing.

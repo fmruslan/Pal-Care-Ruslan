@@ -4,6 +4,8 @@ Customer/merchant dashboards remain public and read-only. CareOS writes only its
 
 ## Stage 5 cohesion and local readiness
 
+Operational acceptance: the approved local [Phase B cutover](evidence/PHASEB-CUTOVER.md) verified database-backed readiness and actual restricted reader/CareOS connections through 0015, with persistent fixture answers. Checkout/Guardian/provider access stays disabled; no endpoint contract or financial permission was expanded. Private loopback operation is not public-runtime isolation or provider acceptance.
+
 - Database runtime connections are explicit least-privilege capabilities, including fixture-mode CareOS persistence. Missing writers never use the reader/owner URL. Actual credentials and migrations must be separately provisioned/verified; see [setup](SETUP.md).
 - `/safety` and `/replacements` accept a validated `twinId` or allowlisted `example=insignia`, never both. Saved product/category is resolved server-side; category-only browsing accepts `headphones` or `air-fryer`. Unsupported products never substitute unrelated categories. Invalid contexts return 404. Reference ownership is never represented as a verified purchase/receipt.
 - Twin, document/download and Guardian case detail resolve by scoped ID, independently of bounded list windows. Purchase activity joins existing source ledgers read-only, with partial-source disclosure and separate proposed/pending/verified states.

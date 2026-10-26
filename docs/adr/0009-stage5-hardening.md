@@ -3,6 +3,8 @@
 **Status:** Accepted and implemented in code; actual application provisioning/migration pending separate owner approval.
 **Date:** 2026-10-23
 
+**Operational update (2026-10-26):** separate owner approval subsequently authorized/completed the local migration and restricted reader/CareOS cutover. [Actual Phase B evidence](../evidence/PHASEB-CUTOVER.md). The status above records original Stage 5 delivery; OS isolation/public exposure and provider activation remain separate gates.
+
 ## Decision
 
 Keep the Next.js modular monolith, PostgreSQL 17, Drizzle, current SDK versions and original design. Fix demonstrated defects without adding live services or expanding financial authority.
