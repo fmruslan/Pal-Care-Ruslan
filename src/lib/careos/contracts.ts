@@ -4,6 +4,7 @@ export const intentSchema = z.enum([
   "receipt",
   "summary",
   "documents",
+  "policy",
   "history",
   "care",
   "important",
@@ -44,6 +45,8 @@ export type Evidence = {
   excerpt?: string;
 };
 export type CareAnswer = {
+  resolution?: import("./resolution").CareResolution;
+  presentation?: import("../intelligence/commands").DashboardPlan;
   outcome:
     | "answered"
     | "selection"

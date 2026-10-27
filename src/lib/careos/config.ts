@@ -1,5 +1,10 @@
 import { z } from "zod";
 import { CareError } from "./contracts";
+import {
+  MODEL,
+  SOL_RESERVATION_MICRO,
+  EVALUATION_MAX_MICRO,
+} from "./model-policy";
 
 export function parseCareConfig(env: Record<string, string | undefined>) {
   const mode = z
@@ -12,22 +17,34 @@ export function parseCareConfig(env: Record<string, string | undefined>) {
       enabled: z.literal("true"),
       dataSource: z.literal("database"),
       apiKey: z.string().min(20),
-      model: z.literal("gpt-5.4-mini-2026-03-17"),
+      model: z.literal(MODEL),
+      projectId: z.string().regex(/^proj_[a-zA-Z0-9_-]+$/),
+      providerLimitConfirmed: z.literal("true"),
       baseURL: z.literal("https://api.openai.com/v1"),
       writerUrl: z
         .url()
         .refine((value) =>
           ["postgres:", "postgresql:"].includes(new URL(value).protocol),
         ),
-      dailyMicro: z.coerce.number().int().min(40000).max(5000000),
-      totalMicro: z.coerce.number().int().min(40000).max(25000000),
+      dailyMicro: z.coerce
+        .number()
+        .int()
+        .min(SOL_RESERVATION_MICRO)
+        .max(EVALUATION_MAX_MICRO),
+      totalMicro: z.coerce
+        .number()
+        .int()
+        .min(SOL_RESERVATION_MICRO)
+        .max(EVALUATION_MAX_MICRO),
       budgetId: z.string().regex(/^[a-z0-9-]{1,40}$/),
     })
     .safeParse({
       enabled: env.CAREOS_LIVE_ENABLED,
       dataSource: env.DEMO_DATA_SOURCE,
       apiKey: env.CAREOS_API_KEY,
-      model: env.CAREOS_MODEL ?? "gpt-5.4-mini-2026-03-17",
+      model: env.CAREOS_MODEL ?? MODEL,
+      projectId: env.CAREOS_PROJECT_ID,
+      providerLimitConfirmed: env.CAREOS_PROVIDER_LIMIT_CONFIRMED,
       baseURL: env.CAREOS_RESPONSES_BASE_URL ?? "https://api.openai.com/v1",
       writerUrl: env.CAREOS_DATABASE_URL,
       dailyMicro: env.CAREOS_DAILY_BUDGET_MICRO,

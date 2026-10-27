@@ -11,6 +11,28 @@ export const dashboardCommandSchema = z.strictObject({
   operation: z.enum(operations),
 });
 export type DashboardCommand = z.infer<typeof dashboardCommandSchema>;
+export const dashboardPlanSchema = z.strictObject({
+  outcome: z.enum(["apply", "unsupported"]),
+  commands: z.array(dashboardCommandSchema).max(3),
+});
+export type DashboardPlan = z.infer<typeof dashboardPlanSchema>;
+export function validateDashboardPlan(raw: unknown): DashboardPlan {
+  const plan = dashboardPlanSchema.parse(raw);
+  if (
+    (plan.outcome === "apply") !== plan.commands.length > 0 ||
+    new Set(plan.commands.map((c) => c.operation)).size !== plan.commands.length
+  )
+    throw new Error("dashboard_plan_invalid");
+  return plan;
+}
+export function presentationRequestAllowed(message: string) {
+  return (
+    message.length <= 500 &&
+    !/\b(approve|execute|issue|send|capture|pay|delete|insert|update|drop|sql|password|secret|api.?key)\b|ignore.*(rules|instructions)|https?:/i.test(
+      message,
+    )
+  );
+}
 export const scriptedPrompts = [
   ["Show adjustments awaiting approval", "proposed"],
   ["Show pending refunds", "pending"],

@@ -24,6 +24,17 @@ export async function readiness() {
           readOnly: requirement.capability === "reader",
         });
         await assertDatabaseAuthority(pool, requirement.capability);
+        if (
+          requirement.capability === "careos" &&
+          plan.features.careos === "responses"
+        ) {
+          await pool.query("select usage from care_model_calls limit 0");
+          const bounds = await pool.query(
+            "select pg_get_constraintdef(oid) definition from pg_constraint where conrelid='public.care_model_calls'::regclass and conname='care_call_bounds' and convalidated",
+          );
+          if (!bounds.rows[0]?.definition.includes("120000"))
+            throw new Error("Sol reservation migration required");
+        }
         if (requirement.capability === "reader")
           await assertEvidenceGuards(pool);
       }),

@@ -26,9 +26,11 @@ const Studio = dynamic(
 export function IntelligenceWorkspace({
   recorded,
   studioAllowed,
+  live = false,
 }: {
   recorded: IntelligenceDataset;
   studioAllowed: boolean;
+  live?: boolean;
 }) {
   const [mode, setMode] = useState<"recorded" | "illustrative">("recorded"),
     [stage, setStage] = useState("All"),
@@ -144,7 +146,9 @@ export function IntelligenceWorkspace({
             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
               Actual AG Studio 3.0 components, custom widgets and browser-local
               layout tools. Local evaluation retains the vendor watermark. No
-              hosted model is active.
+              {live
+                ? "financial authority is granted. Sol Medium requests require private evaluation access."
+                : "hosted model is active."}
             </p>
           </div>
           {studioAllowed && (
@@ -167,6 +171,7 @@ export function IntelligenceWorkspace({
               dataset={data}
               stage={stage}
               onStage={setStage}
+              live={live}
             />
           </div>
         )}

@@ -31,6 +31,7 @@ import { layoutSchema, defaultPositions } from "@/lib/intelligence/layout";
 import { dashboardHarness } from "./agent";
 import type { DashboardCommand } from "@/lib/intelligence/commands";
 import { scriptedPrompts } from "@/lib/intelligence/commands";
+import { validateDashboardPlan } from "@/lib/intelligence/commands";
 import { pageStage, withPageStage } from "@/lib/intelligence/filters";
 
 type WidgetId = "value-recovery" | "adjustment-status" | "evidence-freshness";
@@ -166,10 +167,12 @@ export function IntelligenceStudio({
   dataset,
   stage,
   onStage,
+  live = false,
 }: {
   dataset: IntelligenceDataset;
   stage: string;
   onStage: (stage: string) => void;
+  live?: boolean;
 }) {
   const stageRef = useRef(stage),
     onStageRef = useRef(onStage);
@@ -192,6 +195,8 @@ export function IntelligenceStudio({
   const [ready, setReady] = useState(false),
     [busy, setBusy] = useState(false),
     [reply, setReply] = useState("");
+  const [question, setQuestion] = useState("");
+  const modelConversation = useRef<string | null>(null);
   const widgets = useMemo(
     () =>
       createWidgets<Registry>({
@@ -339,13 +344,40 @@ export function IntelligenceStudio({
               current.setState(withPageStage(state, stage));
             }
             setNotice(
-              `Scripted ${command.operation} applied. No commerce changes.`,
+              `${live ? "Model-planned" : "Scripted"} ${command.operation} applied. No commerce changes.`,
             );
           },
+          live
+            ? async (message, signal) => {
+                const post = async (body: unknown) => {
+                  const r = await fetch("/api/intelligence/plan", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body),
+                    signal,
+                  });
+                  if (!r.ok) throw new Error("studio_plan_unavailable");
+                  return r.json();
+                };
+                if (!modelConversation.current)
+                  modelConversation.current = (
+                    await post({ action: "start" })
+                  ).id;
+                return validateDashboardPlan(
+                  await post({
+                    action: "plan",
+                    conversationId: modelConversation.current,
+                    requestId: crypto.randomUUID(),
+                    message,
+                    mode: dataset.mode,
+                  }),
+                );
+              }
+            : undefined,
         );
         return harness.current;
       },
-    [setNotice, compact],
+    [setNotice, compact, live, dataset.mode],
   );
   async function runScript(prompt: string) {
     if (!harness.current || busy) return;
@@ -353,7 +385,7 @@ export function IntelligenceStudio({
     try {
       if (!session.current) {
         session.current = await harness.current.createThread({
-          agentId: "care-scripted",
+          agentId: live ? "care-sol" : "care-scripted",
         });
         session.current.addEventListener("changed", () => {
           const s = session.current;
@@ -372,7 +404,7 @@ export function IntelligenceStudio({
     } catch {
       setBusy(false);
       setReply(
-        "Scripted command unavailable. No financial operation occurred.",
+        "Command unavailable. No financial operation occurred. Check evaluation access before trying a new request.",
       );
     }
   }
@@ -466,17 +498,42 @@ export function IntelligenceStudio({
         this selection; it does not change stored totals.
       </p>
       <section
-        aria-label="Scripted Studio assistant"
+        aria-label={live ? "Sol Studio assistant" : "Scripted Studio assistant"}
         className="intelligence-wash mb-4 rounded-2xl border p-4"
       >
         <p className="text-sm font-semibold text-intelligence-foreground">
-          Studio assistant · scripted demonstration · no live AI
+          {live
+            ? "Studio assistant · Sol Medium · private evaluation"
+            : "Studio assistant · scripted demonstration · no live AI"}
         </p>
         <p className="mt-2 text-xs leading-6 text-muted-foreground">
-          These supported prompts run through the actual Studio Agent Framework
-          and allowlisted presentation tools. No financial tools or paid
-          inference.
+          {live
+            ? "Natural language plans use the approved shared AI budget. Only validated browser presentation tools are available. Unlock the Studio scope at /ai-evaluation first."
+            : "These supported prompts run through the actual Studio Agent Framework and allowlisted presentation tools. No financial tools or paid inference."}
         </p>
+        {live && (
+          <form
+            className="mt-3 flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (question.trim()) void runScript(question.trim());
+            }}
+          >
+            <label className="grow">
+              <span className="sr-only">Dashboard request</span>
+              <input
+                value={question}
+                maxLength={500}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder="Show pending cases and add a verified summary…"
+                className="min-h-11 w-full rounded-xl border bg-card px-3 text-sm"
+              />
+            </label>
+            <Button disabled={!ready || busy || !question.trim()}>
+              Apply presentation
+            </Button>
+          </form>
+        )}
         <div className="mt-3 flex flex-wrap gap-2">
           {scriptedPrompts.map(([prompt]) => (
             <Button

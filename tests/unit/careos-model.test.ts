@@ -147,7 +147,7 @@ describe("CareOS model trust boundary (injected transports, never hosted inferen
       const model = new ResponsesProvider(
         {
           apiKey: "unit-only",
-          model: "gpt-5.4-mini-2026-03-17",
+          model: "gpt-6.1-sol",
           baseURL: "https://api.openai.com/v1",
         },
         async () =>
@@ -195,8 +195,10 @@ describe("CareOS model trust boundary (injected transports, never hosted inferen
       CAREOS_LIVE_ENABLED: "true",
       DEMO_DATA_SOURCE: "database",
       CAREOS_API_KEY: "unit-only-not-a-real-api-key",
-      CAREOS_DAILY_BUDGET_MICRO: "100000",
-      CAREOS_TOTAL_BUDGET_MICRO: "100000",
+      CAREOS_DAILY_BUDGET_MICRO: "500000",
+      CAREOS_TOTAL_BUDGET_MICRO: "5000000",
+      CAREOS_PROJECT_ID: "proj_unit",
+      CAREOS_PROVIDER_LIMIT_CONFIRMED: "true",
       CAREOS_BUDGET_ID: "test",
       CAREOS_DATABASE_URL: "postgresql://localhost/careos_unit",
     };
@@ -247,6 +249,8 @@ describe("CareOS model trust boundary (injected transports, never hosted inferen
       bodies.push(JSON.parse(init!.body as string));
       return Response.json({
         id: "resp_unit",
+        model: "gpt-6.1-sol",
+        service_tier: "default",
         status: "completed",
         output: [
           {
@@ -267,7 +271,7 @@ describe("CareOS model trust boundary (injected transports, never hosted inferen
           input_tokens: 100,
           output_tokens: 20,
           total_tokens: 120,
-          input_tokens_details: { cached_tokens: 0 },
+          input_tokens_details: { cached_tokens: 0, cache_write_tokens: 0 },
           output_tokens_details: { reasoning_tokens: 0 },
         },
       });
@@ -275,7 +279,7 @@ describe("CareOS model trust boundary (injected transports, never hosted inferen
     const model = new ResponsesProvider(
       {
         apiKey: "unit-only",
-        model: "gpt-5.4-mini-2026-03-17",
+        model: "gpt-6.1-sol",
         baseURL: "https://api.openai.com/v1",
       },
       transport,
@@ -285,10 +289,13 @@ describe("CareOS model trust boundary (injected transports, never hosted inferen
       AbortSignal.timeout(1000),
     );
     expect(result.value).toEqual(valid);
-    expect(result.micro).toBe(165);
+    expect(result.micro).toBe(400);
     expect(bodies[0]).toMatchObject({
       store: false,
-      max_output_tokens: 1200,
+      model: "gpt-6.1-sol",
+      reasoning: { effort: "medium" },
+      service_tier: "default",
+      max_output_tokens: 6000,
       text: { format: { type: "json_schema", strict: true } },
     });
     expect(bodies[0]).not.toHaveProperty("tools");
@@ -296,7 +303,7 @@ describe("CareOS model trust boundary (injected transports, never hosted inferen
     const failed = new ResponsesProvider(
       {
         apiKey: "unit-only",
-        model: "gpt-5.4-mini-2026-03-17",
+        model: "gpt-6.1-sol",
         baseURL: "https://api.openai.com/v1",
       },
       async () => {

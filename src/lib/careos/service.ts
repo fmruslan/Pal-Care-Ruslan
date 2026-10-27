@@ -10,6 +10,7 @@ import type { GuardianView } from "../price-guardian/contracts";
 import type { RecallEvidence } from "../safety/evidence";
 import { referenceContext } from "./journey";
 import type { PurchaseActivity } from "./activity";
+import { evidencePayload, selectedEvidence } from "./evidence-selection";
 
 function modelPayload(
   task: "classify" | "care",
@@ -34,15 +35,15 @@ function modelPayload(
       })),
     });
   let payload = serialize();
-  while (Buffer.byteLength(payload, "utf8") > 19000 && history.length) {
+  while (Buffer.byteLength(payload, "utf8") > 14000 && history.length) {
     history.shift();
     payload = serialize();
   }
-  while (Buffer.byteLength(payload, "utf8") > 19000 && passages.length > 1) {
+  while (Buffer.byteLength(payload, "utf8") > 14000 && passages.length > 1) {
     passages.pop();
     payload = serialize();
   }
-  if (Buffer.byteLength(payload, "utf8") > 19000)
+  if (Buffer.byteLength(payload, "utf8") > 14000)
     throw new CareError("careos_context_too_large", 400);
   return { payload, passages };
 }
@@ -243,7 +244,34 @@ export async function resolveTurn(options: {
       ],
     };
   }
-  if (intent !== "care" || !record) return base;
+  if (intent !== "care" || !record) {
+    if (
+      record &&
+      base.outcome === "answered" &&
+      [
+        "summary",
+        "policy",
+        "guardian",
+        "history",
+        "important",
+        "recall",
+      ].includes(intent) &&
+      mode === "responses" &&
+      model?.selectEvidence &&
+      call &&
+      (classified ||
+        /explain|why|what.*next|need to do|mean|help me understand/i.test(
+          input.message,
+        ))
+    ) {
+      const payload = evidencePayload(base, input.message, history);
+      const selected = await call((signal) =>
+        model.selectEvidence!(payload, signal),
+      );
+      return selectedEvidence(base, selected);
+    }
+    return base;
+  }
   let evidence = retrievePassages(sources, record.product, input.message);
   if (classified && !evidence.passages.length && history.length)
     evidence = retrievePassages(

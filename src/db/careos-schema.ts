@@ -83,12 +83,13 @@ export const careModelCalls = pgTable(
     bucketKeys: jsonb("bucket_keys").$type<string[]>().notNull(),
     actualMicro: integer("actual_micro"),
     settledAt: timestamp("settled_at", { withTimezone: true }),
+    usage: jsonb().$type<import("../lib/careos/model-policy").ModelUsage>(),
   },
   (t) => [
     primaryKey({ columns: [t.requestId, t.call] }),
     check(
       "care_call_bounds",
-      sql`${t.call} between 1 and 2 and ${t.reservedMicro}=40000 and (${t.actualMicro} is null or ${t.actualMicro} between 0 and ${t.reservedMicro}) and ((${t.actualMicro} is null) = (${t.settledAt} is null))`,
+      sql`${t.call} between 1 and 2 and ${t.reservedMicro} in (40000,120000) and (${t.actualMicro} is null or ${t.actualMicro} between 0 and ${t.reservedMicro}) and ((${t.actualMicro} is null) = (${t.settledAt} is null))`,
     ),
   ],
 );

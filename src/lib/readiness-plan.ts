@@ -5,6 +5,7 @@ import { parseCheckoutConfig } from "./commerce/config";
 import { parseCareConfig } from "./careos/config";
 import { discoveryConfig } from "./discovery/contracts";
 import { refundScope } from "./commerce/refund-contracts";
+import { evaluationSettings } from "./careos/evaluation-access";
 export function readinessPlan(env: Record<string, string | undefined>) {
   if (
     env.MIGRATION_DATABASE_URL ||
@@ -15,6 +16,7 @@ export function readinessPlan(env: Record<string, string | undefined>) {
   )
     throw new Error("Invalid runtime isolation/origin");
   const care = parseCareConfig(env);
+  if (care.mode === "responses") evaluationSettings(env);
   if (
     env.DISCOVERY_PROVIDER &&
     !["fixture", "channel3"].includes(env.DISCOVERY_PROVIDER)

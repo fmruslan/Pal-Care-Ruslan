@@ -101,6 +101,8 @@ Store amounts as integer minor currency units, with a separate ISO currency code
 
 ## AI and trust boundaries
 
+The Sol preparation keeps this monolith and database authority model: one Responses model (`gpt-6.1-sol`) with medium reasoning, separate customer/Studio contexts and expiring capabilities, one shared persistent evaluation budget. Only browser presentation tools reach AG Studio; financial/recall calculations and status stay deterministic. Prepared migration 0016 adds usage metadata/new bounded reservations, preserving legacy evidence. No actual application migration or live activation is inferred from this code. [Acceptance contract](AI-EVALUATION.md).
+
 ### Stage 3 implementation
 
 CareOS now has one persistent root-layout host, deterministic dashboard briefings/direct document actions, inline document views and product-care pages. `src/lib/careos/` owns contracts, context-bound read tools, lexical/tag retrieval, evidence validation, providers and conversation/budget stores. PostgreSQL tables in `src/db/careos-schema.ts` are additive migrations 0006/0007; the original financial schema/service is unchanged.

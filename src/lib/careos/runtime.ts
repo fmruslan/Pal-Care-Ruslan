@@ -1,4 +1,5 @@
 import "server-only";
+import { cookies } from "next/headers";
 import { MemoryStore, type ConversationStore } from "./store";
 import { CareError, type TurnInput } from "./contracts";
 import { getCareData } from "../demo/repository";
@@ -14,6 +15,13 @@ import { resolveTurn } from "./service";
 import { getGuardian } from "../price-guardian/runtime";
 import { getSafety } from "../safety/runtime";
 import { getPurchaseActivity } from "./activity-repository";
+import { SOL_RESERVATION_MICRO, TURN_DEADLINE_MS } from "./model-policy";
+import {
+  assertEvaluationAccess,
+  evaluationCookie,
+  evaluationSettings,
+} from "./evaluation-access";
+import { accountedCall } from "./accounted-call";
 
 const state = globalThis as unknown as {
   careosMemory?: MemoryStore;
@@ -25,6 +33,7 @@ export function careRuntime() {
     throw new CareError("careos_origin_not_configured");
   const environment = getEnvironment();
   const config = parseCareConfig(process.env);
+  if (config.mode === "responses") evaluationSettings(process.env);
   let store: ConversationStore;
   if (environment.dataSource === "database") {
     state.careosPostgres ??= new PostgresStore(
@@ -34,6 +43,7 @@ export function careRuntime() {
             dailyMicro: config.dailyMicro,
             totalMicro: config.totalMicro,
             budgetId: config.budgetId,
+            reservationMicro: SOL_RESERVATION_MICRO,
           }
         : undefined,
       true,
@@ -47,9 +57,10 @@ export async function answerTurn(
   input: TurnInput,
   conversationId: string,
   owner: string,
+  signal?: AbortSignal,
 ) {
   const { store, config } = careRuntime();
-  const deadline = Date.now() + 20000;
+  const deadline = Date.now() + TURN_DEADLINE_MS;
   const [data, conversation] = await Promise.all([
     getCareData(input.twinId),
     store.get(conversationId, owner),
@@ -61,6 +72,11 @@ export async function answerTurn(
   ): Promise<T> => {
     if (!(store instanceof PostgresStore) || config.mode !== "responses")
       throw new CareError("careos_live_not_authorized");
+    assertEvaluationAccess(
+      "customer",
+      (await cookies()).get(evaluationCookie("customer"))?.value,
+      process.env,
+    );
     if (Date.now() >= deadline) throw new CareError("careos_deadline");
     const reservation = await store.reserve(
       conversationId,
@@ -68,18 +84,19 @@ export async function answerTurn(
       input.requestId,
     );
     // Reservation remains charged on timeout/unknown outcome. Never auto-retry.
-    const result = await work(
-      AbortSignal.timeout(Math.max(1, deadline - Date.now())),
+    const timeout = AbortSignal.timeout(Math.max(1, deadline - Date.now()));
+    return accountedCall(
+      () => work(signal ? AbortSignal.any([signal, timeout]) : timeout),
+      (micro, usage) =>
+        store.settle(
+          conversationId,
+          owner,
+          input.requestId,
+          reservation,
+          micro,
+          usage,
+        ),
     );
-    if (result.micro !== null)
-      await store.settle(
-        conversationId,
-        owner,
-        input.requestId,
-        reservation,
-        result.micro,
-      );
-    return result.value;
   };
   return resolveTurn({
     data,

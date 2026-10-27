@@ -10,6 +10,7 @@ import {
   type Intent,
   type TurnInput,
 } from "./contracts";
+import { adjustmentResolution } from "./resolution";
 
 // Read tools have no commerce runtime dependency and no visitor identity arguments.
 export function isProhibited(message: string) {
@@ -31,6 +32,11 @@ export function interpret(message: string): Intent {
   const text = message.toLowerCase();
   if (isProhibited(text)) return "unsupported";
   if (/receipt|invoice|proof of payment/.test(text)) return "receipt";
+  if (
+    /policy|policies|terms|return window/.test(text) &&
+    !/price|adjustment|refund/.test(text)
+  )
+    return "policy";
   if (/price|adjustment|saving|qualif|refund/.test(text)) return "guardian";
   if (/replace|replacement|alternative/.test(text)) return "replacement";
   if (/recall|safety|hazard|safe to use/.test(text)) return "recall";
@@ -140,8 +146,9 @@ export function deterministicAnswer(
       });
   } else if (intent === "guardian") {
     const item = guardian.find((c) => c.twinId === twin.id);
+    answer.resolution = adjustmentResolution(item);
     answer.text = item
-      ? `${money(item.amountMinor)} merchant price adjustment: ${item.state.replaceAll("_", " ")}. Original ${money(item.originalMinor)}; compared merchant price ${money(item.comparedMinor)}; capped at $20 under ${item.policyVersion}. ${item.state === "completed" && item.verifiedAt ? "Refund independently verified in PayPal Sandbox." : "This is not a completed refund."} No customer claim is needed; merchant approval is required.`
+      ? `${money(item.amountMinor)} merchant price adjustment: ${item.state.replaceAll("_", " ")}. Original ${money(item.originalMinor)}; compared merchant price ${money(item.comparedMinor)}; capped at $20 under ${item.policyVersion}. ${answer.resolution.known} ${answer.resolution.next}`
       : "No Price Guardian adjustment is recorded for this purchase. Existing demo-v1 purchases are not covered by the new future-purchase promise. External refund status has not been checked.";
     answer.actions = [
       {
@@ -156,6 +163,24 @@ export function deterministicAnswer(
         label: "Recorded merchant adjustment · price is not PayPal-verified",
         href: `/guardian/${item.id}`,
       });
+  } else if (intent === "policy") {
+    const policy = documents.find((d) => d.kind === "policy");
+    answer.outcome = policy ? "answered" : "missing";
+    answer.text = policy
+      ? "This is the policy document recorded with this purchase. It is not a new coverage or refund approval."
+      : "No policy document is attached to this purchase. I cannot infer coverage.";
+    if (policy) {
+      answer.steps = [policy.content.slice(0, 1500)];
+      answer.sources.push({
+        id: policy.id,
+        title: policy.title,
+        label: "Recorded policy document · not an AI authorization",
+        href: `/documents/${policy.id}`,
+      });
+      answer.actions = [
+        { label: "Read full recorded policy", href: `/documents/${policy.id}` },
+      ];
+    }
   } else if (intent === "receipt" || intent === "documents") {
     const docs =
       intent === "receipt"

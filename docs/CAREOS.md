@@ -2,9 +2,9 @@
 
 ## Current boundary
 
-CareOS is implemented as one persistent customer assistant plus deterministic briefing/actions, inline documents and scoped product-care sources. The default provider is **fixture**, clearly labeled **Demo responses · no live AI**. The official OpenAI Responses adapter is implemented and tested using injected HTTP transport. **Hosted inference is not activated or verified.** ChatGPT/OpenCode subscription credentials are never reused by the website.
+CareOS is implemented as one persistent customer assistant plus deterministic briefing/actions, inline documents and scoped product-care sources. Default: **fixture**, labeled **Demo responses · no live AI**. The official Responses adapter now targets only **GPT-6.1 Sol / medium**, with shared capped customer/Studio usage, expiring scope access and evidence-based interpretation. **Hosted inference is not activated or verified.** See [private acceptance, $5 proposal and owner setup](AI-EVALUATION.md). ChatGPT/OpenCode subscription credentials are never reused.
 
-No CareOS operation can create/capture/reconcile/refund a PayPal payment or mutate a merchant/purchase/document/Guardian/recall record. There is no customer account, upload, arbitrary-web-fetch or continuously deployed monitoring. Continuation adds deterministic scoped CPSC explanations and replacement navigation, not hosted inference. Merchant AG Studio assistance is a separate, explicitly scripted runner; it is not this customer's model or financial authority.
+No CareOS operation can create/capture/reconcile/refund a payment or mutate trusted commerce/knowledge/recall records. No account, upload, arbitrary-web-fetch or continuous monitoring. Merchant Studio uses a separate presentation-only planner/runner with its own evaluation scope; it shares the same model, effort and budget, never customer context or financial authority. When disabled it remains explicitly scripted.
 
 ## Try it without paid APIs
 
@@ -14,7 +14,7 @@ APP_ORIGIN=http://localhost:3000 pnpm dev
 
 With `DEMO_DATA_SOURCE=fixtures` (default), no database or provider credentials are required. Open `/dashboard`: receipt and care suggestions go directly to records. Open a Twin and Ask CareOS to find its receipt. The separate Raspberry Pi 5 sample has a documented safe-shutdown example; Forma F-01 correctly has no manufacturer guide. [Source attribution and licence](CARE-SOURCES.md).
 
-Current database mode requires reviewed migrations through **0015**, a restricted reader and a separate CareOS login even for fixture answers. Existing application upgrades require separate approval and row-preservation verification; do not seed/reset an existing financial database. No fake Sandbox capture is seeded. [Current setup](SETUP.md) supersedes historical upgrade commands; actual Stage 5 application configuration/migration remains blocked.
+The original application's Phase B restricted-reader/CareOS cutover through **0015** passed. New Sol usage needs separately approved **0016** before live readiness; existing fixture paths remain compatible with 0015. Never seed/reset the application or treat code delivery as migration approval. [Setup](SETUP.md) · [Phase B evidence](evidence/PHASEB-CUTOVER.md).
 
 ## Architecture
 
@@ -53,8 +53,8 @@ Persistent database limits:
 | Turns | 6/session/minute; 30/session/hour; 5,000 globally/hour |
 | Transcript | 40 requests; 24-hour access expiry |
 | Model calls | 2/turn; 200 globally/hour; 500 globally/day |
-| Model payload/output | 20,000 UTF-8 bytes; 1,200 output tokens |
-| Model work deadline | 20 seconds shared across retrieval/calls; SDK timeout 18 seconds; SDK retries off |
+| Model payload/output | Entire serialized request ≤20,000 UTF-8 bytes; 6,000 output tokens including reasoning |
+| Model work deadline | 50 seconds shared across retrieval/calls; SDK timeout 22 seconds; 60-second lease; retries off |
 
 The account-free preview has in-memory caps rather than durable distributed protection: 500 active conversations, five per cookie, six turns/minute and 40 turns/conversation. Restart expires preview conversations. It cannot spend API credits.
 
@@ -62,24 +62,24 @@ The account-free preview has in-memory caps rather than durable distributed prot
 
 **Do not activate as part of fixture acceptance.** Before a real runtime test:
 
-1. Obtain approval for model API spending. Configure a separate API project/key and provider hard spend limit; ChatGPT subscription billing is separate.
+1. Follow [the fixed acceptance procedure](AI-EVALUATION.md): separate project/key, provider **enforced** hard limit (alerts alone insufficient; enforcement can lag), independent scope capabilities and explicit owner budget approval.
 2. Prepare a restricted CareOS database login using reviewed `scripts/careos-role.sql`; no commerce/knowledge-write grants or inherited owner memberships. Set `CAREOS_DATABASE_URL`. Live reservations reject commerce-capable writers before dispatch.
 3. Set `DEMO_DATA_SOURCE=database`, exact `APP_ORIGIN`, `CAREOS_PROVIDER=responses`, `CAREOS_LIVE_ENABLED=true`, server-only `CAREOS_API_KEY`, and explicit micro-USD daily/total budgets plus stable `CAREOS_BUDGET_ID`. Restart the server after changing runtime configuration.
-4. Initial reviewed endpoint/model: `https://api.openai.com/v1`, `gpt-5.4-mini-2026-03-17`. Other endpoints/models fail closed until their protocol and price bounds are reviewed. The shared provider interface is extensible; compatibility with untested third parties is not claimed.
+4. Only reviewed endpoint/model: `https://api.openai.com/v1`, `gpt-6.1-sol`, fixed medium reasoning/standard tier. Other models/endpoints/tiers fail closed. Official documentation confirms protocol support; project access/real inference remain unverified. 0016 and private local evaluation gates are required before dispatch.
 5. Run the versioned scenarios in `tests/fixtures/careos-evaluation.ts` with a human grounding rubric, adding real provider refusals/errors. Compare source/model/prompt versions, latency, token usage and spend. Fixture results are not live-model evidence.
 6. Publish sanitized actual-runtime evidence before claiming live AI or hackathon runtime completion.
 
-Budgets use **integer micro-USD** (1 USD = 1,000,000). Maximum configured caps are $5/day and $25/period; setting them does not constitute spending approval. Before each call, PostgreSQL atomically reserves $0.04 across daily/period buckets and increments call quotas. Supported-model input/schema/output bounds fit that conservative ceiling. Known usage settles at $0.75/M input and $4.50/M output tokens (cached-input discounts ignored conservatively). Missing usage or ambiguous failures retain the full reservation. Never rotate the budget ID to bypass a spent budget. Provider price changes require review before activation.
+Budgets use integer micro-USD; maximum daily/lifetime caps are **$5 each**, shared across customer and Studio. Proposed first daily test cap **$0.50**, not authorized yet. Each Sol call atomically reserves **$0.12**, based on bounded whole-request input/cache-write/output cost. Known usage accounts uncached/cached/cache-write tokens and reasoning-inclusive output at reviewed Sol standard rates; malformed/missing usage or ambiguous failures retain reservations. Known billed refusals/invalid output still settle. Persist metadata, not prompts. Never rotate IDs or clear usage to bypass a cap. Legacy $0.04 reservations remain unchanged and settle against their saved amount; 0016 does not backfill them.
 
 Each call has its own persisted reservation and original bucket references. Known usage for call two can settle while call one remains unknown. Reverse-order/concurrent settlement is safe; identical replay releases no additional money, changed usage conflicts, and missing buckets roll back every release. UTC rollover does not move the reservation to a new daily bucket. A reported cost exceeding its reservation persists a spending block, not an invented successful settlement. Legacy aggregate unknown usage is not backfilled. History/attention and Glance consume one read-only source-labeled activity projection; partial evidence is explicit and never treated as safety or coverage confirmation.
 
 `store:false` avoids persisted Response application state, not all provider abuse-monitoring retention. No hosted Conversations API or unbounded `previous_response_id` chain is used; each call receives an application-curated bounded context. Native Responses output items are not replayed.
 
-Official references: [Responses structured outputs](https://platform.openai.com/docs/guides/structured-outputs), [JavaScript SDK](https://github.com/openai/openai-node), [model and pricing](https://developers.openai.com/api/docs/models/gpt-5.4-mini), [spend limits](https://developers.openai.com/api/docs/guides/spend-limits), [data controls](https://developers.openai.com/api/docs/guides/your-data), [separate ChatGPT/API billing](https://help.openai.com/en/articles/9039756-billing-settings-in-chatgpt-vs-platform).
+Official references: [Responses structured outputs](https://platform.openai.com/docs/guides/structured-outputs), [JavaScript SDK](https://github.com/openai/openai-node), [Sol model/pricing](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [spend limits](https://developers.openai.com/api/docs/guides/spend-limits), [data controls](https://developers.openai.com/api/docs/guides/your-data), [separate ChatGPT/API billing](https://help.openai.com/en/articles/9039756-billing-settings-in-chatgpt-vs-platform).
 
 ## Verification and remaining work
 
-`pnpm careos:evaluate` runs **70 versioned deterministic/fixture tasks** (v2), including scoped recall questions, unsupported replacement categories and unauthorized financial requests. Separate tests validate changed/failed official sources, unsafe citations and exact Twin context. These are reproducible task checks, not hosted-model accuracy or safety certification. The existing Responses adapter is unchanged and remains disabled. [Recall contract](RECALL-GUARDIAN.md) · [replacement contract](REPLACEMENT-CONCIERGE.md) · [merchant scripted framework](INTELLIGENCE.md).
+`pnpm careos:evaluate` runs **70 versioned deterministic/fixture tasks**. Sol-specific unit/protocol, legacy-reservation migration, shared-budget concurrency and isolated browser/actual-Studio tests complement them. These are not hosted-model quality or safety certification. The original application remains fixture-only pending separate upgrade/activation. [Recall](RECALL-GUARDIAN.md) · [replacement](REPLACEMENT-CONCIERGE.md) · [merchant framework](INTELLIGENCE.md).
 
 CI runs deterministic/fixture evaluations, injected Responses protocol tests, dedicated PostgreSQL concurrency/budget tests, and browser/accessibility checks in both data modes. No CI secrets can enable paid models or PayPal.
 

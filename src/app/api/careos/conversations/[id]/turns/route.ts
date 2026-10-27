@@ -22,7 +22,7 @@ export async function POST(
     let answer: CareAnswer;
     let failure: unknown;
     try {
-      answer = await answerTurn(input, id, owner);
+      answer = await answerTurn(input, id, owner, request.signal);
     } catch (error) {
       failure = error;
       answer = {

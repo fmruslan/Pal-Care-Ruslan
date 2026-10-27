@@ -104,4 +104,6 @@ Use private-network scoped connection URLs. For external administration, tempora
 
 ## Provider configuration and remaining work
 
+Sol/medium code now prepares migration **0016** for usage metadata/new reservations and a private presentation-only Studio endpoint. It has **not** been applied to the existing 0015 application. Fixture/read paths remain compatible; live readiness fails closed until the usage column/constraint and access/project/budget gates are present. Do not run migration or activate on code delivery alone. Follow [the $5 proposal/first $0.50 acceptance](AI-EVALUATION.md) after separate approval, with the existing restricted accounts and loopback-only runtime. No provider key belongs in Git, client code or chat.
+
 See [PAYPAL.md](PAYPAL.md) for Sandbox setup and [CareOS](CAREOS.md) for fixture behavior, restricted DB roles, cleanup and the separately approved live API activation procedure. Stage 2 has actual local provider/database acceptance evidence. New environments need their own verification; no credentials or completed capture are seeded into preview data. Hosted model inference, webhooks, Channel3, AG Studio and refunds remain unverified/unimplemented as applicable. [Payment evidence](evidence/STAGE2-VERIFICATION.md).

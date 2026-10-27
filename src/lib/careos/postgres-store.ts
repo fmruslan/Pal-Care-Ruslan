@@ -2,6 +2,12 @@ import { createHash, randomUUID } from "node:crypto";
 import type { Pool, PoolClient } from "pg";
 import { assertDatabaseAuthority } from "../../db/authority";
 import {
+  SOL_RESERVATION_MICRO,
+  MODEL,
+  REASONING,
+  type ModelUsage,
+} from "./model-policy";
+import {
   CareError,
   type CareTurn,
   type Conversation,
@@ -13,8 +19,9 @@ export type SpendingConfig = {
   dailyMicro: number;
   totalMicro: number;
   budgetId: string;
+  reservationMicro?: 40000 | typeof SOL_RESERVATION_MICRO;
 };
-export const CALL_RESERVATION_MICRO = 40000; // $0.04, above bounded supported-model maximum.
+export const CALL_RESERVATION_MICRO = 40000; // Legacy reservation; never reprice/release old unknown calls.
 function fingerprint(input: TurnInput) {
   return createHash("sha256").update(JSON.stringify(input)).digest("hex");
 }
@@ -171,7 +178,7 @@ export class PostgresStore implements ConversationStore {
         [input.requestId, id, fingerprint(input)],
       );
       await client.query(
-        "update care_conversations set pending_id=$2, pending_until=now()+interval '30 seconds' where id=$1",
+        "update care_conversations set pending_id=$2, pending_until=now()+interval '60 seconds' where id=$1",
         [id, input.requestId],
       );
       return null;
@@ -199,7 +206,15 @@ export class PostgresStore implements ConversationStore {
     ];
   }
   async reserve(id: string, owner: string, requestId: string) {
+    const reserved = this.spending.reservationMicro ?? CALL_RESERVATION_MICRO;
+    if (![CALL_RESERVATION_MICRO, SOL_RESERVATION_MICRO].includes(reserved))
+      throw new CareError("careos_reservation_invalid");
     return this.tx(async (client) => {
+      if (reserved === SOL_RESERVATION_MICRO) {
+        // Explicit new-column access fails before dispatch if approved migration
+        // 0016 has not yet been applied. Legacy fixture/read paths stay usable.
+        await client.query("select usage from care_model_calls limit 0");
+      }
       if (
         (
           await client.query("select 1 from care_buckets where key=$1", [
@@ -225,24 +240,19 @@ export class PostgresStore implements ConversationStore {
       const hour = Math.floor(Date.now() / 3600000),
         day = Math.floor(Date.now() / 86400000);
       await this.quotas(client, [
-        [daily, CALL_RESERVATION_MICRO, this.spending.dailyMicro],
-        [total, CALL_RESERVATION_MICRO, this.spending.totalMicro],
+        [daily, reserved, this.spending.dailyMicro],
+        [total, reserved, this.spending.totalMicro],
         [`model:hour:${hour}`, 1, 200],
         [`model:day:${day}`, 1, 500],
       ]);
       const call = (request.rows[0].provider_calls as number) + 1;
       await client.query(
         "insert into care_model_calls(request_id,call,reserved_micro,bucket_keys) values($1,$2,$3,$4)",
-        [
-          requestId,
-          call,
-          CALL_RESERVATION_MICRO,
-          JSON.stringify([daily, total]),
-        ],
+        [requestId, call, reserved, JSON.stringify([daily, total])],
       );
       await client.query(
         "update care_requests set reserved_micro=reserved_micro+$2,provider_calls=provider_calls+1 where id=$1",
-        [requestId, CALL_RESERVATION_MICRO],
+        [requestId, reserved],
       );
       return {
         call,
@@ -256,8 +266,16 @@ export class PostgresStore implements ConversationStore {
     requestId: string,
     reservation: { call: number; keys: string[] },
     actualMicro: number,
+    usage?: ModelUsage | null,
   ) {
     if (!Number.isSafeInteger(actualMicro) || actualMicro < 0)
+      throw new CareError("careos_usage_invalid");
+    if (
+      usage &&
+      (usage.micro !== actualMicro ||
+        usage.model !== MODEL ||
+        usage.reasoning !== REASONING)
+    )
       throw new CareError("careos_usage_invalid");
     const overrun = await this.tx(async (client) => {
       await this.owned(client, id, owner);
@@ -278,7 +296,12 @@ export class PostgresStore implements ConversationStore {
       )
         throw new CareError("careos_usage_conflict", 409);
       if (saved.actual_micro !== null) {
-        if (saved.actual_micro !== actualMicro)
+        if (
+          saved.actual_micro !== actualMicro ||
+          (usage &&
+            (!saved.usage ||
+              Object.entries(usage).some(([k, v]) => saved.usage[k] !== v)))
+        )
           throw new CareError("careos_usage_conflict", 409);
         return false; // Identical replay: no second release.
       }
@@ -289,7 +312,7 @@ export class PostgresStore implements ConversationStore {
         );
         return true; // Commit the block; never release an under-reservation.
       }
-      const released = CALL_RESERVATION_MICRO - actualMicro;
+      const released = saved.reserved_micro - actualMicro;
       for (const key of [...saved.bucket_keys].sort()) {
         const result = await client.query(
           "update care_buckets set amount=amount-$2 where key=$1 and amount >= $2",
@@ -302,6 +325,14 @@ export class PostgresStore implements ConversationStore {
         "update care_model_calls set actual_micro=$3,settled_at=now() where request_id=$1 and call=$2",
         [requestId, reservation.call, actualMicro],
       );
+      if (usage) {
+        if (usage.micro !== actualMicro)
+          throw new CareError("careos_usage_invalid");
+        await client.query(
+          "update care_model_calls set usage=$3 where request_id=$1 and call=$2",
+          [requestId, reservation.call, JSON.stringify(usage)],
+        );
+      }
       await client.query(
         "update care_requests set actual_micro=coalesce(actual_micro,0)+$2,reserved_micro=reserved_micro-$3,settled_calls=settled_calls+1 where id=$1",
         [requestId, actualMicro, released],

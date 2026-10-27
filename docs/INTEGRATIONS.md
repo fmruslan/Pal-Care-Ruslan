@@ -7,7 +7,7 @@ PayPal checkout has actual Stage 2 completed-capture/Twin evidence; the separate
 | PayPal Sandbox | Actual completed Orders/Payments capture and automatic Twin verified via official SDK 2.5.0; refunds/webhooks deferred | https://developer.paypal.com/ |
 | Official PayPal Next.js starter | Trusted checkout reference | https://developer.paypal.com/guides/nextjs-checkout |
 | PayPal Postman workspace | Create/capture/refund/error testing | https://www.postman.com/paypal |
-| Hosted AI model API | Official OpenAI Responses adapter implemented with Zod and persistent resource gates; fixture mode verified, actual runtime inference awaiting separate approval/key | [CareOS contract](CAREOS.md); initial transport-tested candidate `gpt-5.4-mini-2026-03-17` |
+| Hosted AI model API | Official Responses/Zod adapter targets only `gpt-6.1-sol` / medium; shared bounded customer/Studio budgets and isolated protocol tests; actual project access/inference await separate approval/key | [CareOS contract](CAREOS.md); [capped acceptance and API-project setup](AI-EVALUATION.md) |
 | Render Managed PostgreSQL + Drizzle | Sample records, reviewed migrations and idempotent seed implemented locally; cloud deployment pending | https://render.com/docs/databases |
 | CPSC | Actual retrieved historical notice 24-159, pinned exact-model rules, limited coverage/physical-identity uncertainty | [Recall contract](RECALL-GUARDIAN.md) |
 | Channel3 | Real adapter/fresh-offer infrastructure + labeled fixture UX; actual API acceptance pending credentials/free-credit authorization | [Discovery contract](REPLACEMENT-CONCIERGE.md) |

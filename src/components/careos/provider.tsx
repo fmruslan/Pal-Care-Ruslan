@@ -371,6 +371,28 @@ export function CareOSProvider({
                               : "From saved records · no model call"}
                       </p>
                       <p>{turn.answer.text}</p>
+                      {turn.answer.resolution && (
+                        <details className="mt-3 rounded-xl border px-3">
+                          <summary className="cursor-pointer py-2 font-medium">
+                            What happens next
+                          </summary>
+                          <dl className="space-y-2 pb-3">
+                            {(
+                              [
+                                ["Known", "known"],
+                                ["Missing", "missing"],
+                                ["Next step", "next"],
+                                ["Finished when", "finished"],
+                              ] as const
+                            ).map(([label, key]) => (
+                              <div key={key}>
+                                <dt className="font-semibold">{label}</dt>
+                                <dd>{turn.answer.resolution![key]}</dd>
+                              </div>
+                            ))}
+                          </dl>
+                        </details>
+                      )}
                       {!!turn.answer.steps.length && (
                         <ul className="mt-3 list-disc space-y-2 pl-5">
                           {turn.answer.steps.map((step) => (
