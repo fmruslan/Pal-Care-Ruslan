@@ -2,6 +2,10 @@
 
 **Prepared, not activated. No paid inference has been performed for this increment.** This is the next integration after the closed private Phase B cutover, not another infrastructure audit or architecture rewrite. The existing application remains on 0015 with fixture AI and financial/provider flags off.
 
+## Current owner direction: development first, API acceptance later
+
+Continue development, code/prompt review and offline evaluation in the existing subscription-connected OpenCode session. Do not reconnect without an authentication error, inspect/export its tokens, add a proxy, create a project/key, activate billing or apply 0016 now. `pnpm careos:review --examples` supplies a reproducible no-network review pack; [the coding-assistant review](evidence/OFFLINE-AI-REVIEW.md) distinguishes fixture assertions, AI-assisted critique and a semantic negative control from real application inference. Model/effort remain Sol/medium. The setup and spending proposal below is **deferred final-integration work**, not a current request to provision credentials or spend. Keep a pre-submission buffer for genuine API failures/quality fixes; do not replace actual acceptance with subscription-session opinions.
+
 ## Product and demo standard
 
 Everything you buy. Taken care of. Success means a correctly completed care task with less customer effort, not more messages. Glance/Tap remain factual, deterministic and direct. Talk adds exact-product cited care explanations and intent/evidence interpretation; Studio adds natural-language, presentation-only changes. Financial calculations, recall matching, next actor, approval and provider-confirmed status remain application facts. No sensors/physical diagnostics, staffed support, general claims or continuous monitoring is implied.
@@ -62,3 +66,4 @@ Isolated tests use dedicated PostgreSQL and injected HTTP; the SDK/Studio tool p
 - [Spend limits and enforcement delay](https://developers.openai.com/api/docs/guides/spend-limits)
 - [AG Studio custom runners](https://www.ag-grid.com/studio/react/ai-custom-runner/)
 - [Official sponsor brief](https://paypalaihackathon.devpost.com/details/aggrid)
+- [OpenCode ChatGPT connection for development only](https://opencode.ai/v2/docs/providers#chatgpt)

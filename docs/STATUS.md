@@ -10,6 +10,8 @@ Last updated: 2026-10-26
 
 ### Later Sol Medium increment — hosted acceptance not activated
 
+Owner direction: subscription-connected OpenCode for development and AI-assisted review; no new login, API key/billing, authentication proxy/reuse or application 0016 activation now. Final API acceptance is deferred, not waived. Added a 14-case no-network prompt/answer review pack, fixed false status-query refusals and shortened repetitive adjustment wording while retaining calculation evidence. [Offline review/method and limits](evidence/OFFLINE-AI-REVIEW.md). This is not hosted Sol accuracy or real provider proof.
+
 One reviewed model/effort: `gpt-6.1-sol` / medium via official Responses SDK. Grounded exact-model care, bounded intent/evidence interpretation, deterministic resolution states and actual Studio presentation-only plans reuse existing architecture. Separate expiring customer/Studio scopes share persistent accounting capped at **$5 total** (proposed, not approved); first acceptance proposal **≤$0.50**. Usage/cache/reasoning pricing, invalid-output settlement, metadata, cancellation and unknown-reservation safeguards are implemented. **0016** adds nullable usage metadata and $0.12 reservations without repricing legacy $0.04 calls, tested only in a separate disposable PostgreSQL container. Original application remains at 0015/fixture; code now includes prepared 0016 (same 29 tables). No actual model access, quality, latency, spend or sponsor eligibility claim. [Verification evidence](evidence/SOL-MEDIUM.md) · [setup/acceptance](AI-EVALUATION.md).
 
 | Area | Implemented | Isolated verification | Actual application environment |

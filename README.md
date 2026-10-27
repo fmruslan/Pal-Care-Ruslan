@@ -2,6 +2,8 @@
 
 **Next integration prepared, not activated:** GPT-6.1 Sol with fixed medium reasoning for cited CareOS guidance/evidence interpretation and validated AG Studio presentation plans. Shared capped accounting, expiring separate scope access and migration **0016** are implemented/tested in isolation; the original database remains at **0015**, with no live model call claimed. [Proposed $5 evaluation, first $0.50 acceptance and API-key setup](docs/AI-EVALUATION.md).
 
+Current testing uses the existing OpenCode development connection plus automated fixture/injected tests. No API key/billing or 0016 activation now; actual capped API acceptance is reserved for final integration. `pnpm careos:review --examples` provides the [offline prompt/answer review pack and its evidence limits](docs/evidence/OFFLINE-AI-REVIEW.md). OpenCode authentication is never a website credential.
+
 **Local security cutover passed:** verified Phase A recovery/Mac backup, migrations through 0015 and actual restricted reader/CareOS connections. The private app runs on loopback with fixture assistance and financial/provider activation off. Linux OS isolation and public deployment remain blocked; see [Phase B evidence](docs/evidence/PHASEB-CUTOVER.md) and the [completed checklist](docs/DATABASE-CUTOVER.md).
 
 Stage 5 hardening connects existing journeys and removes privileged database fallbacks. The separately approved Phase B cutover verified the existing local application with migrations through **0015**, a restricted reader and a separate CareOS writer. This is not public-runtime isolation or provider acceptance. See [historical Stage 5 evidence](docs/evidence/STAGE5-VERIFICATION.md) and [current setup](docs/SETUP.md). No provider activation is authorized.

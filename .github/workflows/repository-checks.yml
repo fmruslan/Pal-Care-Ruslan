@@ -57,6 +57,8 @@ jobs:
       - run: pnpm test
       - name: Versioned CareOS deterministic and fixture evaluations (no model calls)
         run: pnpm careos:evaluate
+      - name: Offline CareOS prompt and answer review fixtures (network disabled, no inference)
+        run: pnpm careos:review
       - name: PostgreSQL migrations, seeds and integrity tests
         run: pnpm test:integration
       - run: pnpm build

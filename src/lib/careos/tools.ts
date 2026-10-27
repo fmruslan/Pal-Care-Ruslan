@@ -18,7 +18,7 @@ export function isProhibited(message: string) {
     /^(where|what|has|have|is|why|when|show|tell|explain)\b.*refund/i.test(
       message.trim(),
     ) &&
-    !/issue|execute|approve|send|process|ignore|give|trigger|now/i.test(
+    !/\b(issue|execute|approve|send|process|ignore|give|trigger)\b/i.test(
       message,
     );
   return (
@@ -148,7 +148,7 @@ export function deterministicAnswer(
     const item = guardian.find((c) => c.twinId === twin.id);
     answer.resolution = adjustmentResolution(item);
     answer.text = item
-      ? `${money(item.amountMinor)} merchant price adjustment: ${item.state.replaceAll("_", " ")}. Original ${money(item.originalMinor)}; compared merchant price ${money(item.comparedMinor)}; capped at $20 under ${item.policyVersion}. ${answer.resolution.known} ${answer.resolution.next}`
+      ? `${money(item.amountMinor)} merchant price adjustment. ${answer.resolution.known} ${answer.resolution.next}`
       : "No Price Guardian adjustment is recorded for this purchase. Existing demo-v1 purchases are not covered by the new future-purchase promise. External refund status has not been checked.";
     answer.actions = [
       {
@@ -160,7 +160,7 @@ export function deterministicAnswer(
       answer.sources.push({
         id: item.id,
         title: `${item.policyVersion} · price and approval evidence`,
-        label: "Recorded merchant adjustment · price is not PayPal-verified",
+        label: `Recorded calculation: original ${money(item.originalMinor)}; compared merchant price ${money(item.comparedMinor)}; adjustment capped at $20. Merchant price is not PayPal-verified.`,
         href: `/guardian/${item.id}`,
       });
   } else if (intent === "policy") {

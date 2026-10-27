@@ -8,6 +8,8 @@ No CareOS operation can create/capture/reconcile/refund a payment or mutate trus
 
 ## Try it without paid APIs
 
+Use the existing OpenCode coding session for development review; no website access to its authentication. `pnpm careos:review --examples` runs 14 fictional, no-network task cases for AI-assisted review here. It does not run hosted Sol or prove semantic correctness; [review evidence and negative control](evidence/OFFLINE-AI-REVIEW.md). API project/key creation, billing and actual 0016/live activation are currently deferred by owner direction until final integration.
+
 ```bash
 APP_ORIGIN=http://localhost:3000 pnpm dev
 ```

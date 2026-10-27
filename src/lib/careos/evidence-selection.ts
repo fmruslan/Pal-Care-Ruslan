@@ -8,6 +8,7 @@ export function evidencePacket(base: CareAnswer) {
     base.text,
     ...base.steps,
     ...(base.resolution ? Object.values(base.resolution) : []),
+    ...base.sources.map((source) => source.label),
   ];
   return texts
     .slice(0, 10)
