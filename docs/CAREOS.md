@@ -22,6 +22,8 @@ The original Phase B restricted-reader/CareOS cutover through **0015** passed. S
 
 `src/components/careos/provider.tsx` mounts once under the existing root theme provider. Pages register validated Twin or explicit example context; navigation does not remount checkout. The assistant remains available on dashboard, Vault, documents, care, Guardian, safety and replacement routes, hidden on merchant/checkout/marketing routes. Reference context is fictional ownership with no invented Twin or receipt. Desktop uses a persistent nonmodal dock (closable to use the page beneath); mobile/tablet use a modal sheet. Returning to the customer space retains the transcript; old answers retain their original product labels.
 
+The focused finish keeps this host: 16px-relative conversation text, labeled Send, compact execution/evidence hierarchy, 44px primary targets, wide-desktop compact reading space and mobile visible-viewport sizing. Layout/keyboard/appearance changes never send a financial/model request or remount checkout. Injected keyboard geometry, 200% root-font simulation and axe scans are explicitly not real-device or full accessibility certification. [UX evidence](evidence/CAREOS-UX.md).
+
 `src/lib/careos/` separates contracts, security, deterministic tools, briefing, product-filtered retrieval, provider adapters, grounding, persistence and orchestration. Simple receipt/record tasks bypass the model. Ambiguous language may use one classifier call, then one grounded care call at most. There is no autonomous tool loop, model-written HTML/SQL, model-chosen URL or financial tool.
 
 ### Evidence and actions

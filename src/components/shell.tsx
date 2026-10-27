@@ -134,7 +134,7 @@ export function Shell({
                   "Purchase Twin")}
             </span>
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2 sm:gap-3">
             <ThemeSelector />
             <Button
               asChild
@@ -161,7 +161,7 @@ export function Shell({
         </header>
         <main
           id="main-content"
-          className="mx-auto max-w-[1440px] px-5 py-6 sm:px-8 sm:py-8 lg:px-10"
+          className="mx-auto max-w-[1440px] break-words px-5 py-6 sm:px-8 sm:py-8 lg:px-10"
         >
           <div
             role="note"

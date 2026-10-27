@@ -27,6 +27,7 @@ import { useConversation } from "./use-conversation";
 import { useConversationScroll } from "./use-conversation-scroll";
 import { AnswerActions } from "./answer-actions";
 import { PurchaseChoices } from "./purchase-choices";
+import { useVisibleViewport } from "./use-visible-viewport";
 
 type AssistantState = {
   select: (context: CareContext | null) => void;
@@ -67,6 +68,7 @@ export function CareOSProvider({
   const trigger = useRef<HTMLButtonElement>(null);
   const composing = useRef(false);
   const composer = useRef<HTMLTextAreaElement>(null);
+  const panelRef = useVisibleViewport();
   const latest = conversation?.turns.at(-1);
   const { attach, onScroll, showJump, jump, focusTranscript } =
     useConversationScroll(
@@ -81,6 +83,13 @@ export function CareOSProvider({
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, []);
+
+  useEffect(() => {
+    if (!isOpen || !visible || expanded) return;
+    document.documentElement.classList.add("careos-reading-space");
+    return () =>
+      document.documentElement.classList.remove("careos-reading-space");
+  }, [isOpen, visible, expanded]);
 
   const select = useCallback((value: CareContext | null) => {
     registered.current = true;
@@ -151,6 +160,7 @@ export function CareOSProvider({
               <Dialog.Overlay className="fixed inset-0 z-50 bg-background/70 backdrop-blur-sm" />
             )}
             <Dialog.Content
+              ref={panelRef}
               className={`careos-assistant ${expanded ? "careos-expanded" : ""} fixed z-[60] flex flex-col overflow-hidden border bg-card shadow-lift`}
               onCloseAutoFocus={(event) => {
                 event.preventDefault();
@@ -158,23 +168,25 @@ export function CareOSProvider({
               }}
               aria-describedby="careos-description"
             >
-              <header className="flex items-center justify-between gap-2 border-b bg-intelligence px-5 py-4">
-                <div>
-                  <Dialog.Title className="flex items-center gap-2 text-base font-semibold text-intelligence-foreground">
-                    <Sparkles className="size-5" aria-hidden="true" />
+              <header className="careos-header intelligence-wash flex shrink-0 items-start justify-between gap-[8px] border-b">
+                <div className="min-w-0">
+                  <Dialog.Title className="flex items-center gap-2 text-lg font-semibold text-intelligence-foreground">
+                    <span className="flex size-[32px] shrink-0 items-center justify-center rounded-xl border border-intelligence-foreground/20 bg-intelligence">
+                      <Sparkles className="size-[20px]" aria-hidden="true" />
+                    </span>
                     CareOS
                   </Dialog.Title>
                   <Dialog.Description
                     id="careos-description"
-                    className="mt-1 text-xs text-muted-foreground"
+                    className="sr-only mt-1 text-sm text-muted-foreground sm:not-sr-only"
                   >
                     Your purchase companion
                   </Dialog.Description>
                   <p className="mt-1 text-xs font-medium text-intelligence-foreground">
                     {mode === "fixture"
-                      ? "Demo responses · no live AI"
+                      ? "Demo · no live AI"
                       : mode === "subscription"
-                        ? "Using ChatGPT plan · Sol Medium · private"
+                        ? "Using ChatGPT plan"
                         : mode === "responses"
                           ? "Live model enabled · answers cite sources"
                           : mode === "disabled"
@@ -187,15 +199,17 @@ export function CareOSProvider({
                       target="_blank"
                       rel="noreferrer"
                       className="text-xs text-primary underline"
+                      title="Private GPT-6.1 Sol · medium reasoning"
                     >
                       Manage ChatGPT usage
                     </a>
                   )}
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-0">
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="size-[44px] shrink-0"
                     aria-label={
                       expanded ? "Compact assistant" : "Expand assistant"
                     }
@@ -211,6 +225,7 @@ export function CareOSProvider({
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="size-[44px] shrink-0"
                       aria-label="Close CareOS"
                     >
                       <X aria-hidden="true" />
@@ -218,10 +233,10 @@ export function CareOSProvider({
                   </Dialog.Close>
                 </div>
               </header>
-              <div className="flex items-center justify-between gap-2 border-b px-5 py-3 text-xs">
+              <div className="careos-context flex shrink-0 items-center justify-between border-b bg-accent/50 text-xs">
                 <span className="min-w-0 text-muted-foreground">
-                  Discussing{" "}
-                  <strong className="block truncate text-sm text-foreground">
+                  <span className="sr-only">Discussing </span>
+                  <strong className="block break-words text-sm text-foreground">
                     {context
                       ? `${context.name} · ${context.model}`
                       : "Choose a purchase"}
@@ -234,12 +249,19 @@ export function CareOSProvider({
                           ? "Fictional ownership example · no purchase"
                           : "Sample purchase"}{" "}
                       {context.twinId && (
-                        <>· PC-{context.twinId.slice(-6).toUpperCase()}</>
+                        <span className="hidden sm:inline">
+                          · PC-{context.twinId.slice(-6).toUpperCase()}
+                        </span>
                       )}
                     </span>
                   )}
                 </span>
-                <Button variant="ghost" size="sm" asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="shrink-0 px-[8px] py-[8px]"
+                  asChild
+                >
                   <Link href="/vault" onClick={() => mobile && setOpen(false)}>
                     Switch
                   </Link>
@@ -248,7 +270,7 @@ export function CareOSProvider({
               <div
                 ref={attach}
                 onScroll={onScroll}
-                className="careos-transcript min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-5"
+                className="careos-transcript min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
                 aria-label="CareOS conversation"
                 role="region"
                 tabIndex={0}
@@ -260,7 +282,7 @@ export function CareOSProvider({
                       <br />
                       More taking care.
                     </h2>
-                    <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                    <p className="mt-3 text-base leading-7 text-muted-foreground">
                       Find a receipt, understand a purchase, or explore guidance
                       from its available documents.
                     </p>
@@ -287,7 +309,7 @@ export function CareOSProvider({
                     )}
                     <p
                       data-user-message
-                      className="ml-8 whitespace-pre-wrap break-words rounded-2xl bg-secondary px-4 py-3 text-sm text-secondary-foreground"
+                      className="careos-user-message whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-secondary text-base leading-7 text-secondary-foreground"
                     >
                       {turn.message}
                     </p>
@@ -299,8 +321,8 @@ export function CareOSProvider({
                       }
                       className="space-y-3"
                     >
-                      <div className="text-sm leading-7">
-                        <p className="mb-1 text-xs font-semibold text-intelligence-foreground">
+                      <div className="careos-answer text-base leading-7">
+                        <p className="mb-2 inline-flex rounded-full bg-intelligence px-2 py-1 text-xs leading-5 font-medium text-intelligence-foreground">
                           {turn.answer.outcome === "unavailable"
                             ? "CareOS unavailable · no answer generated"
                             : turn.answer.mode === "fixture"
@@ -368,7 +390,7 @@ export function CareOSProvider({
                         />
                       )}
                       {!!turn.answer.sources.length && (
-                        <details className="rounded-xl border px-3 text-xs text-muted-foreground">
+                        <details className="rounded-xl border bg-accent/40 px-3 text-sm text-muted-foreground">
                           <summary className="min-h-11 cursor-pointer py-3">
                             <FileText
                               className="mr-2 inline size-3.5"
@@ -413,11 +435,17 @@ export function CareOSProvider({
                     </p>
                     <p
                       data-user-message
-                      className="ml-8 whitespace-pre-wrap break-words rounded-2xl bg-secondary px-4 py-3 text-sm text-secondary-foreground"
+                      className="careos-user-message whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-secondary text-base leading-7 text-secondary-foreground"
                     >
                       {pending.input.message}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="flex items-center gap-2 text-base text-muted-foreground">
+                      {pending.status === "sending" && (
+                        <span
+                          aria-hidden="true"
+                          className="size-2 shrink-0 rounded-full bg-intelligence-foreground"
+                        />
+                      )}
                       {pending.status === "sending"
                         ? "Preparing your answer…"
                         : pending.status === "not-sent"
@@ -469,8 +497,8 @@ export function CareOSProvider({
                   </Button>
                 </div>
               )}
-              <div className="border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-                <div className="mb-3 flex flex-wrap gap-2">
+              <div className="careos-composer shrink-0 border-t bg-card">
+                <div className="careos-quick-actions mb-3 flex flex-wrap gap-2">
                   {[
                     ["Find receipt", "receipt"],
                     ["Purchase summary", "summary"],
@@ -480,7 +508,7 @@ export function CareOSProvider({
                       type="button"
                       key={intent}
                       disabled={unavailable}
-                      className="min-h-11 rounded-xl border px-3 text-xs font-medium text-intelligence-foreground hover:bg-intelligence disabled:opacity-50"
+                      className="min-h-11 rounded-xl border px-3 text-xs font-medium text-intelligence-foreground hover:bg-intelligence focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
                       onClick={() => void ask(label, intent as Intent)}
                     >
                       {label}
@@ -527,23 +555,24 @@ export function CareOSProvider({
                     maxLength={2000}
                     rows={1}
                     placeholder="Ask about your purchase…"
-                    className="max-h-36 min-h-11 min-w-0 flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2 text-base focus-visible:outline-2 focus-visible:outline-ring"
+                    className="max-h-36 min-h-11 min-w-0 flex-1 resize-none rounded-xl border border-input bg-background px-[12px] py-[10px] text-base focus-visible:outline-2 focus-visible:outline-ring"
                   />
                   <Button
                     type="submit"
-                    size="icon"
+                    className="shrink-0 px-[12px] py-[10px]"
                     disabled={unavailable || !draft.trim()}
                     aria-label="Send to CareOS"
                   >
-                    <ArrowUp aria-hidden="true" />
+                    <ArrowUp className="hidden sm:block" aria-hidden="true" />
+                    <span>Send</span>
                   </Button>
                 </form>
-                <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                  <span>Demo data only. Don’t enter personal information.</span>
+                <div className="careos-composer-note mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <span>Demo only. No personal information.</span>
                   <button
                     type="button"
                     disabled={busy}
-                    className="min-h-11 shrink-0 underline"
+                    className="min-h-11 min-w-11 shrink-0 rounded-lg px-2 text-sm underline focus-visible:outline-2 focus-visible:outline-ring"
                     onClick={() => void clear()}
                   >
                     Clear

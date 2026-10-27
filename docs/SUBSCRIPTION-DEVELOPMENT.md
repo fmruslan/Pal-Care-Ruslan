@@ -29,7 +29,7 @@ This is **private host storage, not encryption at rest or OS isolation from the 
 
 ## Subscription allowance, not an API money budget
 
-The owner first approved 30 additional requests, then increased this same session to **50 total**. Final evaluation used **25**, leaving **25** until the original expiry. `extend-to-50 --credits-disabled` changes only the cap; attempts, approval/expiry, provider blocks, original failed pilot and unknown calls are retained. No reset or identity rotation. Session expiry remains 24 hours from original authorization.
+The owner first approved 30 additional requests, then increased this same session to **50 total**. The original quality evaluation used **25**. The later focused [CareOS UX acceptance](evidence/CAREOS-UX.md) used **3 more**, making **28/50 used**, with two prior unknowns retained and the original expiry unchanged. The owner allowed up to 50 new requests if necessary; no new cap/session was needed. `extend-to-50 --credits-disabled` changes only the cap; attempts, approval/expiry, provider blocks, original failed pilot and unknown calls are retained. No reset or identity rotation. Session expiry remains 24 hours from original authorization.
 
 Every dispatch is durably recorded before its one POST under a cross-process lock. Unknown/failed calls consume a slot. Calls are serial and separated by at least 500 ms, with existing browser turn limits retained. A repeated request/schema cannot redispatch. Provider authentication/eligibility/usage denials block the session; no paid API or other-model fallback occurs. Acceptance runs use a different lock so test evidence cannot race while provider calls remain serialized. Failed acceptance cases return nonzero exit status.
 
@@ -49,6 +49,8 @@ pnpm exec tsx scripts/verify-subscription-secrets.ts
 The launcher reads only the existing restricted runtime URLs from the original private runtime configuration, verifies actual authority/evidence guards, snapshots original source/CareOS evidence and spawns a clean loopback-only process. Administrator/provider credentials are not inherited. Preservation checks compare source-row hashes, original CareOS rows, legacy spend buckets and unchanged schema; no historical rows are rewritten.
 
 `scripts/evaluate-subscription.ts --run <phase>` is an **owner-run live acceptance tool**, never CI. Each named phase runs once and preserves failures instead of overwriting expectations. It drives actual browser conversations/Studio tools, and consumes the shared subscription allowance. Do not rerun completed phases or use a new journal to bypass the allowance. Tests default to fixtures/injected transports and cannot activate subscription inference by themselves.
+
+The separately reviewed `scripts/evaluate-careos-ux.ts --run` uses the same evaluation lock and sole subscription usage journal. It creates an exclusive append-only UX evidence file, its own browser/conversation and at most two care turns/four provider calls. Actual acceptance passed six tasks with three calls. It never clears an existing transcript, retries an uncertain request or changes session authority. Default invocation without `--run` exits without application/model work; do not rerun the completed acceptance.
 
 Mac application access needs an SSH loopback forward to port 3002 plus the matching private `/ai-evaluation` scope unlock. Scope tokens are application capabilities, not OpenAI tokens; never paste them into chat. Guide the owner one Mac command at a time. No Mac Remote Login or public listening port is needed.
 

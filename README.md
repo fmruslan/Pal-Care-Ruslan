@@ -1,6 +1,6 @@
 # Pal Care
 
-**CareOS UX upgrade in progress:** immediate questions, reading-aware scrolling, keyboard submission and read-only recovery are implemented. The second increment adds explicit dated purchase choices, original-question continuation and one primary answer action. Focused visual/accessibility finish remains separate. Fixture/injected checks are not live-model or real-device acceptance. [Increment evidence and manual tasks](docs/evidence/CAREOS-UX.md).
+**CareOS UX upgrade implemented; owner review pending:** immediate questions, reading-aware scrolling, safe recovery, explicit dated purchase choices and a clearer Blue/Lavender finish. The refreshed private app passes six acceptance checks, including two genuine grounded care turns using three Sol requests. Long-scroll/keyboard geometry tests remain injected evidence, not real-device certification. [Increment evidence, limits and manual tasks](docs/evidence/CAREOS-UX.md).
 
 **Private live AI verified:** CareOS and actual AG Studio widgets now use CareOS's own official ChatGPT authorization with **GPT-6.1 Sol / medium** in an owner-only loopback preview. Real conversations, citations, follow-ups, product isolation, Studio actions and cancellation/recovery were exercised against the existing **0015 / 29-table** database. No paid API fallback, PayPal transaction, public deployment or application migration. [Private operation](docs/SUBSCRIPTION-DEVELOPMENT.md) · [actual quality results and limits](docs/evidence/SUBSCRIPTION-QUALITY.md).
 

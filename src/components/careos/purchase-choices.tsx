@@ -35,7 +35,7 @@ export function PurchaseChoices({
           <label
             key={choice.context.twinId}
             htmlFor={`${groupId}-${index}`}
-            className={`flex min-h-11 items-start gap-3 rounded-xl border border-input p-3 text-sm ${active ? "cursor-pointer" : "cursor-default"} ${selectedId === choice.context.twinId ? "bg-secondary text-secondary-foreground" : "bg-card text-foreground"}`}
+            className={`flex min-h-11 items-start gap-3 rounded-xl border border-input p-3 text-base ${active ? "cursor-pointer" : "cursor-default"} ${selectedId === choice.context.twinId ? "bg-secondary text-secondary-foreground" : "bg-card text-foreground"}`}
           >
             <input
               id={`${groupId}-${index}`}
@@ -53,7 +53,7 @@ export function PurchaseChoices({
               <span className="block font-medium">
                 {choice.context.name} · {choice.context.model}
               </span>
-              <span className="mt-1 block text-xs text-muted-foreground">
+              <span className="mt-1 block text-sm text-muted-foreground">
                 <time dateTime={choice.purchasedOn}>
                   {displayDate(choice.purchasedOn)}
                 </time>{" "}

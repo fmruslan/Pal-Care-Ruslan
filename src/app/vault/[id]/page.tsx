@@ -188,10 +188,10 @@ export default async function TwinPage({
           <GuardianCard item={adjustment} />
         </section>
       )}
-      <div className="mt-8 grid items-start gap-7 xl:grid-cols-[1.4fr_1fr]">
-        <div>
+      <div className="mt-8 grid grid-cols-1 items-start gap-7 xl:grid-cols-[1.4fr_1fr]">
+        <div className="min-w-0">
           <section aria-labelledby="documents-heading">
-            <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <h2 id="documents-heading" className="section-title">
                 The paperwork
               </h2>
@@ -300,7 +300,7 @@ export default async function TwinPage({
                       className="size-4 shrink-0 text-muted-foreground"
                       aria-hidden="true"
                     />
-                    {label}
+                    <span className="min-w-0 break-words">{label}</span>
                   </dt>
                   <dd className="mt-1 ml-7 text-sm leading-6 text-muted-foreground">
                     {value}

@@ -163,14 +163,49 @@
     inset: auto 0 0;
     height: min(85dvh, 850px);
     border-radius: 28px 28px 0 0;
-    max-height: 100dvh;
+    max-height: min(100dvh, var(--careos-visible-height, 100dvh));
+    bottom: var(--careos-keyboard-bottom, 0px);
   }
   .careos-expanded {
     height: 96dvh;
   }
   .careos-transcript {
+    padding: 16px;
     overflow-anchor: none;
     scrollbar-gutter: stable;
+    overflow-wrap: anywhere;
+  }
+  .careos-header,
+  .careos-context {
+    padding: 12px 16px;
+  }
+  .careos-composer {
+    padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+  }
+  .careos-context {
+    gap: 8px;
+  }
+  .careos-composer form {
+    gap: 8px;
+  }
+  .careos-user-message {
+    margin-left: 24px;
+    padding: 12px 16px;
+  }
+  @media (max-width: 360px) {
+    .careos-header {
+      gap: 4px;
+    }
+    .careos-header > div:last-child {
+      gap: 0;
+    }
+    .careos-transcript {
+      padding: 12px;
+    }
+    .careos-user-message {
+      margin-left: 12px;
+      padding: 10px 12px;
+    }
   }
   @media (min-width: 1024px) {
     .careos-launcher {
@@ -178,7 +213,7 @@
       bottom: 1.5rem;
     }
     .careos-assistant {
-      inset: 1rem 1rem 1rem auto;
+      inset: 6.5rem 1rem 1rem auto;
       width: min(440px, calc(100vw - 2rem));
       height: auto;
       border-radius: 24px;
@@ -243,6 +278,21 @@
       box-shadow: var(--elevation-hover);
       border-color: var(--input);
     }
+  }
+}
+
+/* These scoped layout overrides intentionally outrank the existing flex/mx-auto utilities. */
+.careos-assistant[data-careos-keyboard] .careos-quick-actions {
+  display: none;
+}
+@media (max-width: 360px) {
+  .careos-quick-actions {
+    display: none;
+  }
+}
+@media (min-width: 1440px) {
+  .careos-reading-space #main-content {
+    margin-right: 460px;
   }
 }
 
