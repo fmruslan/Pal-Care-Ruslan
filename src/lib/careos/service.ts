@@ -193,11 +193,15 @@ export async function resolveTurn(options: {
   if (record && /receipt|invoice/i.test(input.message)) {
     const target =
       input.message.match(
+        /\b(?:receipt|invoice)\s+for\s+(.+?)(?:[?.!]|$)/i,
+      )?.[1] ??
+      input.message.match(
         /\b(?:my|the)\s+(.+?)\s+(?:receipt|invoice)\b/i,
       )?.[1] ??
       input.message.match(
-        /\b(?:receipt|invoice)\s+for\s+(.+?)(?:[?.!]|$)/i,
-      )?.[1];
+        /\b(?:find|show|open|get|locate|download|where(?:'s|\s+is))(?:\s+me)?\s+(?:(?:my|the)\s+)?(.+?)\s+(?:receipt|invoice)\b/i,
+      )?.[1] ??
+      input.message.match(/^(.+?)\s+(?:receipt|invoice)\b/i)?.[1];
     if (target) {
       const normalize = (s: string) =>
         s
@@ -227,15 +231,46 @@ export async function resolveTurn(options: {
           "new",
           "exact",
           "purchase",
+          "product",
+          "item",
           "order",
           "paypal",
+          "find",
+          "show",
+          "open",
+          "get",
+          "locate",
+          "download",
+          "where",
+          "wheres",
+          "is",
+          "me",
+          "can",
+          "could",
+          "would",
+          "you",
+          "please",
+          "i",
+          "need",
+          "want",
+          "like",
+          "did",
+          "have",
+          "do",
+          "what",
+          "which",
+          "lost",
+          "give",
         ].map(normalize),
       );
       const words = target
         .split(/\s+/)
         .map(normalize)
         .filter((s) => s && !generic.has(s));
-      if (!known.has(normalize(target)) && words.some((s) => !known.has(s)))
+      if (
+        !normalize(target) ||
+        (!known.has(normalize(target)) && words.some((s) => !known.has(s)))
+      )
         return {
           ...deterministicAnswer(data, input, "summary"),
           outcome: "selection" as const,

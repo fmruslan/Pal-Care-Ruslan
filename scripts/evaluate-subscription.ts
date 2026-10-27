@@ -20,6 +20,7 @@ if (
     "extended",
     "review",
     "studio-inflight",
+    "receipt-forms",
   ].includes(process.argv[3])
 )
   throw new Error("Explicit --run customer|studio|repairs required");
@@ -503,6 +504,44 @@ await files.locked(async () => {
         );
         return { question: turn.message, turn };
       });
+    } else if (phase === "receipt-forms") {
+      const ctx = await context();
+      const page = await ctx.newPage();
+      await open(page, "/vault/00000000-0000-4000-8000-000000000201");
+      for (const [id, question, outcome] of [
+        [
+          "receipt-command-without-pronoun",
+          "Find JBL Tune 770NC receipt.",
+          "selection",
+        ],
+        ["receipt-noun-phrase", "JBL Tune 770NC receipt please.", "selection"],
+        [
+          "receipt-explicit-for-target",
+          "Find my saved receipt for JBL Tune 770NC.",
+          "selection",
+        ],
+        [
+          "receipt-generic-selected-product",
+          "Where is the receipt for this product?",
+          "answered",
+        ],
+      ])
+        await record(id, async () => {
+          const turn = await ask(page, question);
+          assert.equal(turn.answer.outcome, outcome);
+          assert.equal(turn.answer.mode, "deterministic");
+          if (outcome === "selection")
+            assert.ok(
+              !turn.answer.actions.some((a) =>
+                a.href.startsWith("/documents/"),
+              ),
+            );
+          else
+            assert.ok(
+              turn.answer.actions.some((a) => a.label === "Open receipt"),
+            );
+          return { question, turn };
+        });
     } else if (phase === "studio-inflight") {
       await record("studio-cancel-after-provider-admission", async () => {
         const ctx = await context(["studio"]);

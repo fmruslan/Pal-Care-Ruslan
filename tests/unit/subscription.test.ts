@@ -119,6 +119,12 @@ describe("subscription-only inference: no API-dollar ledger or live test authori
   });
   it.each([
     "Find my JBL Tune 770NC receipt",
+    "Find JBL Tune 770NC receipt.",
+    "JBL Tune 770NC receipt please.",
+    "Find 我的耳机 receipt.",
+    "Could you locate JBL Tune 770NC receipt?",
+    "Show F-03 receipt.",
+    "Find my saved receipt for JBL Tune 770NC.",
     "Find my F-03 receipt",
     "Where is the receipt for JBL Tune 770NC?",
   ])(
