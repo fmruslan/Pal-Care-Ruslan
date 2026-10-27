@@ -1,8 +1,18 @@
 import type { DemoData } from "../../db/schema";
 import { findTwin } from "../demo/presentation";
-import { CareError, type CareTurn, type TurnInput } from "./contracts";
+import {
+  CareError,
+  type CareAnswer,
+  type CareTurn,
+  type TurnInput,
+} from "./contracts";
 import { retrievePassages, type KnowledgeSource } from "./knowledge";
-import { deterministicAnswer, interpret, isProhibited } from "./tools";
+import {
+  deterministicAnswer,
+  interpret,
+  isProhibited,
+  purchaseSelection,
+} from "./tools";
 import { fixtureCare } from "./providers/fixture";
 import { groundedAnswer } from "./grounding";
 import type { CareModel, ModelResult } from "./providers/responses";
@@ -66,7 +76,7 @@ export async function resolveTurn(options: {
     recall: () => Promise<RecallEvidence>;
     activity?: () => Promise<PurchaseActivity>;
   };
-}) {
+}): Promise<CareAnswer> {
   const { data, input, mode, model, call } = options;
   let sources = options.sources;
   if (input.example) {
@@ -143,12 +153,19 @@ export async function resolveTurn(options: {
         normalize(foreignBrand) !== normalize(record.product.brand))
     ) {
       return {
-        ...deterministicAnswer(data, input, "summary"),
-        outcome: "selection" as const,
-        text: `You mentioned ${namedModel ? `${record.product.brand} ${namedModel[1]}` : foreignBrand}, but the selected Purchase Twin is ${record.product.brand} ${record.product.model}. Choose the matching purchase or check its model label; I won’t substitute this purchase’s receipt or care guide.`,
-        steps: [],
-        sources: [],
-        actions: [{ label: "Choose the matching purchase", href: "/vault" }],
+        ...purchaseSelection(
+          data,
+          input,
+          (candidate) =>
+            (!namedModel ||
+              (normalize(candidate.product.brand) ===
+                normalize(record.product.brand) &&
+                normalize(candidate.product.model) ===
+                  normalize(namedModel[1]))) &&
+            (!foreignBrand ||
+              normalize(candidate.product.brand) === normalize(foreignBrand)),
+        ),
+        text: `You mentioned ${namedModel ? `${record.product.brand} ${namedModel[1]}` : foreignBrand}, but ${record.product.brand} ${record.product.model} is selected. Choose the matching purchase; I won’t substitute this receipt or care guide.`,
       };
     }
   }
@@ -169,25 +186,11 @@ export async function resolveTurn(options: {
     mentioned.length &&
     (!record || mentioned.some((product) => product.id !== record.product.id))
   ) {
-    const selection = deterministicAnswer(
-      data,
-      { ...input, twinId: null },
-      "receipt",
-    );
-    const allowed = new Set(
-      data.twins
-        .filter((twin) =>
-          mentioned.some((product) => product.id === twin.productId),
-        )
-        .map((twin) => `/vault/${twin.id}`),
-    );
     return {
-      ...selection,
-      context: record
-        ? deterministicAnswer(data, input, "summary").context
-        : null,
-      text: "Your question mentions a different or unselected product. Choose the matching Purchase Twin so its receipt and documents stay separate.",
-      actions: selection.actions.filter((action) => allowed.has(action.href)),
+      ...purchaseSelection(data, input, (candidate) =>
+        mentioned.some((product) => product.id === candidate.twin.productId),
+      ),
+      text: "This is a different or unselected product. Which saved purchase should I use? Its receipt and documents will stay separate.",
     };
   }
   if (record && /receipt|invoice|proof of payment/i.test(input.message)) {
@@ -210,15 +213,6 @@ export async function resolveTurn(options: {
           .toLowerCase()
           .replace(/[^a-z0-9]/g, "")
           .replace(/s$/, "");
-      const aliases = [
-        record.product.name,
-        record.product.brand,
-        record.product.model,
-        record.product.illustration,
-      ];
-      const known = new Set(
-        [...aliases, ...aliases.flatMap((s) => s.split(/\W+/))].map(normalize),
-      );
       const generic = new Set(
         [
           "the",
@@ -269,17 +263,29 @@ export async function resolveTurn(options: {
         .split(/\s+/)
         .map(normalize)
         .filter((s) => s && !generic.has(s));
-      if (
-        !normalize(target) ||
-        (!known.has(normalize(target)) && words.some((s) => !known.has(s)))
-      )
+      const matchesTarget = (product: typeof record.product) => {
+        const aliases = [
+          product.name,
+          product.brand,
+          product.model,
+          product.illustration,
+        ];
+        const known = new Set(
+          [...aliases, ...aliases.flatMap((s) => s.split(/\W+/))].map(
+            normalize,
+          ),
+        );
+        return (
+          !!normalize(target) &&
+          (known.has(normalize(target)) || words.every((s) => known.has(s)))
+        );
+      };
+      if (!matchesTarget(record.product))
         return {
-          ...deterministicAnswer(data, input, "summary"),
-          outcome: "selection" as const,
-          text: `I can’t match “${target}” to the selected ${record.product.brand} ${record.product.model} purchase. Choose the matching Purchase Twin; I won’t substitute this receipt for an unrecognized product.`,
-          sources: [],
-          steps: [],
-          actions: [{ label: "Choose the matching purchase", href: "/vault" }],
+          ...purchaseSelection(data, input, (candidate) =>
+            matchesTarget(candidate.product),
+          ),
+          text: `“${target}” doesn’t match the selected ${record.product.brand} ${record.product.model}. Choose the matching purchase; I won’t substitute this receipt.`,
         };
     }
   }
@@ -355,9 +361,17 @@ export async function resolveTurn(options: {
       outcome: matched ? ("answered" as const) : ("missing" as const),
       text: matched
         ? "Matched official guidance is available for this product. Open the guide to read its documented topics."
-        : `No manufacturer manual is available for ${record.product.brand} ${record.product.model} in your records.`,
+        : `No manufacturer manual is available for ${record.product.brand} ${record.product.model} in your records. Review this purchase’s saved documents instead.`,
       sources: base.sources.slice(0, 1),
       actions: [
+        ...(!matched
+          ? [
+              {
+                label: "Review saved documents",
+                href: `/vault/${record.twin.id}#documents-heading`,
+              },
+            ]
+          : []),
         {
           label: "Review product-care documentation",
           href: `/vault/${record.twin.id}/care`,
@@ -421,21 +435,29 @@ export async function resolveTurn(options: {
         { label: "Review sources", href: `/vault/${record.twin.id}/care` },
       ],
     };
-  if (!evidence.passages.length)
+  if (!evidence.passages.length) {
+    const hasGuide = sources.some(
+      (s) =>
+        s.productId === record.product.id &&
+        s.brand === record.product.brand &&
+        s.model === record.product.model &&
+        s.status === "approved",
+    );
     return {
       ...base,
-      text: sources.some(
-        (s) => s.productId === record.product.id && s.status === "approved",
-      )
+      text: hasGuide
         ? "The available guide does not cover that question. I won’t invent instructions; you can review its documented topics."
         : base.text,
-      actions: [
-        {
-          label: "Review available guidance",
-          href: `/vault/${record.twin.id}/care`,
-        },
-      ],
+      actions: hasGuide
+        ? [
+            {
+              label: "Review available guidance",
+              href: `/vault/${record.twin.id}/care`,
+            },
+          ]
+        : base.actions,
     };
+  }
   if (mode === "fixture") return fixtureCare(base, evidence.passages);
   if (mode === "disabled")
     return {

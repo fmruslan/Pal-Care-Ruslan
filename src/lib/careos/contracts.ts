@@ -37,6 +37,11 @@ export type CareContext = {
   model: string;
   origin: string;
 };
+export type PurchaseChoice = {
+  context: CareContext;
+  purchasedOn: string;
+  provenance: "Sample" | "Verified Sandbox";
+};
 export type CareAction = { label: string; href: string };
 export type Evidence = {
   id: string;
@@ -62,6 +67,8 @@ export type CareAnswer = {
   steps: string[];
   sources: Evidence[];
   actions: CareAction[];
+  // Server-derived choices. Choosing one requires a new turn, not a replay.
+  purchaseChoices?: PurchaseChoice[];
 };
 export type CareTurn = {
   requestId: string;

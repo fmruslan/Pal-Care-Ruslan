@@ -50,6 +50,10 @@ Submitting immediately displays the question and truthful pending feedback. Type
 
 The transcript alone follows newly submitted questions and completed answers. A long atomic answer opens at its beginning, not its last action. Scrolling upward pauses following and exposes **Jump to latest**. New answers do not move keyboard focus. Sources expand in place; transcript position is retained in memory across closing/reopening. Scrolling is immediate (including reduced motion), not fake streaming. Reload restores saved results but never automatically repeats a turn POST. Advanced cross-browser reading-position restoration remains deferred. [Verification and limits](evidence/CAREOS-UX.md).
 
+### Purchase-aware presentation increment
+
+An ambiguous purchase is a native radio group with readable product/date/Sample or Verified Sandbox labels and a separate, explicit continue action. Selecting a radio does not silently switch the purchase. The original question continues without retyping only after confirmation; completed historical choices become inactive. Standard answers have one primary action, **More options** for secondary links, and the existing Sources disclosure. Missing information keeps its important limitation and offers an available saved-document path. No extra model prompt, provider capability or financial authority is introduced.
+
 `next-themes` is wired once at the root. Default preference is **System**. Light/Dark overrides persist in local storage under `palcare-appearance`; selecting System restores live `prefers-color-scheme` following. Theme selection never uses a payment cookie or API call.
 
 The package's early theme script sets the HTML class before page content. The selector reserves its layout and waits for client mounting before reflecting stored preference; only root-attribute hydration differences are suppressed. Browser `theme-color` and native `color-scheme` follow the resolved appearance. Storage failures fall back gracefully to System; no universal no-flash guarantee is claimed for blocked scripts/storage or every browser environment.

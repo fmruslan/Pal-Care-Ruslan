@@ -8,6 +8,7 @@ import {
   contextOf,
   type CareAnswer,
   type Intent,
+  type PurchaseChoice,
   type TurnInput,
 } from "./contracts";
 import { adjustmentResolution } from "./resolution";
@@ -79,6 +80,52 @@ export function interpret(message: string): Intent {
   return "unsupported";
 }
 
+export function purchaseSelection(
+  data: DemoData,
+  input: TurnInput,
+  matches: (record: NonNullable<ReturnType<typeof findTwin>>) => boolean = () =>
+    true,
+): CareAnswer {
+  const selected = input.twinId ? findTwin(data, input.twinId) : undefined;
+  // Resolve authorization and matching before the display limit. Never collapse
+  // distinct purchases of the same model or derive choice metadata from a model.
+  const choices = data.twins
+    .flatMap((twin): PurchaseChoice[] => {
+      const record = findTwin(data, twin.id);
+      return record && matches(record)
+        ? [
+            {
+              context: contextOf(record),
+              purchasedOn: record.twin.purchasedOn,
+              provenance:
+                record.twin.origin === "sandbox"
+                  ? "Verified Sandbox"
+                  : "Sample",
+            },
+          ]
+        : [];
+    })
+    .slice(0, 8);
+  return {
+    outcome: "selection",
+    mode: "deterministic",
+    context: selected ? contextOf(selected) : null,
+    revision: input.revision,
+    text: choices.length
+      ? "Which purchase should I use? Choose a saved purchase below."
+      : "No matching purchase is saved. Check your saved purchases or the model label.",
+    steps: [],
+    sources: [],
+    purchaseChoices: choices,
+    actions: choices.length
+      ? choices.map((choice) => ({
+          label: `${choice.context.name} · ${displayDate(choice.purchasedOn)} · ${choice.provenance}`,
+          href: `/vault/${choice.context.twinId}`,
+        }))
+      : [{ label: "Review saved purchases", href: "/vault" }],
+  };
+}
+
 export function deterministicAnswer(
   data: DemoData,
   input: TurnInput,
@@ -115,23 +162,7 @@ export function deterministicAnswer(
     ];
     return answer;
   }
-  if (!record) {
-    answer.outcome = "selection";
-    answer.text =
-      "Which purchase would you like help with? Choose a Purchase Twin below.";
-    answer.actions = data.twins.slice(0, 8).flatMap((twin) => {
-      const r = findTwin(data, twin.id);
-      return r
-        ? [
-            {
-              label: `${r.product.name} · ${displayDate(twin.purchasedOn)} · ${twin.origin === "sandbox" ? "Sandbox" : "Sample"}`,
-              href: `/vault/${twin.id}`,
-            },
-          ]
-        : [];
-    });
-    return answer;
-  }
+  if (!record) return purchaseSelection(data, input);
   const { twin, documents, product } = record;
   const twinHref = `/vault/${twin.id}`;
   answer.sources = [
@@ -241,7 +272,14 @@ export function deterministicAnswer(
       })),
     );
   } else if (intent === "summary") {
-    answer.text = `Your saved purchase is ${product.name} (${product.brand} ${product.model}), ${money(twin.purchasePriceMinor)} on ${displayDate(twin.purchasedOn)}. ${twin.origin === "sandbox" ? "Payment was verified server-side in PayPal Sandbox; no real money was used." : "This is a fictional sample purchase, not a verified payment."} ${documents.length} saved document${documents.length === 1 ? "" : "s"}.`;
+    const dateQuestion = /when.*(buy|bought)/i.test(input.message);
+    const amountQuestion = /how much/i.test(input.message);
+    const fact = dateQuestion
+      ? `Purchase date: ${displayDate(twin.purchasedOn)}.${amountQuestion ? ` Saved purchase total: ${money(twin.purchasePriceMinor)}.` : ""}`
+      : amountQuestion
+        ? `Saved purchase total: ${money(twin.purchasePriceMinor)}.`
+        : `${product.name} (${product.brand} ${product.model}) · ${money(twin.purchasePriceMinor)} · ${displayDate(twin.purchasedOn)}. ${documents.length} saved document${documents.length === 1 ? "" : "s"}.`;
+    answer.text = `${fact} ${twin.origin === "sandbox" ? "Payment was verified server-side in PayPal Sandbox; no real money was used." : "This is a fictional sample purchase, not a verified payment."}`;
     answer.actions = [
       { label: "View purchase", href: twinHref },
       { label: "Review documents", href: `${twinHref}#documents-heading` },
@@ -256,8 +294,9 @@ export function deterministicAnswer(
         href: `/documents/${receipt.id}`,
       });
     if (product.illustration === "headphones") {
-      answer.text +=
-        " I can open your receipt, explain the policy saved with this purchase, or review its recorded aftercare status. No manufacturer manual is available for this fictional model; I won’t invent care instructions or promise a refund.";
+      if (!dateQuestion && !amountQuestion)
+        answer.text +=
+          " No manufacturer manual is available for this fictional model. Saved policy and aftercare records are not a refund approval.";
       answer.actions.push({
         label: "Review recorded aftercare",
         href: `/guardian?twinId=${twin.id}`,
@@ -292,7 +331,7 @@ export function deterministicAnswer(
     ];
   } else {
     answer.outcome = "missing";
-    answer.text = `No manufacturer care guide is available for ${product.brand} ${product.model} in your records. I won’t substitute instructions for a different model.`;
+    answer.text = `No manufacturer care guide is available for ${product.brand} ${product.model} in your records. Review this purchase’s saved documents; I won’t substitute another model’s instructions.`;
     answer.actions = [
       {
         label: "Review available documents",

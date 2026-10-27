@@ -28,12 +28,14 @@ The original Phase B restricted-reader/CareOS cutover through **0015** passed. S
 
 - Fixed server-side fictional customer/merchant scope. A Twin ID is checked through `findTwin`, never accepted as authority on its own.
 - Receipts are joined to the exact Twin. Two purchases of the same model do not share receipts.
+- Selection answers offer authorized dated purchases inline, with Sample/Verified Sandbox labels and short Twin identifiers. Nothing is preselected. Choosing a radio alone neither navigates nor sends; **Use this purchase and continue** explicitly selects/navigates and submits the original question as a new request. Historical selectors cannot replay stale questions. Matching occurs before the display limit; unknown products still receive no substituted receipt or source.
 - Knowledge matches product ID, brand and model before bounded lexical/tag ranking. Up to four reviewed passages, 4,000 characters each; assembled context fits 14,000 UTF-8 bytes, and the whole model request must fit 20,000 bytes. Source URLs match the reviewed official HTTPS documentation host/path.
 - Source records preserve publisher, official URL, section, review date, revision, language, licence, status and SHA-256. Content hash mismatch fails visibly.
 - Approved/withdrawn/conflicting sources remain distinct. An approved source is a human-curated database designation, never an LLM approval.
 - Care steps require a supplied source ID/verbatim quote. Application code renders the actual source line (or exact bounded quote), never an unverified paraphrase; source support alone still does not prove applicability. Unknown IDs/quotes, extra fields, arbitrary URLs and financial/coverage claims are rejected. All links/actions are application-generated.
 - Zod and quote validation **do not prove semantic correctness**. Prompt injection cannot be guaranteed eliminated. Live model grounding and refusal behavior still require evaluation.
 - Explanations are short, with expandable sources. No chain-of-thought is requested or displayed.
+- Answers show one primary contextual action (an available receipt takes precedence), with secondary links under **More options**. Consequential source/payment uncertainty remains in the answer or its existing visible provenance. Missing manuals lead to the selected purchase’s saved documents, not an invented guide. Date/amount questions lead with the requested fact; deterministic retrieval and source-wording guards remain unchanged.
 
 ### Conversation state
 

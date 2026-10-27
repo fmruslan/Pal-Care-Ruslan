@@ -9,12 +9,11 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
 import Link from "next/link";
 import {
   ArrowUp,
-  ArrowUpRight,
   FileText,
   Maximize2,
   Minimize2,
@@ -26,6 +25,8 @@ import type { CareContext, Intent } from "@/lib/careos/contracts";
 import { contextIdentity } from "./conversation-client";
 import { useConversation } from "./use-conversation";
 import { useConversationScroll } from "./use-conversation-scroll";
+import { AnswerActions } from "./answer-actions";
+import { PurchaseChoices } from "./purchase-choices";
 
 type AssistantState = {
   select: (context: CareContext | null) => void;
@@ -46,6 +47,7 @@ export function CareOSProvider({
   mode?: "fixture" | "disabled" | "responses" | "subscription" | "unavailable";
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const visible =
     /^\/(dashboard|vault|documents|guardian|safety|replacements)(\/|$)/.test(
       pathname,
@@ -338,24 +340,33 @@ export function CareOSProvider({
                           </ul>
                         )}
                       </div>
-                      <div className="flex flex-col gap-2">
-                        {turn.answer.actions.map((action) => (
-                          <Button
-                            key={action.href}
-                            asChild
-                            variant="outline"
-                            className="justify-between text-left"
-                          >
-                            <Link
-                              href={action.href}
-                              onClick={() => mobile && setOpen(false)}
-                            >
-                              {action.label}
-                              <ArrowUpRight aria-hidden="true" />
-                            </Link>
-                          </Button>
-                        ))}
-                      </div>
+                      {turn.answer.outcome === "selection" &&
+                      turn.answer.purchaseChoices?.length ? (
+                        <PurchaseChoices
+                          choices={turn.answer.purchaseChoices}
+                          active={
+                            !unavailable &&
+                            index === conversation.turns.length - 1
+                          }
+                          onContinue={(choice) => {
+                            if (unavailable || !choice.context.twinId) return;
+                            focusTranscript();
+                            // This is a deliberate new, differently scoped question—not a replay.
+                            // The original selection result and its request identity remain unchanged.
+                            void ask(turn.message, undefined, choice.context);
+                            router.push(`/vault/${choice.context.twinId}`, {
+                              scroll: false,
+                            });
+                          }}
+                        />
+                      ) : (
+                        <AnswerActions
+                          actions={turn.answer.actions}
+                          onNavigate={() => {
+                            if (mobile) setOpen(false);
+                          }}
+                        />
+                      )}
                       {!!turn.answer.sources.length && (
                         <details className="rounded-xl border px-3 text-xs text-muted-foreground">
                           <summary className="min-h-11 cursor-pointer py-3">
