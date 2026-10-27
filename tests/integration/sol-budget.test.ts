@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { randomUUID } from "node:crypto";
-import { mkdtemp, cp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, cp, readFile, writeFile } from "node:fs/promises";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { createDatabase } from "../../src/db/connection";
 import { PostgresStore } from "../../src/lib/careos/postgres-store";
@@ -29,6 +29,7 @@ test("0016 preserves legacy calls; Sol shares an atomic capped budget across sco
   let roles: Awaited<ReturnType<typeof testRuntimeRoles>> | undefined,
     writer: ReturnType<typeof createDatabase> | undefined;
   try {
+    await mkdir("/tmp/opencode", { recursive: true });
     const folder = await mkdtemp("/tmp/opencode/sol-migration-");
     await cp("./drizzle", folder, { recursive: true });
     const j = JSON.parse(

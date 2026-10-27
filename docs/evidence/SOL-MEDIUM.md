@@ -28,6 +28,8 @@ Date: 2026-10-26. Baseline: `9605694` (Phase B closed for private use).
 
 Focused Firefox/WebKit and exact-commit GitHub Actions results are recorded at delivery after completion, not guessed from earlier runs. Financial/provider data in tests is explicitly synthetic. Injected Responses are **not** hosted Sol accuracy, latency, real billing or sponsor acceptance. Mobile emulation is not real-device testing.
 
+Initial branch CI (`acfadd9`, run 40430827082) exposed one clean-runner test precondition: `/tmp/opencode` did not yet exist for the new 0016 rehearsal. The other 111 PostgreSQL tests passed. The test now creates its parent directory like the existing Stage 5 rehearsal; no application/security behavior was relaxed. Final exact-commit outcome is verified separately, not inferred from a rerun request.
+
 ## Actual application and external blockers
 
 The original private application remains on its prior production build, restricted accounts and **0015/fixture** configuration. No migration, role/credential/configuration change, paid model call, PayPal call, public access or deployment occurred in this implementation worktree. Phase B and encrypted recovery evidence are retained. New behavior is not claimed accepted against that original runtime.
