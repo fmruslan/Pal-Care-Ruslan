@@ -190,18 +190,20 @@ export async function resolveTurn(options: {
       actions: selection.actions.filter((action) => allowed.has(action.href)),
     };
   }
-  if (record && /receipt|invoice/i.test(input.message)) {
+  if (record && /receipt|invoice|proof of payment/i.test(input.message)) {
     const target =
       input.message.match(
-        /\b(?:receipt|invoice)\s+for\s+(.+?)(?:[?.!]|$)/i,
+        /\b(?:receipt|invoice|proof of payment)\s+for\s+(.+?)(?:[?.!]|$)/i,
       )?.[1] ??
       input.message.match(
-        /\b(?:my|the)\s+(.+?)\s+(?:receipt|invoice)\b/i,
+        /\b(?:my|the)\s+(.+?)\s+(?:receipt|invoice|proof of payment)\b/i,
       )?.[1] ??
       input.message.match(
-        /\b(?:find|show|open|get|locate|download|where(?:'s|\s+is))(?:\s+me)?\s+(?:(?:my|the)\s+)?(.+?)\s+(?:receipt|invoice)\b/i,
+        /\b(?:find|show|open|get|locate|download|where(?:'s|\s+is))(?:\s+me)?\s+(?:(?:my|the)\s+)?(.+?)\s+(?:receipt|invoice|proof of payment)\b/i,
       )?.[1] ??
-      input.message.match(/^(.+?)\s+(?:receipt|invoice)\b/i)?.[1];
+      input.message.match(
+        /^(.+?)\s+(?:receipt|invoice|proof of payment)\b/i,
+      )?.[1];
     if (target) {
       const normalize = (s: string) =>
         s

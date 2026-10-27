@@ -60,6 +60,8 @@ describe("subscription-only inference: no API-dollar ledger or live test authori
   it.each([
     "Find my headphones receipt.",
     "Where is the receipt for this purchase?",
+    "Show proof of payment for this purchase.",
+    "Find my headphones proof of payment.",
   ])(
     "keeps generic selected-purchase receipt requests useful: %s",
     async (message) => {
@@ -119,6 +121,8 @@ describe("subscription-only inference: no API-dollar ledger or live test authori
   });
   it.each([
     "Find my JBL Tune 770NC receipt",
+    "Show proof of payment for JBL headphones",
+    "Find my JBL headphones proof of payment",
     "Find JBL Tune 770NC receipt.",
     "JBL Tune 770NC receipt please.",
     "Find 我的耳机 receipt.",
