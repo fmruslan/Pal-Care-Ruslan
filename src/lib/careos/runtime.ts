@@ -22,6 +22,7 @@ import {
   evaluationSettings,
 } from "./evaluation-access";
 import { accountedCall } from "./accounted-call";
+import { SubscriptionProvider } from "./subscription/provider";
 
 const state = globalThis as unknown as {
   careosMemory?: MemoryStore;
@@ -33,7 +34,8 @@ export function careRuntime() {
     throw new CareError("careos_origin_not_configured");
   const environment = getEnvironment();
   const config = parseCareConfig(process.env);
-  if (config.mode === "responses") evaluationSettings(process.env);
+  if (config.mode === "responses" || config.mode === "subscription")
+    evaluationSettings(process.env);
   let store: ConversationStore;
   if (environment.dataSource === "database") {
     state.careosPostgres ??= new PostgresStore(
@@ -53,6 +55,17 @@ export function careRuntime() {
   return { store, origin, config };
 }
 
+export async function assertCustomerRuntimeAccess(
+  config: ReturnType<typeof parseCareConfig>,
+) {
+  if (config.mode === "subscription")
+    assertEvaluationAccess(
+      "customer",
+      (await cookies()).get(evaluationCookie("customer"))?.value,
+      process.env,
+    );
+}
+
 export async function answerTurn(
   input: TurnInput,
   conversationId: string,
@@ -60,17 +73,29 @@ export async function answerTurn(
   signal?: AbortSignal,
 ) {
   const { store, config } = careRuntime();
+  await assertCustomerRuntimeAccess(config);
   const deadline = Date.now() + TURN_DEADLINE_MS;
   const [data, conversation] = await Promise.all([
     getCareData(input.twinId),
     store.get(conversationId, owner),
   ]);
   const model =
-    config.mode === "responses" ? new ResponsesProvider(config) : undefined;
+    config.mode === "responses"
+      ? new ResponsesProvider(config)
+      : config.mode === "subscription"
+        ? new SubscriptionProvider({
+            scope: "customer",
+            requestId: input.requestId,
+          })
+        : undefined;
+  let calls = 0;
   const call = async <T>(
     work: (signal: AbortSignal) => Promise<ModelResult<T>>,
   ): Promise<T> => {
-    if (!(store instanceof PostgresStore) || config.mode !== "responses")
+    if (
+      !(store instanceof PostgresStore) ||
+      !["responses", "subscription"].includes(config.mode)
+    )
       throw new CareError("careos_live_not_authorized");
     assertEvaluationAccess(
       "customer",
@@ -78,6 +103,12 @@ export async function answerTurn(
       process.env,
     );
     if (Date.now() >= deadline) throw new CareError("careos_deadline");
+    if (++calls > 2) throw new CareError("careos_call_limit");
+    if (config.mode === "subscription") {
+      const timeout = AbortSignal.timeout(Math.max(1, deadline - Date.now()));
+      return (await work(signal ? AbortSignal.any([signal, timeout]) : timeout))
+        .value;
+    }
     const reservation = await store.reserve(
       conversationId,
       owner,
@@ -103,7 +134,7 @@ export async function answerTurn(
     input,
     sources: [],
     history: conversation.turns,
-    mode: config.mode,
+    mode: config.mode === "subscription" ? "responses" : config.mode,
     model,
     call,
     load: {

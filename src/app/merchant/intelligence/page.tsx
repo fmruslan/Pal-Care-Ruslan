@@ -25,10 +25,13 @@ export default async function IntelligencePage() {
       <IntelligenceWorkspace
         recorded={recordedDataset(guardian)}
         studioAllowed={local}
+        subscription={process.env.CAREOS_PROVIDER === "subscription"}
         live={
           local &&
-          process.env.CAREOS_PROVIDER === "responses" &&
-          process.env.CAREOS_LIVE_ENABLED === "true"
+          ((process.env.CAREOS_PROVIDER === "responses" &&
+            process.env.CAREOS_LIVE_ENABLED === "true") ||
+            (process.env.CAREOS_PROVIDER === "subscription" &&
+              process.env.CAREOS_SUBSCRIPTION_ENABLED === "true"))
         }
       />
     </Shell>

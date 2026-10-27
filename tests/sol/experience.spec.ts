@@ -1,4 +1,6 @@
 import { test, expect } from "@playwright/test";
+import { referenceContent } from "../../src/lib/careos/knowledge";
+const supportedInstruction = referenceContent.split("\n")[0];
 const pi = "00000000-0000-4000-8000-000000000204";
 test("injected Sol protocol: separate private scopes, actual Studio tools, grounded care and replay", async ({
   page,
@@ -69,16 +71,14 @@ test("injected Sol protocol: separate private scopes, actual Studio tools, groun
     dialog.getByText("Live AI · check sources", { exact: true }),
   ).toBeVisible();
   await expect(
-    dialog.getByText("Use Shutdown before disconnecting power.", {
+    dialog.getByText(supportedInstruction, {
       exact: true,
     }),
   ).toBeVisible();
   await page.reload();
   await page.getByRole("button", { name: "Ask CareOS", exact: true }).click();
   await expect(
-    page
-      .getByRole("dialog")
-      .getByText("Use Shutdown before disconnecting power.", { exact: true }),
+    page.getByRole("dialog").getByText(supportedInstruction, { exact: true }),
   ).toBeVisible();
   const ready = await context.request.get("/api/ready");
   expect(ready.status()).toBe(200);

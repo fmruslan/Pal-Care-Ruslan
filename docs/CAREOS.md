@@ -2,9 +2,9 @@
 
 ## Current boundary
 
-CareOS is implemented as one persistent customer assistant plus deterministic briefing/actions, inline documents and scoped product-care sources. Default: **fixture**, labeled **Demo responses · no live AI**. The official Responses adapter now targets only **GPT-6.1 Sol / medium**, with shared capped customer/Studio usage, expiring scope access and evidence-based interpretation. **Hosted inference is not activated or verified.** See [private acceptance, $5 proposal and owner setup](AI-EVALUATION.md). ChatGPT/OpenCode subscription credentials are never reused.
+CareOS is one persistent customer assistant plus factual briefings/actions, inline documents and scoped care sources. Default **fixture** remains labeled **Demo responses · no live AI**. Owner-only **subscription** mode now has actual Sol Medium conversation/Studio acceptance on the original 0015 database. It uses CareOS's own official ChatGPT authorization, never OpenCode/Codex credentials. [Current private operation](SUBSCRIPTION-DEVELOPMENT.md) · [actual quality evidence](evidence/SUBSCRIPTION-QUALITY.md). The API-key adapter remains prepared and separately gated under [API acceptance](AI-EVALUATION.md).
 
-No CareOS operation can create/capture/reconcile/refund a payment or mutate trusted commerce/knowledge/recall records. No account, upload, arbitrary-web-fetch or continuous monitoring. Merchant Studio uses a separate presentation-only planner/runner with its own evaluation scope; it shares the same model, effort and budget, never customer context or financial authority. When disabled it remains explicitly scripted.
+No CareOS operation can create/capture/reconcile/refund a payment or mutate trusted commerce/knowledge/recall records. No customer account, upload, arbitrary-web-fetch or continuous monitoring. Studio has its own presentation-only scope and no customer history/financial authority. Both scopes share the subscription request allowance (or separately activated API budget), not each other's credentials. Disabled Studio assistance remains explicitly scripted.
 
 ## Try it without paid APIs
 
@@ -16,7 +16,7 @@ APP_ORIGIN=http://localhost:3000 pnpm dev
 
 With `DEMO_DATA_SOURCE=fixtures` (default), no database or provider credentials are required. Open `/dashboard`: receipt and care suggestions go directly to records. Open a Twin and Ask CareOS to find its receipt. The separate Raspberry Pi 5 sample has a documented safe-shutdown example; Forma F-01 correctly has no manufacturer guide. [Source attribution and licence](CARE-SOURCES.md).
 
-The original application's Phase B restricted-reader/CareOS cutover through **0015** passed. New Sol usage needs separately approved **0016** before live readiness; existing fixture paths remain compatible with 0015. Never seed/reset the application or treat code delivery as migration approval. [Setup](SETUP.md) · [Phase B evidence](evidence/PHASEB-CUTOVER.md).
+The original Phase B restricted-reader/CareOS cutover through **0015** passed. Subscription inference uses that existing conversation schema with its own protected request/token journal and needs no migration. The prepared **API-dollar** accounting path still requires approved **0016** before its live readiness. Never seed/reset the application. [Setup](SETUP.md) · [Phase B evidence](evidence/PHASEB-CUTOVER.md).
 
 ## Architecture
 
@@ -28,10 +28,10 @@ The original application's Phase B restricted-reader/CareOS cutover through **00
 
 - Fixed server-side fictional customer/merchant scope. A Twin ID is checked through `findTwin`, never accepted as authority on its own.
 - Receipts are joined to the exact Twin. Two purchases of the same model do not share receipts.
-- Knowledge matches product ID, brand and model before bounded lexical/tag ranking. Up to four reviewed passages, 4,000 characters each; assembled context drops old history/low-ranked whole passages to fit 19,000 UTF-8 bytes before spending authorization. The adapter independently rejects payloads over 20,000 bytes. Source URLs must match the reviewed official HTTPS documentation host/path.
+- Knowledge matches product ID, brand and model before bounded lexical/tag ranking. Up to four reviewed passages, 4,000 characters each; assembled context fits 14,000 UTF-8 bytes, and the whole model request must fit 20,000 bytes. Source URLs match the reviewed official HTTPS documentation host/path.
 - Source records preserve publisher, official URL, section, review date, revision, language, licence, status and SHA-256. Content hash mismatch fails visibly.
 - Approved/withdrawn/conflicting sources remain distinct. An approved source is a human-curated database designation, never an LLM approval.
-- Care steps require a supplied source ID and verbatim supporting quote. Unknown IDs/quotes, extra structured fields, arbitrary URLs and financial/coverage claims are rejected. All rendered links/actions are constructed by application code.
+- Care steps require a supplied source ID/verbatim quote. Application code renders the actual source line (or exact bounded quote), never an unverified paraphrase; source support alone still does not prove applicability. Unknown IDs/quotes, extra fields, arbitrary URLs and financial/coverage claims are rejected. All links/actions are application-generated.
 - Zod and quote validation **do not prove semantic correctness**. Prompt injection cannot be guaranteed eliminated. Live model grounding and refusal behavior still require evaluation.
 - Explanations are short, with expandable sources. No chain-of-thought is requested or displayed.
 
@@ -41,7 +41,7 @@ A separate 256-bit HttpOnly/SameSite=Lax cookie binds access; only its SHA-256 d
 
 PostgreSQL mode uses `care_conversations`, `care_requests`, `care_buckets` and `care_model_calls`. Fixture-data mode uses bounded ephemeral memory and cannot enable paid inference. Expiry is 24 hours, with 40 requests per conversation. Clear deletes transcripts/call rows, never spending counters. Expired content is inaccessible; physical removal requires private cleanup. No always-running worker is claimed. No personal information or raw prompt/provider logging is permitted.
 
-Each turn snapshots its Twin and context revision. Old messages retain their product labels. Up to four recent same-Twin turns (including care steps, not just introductions) enter bounded classification/explanation context. Explicit references to a different known product require a safe selection instead of returning the current product's receipt. Ambiguous live follow-ups can reuse that same product's previous retrieval topic, never another Twin's history; the model must still cite fresh supplied passages. Requests use persisted IDs/fingerprints; altered replays are rejected. A single 30-second conversation lease prevents concurrent execution. Unknown dispatches are not automatically retried; their reservations remain charged. A later *new* turn may proceed once the stale lease expires.
+Each turn snapshots its Twin/context revision. Old messages retain product labels. Up to four recent same-Twin turns enter bounded interpretation context. Repeated vague follow-ups recover the last grounded topic, not just the immediately preceding question, while loading current exact-model evidence. Explicit mismatched models/receipt targets require selection instead of substituted documents. Requests have persisted IDs/fingerprints and a 60-second lease. Unknown dispatches are not automatically retried; their individual API reservations/subscription slots remain consumed. A later new turn may proceed after a stale lease; completed unavailable results replay without dispatch.
 
 ## Requests and limits
 
@@ -54,13 +54,14 @@ Persistent database limits:
 | Conversation creation | 10/session/hour; 500 globally/day |
 | Turns | 6/session/minute; 30/session/hour; 5,000 globally/hour |
 | Transcript | 40 requests; 24-hour access expiry |
-| Model calls | 2/turn; 200 globally/hour; 500 globally/day |
-| Model payload/output | Entire serialized request ≤20,000 UTF-8 bytes; 6,000 output tokens including reasoning |
+| API model calls | 2/turn; 200 globally/hour; 500 globally/day |
+| Subscription calls | 2/customer turn; serial, ≥500 ms spacing; owner session initially 30, explicitly increased to 50 total with no reset |
+| Model payload/output | Request ≤20,000 bytes. API: 6,000 output tokens including reasoning. Subscription: no supported output-token cap; 1 MiB stream / 16 KiB visible text guard |
 | Model work deadline | 50 seconds shared across retrieval/calls; SDK timeout 22 seconds; 60-second lease; retries off |
 
 The account-free preview has in-memory caps rather than durable distributed protection: 500 active conversations, five per cookie, six turns/minute and 40 turns/conversation. Restart expires preview conversations. It cannot spend API credits.
 
-## Live activation — requires separate owner approval
+## API-key activation — separate from approved subscription development
 
 **Do not activate as part of fixture acceptance.** Before a real runtime test:
 
@@ -81,7 +82,7 @@ Official references: [Responses structured outputs](https://platform.openai.com/
 
 ## Verification and remaining work
 
-`pnpm careos:evaluate` runs **70 versioned deterministic/fixture tasks**. Sol-specific unit/protocol, legacy-reservation migration, shared-budget concurrency and isolated browser/actual-Studio tests complement them. These are not hosted-model quality or safety certification. The original application remains fixture-only pending separate upgrade/activation. [Recall](RECALL-GUARDIAN.md) · [replacement](REPLACEMENT-CONCIERGE.md) · [merchant framework](INTELLIGENCE.md).
+`pnpm careos:evaluate` runs **70 deterministic/fixture tasks**, not model inference. Unit/protocol, legacy-reservation, shared-budget and isolated Studio tests complement the separately recorded **actual subscription browser journeys**. Original port 3000 stays on its prior fixture build; private port 3002 is the subscription preview over the same restricted database. [Actual evidence](evidence/SUBSCRIPTION-QUALITY.md) · [recall](RECALL-GUARDIAN.md) · [replacement](REPLACEMENT-CONCIERGE.md) · [merchant framework](INTELLIGENCE.md).
 
 CI runs deterministic/fixture evaluations, injected Responses protocol tests, dedicated PostgreSQL concurrency/budget tests, and browser/accessibility checks in both data modes. No CI secrets can enable paid models or PayPal.
 

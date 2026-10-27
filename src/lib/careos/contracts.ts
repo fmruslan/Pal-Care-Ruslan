@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const intentSchema = z.enum([
+  "identity",
   "receipt",
   "summary",
   "documents",

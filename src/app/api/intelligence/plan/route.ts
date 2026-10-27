@@ -21,10 +21,13 @@ import { illustrativeDataset, recordedDataset } from "@/lib/intelligence/model";
 import {
   planDashboard,
   validateDashboardPlan,
+  savedPresentation,
+  unavailablePresentationTurn,
 } from "@/lib/intelligence/planner";
 import { presentationRequestAllowed } from "@/lib/intelligence/commands";
 import { studioEvaluationAllowed } from "@/lib/intelligence/access";
 import { MODEL_TIMEOUT_MS } from "@/lib/careos/model-policy";
+import { SubscriptionProvider } from "@/lib/careos/subscription/provider";
 const schema = z.discriminatedUnion("action", [
   z.strictObject({ action: z.literal("start") }),
   z.strictObject({
@@ -40,7 +43,7 @@ export async function POST(request: Request) {
     const { store, origin, config } = careRuntime();
     assertOrigin(request, origin);
     if (
-      config.mode !== "responses" ||
+      !["responses", "subscription"].includes(config.mode) ||
       !(store instanceof PostgresStore) ||
       !studioEvaluationAllowed(process.env, request.headers.get("host") ?? "")
     )
@@ -64,57 +67,74 @@ export async function POST(request: Request) {
       }),
     };
     const prior = await store.claim(body.conversationId, owner, input);
-    if (prior)
-      return careResponse(validateDashboardPlan(prior.answer.presentation));
-    const signal = AbortSignal.any([
-      request.signal,
-      AbortSignal.timeout(MODEL_TIMEOUT_MS),
-    ]);
-    const data =
-      body.mode === "illustrative"
-        ? illustrativeDataset
-        : recordedDataset(await getGuardian());
-    if (signal.aborted) throw new CareError("studio_cancelled");
-    const reservation = await store.reserve(
-      body.conversationId,
-      owner,
-      body.requestId,
-    );
-    const raw = await accountedCall(
-      () =>
+    if (prior) return careResponse(savedPresentation(prior));
+    try {
+      const signal = AbortSignal.any([
+        request.signal,
+        AbortSignal.timeout(MODEL_TIMEOUT_MS),
+      ]);
+      const data =
+        body.mode === "illustrative"
+          ? illustrativeDataset
+          : recordedDataset(await getGuardian());
+      if (signal.aborted) throw new CareError("studio_cancelled");
+      const subscription = config.mode === "subscription";
+      const reservation = !subscription
+        ? await store.reserve(body.conversationId, owner, body.requestId)
+        : null;
+      const work = () =>
         planDashboard(
-          new ResponsesProvider(config),
+          config.mode === "responses"
+            ? new ResponsesProvider(config)
+            : new SubscriptionProvider({
+                scope: "studio",
+                requestId: body.requestId,
+              }),
           body.message,
           data,
           signal,
-        ),
-      (micro, usage) =>
-        store.settle(
-          body.conversationId,
-          owner,
-          body.requestId,
-          reservation,
-          micro,
-          usage,
-        ),
-    );
-    const plan = validateDashboardPlan(raw);
-    await store.finish(body.conversationId, owner, {
-      requestId: body.requestId,
-      message: input.message,
-      answer: {
-        outcome: plan.outcome === "apply" ? "answered" : "unsupported",
-        mode: "live",
-        context: null,
-        revision: 0,
-        text: "Validated presentation-only plan; no financial action.",
-        steps: [],
-        sources: [],
-        actions: [],
-        presentation: plan,
-      },
-    });
-    return careResponse(plan);
+        );
+      const raw = subscription
+        ? (await work()).value
+        : await accountedCall(
+            () => work(),
+            (micro, usage) =>
+              store.settle(
+                body.conversationId,
+                owner,
+                body.requestId,
+                reservation!,
+                micro,
+                usage,
+              ),
+          );
+      const plan = validateDashboardPlan(raw);
+      await store.finish(body.conversationId, owner, {
+        requestId: body.requestId,
+        message: input.message,
+        answer: {
+          outcome: plan.outcome === "apply" ? "answered" : "unsupported",
+          mode: "live",
+          context: null,
+          revision: 0,
+          text: "Validated presentation-only plan; no financial action.",
+          steps: [],
+          sources: [],
+          actions: [],
+          presentation: plan,
+        },
+      });
+      return careResponse(plan);
+    } catch (error) {
+      // Persist terminal failure and release the conversation lease. The provider
+      // reservation/unknown subscription attempt remains consumed, never retried.
+      await store.finish(
+        body.conversationId,
+        owner,
+        unavailablePresentationTurn(body.requestId, input.message),
+      );
+      throw error;
+    }
   } catch (e) {
     return careError(e);
   }

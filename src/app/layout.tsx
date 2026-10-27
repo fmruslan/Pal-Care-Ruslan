@@ -26,7 +26,8 @@ export const viewport: Viewport = {
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  let mode: "fixture" | "disabled" | "responses" | "unavailable";
+  let mode:
+    "fixture" | "disabled" | "responses" | "subscription" | "unavailable";
   try {
     mode = parseCareConfig(process.env).mode;
   } catch {

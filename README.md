@@ -1,19 +1,21 @@
 # Pal Care
 
-**Next integration prepared, not activated:** GPT-6.1 Sol with fixed medium reasoning for cited CareOS guidance/evidence interpretation and validated AG Studio presentation plans. Shared capped accounting, expiring separate scope access and migration **0016** are implemented/tested in isolation; the original database remains at **0015**, with no live model call claimed. [Proposed $5 evaluation, first $0.50 acceptance and API-key setup](docs/AI-EVALUATION.md).
+**Private live AI verified:** CareOS and actual AG Studio widgets now use CareOS's own official ChatGPT authorization with **GPT-6.1 Sol / medium** in an owner-only loopback preview. Real conversations, citations, follow-ups, product isolation, Studio actions and cancellation/recovery were exercised against the existing **0015 / 29-table** database. No paid API fallback, PayPal transaction, public deployment or application migration. [Private operation](docs/SUBSCRIPTION-DEVELOPMENT.md) · [actual quality results and limits](docs/evidence/SUBSCRIPTION-QUALITY.md).
 
-Current testing uses the existing OpenCode development connection plus automated fixture/injected tests. No API key/billing or 0016 activation now; actual capped API acceptance is reserved for final integration. `pnpm careos:review --examples` provides the [offline prompt/answer review pack and its evidence limits](docs/evidence/OFFLINE-AI-REVIEW.md). OpenCode authentication is never a website credential.
+The original failed pilot is retained as historical evidence. Its empty terminal-output issue was diagnosed and corrected in a separately approved session, later increased to **50 total subscription requests without resetting usage**. API-dollar budgets are not applied to subscription inference. [Historical pilot](docs/evidence/CHATGPT-PILOT.md).
+
+Fixtures/injected regressions remain separate from actual subscription tests. The Sol Medium **API-key adapter and 0016** stay prepared for separately approved final API acceptance; no API billing is enabled now. `pnpm careos:review --examples` remains an [offline review pack](docs/evidence/OFFLINE-AI-REVIEW.md), not live inference. OpenCode authentication is never a website credential.
 
 **Local security cutover passed:** verified Phase A recovery/Mac backup, migrations through 0015 and actual restricted reader/CareOS connections. The private app runs on loopback with fixture assistance and financial/provider activation off. Linux OS isolation and public deployment remain blocked; see [Phase B evidence](docs/evidence/PHASEB-CUTOVER.md) and the [completed checklist](docs/DATABASE-CUTOVER.md).
 
-Stage 5 hardening connects existing journeys and removes privileged database fallbacks. The separately approved Phase B cutover verified the existing local application with migrations through **0015**, a restricted reader and a separate CareOS writer. This is not public-runtime isolation or provider acceptance. See [historical Stage 5 evidence](docs/evidence/STAGE5-VERIFICATION.md) and [current setup](docs/SETUP.md). No provider activation is authorized.
+Stage 5 removed privileged database fallbacks; Phase B verified actual restricted reader/CareOS connections through **0015**. That cutover did not authorize provider activation or public exposure. The later, separately approved private subscription work is recorded above. [Historical Stage 5 evidence](docs/evidence/STAGE5-VERIFICATION.md) · [setup](docs/SETUP.md).
 
-Webhooks are not yet implemented; actual Stage 4 refund verification still needs separate approval. Merchant intelligence uses actual AG Studio local evaluation and a clearly scripted Agent Framework. Recall Guardian uses one reviewed official CPSC notice; replacement discovery remains fixture-based until Channel3 verification. Public license coverage and hosted AI remain unverified.
+Webhooks are not yet implemented; actual Stage 4 refund verification still needs separate approval. Merchant intelligence has genuine model-planned private Studio actions plus a clearly scripted fixture mode. Recall coverage remains one reviewed official CPSC notice; discovery remains fixture-based. Public licensing/hosting, real Channel3 and actual paid API acceptance remain unverified.
 
 **Everything you buy. Taken care of.**  
 *Powered by CareOS · Independent PayPal AI Hackathon project*
 
-> **Price Guardian remains financially disabled pending separate actual-refund acceptance.** The continuation adds real local AG Studio widgets/scripted SDK tools, genuinely retrieved historical CPSC evidence, and a care-first replacement experience with disabled Channel3 API infrastructure. Existing purchases and Guardian records are preserved. Scripted/fixture assistance is not live AI; public licensing, actual Channel3, genuine runtime inference, webhooks and deployment remain incomplete. [Current status](docs/STATUS.md) · [continuation evidence](docs/evidence/CONTINUATION-VERIFICATION.md) · [Price Guardian](docs/PRICE-GUARDIAN.md).
+> **Price Guardian remains financially disabled pending separate actual-refund acceptance.** Existing purchases/Guardian records are preserved. Genuine subscription inference is verified only in the private owner preview; scripted/fixture assistance is never labeled live. Public licensing, actual Channel3, webhooks, paid API acceptance and deployment remain incomplete. [Current status](docs/STATUS.md) · [actual private AI evidence](docs/evidence/SUBSCRIPTION-QUALITY.md) · [Price Guardian](docs/PRICE-GUARDIAN.md).
 
 Pal Care explores a new reason to choose PayPal: the purchase becomes the beginning of a useful care experience, rather than the end of a transaction.
 
@@ -23,7 +25,7 @@ The product's central object is a **Purchase Twin**, a durable, item-level recor
 
 ## Appearance
 
-CareOS adds a persistent customer assistant, deterministic scoped receipt lookup, a factual briefing and inline document/care views. The verified fictional Forma F-01 still has no manufacturer manual. Care fixtures say **no live AI**; the implemented runtime adapter remains gated pending separate API-key/spending approval. See [CareOS engineering and activation](docs/CAREOS.md).
+CareOS adds a persistent customer assistant, scoped receipts, factual briefings and source-selected product care. Forma F-01 still has no manufacturer manual. Fixture mode says **no live AI**; private subscription mode says **Using ChatGPT plan · Sol Medium**. Paid API activation remains separate. [CareOS engineering](docs/CAREOS.md).
 
 Pal Care's original product-passport identity uses blue for commerce, lavender for planned CareOS intelligence, and spacious white or midnight surfaces. **System is the default:** Light/Dark overrides are available from the appearance selector and persist locally. Geist Sans uses the maintained package's bundled, self-hosted fonts—no custom font service or browser request to Google Fonts.
 
@@ -66,11 +68,11 @@ Pal Care is an independent hackathon concept and **not an official PayPal produc
 | Frontend and backend | Next.js 16 App Router, React, TypeScript, Tailwind CSS, shadcn/ui |
 | Purchase records | Render Managed PostgreSQL 17; Drizzle ORM and versioned SQL migrations |
 | Demo identity and documents | Fixed fictional customer/merchant; public sample text documents; no login or uploads |
-| CareOS intelligence | Deterministic assistance + explicit fixtures; official Responses/Zod adapter implemented, hosted inference not activated/verified |
+| CareOS intelligence | Deterministic records + genuine Sol Medium private subscription inference; strict schemas and approved-source wording; paid API adapter separately gated |
 | Payment workflow | Official PayPal Server SDK 2.5.0; actual Sandbox Orders/Payments completed-capture and Twin verification passed; webhooks deferred |
 | Product safety | Real historical official CPSC source, conservative exact-model matching and assessment history; limited to one reviewed notice, no continuous monitoring |
 | Replacement discovery | Care-first fixture comparison; real Channel3 adapter/fresh-offer infrastructure tested, actual provider acceptance pending |
-| Merchant intelligence | Actual AG Studio 3.0.0 local evaluation, three custom widgets and scripted SDK tools; public license coverage/hosted AI pending |
+| Merchant intelligence | Actual AG Studio 3.0.0 widgets and live model-planned presentation tools in private evaluation; public license coverage pending |
 | Deployment | Render preparation exists; public deployment and workers not verified |
 | Testing | Vitest, Playwright, Postman; GitHub Actions CI |
 | Development | OpenCode on a Tailscale-connected remote server; Mac client |

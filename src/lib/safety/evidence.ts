@@ -50,7 +50,7 @@ export function recallExplanation(
       },
     );
   return {
-    text: `For ${product.brand} ${product.model}: ${decision.reason} Scope is one reviewed CPSC notice, not the complete recall database. ${e.mode === "bundled_official_snapshot" ? "Bundled historical official snapshot; no live source check this turn." : "Saved official retrieval; no live source check this turn."} ${e.unavailable ? "The latest refresh failed; current status is not established." : `Source retrieved ${e.retrievedAt}.`} No physical product identity or remedy eligibility is established.`,
+    text: `For ${product.brand} ${product.model}: ${decision.reason} Scope is one reviewed CPSC notice, not the complete recall database. This does not confirm this product’s current recall status. ${e.mode === "bundled_official_snapshot" ? "Bundled historical official snapshot; no live source check this turn." : "Saved official retrieval; no live source check this turn."} ${e.unavailable ? "The latest refresh failed; current status is not established." : `Source retrieved ${e.retrievedAt}.`} No physical product identity or remedy eligibility is established.`,
     evidence: e,
   };
 }

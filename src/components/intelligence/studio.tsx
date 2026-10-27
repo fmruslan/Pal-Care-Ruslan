@@ -168,11 +168,13 @@ export function IntelligenceStudio({
   stage,
   onStage,
   live = false,
+  subscription = false,
 }: {
   dataset: IntelligenceDataset;
   stage: string;
   onStage: (stage: string) => void;
   live?: boolean;
+  subscription?: boolean;
 }) {
   const stageRef = useRef(stage),
     onStageRef = useRef(onStage);
@@ -503,12 +505,12 @@ export function IntelligenceStudio({
       >
         <p className="text-sm font-semibold text-intelligence-foreground">
           {live
-            ? "Studio assistant · Sol Medium · private evaluation"
+            ? `Studio assistant · Sol Medium · ${subscription ? "using ChatGPT plan" : "private API evaluation"}`
             : "Studio assistant · scripted demonstration · no live AI"}
         </p>
         <p className="mt-2 text-xs leading-6 text-muted-foreground">
           {live
-            ? "Natural language plans use the approved shared AI budget. Only validated browser presentation tools are available. Unlock the Studio scope at /ai-evaluation first."
+            ? `${subscription ? "Natural language plans use your ChatGPT subscription allowance, with additional paid credits disabled by your confirmed setting." : "Natural language plans use the approved shared API budget."} Only validated browser presentation tools are available. Unlock the Studio scope at /ai-evaluation first.`
             : "These supported prompts run through the actual Studio Agent Framework and allowlisted presentation tools. No financial tools or paid inference."}
         </p>
         {live && (

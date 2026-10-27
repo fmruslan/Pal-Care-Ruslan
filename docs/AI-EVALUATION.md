@@ -4,6 +4,8 @@
 
 ## Current owner direction: development first, API acceptance later
 
+**Later approved subscription development:** own-client Mac sign-in/VM import and genuine Sol Medium application/Studio journeys are now verified in the private preview. The first failed pilot is retained, and its reader issue was fixed. The owner authorized a separate session, later increased to **50 total requests** without resetting counters. [Actual quality evidence](evidence/SUBSCRIPTION-QUALITY.md) · [subscription operation](SUBSCRIPTION-DEVELOPMENT.md). This uses request/token limits, **not the API-dollar budget below**. No API project/key/billing or application migration is activated. Prior no-new-login direction below is historical.
+
 Continue development, code/prompt review and offline evaluation in the existing subscription-connected OpenCode session. Do not reconnect without an authentication error, inspect/export its tokens, add a proxy, create a project/key, activate billing or apply 0016 now. `pnpm careos:review --examples` supplies a reproducible no-network review pack; [the coding-assistant review](evidence/OFFLINE-AI-REVIEW.md) distinguishes fixture assertions, AI-assisted critique and a semantic negative control from real application inference. Model/effort remain Sol/medium. The setup and spending proposal below is **deferred final-integration work**, not a current request to provision credentials or spend. Keep a pre-submission buffer for genuine API failures/quality fixes; do not replace actual acceptance with subscription-session opinions.
 
 ## Product and demo standard

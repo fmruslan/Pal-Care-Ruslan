@@ -45,7 +45,7 @@ No barcode scanning; no universal access to PayPal consumer history; no general-
 - **Tap:** direct receipt/document/guide/history navigation. Conversation is optional.
 - **Talk:** one persistent customer assistant, always explicit about the selected Purchase Twin and execution mode. Switching products must not mix receipts or care evidence.
 
-Stage 3 implements these interactions in explicit fixture mode plus a gated Responses adapter. Live model inference and accuracy remain unverified. One sample Raspberry Pi 5 ownership record demonstrates real, licensed exact-model documentation; the verified fictional Forma F-01 has no manufacturer manual. Reference ownership is not a verified payment, and a stored zero placeholder is not a market price. See [CareOS](CAREOS.md) and [source register](CARE-SOURCES.md).
+These interactions have explicit fixture mode plus actual owner-only Sol Medium subscription acceptance; population accuracy, independent user research and public/API acceptance remain separate. One Raspberry Pi 5 reference sample has licensed exact-model guidance. Forma F-01 has no manufacturer manual. Reference ownership is not verified payment, and its zero placeholder is not a market price. [Actual quality evidence](evidence/SUBSCRIPTION-QUALITY.md) · [CareOS](CAREOS.md) · [sources](CARE-SOURCES.md).
 
 - Minimize customer effort. Integrating a merchant should automatically create the Purchase Twin.
 - Ground consequential explanations in a stored policy or original official source.

@@ -2,7 +2,7 @@
 
 ## Approach
 
-The continuation adds typed merchant analytics/custom AG Studio widgets, fixed official CPSC retrieval and conservative assessment history, and a server-only Channel3 adapter with bounded usage/curated fresh offers. Its five tables are defined in safety/discovery TypeScript modules, all in PostgreSQL's public schema. There is no new service deployment or framework. The Studio runner remains scripted; genuine inference, public commercial-license coverage and actual Channel3 acceptance are separate gates. [Intelligence](INTELLIGENCE.md) · [recalls](RECALL-GUARDIAN.md) · [discovery](REPLACEMENT-CONCIERGE.md).
+The continuation adds typed merchant analytics/custom AG Studio widgets, fixed official CPSC retrieval/assessment history and a gated Channel3 adapter. Five safety/discovery tables remain in PostgreSQL's public schema. A later owner-approved subscription mode now powers genuine private CareOS/Studio inference without a new framework, deployment or database migration; scripted fixtures remain explicit. Public licensing, hosting and actual Channel3 remain separate gates. [Subscription architecture](SUBSCRIPTION-DEVELOPMENT.md) · [intelligence](INTELLIGENCE.md) · [recalls](RECALL-GUARDIAN.md) · [discovery](REPLACEMENT-CONCIERGE.md).
 
 Stage 4 adds `src/lib/price-guardian` deterministic policy/detection/projections, `src/lib/operator` private capabilities and separate refund contracts/service/verification. Background CLI jobs share services and never auto-dispatch refunds. Aftercare lifecycle verification is separate from first-capture verification. Public analytics is read-only; actual AG Studio components run locally with scripted tools, not live model inference. Financial activation and actual refund acceptance remain pending. [ADR 0007](adr/0007-price-guardian.md) · [contract](PRICE-GUARDIAN.md).
 
@@ -101,7 +101,7 @@ Store amounts as integer minor currency units, with a separate ISO currency code
 
 ## AI and trust boundaries
 
-The Sol preparation keeps this monolith and database authority model: one Responses model (`gpt-6.1-sol`) with medium reasoning, separate customer/Studio contexts and expiring capabilities, one shared persistent evaluation budget. Only browser presentation tools reach AG Studio; financial/recall calculations and status stay deterministic. Prepared migration 0016 adds usage metadata/new bounded reservations, preserving legacy evidence. No actual application migration or live activation is inferred from this code. [Acceptance contract](AI-EVALUATION.md).
+Both transports keep this monolith/authority model: fixed `gpt-6.1-sol` / medium, separate customer/Studio context and expiring capabilities, deterministic financial/recall status and presentation-only Studio tools. The verified private subscription mode uses existing 0015 conversations plus protected host request/token accounting. The prepared API transport retains atomic dollar reservations and separately approved 0016; no migration or API activation is inferred. [Private runtime](SUBSCRIPTION-DEVELOPMENT.md) · [API acceptance](AI-EVALUATION.md).
 
 ### Stage 3 implementation
 

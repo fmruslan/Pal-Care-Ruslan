@@ -1,5 +1,9 @@
 import { ownedConversation } from "@/lib/careos/http";
-import { answerTurn, careRuntime } from "@/lib/careos/runtime";
+import {
+  answerTurn,
+  careRuntime,
+  assertCustomerRuntimeAccess,
+} from "@/lib/careos/runtime";
 import {
   assertOrigin,
   careError,
@@ -15,6 +19,7 @@ export async function POST(
   try {
     const runtime = careRuntime();
     assertOrigin(request, runtime.origin);
+    await assertCustomerRuntimeAccess(runtime.config);
     const { id, owner } = await ownedConversation(params);
     const input = await readTurn(request);
     const prior = await runtime.store.claim(id, owner, input);

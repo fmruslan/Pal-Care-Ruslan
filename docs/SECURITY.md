@@ -44,7 +44,11 @@ Provider access requires an explicitly scoped Sandbox case/capture/experiment an
 
 ## Required safeguards
 
-### Stage 3 CareOS boundary (implemented, no live inference claim)
+### CareOS boundary (private subscription acceptance; API/public gates remain)
+
+Approved subscription mode adds CareOS's own official OAuth connection, not a proxy to OpenCode/Codex. Expiring customer/Studio scopes and conversation cookies gate local model access. Credentials stay in protected host files, never the browser/Git/runtime environment; browser artifacts and deployment traces are checked. Actual terminal SSE output was empty, so completed item identities/final phases are reconstructed before strict output validation. Care instructions render selected approved-source wording rather than unverified model prose. No schema/financial permission is expanded.
+
+Subscription requests use a separate durable host allowance (initially 30, owner-raised to 50 total with original attempts/expiry retained), serial dispatch, no SDK retries and preserved unknown slots. Additional paid credits remain owner-confirmed off; this setting cannot be machine-inspected here. No API fallback or API-dollar accounting is used for subscription calls. Studio failures persist terminal unavailable results/release leases without refunding quota. Existing 0015 conversation persistence remains; 0016/API budgets below are separate. [Current contract/limits](SUBSCRIPTION-DEVELOPMENT.md) · [actual evidence](evidence/SUBSCRIPTION-QUALITY.md).
 
 The later Sol preparation adds separate expiring customer/Studio evaluation capability cookies, local-only activation, one fixed model/medium effort/standard tier and a shared ≤$5 persistent budget. Every model call reserves $0.12 before dispatch; cache/reasoning usage is accounted independently per call, known billed errors settle and unknowns stay reserved. Studio accepts only validated browser presentation commands, never financial tools/SQL/URLs. Prompt/source/history text remains untrusted; source-ID/quote checks are not a semantic-safety guarantee. 0016 preserves old reservations and does not grant new commerce authority. Original runtime remains fixture-only pending separate migration/paid approval; [activation contract](AI-EVALUATION.md).
 

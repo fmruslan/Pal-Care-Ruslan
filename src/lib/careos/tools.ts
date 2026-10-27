@@ -11,19 +11,32 @@ import {
   type TurnInput,
 } from "./contracts";
 import { adjustmentResolution } from "./resolution";
+import { IDENTITY_TEXT, IDENTITY_CAPABILITIES } from "./role";
 
 // Read tools have no commerce runtime dependency and no visitor identity arguments.
 export function isProhibited(message: string) {
-  const readRefund =
-    /^(where|what|has|have|is|why|when|show|tell|explain)\b.*refund/i.test(
-      message.trim(),
-    ) &&
-    !/\b(issue|execute|approve|send|process|ignore|give|trigger)\b/i.test(
+  const financialCommand =
+    /(?:^|[.!?]\s*)(?:please\s+)?(?:approve|issue|execute|send|process|trigger|refund|capture|pay|transfer)\b|\b(?:can|could|will|would)\s+you\s+(?:please\s+)?(?:approve|issue|execute|send|process|trigger|refund|capture|pay|transfer)\b|\b(?:i want|i need|please|go ahead and)\s+(?:you to\s+|a\s+)?(?:refund|capture|payment|transfer)\b/i.test(
       message,
     );
+  const mixedFinancialCommand =
+    /\b(?:and|then)\s+(?:please\s+)?(?:approve|issue|execute|send|process|trigger|capture|pay|transfer|refund\s+(?:this|it|me|my))\b/i.test(
+      message,
+    );
+  const readQuestion =
+    /^(did|does|do|where|what|who|has|have|is|was|why|when|how|show|tell|explain|can you tell|could you tell|can you explain|could you explain)\b/i.test(
+      message.trim(),
+    );
+  const readRefund =
+    readQuestion && /refund/i.test(message) && !financialCommand;
+  const readPayment =
+    readQuestion && /payment|captur/i.test(message) && !financialCommand;
   return (
+    financialCommand ||
+    mixedFinancialCommand ||
     (!readRefund && /refund/i.test(message)) ||
-    /capture|^buy\b|buy (another|a new|now)|purchase (another|a new)|ignore .*instruction|system prompt|api.?key|secret/i.test(
+    (!readPayment && /capture/i.test(message)) ||
+    /^buy\b|buy (another|a new|now)|purchase (another|a new)|ignore .*instruction|system prompt|api.?key|secret/i.test(
       message,
     )
   );
@@ -31,6 +44,12 @@ export function isProhibited(message: string) {
 export function interpret(message: string): Intent {
   const text = message.toLowerCase();
   if (isProhibited(text)) return "unsupported";
+  if (
+    /what (is|are) (pal\s?care|careos)|what does (careos|pal\s?care) do|tell me about (careos|pal\s?care)|who are you|what can you (do|help)|are you (paypal|an official)|how does (pal\s?care|careos) work/.test(
+      text,
+    )
+  )
+    return "identity";
   if (/receipt|invoice|proof of payment/.test(text)) return "receipt";
   if (
     /policy|policies|terms|return window/.test(text) &&
@@ -38,10 +57,11 @@ export function interpret(message: string): Intent {
   )
     return "policy";
   if (/price|adjustment|saving|qualif|refund/.test(text)) return "guardian";
+  if (/payment|captured|capture status/.test(text)) return "summary";
   if (/replace|replacement|alternative/.test(text)) return "replacement";
   if (/recall|safety|hazard|safe to use/.test(text)) return "recall";
   if (
-    /clean|wash|maintain|maintenance|care|repair|setup|set up|troubleshoot|shut.*down|shutdown|power off|disconnect.*power/.test(
+    /clean|wash|maintain|maintenance|\bcare\b|repair|setup|set up|troubleshoot|shut.*down|shutdown|power off|disconnect.*power/.test(
       text,
     )
   )
@@ -82,6 +102,17 @@ export function deterministicAnswer(
     answer.outcome = "unsupported";
     answer.text =
       "I can help with saved purchase details, receipts, documents, scoped recall evidence and available product-care guidance. I cannot make payments, refunds or merchant changes.";
+    return answer;
+  }
+  if (intent === "identity") {
+    answer.text = IDENTITY_TEXT;
+    answer.steps = IDENTITY_CAPABILITIES;
+    answer.actions = [
+      {
+        label: record ? "Review this purchase" : "Choose a saved purchase",
+        href: record ? `/vault/${record.twin.id}` : "/vault",
+      },
+    ];
     return answer;
   }
   if (!record) {
@@ -210,11 +241,28 @@ export function deterministicAnswer(
       })),
     );
   } else if (intent === "summary") {
-    answer.text = `${product.brand} ${product.model} · ${money(twin.purchasePriceMinor)} · ${displayDate(twin.purchasedOn)}. ${twin.origin === "sandbox" ? "Payment was verified server-side in PayPal Sandbox; no real money was used." : "This is a fictional sample purchase, not a verified payment."} ${documents.length} saved document${documents.length === 1 ? "" : "s"}.`;
+    answer.text = `Your saved purchase is ${product.name} (${product.brand} ${product.model}), ${money(twin.purchasePriceMinor)} on ${displayDate(twin.purchasedOn)}. ${twin.origin === "sandbox" ? "Payment was verified server-side in PayPal Sandbox; no real money was used." : "This is a fictional sample purchase, not a verified payment."} ${documents.length} saved document${documents.length === 1 ? "" : "s"}.`;
     answer.actions = [
       { label: "View purchase", href: twinHref },
       { label: "Review documents", href: `${twinHref}#documents-heading` },
     ];
+    if (/payment|captur/i.test(input.message))
+      answer.text +=
+        " This is saved purchase evidence, not a fresh PayPal status check. Open the saved receipt for the recorded payment details.";
+    const receipt = documents.find((d) => d.kind === "receipt");
+    if (receipt)
+      answer.actions.unshift({
+        label: "Open saved receipt",
+        href: `/documents/${receipt.id}`,
+      });
+    if (product.illustration === "headphones") {
+      answer.text +=
+        " I can open your receipt, explain the policy saved with this purchase, or review its recorded aftercare status. No manufacturer manual is available for this fictional model; I won’t invent care instructions or promise a refund.";
+      answer.actions.push({
+        label: "Review recorded aftercare",
+        href: `/guardian?twinId=${twin.id}`,
+      });
+    }
     if (product.id === REFERENCE_PRODUCT)
       answer.text = `${product.name} is a real reference product with fictional sample ownership. No purchase price or payment is established. The stored zero amount is a placeholder, not a product price. Official guidance is available separately in Product care.`;
   } else if (intent === "history" || intent === "important") {

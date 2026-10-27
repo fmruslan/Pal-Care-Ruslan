@@ -77,7 +77,7 @@ export function CareOSProvider({
   mode = "fixture",
 }: {
   children: ReactNode;
-  mode?: "fixture" | "disabled" | "responses" | "unavailable";
+  mode?: "fixture" | "disabled" | "responses" | "subscription" | "unavailable";
 }) {
   const pathname = usePathname();
   const visible =
@@ -261,12 +261,24 @@ export function CareOSProvider({
                   <p className="mt-1 text-xs font-medium text-intelligence-foreground">
                     {mode === "fixture"
                       ? "Demo responses · no live AI"
-                      : mode === "responses"
-                        ? "Live model enabled · answers cite sources"
-                        : mode === "disabled"
-                          ? "Model disabled · saved records only"
-                          : "Model configuration unavailable"}
+                      : mode === "subscription"
+                        ? "Using ChatGPT plan · Sol Medium · private"
+                        : mode === "responses"
+                          ? "Live model enabled · answers cite sources"
+                          : mode === "disabled"
+                            ? "Model disabled · saved records only"
+                            : "Model configuration unavailable"}
                   </p>
+                  {mode === "subscription" && (
+                    <a
+                      href="https://chatgpt.com/settings/usage"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-primary underline"
+                    >
+                      Manage ChatGPT usage
+                    </a>
+                  )}
                 </div>
                 <div className="flex gap-1">
                   <Button

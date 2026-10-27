@@ -124,6 +124,34 @@ export async function resolveTurn(options: {
     throw new CareError("careos_purchase_not_found", 404);
   if (isProhibited(input.message))
     return deterministicAnswer(data, input, "unsupported");
+  if (record) {
+    const brand = record.product.brand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const namedModel = input.message.match(
+      new RegExp(
+        `\\b${brand}\\s+(?:model\\s+)?([a-z]?[- ]?\\d[\\w-]*)\\b`,
+        "i",
+      ),
+    );
+    const normalize = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const foreignBrand = input.message.match(
+      /\b(Sony|Bose|Apple|Samsung|Insignia)\b/i,
+    )?.[0];
+    if (
+      (namedModel &&
+        normalize(namedModel[1]) !== normalize(record.product.model)) ||
+      (foreignBrand &&
+        normalize(foreignBrand) !== normalize(record.product.brand))
+    ) {
+      return {
+        ...deterministicAnswer(data, input, "summary"),
+        outcome: "selection" as const,
+        text: `You mentioned ${namedModel ? `${record.product.brand} ${namedModel[1]}` : foreignBrand}, but the selected Purchase Twin is ${record.product.brand} ${record.product.model}. Choose the matching purchase or check its model label; I won’t substitute this purchase’s receipt or care guide.`,
+        steps: [],
+        sources: [],
+        actions: [{ label: "Choose the matching purchase", href: "/vault" }],
+      };
+    }
+  }
   const question = input.message.toLowerCase();
   const mentioned = data.products.filter((product) => {
     const alias = ["headphones", "kettle", "speaker"].includes(
@@ -161,6 +189,62 @@ export async function resolveTurn(options: {
       text: "Your question mentions a different or unselected product. Choose the matching Purchase Twin so its receipt and documents stay separate.",
       actions: selection.actions.filter((action) => allowed.has(action.href)),
     };
+  }
+  if (record && /receipt|invoice/i.test(input.message)) {
+    const target =
+      input.message.match(
+        /\b(?:my|the)\s+(.+?)\s+(?:receipt|invoice)\b/i,
+      )?.[1] ??
+      input.message.match(
+        /\b(?:receipt|invoice)\s+for\s+(.+?)(?:[?.!]|$)/i,
+      )?.[1];
+    if (target) {
+      const normalize = (s: string) =>
+        s
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "")
+          .replace(/s$/, "");
+      const aliases = [
+        record.product.name,
+        record.product.brand,
+        record.product.model,
+        record.product.illustration,
+      ];
+      const known = new Set(
+        [...aliases, ...aliases.flatMap((s) => s.split(/\W+/))].map(normalize),
+      );
+      const generic = new Set(
+        [
+          "the",
+          "this",
+          "these",
+          "that",
+          "those",
+          "my",
+          "saved",
+          "original",
+          "old",
+          "new",
+          "exact",
+          "purchase",
+          "order",
+          "paypal",
+        ].map(normalize),
+      );
+      const words = target
+        .split(/\s+/)
+        .map(normalize)
+        .filter((s) => s && !generic.has(s));
+      if (!known.has(normalize(target)) && words.some((s) => !known.has(s)))
+        return {
+          ...deterministicAnswer(data, input, "summary"),
+          outcome: "selection" as const,
+          text: `I can’t match “${target}” to the selected ${record.product.brand} ${record.product.model} purchase. Choose the matching Purchase Twin; I won’t substitute this receipt for an unrecognized product.`,
+          sources: [],
+          steps: [],
+          actions: [{ label: "Choose the matching purchase", href: "/vault" }],
+        };
+    }
   }
   let intent = input.intent ?? interpret(input.message);
   let classified = false;
@@ -273,12 +357,24 @@ export async function resolveTurn(options: {
     return base;
   }
   let evidence = retrievePassages(sources, record.product, input.message);
-  if (classified && !evidence.passages.length && history.length)
-    evidence = retrievePassages(
-      sources,
-      record.product,
-      history.at(-1)!.question,
-    );
+  if (classified && !evidence.passages.length && history.length) {
+    // Recover the last grounded topic through two vague follow-ups. Re-load
+    // current exact-model evidence; old transcript prose is never a source.
+    for (const prior of options.history
+      .filter((t) => t.answer.context?.twinId === input.twinId)
+      .slice(-4)
+      .reverse()) {
+      const candidate = retrievePassages(
+        sources,
+        record.product,
+        prior.message,
+      );
+      if (candidate.passages.length || candidate.conflict) {
+        evidence = candidate;
+        break;
+      }
+    }
+  }
   if (evidence.conflict)
     return {
       ...base,

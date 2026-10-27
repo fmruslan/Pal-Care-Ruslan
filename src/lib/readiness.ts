@@ -4,12 +4,26 @@ import { assertDatabaseAuthority, assertEvidenceGuards } from "../db/authority";
 import { getEnvironment } from "./config";
 import { CUSTOMER_ID, MERCHANT_ID } from "./demo/fixtures";
 import { readinessPlan } from "./readiness-plan";
+import { subscriptionFiles } from "./careos/subscription/provider";
+import { subscriptionSession } from "./careos/subscription/session";
 const state = globalThis as unknown as {
   readiness?: { key: string; until: number; work: Promise<void> };
 };
 export async function readiness() {
   const config = getEnvironment(),
     plan = readinessPlan(process.env);
+  if (plan.features.careos === "subscription") {
+    const files = subscriptionFiles();
+    await files.prepare();
+    await subscriptionSession(files);
+    const registration = await files.registration();
+    if (
+      !registration?.tokens ||
+      registration.refreshPending ||
+      !registration.tokens.scopes.includes("chatgpt.tokens.use.direct")
+    )
+      throw new Error("Subscription authorization unavailable");
+  }
   // Metadata verification is cached briefly, but connectivity and seed presence
   // are checked every request. No provider calls, write probes, or public diagnostics.
   const key = JSON.stringify(plan.requirements);

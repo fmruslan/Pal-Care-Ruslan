@@ -16,7 +16,8 @@ export function readinessPlan(env: Record<string, string | undefined>) {
   )
     throw new Error("Invalid runtime isolation/origin");
   const care = parseCareConfig(env);
-  if (care.mode === "responses") evaluationSettings(env);
+  if (care.mode === "responses" || care.mode === "subscription")
+    evaluationSettings(env);
   if (
     env.DISCOVERY_PROVIDER &&
     !["fixture", "channel3"].includes(env.DISCOVERY_PROVIDER)

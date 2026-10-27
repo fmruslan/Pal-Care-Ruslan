@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { careRuntime } from "@/lib/careos/runtime";
+import { careRuntime, assertCustomerRuntimeAccess } from "@/lib/careos/runtime";
 import {
   assertOrigin,
   careError,
@@ -16,6 +16,7 @@ export async function POST(request: Request) {
   try {
     const runtime = careRuntime();
     assertOrigin(request, runtime.origin);
+    await assertCustomerRuntimeAccess(runtime.config);
     const body = await readJson(request);
     if (
       !body ||

@@ -27,10 +27,12 @@ export function IntelligenceWorkspace({
   recorded,
   studioAllowed,
   live = false,
+  subscription = false,
 }: {
   recorded: IntelligenceDataset;
   studioAllowed: boolean;
   live?: boolean;
+  subscription?: boolean;
 }) {
   const [mode, setMode] = useState<"recorded" | "illustrative">("recorded"),
     [stage, setStage] = useState("All"),
@@ -172,6 +174,7 @@ export function IntelligenceWorkspace({
               stage={stage}
               onStage={setStage}
               live={live}
+              subscription={subscription}
             />
           </div>
         )}

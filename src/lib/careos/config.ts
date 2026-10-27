@@ -5,12 +5,41 @@ import {
   SOL_RESERVATION_MICRO,
   EVALUATION_MAX_MICRO,
 } from "./model-policy";
+import { SUBSCRIPTION_SESSION } from "./subscription/policy";
 
 export function parseCareConfig(env: Record<string, string | undefined>) {
   const mode = z
-    .enum(["fixture", "disabled", "responses"])
+    .enum(["fixture", "disabled", "responses", "subscription"])
     .safeParse(env.CAREOS_PROVIDER ?? "fixture");
   if (!mode.success) throw new CareError("careos_invalid_configuration");
+  if (mode.data === "subscription") {
+    const c = z
+      .object({
+        enabled: z.literal("true"),
+        dataSource: z.literal("database"),
+        creditsDisabled: z.literal("true"),
+        sessionId: z.literal(SUBSCRIPTION_SESSION),
+        model: z.literal(MODEL),
+        origin: z.url().refine((v) => {
+          const u = new URL(v);
+          return (
+            ["127.0.0.1", "localhost"].includes(u.hostname) &&
+            ["http:", "https:"].includes(u.protocol) &&
+            u.origin === v
+          );
+        }),
+      })
+      .safeParse({
+        enabled: env.CAREOS_SUBSCRIPTION_ENABLED,
+        dataSource: env.DEMO_DATA_SOURCE,
+        creditsDisabled: env.CAREOS_SUBSCRIPTION_CREDITS_DISABLED,
+        sessionId: env.CAREOS_SUBSCRIPTION_SESSION_ID,
+        model: env.CAREOS_MODEL ?? MODEL,
+        origin: env.APP_ORIGIN,
+      });
+    if (!c.success) throw new CareError("careos_subscription_not_authorized");
+    return { mode: "subscription" as const, ...c.data };
+  }
   if (mode.data !== "responses") return { mode: mode.data } as const;
   const config = z
     .object({
