@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useRef,
@@ -21,12 +22,10 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "../ui/button";
-import type {
-  CareContext,
-  CareTurn,
-  Conversation,
-  Intent,
-} from "@/lib/careos/contracts";
+import type { CareContext, Intent } from "@/lib/careos/contracts";
+import { contextIdentity } from "./conversation-client";
+import { useConversation } from "./use-conversation";
+import { useConversationScroll } from "./use-conversation-scroll";
 
 type AssistantState = {
   select: (context: CareContext | null) => void;
@@ -39,39 +38,6 @@ export function useCareOS() {
   if (!value) throw new Error("CareOS host is missing.");
   return value;
 }
-const storageKey = "palcare-careos-conversation";
-class CareHttpError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-  ) {
-    super(message);
-  }
-}
-async function api<T>(
-  path: string,
-  method = "GET",
-  body?: unknown,
-): Promise<T> {
-  const response = await fetch(`/api/careos/conversations${path}`, {
-    method,
-    headers:
-      body === undefined ? undefined : { "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    cache: "no-store",
-  });
-  if (!response.ok)
-    throw new CareHttpError(
-      response.status,
-      response.status === 429
-        ? "CareOS has reached its demo limit. Please try later; your documents are still available."
-        : response.status === 409
-          ? "An answer is already being prepared. Please wait before trying again."
-          : "CareOS is temporarily unavailable. You can still open your purchases and documents directly.",
-    );
-  return response.json() as Promise<T>;
-}
-
 export function CareOSProvider({
   children,
   mode = "fixture",
@@ -91,14 +57,20 @@ export function CareOSProvider({
   const contextRef = useRef<CareContext | null>(null);
   const registered = useRef(false);
   const revision = useRef(0);
-  const [conversation, setConversation] = useState<Conversation | null>(null);
-  const conversationRef = useRef<Conversation | null>(null);
+  const { conversation, pending, phase, error, restore, send, check, clear } =
+    useConversation();
   const [draft, setDraft] = useState("");
-  const [busy, setBusy] = useState(false);
-  const busyRef = useRef(false);
-  const [error, setError] = useState("");
+  const busy = phase !== "idle";
+  const unavailable = busy || !!pending;
   const trigger = useRef<HTMLButtonElement>(null);
-  const initializing = useRef<Promise<Conversation> | null>(null);
+  const composing = useRef(false);
+  const composer = useRef<HTMLTextAreaElement>(null);
+  const latest = conversation?.turns.at(-1);
+  const { attach, onScroll, showJump, jump, focusTranscript } =
+    useConversationScroll(
+      pending?.input.requestId ?? latest?.requestId,
+      !pending,
+    );
 
   useEffect(() => {
     const media = matchMedia("(max-width: 1023px)");
@@ -108,107 +80,45 @@ export function CareOSProvider({
     return () => media.removeEventListener("change", update);
   }, []);
 
-  function save(value: Conversation) {
-    conversationRef.current = value;
-    setConversation(value);
-    try {
-      sessionStorage.setItem(storageKey, value.id);
-    } catch {
-      /* Navigation still works without browser storage. */
-    }
-  }
-  function select(value: CareContext | null) {
+  const select = useCallback((value: CareContext | null) => {
     registered.current = true;
     if (JSON.stringify(contextRef.current) === JSON.stringify(value)) return;
     contextRef.current = value;
     revision.current++;
     setContext(value);
-  }
-  async function ensureConversation() {
-    if (conversationRef.current) return conversationRef.current;
-    if (initializing.current) return initializing.current;
-    initializing.current = (async () => {
-      let id: string | null = null;
-      try {
-        id = sessionStorage.getItem(storageKey);
-      } catch {
-        /* Optional. */
-      }
-      let value: Conversation;
-      if (id && /^[a-f0-9-]{36}$/.test(id)) {
-        try {
-          value = await api<Conversation>(`/${id}`);
-        } catch (error) {
-          if (!(error instanceof CareHttpError) || error.status !== 404)
-            throw error;
-          value = await api<Conversation>("", "POST", {});
-        }
-      } else value = await api<Conversation>("", "POST", {});
-      save(value);
-      const previous = value.turns.at(-1)?.answer.context;
-      if (!registered.current && !contextRef.current && previous)
-        select(previous);
-      return value;
-    })();
-    try {
-      return await initializing.current;
-    } finally {
-      initializing.current = null;
-    }
-  }
+  }, []);
   async function ask(message: string, intent?: Intent, selected?: CareContext) {
-    if (busyRef.current) return;
+    if (unavailable || !message.trim()) return false;
     if (selected) select(selected);
     const bound = contextRef.current;
     const boundRevision = revision.current;
     setOpen(true);
-    setError("");
-    setBusy(true);
-    busyRef.current = true;
-    try {
-      const current = await ensureConversation();
-      const turn = await api<CareTurn>(`/${current.id}/turns`, "POST", {
+    return send(
+      {
         requestId: crypto.randomUUID(),
         twinId: bound?.twinId ?? null,
         revision: boundRevision,
-        message,
+        message: message.trim(),
         ...(intent ? { intent } : {}),
         ...(bound?.example ? { example: bound.example } : {}),
-      });
-      // Every answer keeps its original product, even if navigation changed mid-request.
-      save({ ...current, turns: [...current.turns, turn] });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "CareOS is unavailable.");
-    } finally {
-      setBusy(false);
-      busyRef.current = false;
-    }
+      },
+      bound,
+    );
   }
   async function open() {
     setOpen(true);
-    setError("");
-    try {
-      await ensureConversation();
-    } catch (e) {
-      setError((e as Error).message);
-    }
+    const value = await restore();
+    const previous = value?.turns.at(-1)?.answer.context;
+    if (!registered.current && !contextRef.current && previous)
+      select(previous);
   }
-  async function clear() {
-    if (busyRef.current) return;
-    try {
-      if (conversationRef.current)
-        await api(`/${conversationRef.current.id}`, "DELETE");
-      conversationRef.current = null;
-      setConversation(null);
-      setError("");
-      try {
-        sessionStorage.removeItem(storageKey);
-      } catch {
-        /* Optional. */
-      }
-    } catch (e) {
-      setError((e as Error).message);
-    }
+  function submit() {
+    if (!draft.trim() || unavailable) return;
+    const submitted = draft;
+    // send() admits synchronously; keep any draft typed during the request untouched.
+    void ask(submitted);
+    setDraft("");
+    if (composer.current) composer.current.style.height = "auto";
   }
 
   return (
@@ -334,10 +244,14 @@ export function CareOSProvider({
                 </Button>
               </div>
               <div
-                className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-5"
+                ref={attach}
+                onScroll={onScroll}
+                className="careos-transcript min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-5"
                 aria-label="CareOS conversation"
+                role="region"
+                tabIndex={0}
               >
-                {!conversation?.turns.length && (
+                {!conversation?.turns.length && !pending && (
                   <div className="rounded-2xl bg-intelligence p-5">
                     <h2 className="text-xl font-semibold">
                       Less searching.
@@ -351,127 +265,182 @@ export function CareOSProvider({
                   </div>
                 )}
                 {conversation?.turns.map((turn, index) => (
-                  <article key={turn.requestId} className="space-y-3">
+                  <article
+                    key={turn.requestId}
+                    data-request-id={turn.requestId}
+                    className="space-y-3"
+                  >
                     {((index === 0 &&
-                      turn.answer.context?.twinId !== context?.twinId) ||
+                      contextIdentity(turn.answer.context) !==
+                        contextIdentity(context)) ||
                       (index > 0 &&
-                        conversation.turns[index - 1].answer.context?.twinId !==
-                          turn.answer.context?.twinId)) && (
+                        contextIdentity(
+                          conversation.turns[index - 1].answer.context,
+                        ) !== contextIdentity(turn.answer.context))) && (
                       <p className="border-t pt-3 text-xs text-muted-foreground">
                         {turn.answer.context
-                          ? `${turn.answer.context.name} · ${turn.answer.context.model} · ${turn.answer.context.origin === "sandbox" ? "Sandbox" : "Sample"}`
+                          ? `${turn.answer.context.name} · ${turn.answer.context.model} · ${turn.answer.context.example ? "Reference example" : turn.answer.context.origin === "sandbox" ? "Sandbox" : "Sample"}`
                           : "General assistance"}
                       </p>
                     )}
-                    {![
-                      "Product care",
-                      "Find receipt",
-                      "Purchase summary",
-                    ].includes(turn.message) && (
-                      <p className="ml-8 rounded-2xl bg-secondary px-4 py-3 text-sm text-secondary-foreground">
-                        {turn.message}
-                      </p>
-                    )}
-                    <div className="text-sm leading-7">
-                      <p className="mb-1 text-xs font-semibold text-intelligence-foreground">
-                        {turn.answer.outcome === "unavailable"
-                          ? "CareOS unavailable · no answer generated"
-                          : turn.answer.mode === "fixture"
-                            ? "Demo response · no live AI"
-                            : turn.answer.mode === "live"
-                              ? "Live AI · check sources"
-                              : "From saved records · no model call"}
-                      </p>
-                      <p>{turn.answer.text}</p>
-                      {turn.answer.resolution && (
-                        <details className="mt-3 rounded-xl border px-3">
-                          <summary className="cursor-pointer py-2 font-medium">
-                            What happens next
-                          </summary>
-                          <dl className="space-y-2 pb-3">
-                            {(
-                              [
-                                ["Known", "known"],
-                                ["Missing", "missing"],
-                                ["Next step", "next"],
-                                ["Finished when", "finished"],
-                              ] as const
-                            ).map(([label, key]) => (
-                              <div key={key}>
-                                <dt className="font-semibold">{label}</dt>
-                                <dd>{turn.answer.resolution![key]}</dd>
-                              </div>
+                    <p
+                      data-user-message
+                      className="ml-8 whitespace-pre-wrap break-words rounded-2xl bg-secondary px-4 py-3 text-sm text-secondary-foreground"
+                    >
+                      {turn.message}
+                    </p>
+                    <div
+                      data-latest-answer={
+                        !pending && index === conversation.turns.length - 1
+                          ? ""
+                          : undefined
+                      }
+                      className="space-y-3"
+                    >
+                      <div className="text-sm leading-7">
+                        <p className="mb-1 text-xs font-semibold text-intelligence-foreground">
+                          {turn.answer.outcome === "unavailable"
+                            ? "CareOS unavailable · no answer generated"
+                            : turn.answer.mode === "fixture"
+                              ? "Demo response · no live AI"
+                              : turn.answer.mode === "live"
+                                ? "Live AI · check sources"
+                                : "From saved records · no model call"}
+                        </p>
+                        <p>{turn.answer.text}</p>
+                        {turn.answer.resolution && (
+                          <details className="mt-3 rounded-xl border px-3">
+                            <summary className="cursor-pointer py-2 font-medium">
+                              What happens next
+                            </summary>
+                            <dl className="space-y-2 pb-3">
+                              {(
+                                [
+                                  ["Known", "known"],
+                                  ["Missing", "missing"],
+                                  ["Next step", "next"],
+                                  ["Finished when", "finished"],
+                                ] as const
+                              ).map(([label, key]) => (
+                                <div key={key}>
+                                  <dt className="font-semibold">{label}</dt>
+                                  <dd>{turn.answer.resolution![key]}</dd>
+                                </div>
+                              ))}
+                            </dl>
+                          </details>
+                        )}
+                        {!!turn.answer.steps.length && (
+                          <ul className="mt-3 list-disc space-y-2 pl-5">
+                            {turn.answer.steps.map((step) => (
+                              <li key={step}>{step}</li>
                             ))}
-                          </dl>
+                          </ul>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        {turn.answer.actions.map((action) => (
+                          <Button
+                            key={action.href}
+                            asChild
+                            variant="outline"
+                            className="justify-between text-left"
+                          >
+                            <Link
+                              href={action.href}
+                              onClick={() => mobile && setOpen(false)}
+                            >
+                              {action.label}
+                              <ArrowUpRight aria-hidden="true" />
+                            </Link>
+                          </Button>
+                        ))}
+                      </div>
+                      {!!turn.answer.sources.length && (
+                        <details className="rounded-xl border px-3 text-xs text-muted-foreground">
+                          <summary className="min-h-11 cursor-pointer py-3">
+                            <FileText
+                              className="mr-2 inline size-3.5"
+                              aria-hidden="true"
+                            />
+                            Sources ({turn.answer.sources.length})
+                          </summary>
+                          <ul className="space-y-4 pb-4">
+                            {turn.answer.sources.map((source) => (
+                              <li key={source.id}>
+                                <Link
+                                  className="font-medium text-primary underline"
+                                  href={source.href}
+                                  onClick={() => mobile && setOpen(false)}
+                                >
+                                  {source.title}
+                                </Link>
+                                <p className="mt-1">{source.label}</p>
+                                {source.excerpt && (
+                                  <blockquote className="mt-2 border-l-2 pl-3 leading-6">
+                                    {source.excerpt}
+                                  </blockquote>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
                         </details>
                       )}
-                      {!!turn.answer.steps.length && (
-                        <ul className="mt-3 list-disc space-y-2 pl-5">
-                          {turn.answer.steps.map((step) => (
-                            <li key={step}>{step}</li>
-                          ))}
-                        </ul>
-                      )}
                     </div>
-                    <div className="flex flex-col gap-2">
-                      {turn.answer.actions.map((action) => (
-                        <Button
-                          key={action.href}
-                          asChild
-                          variant="outline"
-                          className="justify-between text-left"
-                        >
-                          <Link
-                            href={action.href}
-                            onClick={() => mobile && setOpen(false)}
-                          >
-                            {action.label}
-                            <ArrowUpRight aria-hidden="true" />
-                          </Link>
-                        </Button>
-                      ))}
-                    </div>
-                    {!!turn.answer.sources.length && (
-                      <details className="rounded-xl border px-3 text-xs text-muted-foreground">
-                        <summary className="min-h-11 cursor-pointer py-3">
-                          <FileText
-                            className="mr-2 inline size-3.5"
-                            aria-hidden="true"
-                          />
-                          Sources ({turn.answer.sources.length})
-                        </summary>
-                        <ul className="space-y-4 pb-4">
-                          {turn.answer.sources.map((source) => (
-                            <li key={source.id}>
-                              <Link
-                                className="font-medium text-primary underline"
-                                href={source.href}
-                                onClick={() => mobile && setOpen(false)}
-                              >
-                                {source.title}
-                              </Link>
-                              <p className="mt-1">{source.label}</p>
-                              {source.excerpt && (
-                                <blockquote className="mt-2 border-l-2 pl-3 leading-6">
-                                  {source.excerpt}
-                                </blockquote>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      </details>
-                    )}
                   </article>
                 ))}
-                <p
-                  role="status"
-                  className={busy ? "text-sm text-muted-foreground" : "sr-only"}
-                >
-                  {busy
-                    ? "Retrieving your purchase information…"
-                    : conversation?.turns.length
-                      ? "CareOS answer ready. Review the answer and sources above."
-                      : ""}
+                {pending && (
+                  <article
+                    data-pending-question
+                    data-request-id={pending.input.requestId}
+                    className="space-y-3"
+                  >
+                    <p className="border-t pt-3 text-xs text-muted-foreground">
+                      {pending.context
+                        ? `${pending.context.name} · ${pending.context.model} · ${pending.context.example ? "Reference example" : pending.context.origin === "sandbox" ? "Sandbox" : "Sample"}`
+                        : "General assistance"}
+                    </p>
+                    <p
+                      data-user-message
+                      className="ml-8 whitespace-pre-wrap break-words rounded-2xl bg-secondary px-4 py-3 text-sm text-secondary-foreground"
+                    >
+                      {pending.input.message}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {pending.status === "sending"
+                        ? "Preparing your answer…"
+                        : pending.status === "not-sent"
+                          ? "Your question wasn’t sent. Clear this conversation to start again."
+                          : "No confirmed answer yet. Your question will not be sent again automatically."}
+                    </p>
+                    {pending.status !== "sending" && pending.conversationId && (
+                      <Button
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => {
+                          focusTranscript();
+                          void check();
+                        }}
+                      >
+                        Check for saved answer
+                      </Button>
+                    )}
+                  </article>
+                )}
+                <p role="status" aria-atomic="true" className="sr-only">
+                  {phase === "sending"
+                    ? "Question received. Preparing your answer."
+                    : phase === "restoring"
+                      ? "Restoring your conversation."
+                      : phase === "checking"
+                        ? "Checking for a saved answer."
+                        : pending
+                          ? "No confirmed answer yet. Your question has not been resent."
+                          : conversation?.turns.length
+                            ? latest?.answer.outcome === "unavailable"
+                              ? "CareOS could not finish this answer. Your question is saved."
+                              : "CareOS answer ready. Review the answer and sources above."
+                            : ""}
                 </p>
                 {error && (
                   <p
@@ -482,6 +451,13 @@ export function CareOSProvider({
                   </p>
                 )}
               </div>
+              {showJump && (
+                <div className="flex shrink-0 justify-center border-t bg-card py-1">
+                  <Button size="sm" variant="outline" onClick={jump}>
+                    Jump to latest
+                  </Button>
+                </div>
+              )}
               <div className="border-t p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
                 <div className="mb-3 flex flex-wrap gap-2">
                   {[
@@ -492,7 +468,7 @@ export function CareOSProvider({
                     <button
                       type="button"
                       key={intent}
-                      disabled={busy}
+                      disabled={unavailable}
                       className="min-h-11 rounded-xl border px-3 text-xs font-medium text-intelligence-foreground hover:bg-intelligence disabled:opacity-50"
                       onClick={() => void ask(label, intent as Intent)}
                     >
@@ -504,28 +480,48 @@ export function CareOSProvider({
                   className="flex items-end gap-2"
                   onSubmit={(event) => {
                     event.preventDefault();
-                    if (draft.trim() && !busy) {
-                      void ask(draft.trim());
-                      setDraft("");
-                    }
+                    submit();
                   }}
                 >
                   <label className="sr-only" htmlFor="careos-message">
                     Ask about your purchase
                   </label>
                   <textarea
+                    ref={composer}
                     id="careos-message"
                     value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
+                    onChange={(e) => {
+                      setDraft(e.target.value);
+                      e.target.style.height = "auto";
+                      e.target.style.height = `${Math.min(e.target.scrollHeight, 144)}px`;
+                    }}
+                    onCompositionStart={() => {
+                      composing.current = true;
+                    }}
+                    onCompositionEnd={() => {
+                      composing.current = false;
+                    }}
+                    onKeyDown={(event) => {
+                      if (
+                        event.key !== "Enter" ||
+                        event.shiftKey ||
+                        event.nativeEvent.isComposing ||
+                        composing.current ||
+                        event.keyCode === 229
+                      )
+                        return;
+                      event.preventDefault();
+                      if (!event.repeat) submit();
+                    }}
                     maxLength={2000}
                     rows={1}
                     placeholder="Ask about your purchase…"
-                    className="min-w-0 flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2 text-base focus-visible:outline-2 focus-visible:outline-ring"
+                    className="max-h-36 min-h-11 min-w-0 flex-1 resize-none rounded-xl border border-input bg-background px-3 py-2 text-base focus-visible:outline-2 focus-visible:outline-ring"
                   />
                   <Button
                     type="submit"
                     size="icon"
-                    disabled={busy || !draft.trim()}
+                    disabled={unavailable || !draft.trim()}
                     aria-label="Send to CareOS"
                   >
                     <ArrowUp aria-hidden="true" />

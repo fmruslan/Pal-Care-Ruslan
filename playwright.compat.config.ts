@@ -5,7 +5,7 @@ export default defineConfig({
   // Includes axe, screenshots and several real SDK tool runs on slower Linux WebKit.
   // Individual assertions retain their normal deadlines; this is not retry masking.
   timeout: 60_000,
-  testMatch: /(?:stage5-journey|intelligence)\.spec\.ts/,
+  testMatch: /(?:stage5-journey|intelligence|careos-interaction)\.spec\.ts/,
   outputDir: "test-results/compatibility",
   reporter: [
     ["list"],

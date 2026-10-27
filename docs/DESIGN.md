@@ -42,7 +42,13 @@ White on the requested brand blue is only about 3.78:1, so normal-text light-mod
 
 ### CareOS Stage 3
 
-CareOS is assistant-first: a two-item factual briefing and direct receipt/guide links provide value without typing. A single root host follows customer navigation. Desktop is an expandable nonmodal side panel; mobile/tablet use a modal bottom sheet with safe-area padding, explicit close/expand controls and keyboard/focus restoration. It never auto-opens or forces answer autoscrolling. One global launcher avoids duplicate dashboard chat buttons. Tap results omit redundant prompt bubbles; a compact composer leaves more room for useful guidance. Context, sample/Sandbox provenance, execution mode and expandable evidence remain visible. Dismissed suggestions are browser-local, not purchase mutations. The verified fictional Forma F-01 never borrows the reference product's guide.
+CareOS is assistant-first: a two-item factual briefing and direct receipt/guide links provide value without typing. A single root host follows customer navigation. Desktop is an expandable nonmodal side panel; mobile/tablet use a modal bottom sheet with safe-area padding, explicit close/expand controls and keyboard/focus restoration. It never auto-opens. One global launcher avoids duplicate dashboard chat buttons. Context, sample/Sandbox provenance, execution mode and expandable evidence remain visible. Dismissed suggestions are browser-local, not purchase mutations. The verified fictional Forma F-01 never borrows the reference product's guide.
+
+### Conversation reliability increment
+
+Submitting immediately displays the question and truthful pending feedback. Typed questions and shortcut submissions both remain visible, including text identical to a shortcut label. Enter sends, Shift+Enter inserts a newline, and composition/repeated key events do not submit. The visible Send control remains available; drafts typed during pending work are retained.
+
+The transcript alone follows newly submitted questions and completed answers. A long atomic answer opens at its beginning, not its last action. Scrolling upward pauses following and exposes **Jump to latest**. New answers do not move keyboard focus. Sources expand in place; transcript position is retained in memory across closing/reopening. Scrolling is immediate (including reduced motion), not fake streaming. Reload restores saved results but never automatically repeats a turn POST. Advanced cross-browser reading-position restoration remains deferred. [Verification and limits](evidence/CAREOS-UX.md).
 
 `next-themes` is wired once at the root. Default preference is **System**. Light/Dark overrides persist in local storage under `palcare-appearance`; selecting System restores live `prefers-color-scheme` following. Theme selection never uses a payment cookie or API call.
 

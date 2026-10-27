@@ -8,6 +8,10 @@ Last updated: 2026-10-27
 
 ## Stage 5 — code complete; isolated verification passed
 
+### CareOS UX upgrade — incremental implementation, acceptance in progress
+
+Conversation reliability now displays submitted questions before transport completes, preserves original request/context envelopes, reconciles saved failures through GET, and never automatically repeats uncertain turn POSTs. Long answers reveal their beginning; upward reading pauses following with **Jump to latest**. Enter/Shift+Enter, composition/repeat guards, draft preservation and clear/restoration guards are implemented. **84/84** targeted six-project Chromium checks and **14/14** focused Firefox/WebKit checks pass; six updated assistant references were inspected. Unit/lint/type/build/format checks pass in the shared development tree; exact-commit CI is verified separately. Inline purchase choice and focused visual/accessibility polish are subsequent increments, not shipped. No new live inference, financial action, application migration or preview restart has occurred for this UX work. [Verification ledger](evidence/CAREOS-UX.md).
+
 ### Private subscription-powered application — implemented and actual journeys verified
 
 Latest owner-readiness audit: actual loopback readiness, both private scope unlocks, customer/Studio browser loading, credential scanning and original source preservation pass. Fixed an additional `proof of payment` foreign-product target mismatch; four new unit regressions and three actual deterministic browser checks pass, **366 units total**. No additional model call, financial action or migration. [Audit and owner handoff](evidence/OWNER-TEST-READINESS.md).

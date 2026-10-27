@@ -168,6 +168,10 @@
   .careos-expanded {
     height: 96dvh;
   }
+  .careos-transcript {
+    overflow-anchor: none;
+    scrollbar-gutter: stable;
+  }
   @media (min-width: 1024px) {
     .careos-launcher {
       right: 2rem;
