@@ -39,10 +39,11 @@ type FileName =
   | "pilot.json"
   | "session.json"
   | "application.json"
+  | "owner-access.json"
   | "preservation.json"
   | "quality.json";
 
-// CLI-only storage. No environment loader, database or web-runtime dependency.
+// Protected host storage. No environment loader or database dependency.
 // A stale lock is deliberately NOT stolen: inspect an interrupted run first.
 export class PilotFiles {
   constructor(public directory: string) {}
@@ -120,7 +121,7 @@ export class PilotFiles {
   }
   async locked<T>(
     work: () => Promise<T>,
-    name: ".lock" | ".evaluation-lock" = ".lock",
+    name: ".lock" | ".evaluation-lock" | ".owner-access-lock" = ".lock",
   ): Promise<T> {
     await this.prepare();
     let lock;

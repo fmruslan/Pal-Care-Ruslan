@@ -9,7 +9,21 @@ import {
 import {
   assertEvaluationAccess,
   evaluationCookie,
+  evaluationAccessStatus,
 } from "@/lib/careos/evaluation-access";
+
+export async function GET() {
+  const jar = await cookies();
+  return careResponse(
+    evaluationAccessStatus(
+      {
+        customer: jar.get(evaluationCookie("customer"))?.value,
+        studio: jar.get(evaluationCookie("studio"))?.value,
+      },
+      process.env,
+    ),
+  );
+}
 
 // Private, explicitly configured local evaluation access; not customer registration.
 export async function POST(request: Request) {

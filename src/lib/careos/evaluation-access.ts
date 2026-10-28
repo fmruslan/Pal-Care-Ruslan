@@ -4,6 +4,48 @@ import { CareError } from "./contracts";
 export type EvaluationScope = "customer" | "studio";
 export const evaluationCookie = (scope: EvaluationScope) =>
   `palcare-ai-${scope}`;
+
+export type EvaluationAccessStatus = {
+  window: "active" | "expired" | "unavailable";
+  expiresAt: string | null;
+  scopes: Record<EvaluationScope, boolean>;
+};
+
+// Read-only projection: never echoes capabilities, sets cookies, or renews a window.
+export function evaluationAccessStatus(
+  tokens: Partial<Record<EvaluationScope, string>>,
+  env: Record<string, string | undefined>,
+  now = Date.now(),
+): EvaluationAccessStatus {
+  const denied: EvaluationAccessStatus = {
+    window: "unavailable",
+    expiresAt: null,
+    scopes: { customer: false, studio: false },
+  };
+  try {
+    const expires = Date.parse(env.CAREOS_EVALUATION_EXPIRES_AT ?? "");
+    // Validate even an expired configuration before describing it as renewable.
+    evaluationSettings(env, expires <= now ? expires - 1 : now);
+    const status: EvaluationAccessStatus = {
+      ...denied,
+      window: expires <= now ? "expired" : "active",
+      expiresAt: new Date(expires).toISOString(),
+      scopes: { ...denied.scopes },
+    };
+    if (status.window === "active")
+      for (const scope of ["customer", "studio"] as const) {
+        try {
+          assertEvaluationAccess(scope, tokens[scope], env, now);
+          status.scopes[scope] = true;
+        } catch {
+          // A missing/wrong scope cookie grants no authority.
+        }
+      }
+    return status;
+  } catch {
+    return denied;
+  }
+}
 export function evaluationSettings(
   env: Record<string, string | undefined>,
   now = Date.now(),

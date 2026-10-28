@@ -65,6 +65,8 @@ jobs:
       - name: Unavailable database readiness (real production server)
         run: pnpm test:failure
       - run: pnpm exec playwright install --with-deps chromium firefox webkit
+      - name: Private owner pairing, browser persistence and expiry (isolated fixture, no inference)
+        run: pnpm exec playwright test --config=playwright.access.config.ts
       - name: Fixture-preview browser and accessibility tests
         run: pnpm test:e2e
       - name: PostgreSQL-backed browser and accessibility tests

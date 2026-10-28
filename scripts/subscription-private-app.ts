@@ -187,6 +187,8 @@ try {
           CAREOS_SUBSCRIPTION_CREDITS_DISABLED: "true",
           CAREOS_SUBSCRIPTION_SESSION_ID: SUBSCRIPTION_SESSION,
           CAREOS_EVALUATION_ENABLED: "true",
+          CAREOS_OWNER_PAIRING_ENABLED: "true",
+          CAREOS_OWNER_SSH_TARGET: "bigrus@greatbison.tail9e8802.ts.net",
           CAREOS_EVALUATION_EXPIRES_AT: new Date(app.expiresAt).toISOString(),
           CAREOS_CUSTOMER_ACCESS_HASH: hash(app.customer),
           CAREOS_STUDIO_ACCESS_HASH: hash(app.studio),
