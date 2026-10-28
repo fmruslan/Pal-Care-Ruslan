@@ -18,12 +18,25 @@ test("injected Sol protocol: separate private scopes, actual Studio tools, groun
   expect(denied.status()).toBe(403);
   await page.goto("/ai-evaluation");
   await page.getByLabel("Private scope token").fill("b".repeat(64));
+  const wrongScope = page.waitForResponse(
+    (response) =>
+      response.url().endsWith("/api/ai/evaluation") &&
+      response.request().method() === "POST",
+  );
   await page.getByRole("button", { name: "Authorize this browser" }).click();
-  await expect(page.getByRole("status")).toContainText("invalid"); // Studio token cannot unlock customer scope.
+  expect((await wrongScope).status()).toBe(403);
+  await expect(page.getByRole("status")).toContainText("Scope not authorized");
+  expect(
+    (await context.cookies()).some(
+      (cookie) => cookie.name === "palcare-ai-customer",
+    ),
+  ).toBe(false); // Studio token cannot unlock customer scope.
   await page.getByLabel("Evaluation scope").selectOption("studio");
   await page.getByLabel("Private scope token").fill("b".repeat(64));
   await page.getByRole("button", { name: "Authorize this browser" }).click();
-  await expect(page.getByRole("status")).toContainText("authorized");
+  await expect(page.getByRole("status")).toHaveText(
+    "Scope authorized. Use its workspace link above.",
+  );
   await page.goto("/merchant/intelligence");
   await page
     .getByRole("button", {
@@ -58,7 +71,9 @@ test("injected Sol protocol: separate private scopes, actual Studio tools, groun
   await page.goto("/ai-evaluation");
   await page.getByLabel("Private scope token").fill("a".repeat(64));
   await page.getByRole("button", { name: "Authorize this browser" }).click();
-  await expect(page.getByRole("status")).toContainText("authorized");
+  await expect(page.getByRole("status")).toHaveText(
+    "Scope authorized. Use its workspace link above.",
+  );
   await page.goto(`/vault/${pi}`);
   await page
     .getByRole("button", { name: "Ask about this product", exact: true })

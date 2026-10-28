@@ -117,6 +117,15 @@ test("one unlock survives refresh, browser reconnect and server restart; Custome
   browser,
 }) => {
   let unexpected = 0;
+  let holdAccessCheck = false;
+  let releaseAccessCheck!: () => void;
+  let accessCheckStarted!: () => void;
+  const accessCheckHeld = new Promise<void>((resolve) => {
+    accessCheckStarted = resolve;
+  });
+  const accessCheckReleased = new Promise<void>((resolve) => {
+    releaseAccessCheck = resolve;
+  });
   await context.route("**/*", async (route) => {
     const r = route.request(),
       url = new URL(r.url());
@@ -126,7 +135,19 @@ test("one unlock survives refresh, browser reconnect and server restart; Custome
     ) {
       unexpected++;
       await route.abort();
-    } else await route.continue();
+    } else {
+      if (
+        holdAccessCheck &&
+        r.method() === "GET" &&
+        url.pathname === "/api/ai/evaluation"
+      ) {
+        accessCheckStarted();
+        await accessCheckReleased;
+        await route.abort("internetdisconnected");
+        return;
+      }
+      await route.continue();
+    }
   });
   await page.goto("/ai-evaluation");
   await page
@@ -160,11 +181,23 @@ test("one unlock survives refresh, browser reconnect and server restart; Custome
   await expect(
     page.getByRole("link", { name: "Open Customer CareOS" }),
   ).toBeVisible();
-  await context.setOffline(true);
+  holdAccessCheck = true;
   await page.getByRole("button", { name: "Check access", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText(
-    "Reconnect your SSH tunnel",
-  );
+  await accessCheckHeld;
+  const connectionStatus = page.getByRole("status").filter({
+    hasText: "Reconnect your SSH tunnel",
+  });
+  try {
+    // A pending request legitimately leaves both empty status regions mounted.
+    // The reconnect assertion must wait for its message, not assume one region.
+    await expect(page.getByRole("status")).toHaveCount(2);
+    await expect(connectionStatus).toHaveCount(0);
+    await context.setOffline(true);
+  } finally {
+    holdAccessCheck = false;
+    releaseAccessCheck();
+  }
+  await expect(connectionStatus).toBeVisible();
   await context.setOffline(false);
   await page.getByRole("button", { name: "Check access", exact: true }).click();
   await expect(
