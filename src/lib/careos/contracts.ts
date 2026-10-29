@@ -53,6 +53,7 @@ export type Evidence = {
 export type CareAnswer = {
   resolution?: import("./resolution").CareResolution;
   presentation?: import("../intelligence/commands").DashboardPlan;
+  customerPresentation?: import("../intelligence/customer-commands").CustomerPlan;
   outcome:
     | "answered"
     | "selection"

@@ -4,10 +4,21 @@ This is an independent PayPal AI Hackathon project. Treat `docs/STATUS.md` as th
 
 ## Before coding
 
-1. Read `README.md`, `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, and ADRs 0002/0003. ADR 0001 is historical where superseded.
+1. Read `README.md`, `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/CUSTOMER-FIRST-PLAN.md`, and ADRs 0002/0003. ADR 0001 is historical where superseded.
 2. Inspect existing code, installed dependencies, Node runtime and integration contracts before changing them.
 3. Propose one vertical slice with clear acceptance tests; do not build unrelated features in the same task.
 4. Favor official PayPal documentation and actively maintained, version-pinned libraries.
+
+## Capability-based, customer-first planning
+
+- Follow `docs/CUSTOMER-FIRST-PLAN.md` exactly: **A Customer Intelligence foundation → B CareOS-controlled personal analytics → C unified customer experience → D complete acceptance → E readiness**. A establishes customer `/insights`, not another security-cutover project; B serves the customer's own purchases, not merchant investigation. Advance on demonstrated acceptance gates, not elapsed time, feature counts or a calendar engineering schedule. A small vertical slice is a delivery unit, not an arbitrary ceiling on approved scope.
+- Keep customer navigation **Home / Purchases / Insights / Documents** and the Insights views **My Purchases / Documents & Care / Price Adjustments**. Use native AG Studio grid/chart/KPI widgets together with custom purchase/evidence widgets, real cross-filtering and validated browser-local layouts. CareOS presentation actions require actual SDK execution and exact read-back postconditions (page, filters/cross-filters, widget identity/type/mappings, layout/selection and resulting scoped records); emitted events, a success string or model intent alone do not prove an action worked. New customer code remains pending verification until integrated acceptance is evidenced.
+- State the customer outcome, selected capability/gate, dependencies, acceptance evidence and authorization needed before implementation. Reuse accepted foundation; do not replace working architecture or expand into unrelated features merely to fill a stage.
+- Keep the conservative submission cutoff **November 12, 2026 at 12:00 PM PST**, judge access through **December 15, 2026**, and actual authorization/license expiries visible. These are external constraints, not permission to invent intermediate engineering dates or bypass acceptance. The historical November 5 recommendation is superseded; it is not an active target. Preserve historical timestamps/evidence.
+- Engineering/agent authorization does not authorize financial operations (including Sandbox), paid API/credit use, application database migrations/credential provisioning, license/trial activation, deployment or public exposure. Obtain separate, exact owner approval for each boundary; a plan, passing test, subscription entitlement or local evaluation license cannot grant it. Never renew scopes/reset budgets or activate paid fallback to remove a blocker.
+- The owner **now explicitly authorizes useful real GPT-6.1 Sol / medium inference within the existing, actually unexpired approved session and remaining allowance/accounting**. Fresh useful calls under that authority are allowed; do not categorically prohibit them. Check the real window/usage before dispatch, retain all prior attempts/unknowns and stop on expiry/exhaustion/denial. No new allowance, session reset, renewal, identity rotation, paid credits or API fallback is authorized. Historical usage snapshots are not current permission. This does not authorize a documentation-only agent to run unrelated live acceptance.
+- Use disjoint file ownership for approved parallel work. Coordinate shared CI/test fixes before editing; report a genuine CI failure and its diagnosis first. Do not run builds or application/database/browser suites while other agents edit shared code; agree on an integrated verification window. Static documentation checks are safe for a documentation-only slice.
+- Every handoff uses **Implemented / Verified / Incomplete / Blocked / Next**. Within Verified, distinguish isolated tests, actual-application observations and exact-commit CI; retain provider, human and real-device limitations. Next identifies the next gate and required owner decision, not an invented date. `docs/STATUS.md` remains implementation truth; the plan never marks a capability shipped.
 
 ## Application boundaries
 

@@ -2,11 +2,13 @@
 
 ## Product direction
 
-Stage 4 Guardian screens reuse these semantic surfaces and original Blue/Lavender identity. Proactive briefing, opportunity/evidence cards and Twin history distinguish proposed, approved, pending/unresolved and provider-verified states without turning the customer experience into a claims form. The expandable price illustration is explicitly non-entitlement sample content. Desktop-light/mobile-dark synthetic opportunity views were inspected; six-project axe/browser flow passes. No actual-provider refund screenshot exists yet; ignored synthetic test artifacts are not financial evidence.
+**Customer increment under integrated verification, not shipped:** Home / Purchases / Insights / Documents is the unified navigation. Customer Insights uses native Studio grid/chart/KPI plus custom evidence and one CareOS panel. A 36-check production customer run passed across six Chromium profiles, including 320px/200%-text reflow; subsequent boundary refinements and broad visual/compatibility regressions are tracked separately. Actual private customer-path, owner/real-device and exact-commit CI acceptance remain separate gates. [Current checkpoint and limits](STATUS.md).
+
+**Historical Stage 4 visual checkpoint:** Guardian screens reuse these semantic surfaces and original Blue/Lavender identity. Proactive briefing, opportunity/evidence cards and Twin history distinguish proposed, approved, pending/unresolved and provider-verified states without turning the customer experience into a claims form. The expandable price illustration is explicitly non-entitlement sample content. Desktop-light/mobile-dark synthetic opportunity views were inspected; six-project axe/browser flow passed at that checkpoint. No actual-provider refund screenshot exists yet; ignored synthetic test artifacts are not financial evidence.
 
 Pal Care is a purchase companion, not an administrative ledger. The signature object is the **Purchase Twin**: a digital product passport that brings identity, purchase evidence, documents and care history together. The visual language uses an original interlocking P mark, layered passport frames, restrained orbital illustration details and a perforated document divider. No third-party logos or proprietary artwork are copied.
 
-Blue represents commerce and navigation. Lavender represents planned CareOS intelligence. Neutral surfaces provide breathing room. Neither a purple accent nor a polished panel implies that an AI service is connected.
+Blue represents commerce and navigation. Lavender represents CareOS intelligence, with explicit deterministic/fixture/private-AI and in-progress labels where applicable. Neutral surfaces provide breathing room. Neither a purple accent nor a polished panel implies that an AI service is connected or a new capability is accepted.
 
 ## Semantic colors
 
@@ -66,20 +68,22 @@ The package's early theme script sets the HTML class before page content. The se
 
 ## Navigation and screen hierarchy
 
-Continuation preserves the passport identity and paperwork hierarchy. The merchant workspace adds three evidence-led summary/custom-widget views, explicit sample/recorded selectors, browser-local layout tools and a visibly scripted assistant. Recall evidence and replacement profiles use existing semantic cards, conditional provenance and readable source limits. A redundant mobile Guardian-page Ask action is hidden because the existing global launcher remains available; no checkout or financial behavior changes. Vendor workbench default minimum width/scroll containment is explicitly tested rather than assuming a desktop canvas fits a phone. No third-party watermark or license notice is hidden.
+The customer-first continuation, **under integrated verification**, uses **Home / Purchases / Insights / Documents** on desktop and mobile. There is **no Customer/Merchant workspace switch in the customer navigation**. An **Explore** disclosure keeps shop, Guardian, safety and replacement journeys accessible without turning them into competing applications. Merchant routes remain secondary; hiding their links does not change their authorization. Personal Insights uses the same Blue & Lavender tokens, native Studio analytics plus source-backed custom widgets, one customer CareOS panel and an accessible source summary. No customer must enter a merchant workspace to explore purchases. Updated screenshots and human acceptance remain separate evidence gates.
 
-- Desktop: persistent sidebar, readable breadcrumb, appearance selector and Customer/Merchant workspace switch.
-- Mobile/tablet: customer destinations are Home/Vault/Documents/Shop; merchant destinations are Merchant/Intelligence. Both use safe-area padding and an explicit workspace switch. No horizontally scrolling navigation.
+**Historical merchant visual checkpoint:** the earlier continuation preserved the passport identity and paperwork hierarchy, with three evidence-led merchant summary/custom-widget views, explicit sample/recorded selectors, browser-local layout tools and a visibly scripted assistant. Later actual private model-planned merchant-Studio acceptance is recorded separately in [subscription evidence](evidence/SUBSCRIPTION-QUALITY.md); neither proves the new customer workspace. Recall evidence and replacement profiles retain semantic cards, conditional provenance and readable source limits. A redundant mobile Guardian-page Ask action was hidden because the global launcher remained available; no checkout or financial behavior changed. Historical workbench width/scroll checks are not the new customer layout's acceptance. No third-party watermark or license notice may be hidden.
+
+- Desktop: persistent sidebar with **Home / Purchases / Insights / Documents**, readable breadcrumb, appearance selector and secondary Explore disclosure; no Customer/Merchant workspace switch.
+- Mobile/tablet: the same **Home / Purchases / Insights / Documents** destinations, safe-area padding and secondary Explore access. No horizontally scrolling primary navigation or Customer/Merchant workspace switch.
 - Dashboard: welcome, compact factual counts and Purchase Twins first, then source-labeled events and planned care features. The large promotional hero belongs on the homepage, not above a returning customer's purchases.
-- Purchase Twin: passport identity and evidence summary first; paperwork/history and planned intelligence form the second level. Missing manuals/warranties and unverified recall/return status are stated explicitly.
-- Merchant: accessible inventory/document views plus a separate evidence-led intelligence workspace, actual AG Studio local evaluation and visibly scripted presentation tools. Public licensing and hosted AI are not implied by polish.
+- Purchase Twin: passport identity and evidence summary first; paperwork/history, supported care and source-labeled assistance form the second level. Missing manuals/warranties and unverified recall/return status are stated explicitly.
+- Merchant: secondary accessible inventory/document views and evidence-led intelligence, with labeled scripted mode and separately evidenced private Sol presentation tools. No customer navigation switch or financial authority is implied. Public licensing and new customer AI acceptance are not established by polish.
 - Checkout: styled within Pal Care only. Approval/capture/retry/cancellation handlers, initial effects, ownership, deadlines and financial authorization are unchanged. No attempt is made to restyle PayPal's hosted UI.
 
 Stage 5 keeps these tokens and identity. Safety/replacement links carry a saved Twin or explicit reference example; the assistant remains available without inventing ownership. Unified activity is scoped to the selected Twin on detail pages and aggregates labeled sources on the dashboard. Opening Studio collapses the duplicate semantic summary into an accessible disclosure; filter/provenance labels remain visible and the summary can be reopened. Screenshots and browser checks are test evidence, not provider verification.
 
 ## Visual review and regression references
 
-Thirty fixture-only references are generated by Playwright; no real transaction/customer data or private checkout sessions are captured. Each uses the bundled font and fixed sample ownership data, including the separately attributed reference product.
+**Historical baseline:** thirty fixture-only references were generated by Playwright; no real transaction/customer data or private checkout sessions were captured. Each uses the bundled font and fixed sample ownership data, including the separately attributed reference product. These retained references do not accept the new customer navigation/Insights layout; updated comparisons and visual review remain pending.
 
 | View | Light | Dark |
 | --- | --- | --- |

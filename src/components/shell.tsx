@@ -3,35 +3,36 @@ import {
   Archive,
   ArrowUpRight,
   Building2,
+  ChevronDown,
   FileText,
   LayoutDashboard,
   ShieldCheck,
-  ShoppingBag,
   Sparkles,
   ChartNoAxesCombined,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import {
+  customerNavigation,
+  customerExploreNavigation,
+  customerSection,
+} from "@/lib/customer-navigation";
 import { Brand } from "./brand";
 import { Button } from "./ui/button";
 import { ThemeSelector } from "./theme-selector";
 import { Badge } from "./ui/badge";
 
-const navigation = [
-  {
-    href: "/dashboard",
-    label: "Overview",
-    mobile: "Home",
-    icon: LayoutDashboard,
-  },
-  { href: "/vault", label: "Purchase vault", mobile: "Vault", icon: Archive },
-  {
-    href: "/documents",
-    label: "Documents",
-    mobile: "Documents",
-    icon: FileText,
-  },
-  { href: "/shop", label: "Demo shop", mobile: "Shop", icon: ShoppingBag },
-];
+const customerIcons = {
+  "/dashboard": LayoutDashboard,
+  "/vault": Archive,
+  "/insights": Sparkles,
+  "/documents": FileText,
+};
+
+const navigation = customerNavigation.map((link) => ({
+  ...link,
+  mobile: link.label,
+  icon: customerIcons[link.href],
+}));
 
 export function Shell({
   children,
@@ -60,11 +61,18 @@ export function Shell({
         },
       ]
     : navigation;
+  const selected = merchant ? active : customerSection(active)?.href;
+  const sectionLabel = merchant
+    ? (links.find((link) => link.href === active)?.label ??
+      "Merchant workspace")
+    : (customerSection(active)?.label ??
+      customerExploreNavigation.find((link) => link.href === active)?.label ??
+      "Purchase Twin");
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
       <aside className="sticky top-0 hidden h-dvh flex-col border-r bg-card lg:flex">
         <div className="px-7 py-8">
-          <Brand href="/dashboard" />
+          <Brand href={merchant ? "/merchant" : "/dashboard"} />
           <p className="mt-5 text-sm text-muted-foreground">
             {merchant ? "Your merchant workspace" : "Your everyday, cared for."}
           </p>
@@ -77,12 +85,12 @@ export function Shell({
             <Link
               key={href}
               href={href}
-              aria-current={active === href ? "page" : undefined}
-              className={`flex min-h-12 items-center gap-3 rounded-xl px-4 text-sm font-medium transition-colors ${active === href ? "bg-secondary text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+              aria-current={selected === href ? "page" : undefined}
+              className={`flex min-h-12 items-center gap-3 rounded-xl px-4 text-sm font-medium transition-colors ${selected === href ? "bg-secondary text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
             >
               <Icon className="size-[18px]" aria-hidden="true" />
               {label}
-              {active === href && (
+              {selected === href && (
                 <span
                   className="ml-auto size-1.5 rounded-full bg-primary"
                   aria-hidden="true"
@@ -106,17 +114,19 @@ export function Shell({
               CareOS · records & guidance
             </Badge>
           </div>
-          <Link
-            href={merchant ? "/dashboard" : "/merchant"}
-            className="mt-4 flex min-h-11 items-center justify-between px-2 text-sm font-medium text-muted-foreground"
-          >
-            {merchant ? "Customer workspace" : "Merchant workspace"}
-            <ArrowUpRight className="size-4" aria-hidden="true" />
-          </Link>
+          {merchant && (
+            <Link
+              href="/dashboard"
+              className="mt-4 flex min-h-11 items-center justify-between px-2 text-sm font-medium text-muted-foreground"
+            >
+              Customer workspace
+              <ArrowUpRight className="size-4" aria-hidden="true" />
+            </Link>
+          )}
         </div>
       </aside>
       <div className="min-w-0">
-        <header className="flex min-h-22 flex-wrap items-center justify-between gap-3 border-b bg-card px-5 py-4 sm:px-8 lg:px-10">
+        <header className="relative flex min-h-22 flex-wrap items-center justify-between gap-3 border-b bg-card px-5 py-4 sm:px-8 lg:px-10">
           <div className="lg:hidden">
             <Brand href={merchant ? "/merchant" : "/dashboard"} />
           </div>
@@ -126,37 +136,49 @@ export function Shell({
             <span className="text-border" aria-hidden="true">
               /
             </span>
-            <span className="text-foreground">
-              {merchant
-                ? (links.find((link) => link.href === active)?.label ??
-                  "Merchant workspace")
-                : (navigation.find((link) => link.href === active)?.label ??
-                  "Purchase Twin")}
-            </span>
+            <span className="text-foreground">{sectionLabel}</span>
           </div>
           <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2 sm:gap-3">
             <ThemeSelector />
-            <Button
-              asChild
-              variant="outline"
-              size="sm"
-              className="px-3 sm:px-4"
-            >
-              <Link
-                href={merchant ? "/dashboard" : "/merchant"}
-                title={merchant ? "Customer view" : "Merchant view"}
+            {merchant ? (
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="px-3 sm:px-4"
               >
-                {merchant ? (
+                <Link href="/dashboard" title="Customer view">
                   <LayoutDashboard className="sm:hidden" aria-hidden="true" />
-                ) : (
-                  <Building2 className="sm:hidden" aria-hidden="true" />
-                )}
-                <span className="sr-only sm:not-sr-only">
-                  {merchant ? "Customer view" : "Merchant view"}
-                </span>
-                <ArrowUpRight className="hidden sm:block" aria-hidden="true" />
-              </Link>
-            </Button>
+                  <span className="sr-only sm:not-sr-only">Customer view</span>
+                  <ArrowUpRight
+                    className="hidden sm:block"
+                    aria-hidden="true"
+                  />
+                </Link>
+              </Button>
+            ) : (
+              <details className="lg:relative">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl border border-input bg-card px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+                  Explore
+                  <ChevronDown className="size-4" aria-hidden="true" />
+                </summary>
+                <nav
+                  aria-label="More to explore"
+                  className="absolute right-5 z-50 mt-2 w-[min(18rem,calc(100vw-2.5rem))] rounded-2xl border bg-card p-2 shadow-card lg:right-0"
+                >
+                  {customerExploreNavigation.map(({ href, label }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      aria-current={active === href ? "page" : undefined}
+                      className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+                    >
+                      {label}
+                    </Link>
+                  ))}
+                </nav>
+              </details>
+            )}
           </div>
         </header>
         <main
@@ -211,11 +233,11 @@ export function Shell({
           <Link
             key={href}
             href={href}
-            aria-current={active === href ? "page" : undefined}
-            className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium transition-colors ${active === href ? "bg-secondary text-primary" : "text-muted-foreground hover:bg-accent"}`}
+            aria-current={selected === href ? "page" : undefined}
+            className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1 text-center text-xs font-medium transition-colors ${selected === href ? "bg-secondary text-primary" : "text-muted-foreground hover:bg-accent"}`}
           >
-            <Icon className="size-5" aria-hidden="true" />
-            {mobile}
+            <Icon className="size-5 shrink-0" aria-hidden="true" />
+            <span className="min-w-0 max-w-full break-words">{mobile}</span>
           </Link>
         ))}
       </nav>

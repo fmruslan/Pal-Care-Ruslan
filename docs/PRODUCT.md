@@ -2,6 +2,8 @@
 
 ## North star
 
+**Approved customer-first direction — new increment under integrated verification, not shipped:** one personal purchase and aftercare product, not competing customer/merchant applications. Primary navigation is **Home / Purchases / Insights / Documents**. `/insights` connects **My Purchases / Documents & Care / Price Adjustments** to saved Purchase Twins, document provenance, supported care and recorded outcomes using actual AG Studio. CareOS is the shared customer assistant; merchant policies/catalog/approvals remain separately authorized secondary functions. Five actual private customer Sol/SDK tasks passed; remaining integrated checks, exact-commit CI and owner review are separate gates. [Capability-based acceptance](CUSTOMER-FIRST-PLAN.md) governs completion; [STATUS](STATUS.md) records evidence rather than planned capability.
+
 **Stage 4:** proactive Price Guardian and protected merchant approval are implemented with financial activation off. The future-only inactive `demo-price-v2` promise covers the exact SKU for 14 days, one adjustment/capture, up to $20. Customers never initiate claims. Actual new purchase/refund and unknown-ID recovery acceptance require separate approval. Existing `demo-v1` purchases are never retroactively eligible. [Contract](PRICE-GUARDIAN.md).
 
 **Pal Care makes the purchase the beginning of a useful care relationship.** A verified PayPal sandbox order creates a Purchase Twin, connecting product identity, trusted documents, applicable terms, and meaningful after-purchase events.
@@ -9,7 +11,7 @@
 ## Who it serves
 
 - **Customers** who want reliable records, timely care information, and eligible savings.
-- **Participating merchants** who want to provide aftercare and resolve legitimate adjustments under their own policies.
+- **Participating merchants** provide the longer-term funded aftercare model and resolve legitimate adjustments under their own policies. Merchant SaaS administration, billing and onboarding are outside this submission; public customers receive no operator authority.
 
 ## Hackathon access model
 
@@ -29,9 +31,13 @@ A durable item-level data record linking product identifiers, order references, 
 
 ## Proof the hackathon submission should provide
 
+**Customer-first acceptance:** Home → correct dated Purchase Twin/receipt → Insights (**My Purchases / Documents & Care / Price Adjustments**) → a useful CareOS-controlled view with exact SDK/data postconditions → matching document/source care or an honest evidence gap. Native grid/chart/KPI, custom evidence, cross-filtering and browser-local layouts must work as one product. This new customer path is still under verification; prior private CareOS/merchant-Studio model acceptance does not establish it.
+
+**Separate financial acceptance, incomplete and separately authorization-gated:**
+
 PayPal sandbox capture → stored Purchase Twin → controlled merchant price update → deterministic eligibility → merchant approval → actual PayPal partial refund → authoritative verified refund status.
 
-Use a separate historical item for a real official recall source; optional alternatives through Channel3.
+The bounded capture/Twin case already has historical actual evidence; the remaining refund/recovery workflow is not accepted or authorized by this product description. Customers do not initiate claims, and analytics never grants merchant authority. Use a separate historical item for a real official recall source; optional alternatives through Channel3 require actual provider acceptance, not fixture products.
 
 ## Explicit non-goals
 
@@ -46,6 +52,8 @@ No barcode scanning; no universal access to PayPal consumer history; no general-
 - **Talk:** one persistent customer assistant, always explicit about the selected Purchase Twin and execution mode. Switching products must not mix receipts or care evidence.
 
 These interactions have explicit fixture mode plus actual owner-only Sol Medium subscription acceptance; population accuracy, independent user research and public/API acceptance remain separate. One Raspberry Pi 5 reference sample has licensed exact-model guidance. Forma F-01 has no manufacturer manual. Reference ownership is not verified payment, and its zero placeholder is not a market price. [Actual quality evidence](evidence/SUBSCRIPTION-QUALITY.md) · [CareOS](CAREOS.md) · [sources](CARE-SOURCES.md).
+
+Useful fresh Sol Medium inference for customer acceptance is authorized within the existing actually unexpired session and remaining accounting. Check actual state before each call; preserve attempts/unknowns and stop on expiry/exhaustion/denial. No new allowance, reset/renewal or paid fallback is authorized. The five customer-path calls and their preserved accounting are recorded at the [verification checkpoint](STATUS.md).
 
 - Minimize customer effort. Integrating a merchant should automatically create the Purchase Twin.
 - Ground consequential explanations in a stored policy or original official source.

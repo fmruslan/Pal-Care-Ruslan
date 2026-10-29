@@ -206,11 +206,20 @@ test("keyboard theme selection, reduced motion and mobile navigation remain acce
   if (!info.project.name.startsWith("desktop")) {
     const nav = page.getByRole("navigation", { name: "Mobile navigation" });
     await expect(nav).toBeVisible();
+    await expect(nav.getByRole("link")).toHaveText([
+      "Home",
+      "Purchases",
+      "Insights",
+      "Documents",
+    ]);
     for (const link of await nav.getByRole("link").all()) {
       const box = await link.boundingBox();
       expect(box!.height).toBeGreaterThanOrEqual(44);
       expect(box!.width).toBeGreaterThanOrEqual(44);
     }
+    await nav.getByRole("link", { name: "Insights", exact: true }).click();
+    await expect(page).toHaveURL(/\/insights$/);
+    await expect(nav.locator('[aria-current="page"]')).toHaveText("Insights");
     await nav.getByRole("link", { name: "Documents", exact: true }).click();
     await expect(page).toHaveURL(/\/documents$/);
   }

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { ThemeProvider } from "@/components/theme-provider";
 import { CareOSProvider } from "@/components/careos/provider";
+import { InsightsControlProvider } from "@/components/intelligence/customer-control";
 import { parseCareConfig } from "@/lib/careos/config";
 import "./globals.css";
 
@@ -43,7 +44,9 @@ export default function RootLayout({
           >
             Skip to content
           </a>
-          <CareOSProvider mode={mode}>{children}</CareOSProvider>
+          <InsightsControlProvider>
+            <CareOSProvider mode={mode}>{children}</CareOSProvider>
+          </InsightsControlProvider>
         </ThemeProvider>
       </body>
     </html>

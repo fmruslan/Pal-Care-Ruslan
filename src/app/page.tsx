@@ -22,14 +22,14 @@ export default function Home() {
         <Brand />
         <nav
           aria-label="Website navigation"
-          className="flex items-center gap-2 sm:gap-4"
+          className="flex max-w-full flex-wrap items-center gap-2 sm:gap-4"
         >
           <Link
-            href="/merchant"
-            className="hidden min-h-11 items-center text-sm font-medium text-muted-foreground hover:text-primary sm:inline-flex"
+            href="/insights"
+            className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-intelligence-foreground"
           >
-            For merchants
-            <ArrowUpRight className="ml-1 size-4" aria-hidden="true" />
+            <Sparkles className="size-4" aria-hidden="true" />
+            Insights
           </Link>
           <ThemeSelector />
           <Button asChild variant="outline" size="sm">
@@ -45,39 +45,41 @@ export default function Home() {
           className="hero-wash relative grid items-center gap-7 overflow-hidden rounded-[32px] border px-6 py-10 sm:px-10 sm:py-14 lg:grid-cols-[1.15fr_1fr] lg:px-12 lg:py-16"
           aria-labelledby="hero-title"
         >
-          <div className="relative z-10">
+          <div className="relative z-10 min-w-0">
             <Badge tone="blue">
               <HeartHandshake className="size-3.5" aria-hidden="true" />A better
               after checkout
             </Badge>
             <h1
               id="hero-title"
-              className="mt-6 text-[clamp(2.75rem,5.8vw,5.25rem)] font-semibold leading-[1.06] tracking-[-.065em]"
+              className="mt-6 text-[clamp(2.75rem,5.8vw,5.25rem)] leading-[1.06] font-semibold tracking-[-.065em] break-words"
             >
               Everything you buy.
               <span className="mt-1 block text-primary">Taken care of.</span>
             </h1>
             <p className="mt-6 max-w-lg text-lg leading-8 text-muted-foreground">
-              Meet your purchase companion. A home for what you own, designed
-              for smarter care after checkout.
+              Your purchases, paperwork, and useful next steps—together. Meet a
+              purchase companion designed for life after checkout.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Button asChild>
+              <Button asChild className="min-w-0 max-w-full">
                 <Link href="/dashboard">
-                  Explore Pal Care
+                  <span className="min-w-0 break-words">Explore Pal Care</span>
                   <ArrowRight aria-hidden="true" />
                 </Link>
               </Button>
-              <Button asChild variant="outline">
+              <Button asChild variant="outline" className="min-w-0 max-w-full">
                 <Link href="/vault/00000000-0000-4000-8000-000000000201">
-                  Meet a Purchase Twin
+                  <span className="min-w-0 break-words">
+                    Meet a Purchase Twin
+                  </span>
                   <Layers2 aria-hidden="true" />
                 </Link>
               </Button>
             </div>
             <p className="mt-5 flex items-center gap-2 text-sm text-muted-foreground">
               <ShieldCheck className="size-4 shrink-0" aria-hidden="true" />
-              No sign-up. Fictional records. No real money.
+              No sign-up. Labeled sample and Sandbox records. No real money.
             </p>
           </div>
           <CareIllustration />
@@ -104,22 +106,28 @@ export default function Home() {
                 icon: Layers2,
                 number: "01",
                 title: "The things you own",
-                text: "Explore a digital product passport for each fictional demo purchase. Product identity, purchase details, and source labels stay together.",
+                text: "Open a Purchase Twin for product details, saved paperwork, and history. Sample ownership and verified Sandbox purchases stay clearly distinct.",
+                href: "/vault",
+                action: "Explore purchases",
               },
               {
                 icon: FileText,
                 number: "02",
                 title: "The details you need",
                 text: "Find sample receipts and available documents without digging through email. Real manufacturer manuals are never invented.",
+                href: "/documents",
+                action: "Find documents",
               },
               {
                 icon: Sparkles,
                 number: "03",
-                title: "The care that comes next",
-                text: "CareOS is the planned intelligence layer for product guidance, price opportunities and safety awareness. AI and monitoring are not active yet.",
+                title: "A clearer next step",
+                text: "Read purchase Insights built from saved records and available evidence. See the source and its limits before deciding what to explore next.",
+                href: "/insights",
+                action: "Explore Insights",
               },
-            ].map(({ icon: Icon, number, title, text }) => (
-              <Card key={number} className="motion-card">
+            ].map(({ icon: Icon, number, title, text, href, action }) => (
+              <Card key={number} className="motion-card flex flex-col">
                 <div className="flex items-center justify-between">
                   <span
                     className={`flex size-12 items-center justify-center rounded-2xl ${number === "03" ? "bg-intelligence text-intelligence-foreground" : "bg-secondary text-primary"}`}
@@ -134,36 +142,39 @@ export default function Home() {
                 <p className="mt-3 text-sm leading-7 text-muted-foreground">
                   {text}
                 </p>
+                <Link
+                  href={href}
+                  className={`mt-auto inline-flex min-h-11 items-center gap-2 pt-5 text-sm font-semibold ${number === "03" ? "text-intelligence-foreground" : "text-primary"}`}
+                >
+                  <span className="min-w-0 break-words">{action}</span>
+                  <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
+                </Link>
               </Card>
             ))}
           </div>
         </section>
         <section
-          className="intelligence-wash mb-16 flex flex-wrap items-center justify-between gap-7 rounded-[28px] border p-7 sm:p-10"
+          className="mb-12 flex flex-wrap items-center justify-between gap-6 border-t pt-8"
           aria-labelledby="careos-story"
         >
           <div className="max-w-xl">
-            <Badge tone="intelligence">
-              <Sparkles className="size-3.5" aria-hidden="true" />
-              Powered by CareOS · Intelligence planned
-            </Badge>
             <h2
               id="careos-story"
-              className="mt-5 text-3xl font-semibold tracking-tight"
+              className="text-xl font-semibold tracking-tight"
             >
-              Less paperwork.
-              <br />
-              More peace of mind.
+              Clear sources. Clear limits.
             </h2>
-            <p className="mt-4 text-base leading-7 text-muted-foreground">
-              Start with the purchase vault today. Discover our vision for
-              meaningful care throughout product ownership—not just another
-              checkout.
+            <p className="mt-3 text-sm leading-7 text-muted-foreground">
+              Insights is read-only. Sample records are fictional, available
+              guidance is source-labeled, and a verified Sandbox payment does
+              not establish warranty coverage or product safety.
             </p>
           </div>
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" className="min-w-0 max-w-full">
             <Link href="/shop">
-              Visit the Sandbox shop
+              <span className="min-w-0 break-words">
+                Visit the Sandbox shop
+              </span>
               <ArrowUpRight aria-hidden="true" />
             </Link>
           </Button>
@@ -176,8 +187,10 @@ export default function Home() {
         </div>
         <p className="max-w-md text-sm leading-7">
           Independent PayPal AI Hackathon project. Not an official PayPal
-          product, warranty, insurance, or coverage promise. AI, refunds, and
-          monitoring remain planned.
+          product, warranty, insurance, or coverage promise. CareOS fixture
+          answers are labeled demonstrations; real AI is available only in the
+          authorized private preview. Live monitoring and financial activation
+          remain separate.
         </p>
       </footer>
     </div>

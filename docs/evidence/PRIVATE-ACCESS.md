@@ -81,3 +81,11 @@ ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 127.0.0.1:3002:1
 ```
 
 Keep that Terminal open. This does not enable Mac Remote Login, public access, boot persistence or automatic window renewal.
+
+## Exact correction-commit CI verification
+
+GitHub Actions [run 40789348314](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/40789348314) for exact commit **`9f169e8bf1a5fd7752bcf52bee541b433fe52edc`** completed **SUCCESS** on **2026-10-28 at 23:58:34 UTC** (job `foundation`: 23:43:52–23:58:33 UTC, 14m41s). Every application-check stage completed successfully; none was skipped. This supersedes the failed run's incomplete pipeline evidence, not its retained failure analysis above.
+
+The run logs confirm **422/422 unit tests**, **70/70 deterministic/fixture evaluations**, **14/14 offline review cases**, **112/112 dedicated PostgreSQL tests**, **2/2 unavailable-database/cleanup tests**, **18/18 private-access browser tests**, **438/438 fixture Chromium checks**, **438/438 PostgreSQL-backed Chromium checks**, **6/6 synthetic Guardian checks**, **38/38 Firefox/WebKit checks** and **2/2 injected Sol/actual-Studio-tool checks**. Frozen install, repository baseline, lint, formatting, typecheck and production build also pass. The final injected protocol stage now verifies the corrected scope-denial/success assertions; it was skipped in the old failed run.
+
+This is isolated GitHub-runner evidence for that SHA, not verification of later worktree edits, real Mac hardware/SSH, paid inference, actual PayPal/Channel3 execution, an application database migration, public licensing or deployment. No new local build/application/database/browser suite was run while parallel agents edited shared code, and no CI/test source change was needed during this verification.

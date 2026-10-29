@@ -33,6 +33,21 @@ globalThis.fetch = async (url, init) => {
         { operation: "evidence" },
       ],
     };
+  else if (schema === "careos_customer_dashboard")
+    value = {
+      outcome: "apply",
+      commands: [
+        {
+          operation: /categor/i.test(input.message)
+            ? "category"
+            : /care/i.test(input.message)
+              ? "care"
+              : /document/i.test(input.message)
+                ? "documents"
+                : "purchases",
+        },
+      ],
+    };
   else if (schema === "careos_intent") value = { intent: "care" };
   else if (schema === "careos_evidence") value = { factIds: ["fact-0"] };
   else {

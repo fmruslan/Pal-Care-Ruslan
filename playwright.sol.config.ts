@@ -1,4 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
+import { randomBytes } from "node:crypto";
+import { solTestScope } from "./tests/helpers/sol-scopes";
+
+// Independent fixture identities, not deleted quotas or increased rate limits.
+// Propagated to server/worker processes; never read by the private app launcher.
+const run = (process.env.PALCARE_SOL_TEST_RUN ??=
+  randomBytes(32).toString("hex"));
 export default defineConfig({
   testDir: "./tests/sol",
   outputDir: "test-results/sol",
@@ -6,11 +13,15 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   timeout: 60000,
-  use: { baseURL: "http://127.0.0.1:3112", trace: "retain-on-failure" },
+  use: { trace: "retain-on-failure" },
   projects: [
     {
       name: "desktop-light",
-      use: { ...devices["Desktop Chrome"], colorScheme: "light" },
+      use: {
+        ...devices["Desktop Chrome"],
+        colorScheme: "light",
+        baseURL: solTestScope("desktop-light", run).origin,
+      },
     },
     {
       name: "mobile-dark",
@@ -18,13 +29,15 @@ export default defineConfig({
         ...devices["iPhone 13"],
         defaultBrowserType: "chromium",
         colorScheme: "dark",
+        baseURL: solTestScope("mobile-dark", run).origin,
       },
     },
   ],
-  webServer: {
-    command: "pnpm exec tsx scripts/start-sol-test-server.ts 3112",
-    url: "http://127.0.0.1:3112/api/health",
+  webServer: ["desktop-light", "mobile-dark"].map((project) => ({
+    command: `pnpm exec tsx scripts/start-sol-test-server.ts ${new URL(solTestScope(project, run).origin).port}`,
+    url: `${solTestScope(project, run).origin}/api/health`,
+    env: { PALCARE_SOL_TEST_RUN: run },
     reuseExistingServer: false,
-    gracefulShutdown: { signal: "SIGTERM", timeout: 10000 },
-  },
+    gracefulShutdown: { signal: "SIGTERM" as const, timeout: 10000 },
+  })),
 });

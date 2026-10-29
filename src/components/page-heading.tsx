@@ -13,7 +13,7 @@ export function PageHeading({
 }) {
   return (
     <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
-      <div className="max-w-3xl">
+      <div className="min-w-0 max-w-3xl break-words">
         {eyebrow && <p className="section-label mb-3">{eyebrow}</p>}
         <h1 className="page-title">{title}</h1>
         {description && (

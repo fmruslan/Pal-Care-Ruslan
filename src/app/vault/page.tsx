@@ -1,4 +1,5 @@
-import { Search, Archive } from "lucide-react";
+import Link from "next/link";
+import { Search, Archive, ArrowRight } from "lucide-react";
 import { getDemoData } from "@/lib/demo/repository";
 import { findTwin } from "@/lib/demo/presentation";
 import { Shell } from "@/components/shell";
@@ -8,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-export const metadata = { title: "Purchase vault" };
+export const metadata = { title: "Purchases" };
 export default async function Vault({
   searchParams,
 }: {
@@ -41,8 +42,8 @@ export default async function Vault({
     <Shell active="/vault" source={data.source}>
       <PageHeading
         eyebrow="Your ownership library"
-        title="Purchase vault"
-        description="The things you chose. A home for every detail. Samples and verified sandbox purchases are always labeled separately."
+        title="Purchases"
+        description="Your Purchase Twins, together. Open a purchase for its documents, care history, and available guidance. Samples and verified Sandbox purchases are always labeled separately."
         action={
           <Badge tone="blue">
             <Archive className="size-3.5" aria-hidden="true" />
@@ -86,10 +87,19 @@ export default async function Vault({
         </label>
         <Button type="submit">Search</Button>
       </form>
-      <p role="status" className="mb-5 text-sm text-muted-foreground">
-        {ids.length} purchase{ids.length !== 1 && "s"}
-        {q && ` matching “${q}”`}
-      </p>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        <p role="status" className="text-sm text-muted-foreground">
+          {ids.length} purchase{ids.length !== 1 && "s"}
+          {q && ` matching “${q}”`}
+        </p>
+        <Link
+          href="/insights"
+          className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-intelligence-foreground"
+        >
+          Explore purchase Insights
+          <ArrowRight className="size-4" aria-hidden="true" />
+        </Link>
+      </div>
       <TwinList data={data} ids={ids} />
     </Shell>
   );

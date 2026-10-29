@@ -57,7 +57,9 @@ export function AdjustmentStatus({
         Adjustment status
       </p>
       <p className="mt-2 text-sm text-muted-foreground">
-        One case, one outcome. Select a stage to investigate.
+        {onStage
+          ? "One case, one outcome. Select a stage to investigate."
+          : "Recorded statuses for purchases in this selection."}
       </p>
       <div className="mt-5 space-y-2">
         {stages.map((stage) => {

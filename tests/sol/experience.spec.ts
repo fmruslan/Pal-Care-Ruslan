@@ -1,23 +1,25 @@
 import { test, expect } from "@playwright/test";
 import { referenceContent } from "../../src/lib/careos/knowledge";
+import { solTestScope } from "../helpers/sol-scopes";
 const supportedInstruction = referenceContent.split("\n")[0];
 const pi = "00000000-0000-4000-8000-000000000204";
 test("injected Sol protocol: separate private scopes, actual Studio tools, grounded care and replay", async ({
   page,
   context,
 }) => {
+  const { origin, customer, studio } = solTestScope(test.info().project.name);
   let financial = 0;
   page.on("request", (r) => {
     if (r.method() === "POST" && /\/api\/(checkout|operator)/.test(r.url()))
       financial++;
   });
   const denied = await context.request.post("/api/intelligence/plan", {
-    headers: { Origin: "http://127.0.0.1:3112" },
+    headers: { Origin: origin },
     data: { action: "start" },
   });
   expect(denied.status()).toBe(403);
   await page.goto("/ai-evaluation");
-  await page.getByLabel("Private scope token").fill("b".repeat(64));
+  await page.getByLabel("Private scope token").fill(studio);
   const wrongScope = page.waitForResponse(
     (response) =>
       response.url().endsWith("/api/ai/evaluation") &&
@@ -32,7 +34,7 @@ test("injected Sol protocol: separate private scopes, actual Studio tools, groun
     ),
   ).toBe(false); // Studio token cannot unlock customer scope.
   await page.getByLabel("Evaluation scope").selectOption("studio");
-  await page.getByLabel("Private scope token").fill("b".repeat(64));
+  await page.getByLabel("Private scope token").fill(studio);
   await page.getByRole("button", { name: "Authorize this browser" }).click();
   await expect(page.getByRole("status")).toHaveText(
     "Scope authorized. Use its workspace link above.",
@@ -69,7 +71,7 @@ test("injected Sol protocol: separate private scopes, actual Studio tools, groun
     "Financial actions are unavailable",
   );
   await page.goto("/ai-evaluation");
-  await page.getByLabel("Private scope token").fill("a".repeat(64));
+  await page.getByLabel("Private scope token").fill(customer);
   await page.getByRole("button", { name: "Authorize this browser" }).click();
   await expect(page.getByRole("status")).toHaveText(
     "Scope authorized. Use its workspace link above.",

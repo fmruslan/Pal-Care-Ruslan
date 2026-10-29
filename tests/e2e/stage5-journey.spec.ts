@@ -9,6 +9,20 @@ test("customer journey preserves purchase identity through CareOS, recall, repla
       financial++;
   });
   await page.goto(`/vault/${twin}`);
+  const mobile = page.getByRole("navigation", { name: "Mobile navigation" });
+  const navigation = (await mobile.isVisible())
+    ? mobile
+    : page.getByRole("navigation", { name: "Main navigation" });
+  await expect(navigation.getByRole("link")).toHaveText([
+    "Home",
+    "Purchases",
+    "Insights",
+    "Documents",
+  ]);
+  await expect(navigation.locator('[aria-current="page"]')).toHaveText(
+    "Purchases",
+  );
+  await expect(page.locator('a[href^="/merchant"]')).toHaveCount(0);
   const activity = page.getByRole("list", {
     name: "Unified purchase activity",
   });

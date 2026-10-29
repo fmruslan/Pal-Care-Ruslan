@@ -1,10 +1,23 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
-Customer/merchant dashboards remain public and read-only. CareOS writes only its own bounded cookie-scoped conversations/quotas. Explicitly enabled checkout endpoints create/capture **Sandbox-only** orders for the originating browser. Stage 4 adds separate protected operator actions; financial dispatch defaults off and actual refund acceptance remains unverified. Model inference is separately gated and unverified. No real money.
+## Customer-first Insights
+
+**Implementation contracts under integrated verification, not accepted/shipped.** Local unit/database/browser, scripted SDK, injected recovery and five actual private customer Sol/SDK tasks have separately scoped passing evidence. Exact-commit CI and owner review remain separate gates. [Current results and remaining checks](STATUS.md) · [retained failures and corrections](evidence/CUSTOMER-INSIGHTS.md).
+
+- `GET /insights`: customer read-only Personal Purchase Intelligence. My Purchases, Documents & Care and Price Adjustments use the newest 100 saved-Twin window, per-document provenance, exact-model approved care and scoped recorded adjustments. Missing optional sources remain unavailable, not zero/false conclusions. No financial/provider call occurs on page load, filtering, layout editing or theme changes.
+- `POST /api/intelligence/customer/plan`: strict `{action:"start"}` or `{action:"plan",conversationId,requestId,message}` (500-character message maximum; bounded JSON). Requires current Studio capability, permitted local evaluation, database-backed persistence and the configured live transport. Server loads the fixed customer projection; no client financial records, merchant/customer IDs, SQL, tools or links are accepted. Response is a validated presentation plan, not proof of browser execution.
+- `GET /api/intelligence/customer/plan?conversationId=<uuid>`: scoped saved conversation read only. No inference, claim, quota reservation or automatic SDK execution. Extra/duplicate query parameters reject.
+- `DELETE` on that exact URL: exact-Origin scoped transcript clear with existing lease checks; never returns model allowance or unknown reservations.
+
+Customer Studio ownership is separate from merchant Studio and customer CareOS ownership despite one customer-facing assistant. Plans allow only known purchase/document/care/attention/adjustment views, literal search words, validated filters and known widgets. The client resolves saved IDs/links, executes actual SDK tools and verifies exact page/configuration/data-selection postconditions before reporting success. Execution evidence is recorded separately, never inferred from the API response alone. Recovery requires explicit **Apply saved view**. Per-tab pending hints are optional, bounded fictional text/identities—not authorization. Existing API-budget/subscription-journal rules remain unchanged. See [capability plan](CUSTOMER-FIRST-PLAN.md) and [Intelligence](INTELLIGENCE.md); customer acceptance evidence is separate from historical merchant Studio.
+
+Plans permit one base view/predicate, then independent filters and presentation commands; ambiguous multiple bases or repeated same-field filters reject. Execution normalizes that order without mutating the saved plan. Conflicting controls are disabled/inert during execution; state is checked throughout. Every relevant custom widget must complete a fresh page/generation query, and native counts/grid/render completion must agree. SDK health advice alone is neither success nor failure. Explicit Clear may forget a bounded, authenticated missing-conversation response; denial, lease conflict and uncertain delivery do not release the hint or usage.
+
+Customer/merchant dashboards remain public and read-only. CareOS writes only its own bounded cookie-scoped conversations/quotas. Explicitly enabled checkout endpoints create/capture **Sandbox-only** orders for the originating browser. Stage 4 adds separate protected operator actions; financial dispatch defaults off and actual refund acceptance remains unverified. Genuine private CareOS/merchant-Studio inference has historical acceptance; **new customer Insights, final paid API and public-model acceptance remain pending**. No real money.
 
 ## Stage 5 cohesion and local readiness
 
-Operational acceptance: the approved local [Phase B cutover](evidence/PHASEB-CUTOVER.md) verified database-backed readiness and actual restricted reader/CareOS connections through 0015, with persistent fixture answers. Checkout/Guardian/provider access stays disabled; no endpoint contract or financial permission was expanded. Private loopback operation is not public-runtime isolation or provider acceptance.
+**Historical Phase B operational checkpoint:** the approved local [cutover](evidence/PHASEB-CUTOVER.md) verified database-backed readiness and actual restricted reader/CareOS connections through 0015, with persistent fixture answers. Checkout/Guardian/provider access was disabled at that checkpoint; no financial permission was expanded. Later private subscription acceptance is separate and does not authorize financial/provider activation. Private loopback operation is not public-runtime isolation or acceptance of the new customer route.
 
 - Database runtime connections are explicit least-privilege capabilities, including fixture-mode CareOS persistence. Missing writers never use the reader/owner URL. Actual credentials and migrations must be separately provisioned/verified; see [setup](SETUP.md).
 - `/safety` and `/replacements` accept a validated `twinId` or allowlisted `example=insignia`, never both. Saved product/category is resolved server-side; category-only browsing accepts `headphones` or `air-fryer`. Unsupported products never substitute unrelated categories. Invalid contexts return 404. Reference ownership is never represented as a verified purchase/receipt.
@@ -27,7 +40,7 @@ JSON responses are private/no-store with Cookie variance; unknown errors are san
 
 New checkout JSON permits only optional `offerHash` in addition to the original `{productId,requestId}`. An explicitly enabled covered purchase requires the current SHA-256 offer hash; no retroactive binding or client-chosen terms/amount. Historical retries retain original snapshots. This supersedes the earlier strictly-two-field description below, not its immediate-payment scope.
 
-## CareOS final contract
+## CareOS transport and access contracts
 
 ### Private subscription runtime and historical CLI pilot
 
@@ -42,6 +55,8 @@ Owner pairing (only the approved launcher explicitly enables `CAREOS_OWNER_PAIRI
 The owner runs `scripts/owner-access.ts approve <requestId> --scopes <exact-requested-scopes>` through authenticated SSH as the existing owner account. Host-file permissions, active original approval/window and exact requested scopes are checked. Completion requires both the approved record and originating browser secret; it consumes the record atomically before setting only the requested existing scope cookies, with the original approved-window expiry. Other browsers, replay, changed windows, wrong origins and scope widening deny. Approval never exposes scope/provider tokens to JSON, URLs or commands. Interrupted completion may require a fresh pairing, not a replayable grant. Issuance is persistently bounded to 32/window, 12/hour and one per five seconds in a separate protected host file; no model/database budget is reset. [Threat model and owner acceptance limits](evidence/PRIVATE-ACCESS.md).
 
 `subscription` uses the existing 0015 conversation/lease/rate-limit schema and a protected host journal for approved request/token usage, not micro-USD or new DB columns. Unknown calls consume their own allowance slot, and transcript cleanup cannot replenish it. Model access is serial, fixed Sol/medium, official SSE, no retries/storage/API fallback. The original failed CLI pilot remains unchanged; actual continued browser acceptance is recorded [separately](evidence/SUBSCRIPTION-QUALITY.md). No migration or public access.
+
+Useful fresh Sol Medium calls may use only the existing actually unexpired session and remaining accounting, checked before each call. Historical **28/50** observations and the five customer tasks' **33/50** result are not fresh state checks or permission to renew/reset. Both unknowns and original **`2026-10-29T22:10:58.310Z`** expiry remain retained. No new allowance, identity rotation, paid credits or API fallback is authorized. [Actual customer-path acceptance](evidence/CUSTOMER-INSIGHTS.md#actual-customer-acceptance--preserved-phases) is distinct from older merchant acceptance, paid API integration and public licensing.
 
 Studio planning errors/cancellation now persist an unavailable terminal turn and release the lease; identical replay returns sanitized unavailable status without redispatch, while a new valid request can proceed. Already-applied browser presentation effects are not financial operations. [Private runtime contract](SUBSCRIPTION-DEVELOPMENT.md).
 
@@ -74,10 +89,11 @@ The premium appearance layer adds no HTTP endpoints. Light/Dark/System preferenc
 
 | Method | Path | Behavior |
 | --- | --- | --- |
-| GET | `/` | Product landing page and links to both demos |
+| GET | `/` | Customer-first product landing; merchant views remain secondary. New customer navigation/Insights is under integrated verification |
 | GET | `/dashboard` | Fictional customer overview, sample counts, Twins and events |
 | GET | `/vault?q=…&category=…` | Search/category filter over up to 100 most recent demo Twins; no writes; source labels separate samples from sandbox |
 | GET | `/vault/:uuid` | Scoped Twin snapshot, documents and evidence by ID, including older records outside list windows; malformed/unknown/out-of-scope returns 404 |
+| GET | `/insights` | New customer native Studio/evidence workspace over fixed saved purchases; **contract under integrated verification**, as above |
 | GET | `/documents` | Public fictional documents; no upload capability |
 | GET | `/merchant` | Public read-only merchant overview with separate intelligence/operator navigation |
 | GET | `/api/documents/:uuid/download` | Scoped sample/sandbox text attachment with provenance-specific filename; 404 if malformed/unknown; POST returns 405 |

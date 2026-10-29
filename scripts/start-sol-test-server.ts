@@ -2,10 +2,18 @@ import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { testRuntimeRoles } from "../tests/helpers/runtime-roles";
+import { solTestScope } from "../tests/helpers/sol-scopes";
 import "./environment";
 const port = process.argv[2];
 if (!port || !/^\d{4,5}$/.test(port) || ["3000", "55432"].includes(port))
   throw new Error("Explicit isolated test port required");
+const scope = solTestScope(
+  port === "3112"
+    ? "desktop-light"
+    : port === "3113"
+      ? "mobile-dark"
+      : "invalid",
+);
 const roles = await testRuntimeRoles(process.env.TEST_DATABASE_URL ?? "");
 const hash = (s: string) => createHash("sha256").update(s).digest("hex");
 const child = spawn(
@@ -30,7 +38,7 @@ const child = spawn(
       DEMO_DATA_SOURCE: "database",
       DATABASE_URL: roles.urls.reader,
       CAREOS_DATABASE_URL: roles.urls.careos,
-      APP_ORIGIN: `http://127.0.0.1:${port}`,
+      APP_ORIGIN: scope.origin,
       CAREOS_PROVIDER: "responses",
       CAREOS_LIVE_ENABLED: "true",
       CAREOS_API_KEY: "injected-test-key-no-real-provider-access",
@@ -44,8 +52,8 @@ const child = spawn(
       CAREOS_EVALUATION_EXPIRES_AT: new Date(
         Date.now() + 3600000,
       ).toISOString(),
-      CAREOS_CUSTOMER_ACCESS_HASH: hash("a".repeat(64)),
-      CAREOS_STUDIO_ACCESS_HASH: hash("b".repeat(64)),
+      CAREOS_CUSTOMER_ACCESS_HASH: hash(scope.customer),
+      CAREOS_STUDIO_ACCESS_HASH: hash(scope.studio),
       AG_STUDIO_LOCAL_EVALUATION_ENABLED: "true",
       PAYPAL_CHECKOUT_ENABLED: "false",
       GUARDIAN_OPERATIONS_ENABLED: "false",

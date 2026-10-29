@@ -28,6 +28,7 @@ import { useConversationScroll } from "./use-conversation-scroll";
 import { AnswerActions } from "./answer-actions";
 import { PurchaseChoices } from "./purchase-choices";
 import { useVisibleViewport } from "./use-visible-viewport";
+import { useInsightsControl } from "../intelligence/customer-control";
 
 type AssistantState = {
   select: (context: CareContext | null) => void;
@@ -50,7 +51,7 @@ export function CareOSProvider({
   const pathname = usePathname();
   const router = useRouter();
   const visible =
-    /^\/(dashboard|vault|documents|guardian|safety|replacements)(\/|$)/.test(
+    /^\/(dashboard|vault|documents|guardian|safety|replacements|insights)(\/|$)/.test(
       pathname,
     );
   const [isOpen, setOpen] = useState(false);
@@ -60,11 +61,20 @@ export function CareOSProvider({
   const contextRef = useRef<CareContext | null>(null);
   const registered = useRef(false);
   const revision = useRef(0);
-  const { conversation, pending, phase, error, restore, send, check, clear } =
-    useConversation();
+  const regular = useConversation();
+  const insights = useInsightsControl();
+  const analytics = pathname === "/insights";
+  const { conversation, pending, phase, error, clear } = analytics
+    ? insights
+    : regular;
+  const { restore, send } = regular;
+  const check = analytics ? insights.check : regular.check;
   const [draft, setDraft] = useState("");
   const busy = phase !== "idle";
-  const unavailable = busy || !!pending;
+  const unavailable =
+    busy ||
+    !!pending ||
+    (analytics && (!insights.connected || !!insights.recoverable));
   const trigger = useRef<HTMLButtonElement>(null);
   const composing = useRef(false);
   const composer = useRef<HTMLTextAreaElement>(null);
@@ -100,6 +110,10 @@ export function CareOSProvider({
   }, []);
   async function ask(message: string, intent?: Intent, selected?: CareContext) {
     if (unavailable || !message.trim()) return false;
+    if (analytics) {
+      setOpen(true);
+      return insights.send(message.trim());
+    }
     if (selected) select(selected);
     const bound = contextRef.current;
     const boundRevision = revision.current;
@@ -118,6 +132,10 @@ export function CareOSProvider({
   }
   async function open() {
     setOpen(true);
+    if (analytics) {
+      insights.restore();
+      return;
+    }
     const value = await restore();
     const previous = value?.turns.at(-1)?.answer.context;
     if (!registered.current && !contextRef.current && previous)
@@ -237,23 +255,31 @@ export function CareOSProvider({
                 <span className="min-w-0 text-muted-foreground">
                   <span className="sr-only">Discussing </span>
                   <strong className="block break-words text-sm text-foreground">
-                    {context
-                      ? `${context.name} · ${context.model}`
-                      : "Choose a purchase"}
+                    {analytics
+                      ? "Your purchases · Personal Insights"
+                      : context
+                        ? `${context.name} · ${context.model}`
+                        : "Choose a purchase"}
                   </strong>
-                  {context && (
+                  {analytics ? (
                     <span>
-                      {context.origin === "sandbox"
-                        ? "Verified Sandbox purchase"
-                        : context.example
-                          ? "Fictional ownership example · no purchase"
-                          : "Sample purchase"}{" "}
-                      {context.twinId && (
-                        <span className="hidden sm:inline">
-                          · PC-{context.twinId.slice(-6).toUpperCase()}
-                        </span>
-                      )}
+                      Presentation only · this conversation stays in this tab
                     </span>
+                  ) : (
+                    context && (
+                      <span>
+                        {context.origin === "sandbox"
+                          ? "Verified Sandbox purchase"
+                          : context.example
+                            ? "Fictional ownership example · no purchase"
+                            : "Sample purchase"}{" "}
+                        {context.twinId && (
+                          <span className="hidden sm:inline">
+                            · PC-{context.twinId.slice(-6).toUpperCase()}
+                          </span>
+                        )}
+                      </span>
+                    )
                   )}
                 </span>
                 <Button
@@ -389,6 +415,14 @@ export function CareOSProvider({
                           }}
                         />
                       )}
+                      {analytics && insights.recoverable === turn.requestId && (
+                        <Button
+                          disabled={busy}
+                          onClick={() => void insights.applySaved()}
+                        >
+                          Apply saved view
+                        </Button>
+                      )}
                       {!!turn.answer.sources.length && (
                         <details className="rounded-xl border bg-accent/40 px-3 text-sm text-muted-foreground">
                           <summary className="min-h-11 cursor-pointer py-3">
@@ -452,18 +486,19 @@ export function CareOSProvider({
                           ? "Your question wasn’t sent. Clear this conversation to start again."
                           : "No confirmed answer yet. Your question will not be sent again automatically."}
                     </p>
-                    {pending.status !== "sending" && pending.conversationId && (
-                      <Button
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() => {
-                          focusTranscript();
-                          void check();
-                        }}
-                      >
-                        Check for saved answer
-                      </Button>
-                    )}
+                    {pending.status !== "sending" &&
+                      (pending.conversationId || analytics) && (
+                        <Button
+                          variant="outline"
+                          disabled={busy}
+                          onClick={() => {
+                            focusTranscript();
+                            void check();
+                          }}
+                        >
+                          Check for saved answer
+                        </Button>
+                      )}
                   </article>
                 )}
                 <p role="status" aria-atomic="true" className="sr-only">
@@ -499,14 +534,21 @@ export function CareOSProvider({
               )}
               <div className="careos-composer shrink-0 border-t bg-card">
                 <div className="careos-quick-actions mb-3 flex flex-wrap gap-2">
-                  {[
-                    ["Find receipt", "receipt"],
-                    ["Purchase summary", "summary"],
-                    ["Product care", "care"],
-                  ].map(([label, intent]) => (
+                  {(analytics
+                    ? [
+                        ["Show my purchases", "summary"],
+                        ["Which purchases have documents?", "documents"],
+                        ["Show my purchases by category", "summary"],
+                      ]
+                    : [
+                        ["Find receipt", "receipt"],
+                        ["Purchase summary", "summary"],
+                        ["Product care", "care"],
+                      ]
+                  ).map(([label, intent]) => (
                     <button
                       type="button"
-                      key={intent}
+                      key={label}
                       disabled={unavailable}
                       className="min-h-11 rounded-xl border px-3 text-xs font-medium text-intelligence-foreground hover:bg-intelligence focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
                       onClick={() => void ask(label, intent as Intent)}
@@ -552,7 +594,7 @@ export function CareOSProvider({
                       event.preventDefault();
                       if (!event.repeat) submit();
                     }}
-                    maxLength={2000}
+                    maxLength={analytics ? 500 : 2000}
                     rows={1}
                     placeholder="Ask about your purchase…"
                     className="max-h-36 min-h-11 min-w-0 flex-1 resize-none rounded-xl border border-input bg-background px-[12px] py-[10px] text-base focus-visible:outline-2 focus-visible:outline-ring"
@@ -569,6 +611,15 @@ export function CareOSProvider({
                 </form>
                 <div className="careos-composer-note mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
                   <span>Demo only. No personal information.</span>
+                  {analytics && pending && (
+                    <button
+                      type="button"
+                      className="min-h-11 underline"
+                      onClick={insights.cancel}
+                    >
+                      Stop request
+                    </button>
+                  )}
                   <button
                     type="button"
                     disabled={busy}

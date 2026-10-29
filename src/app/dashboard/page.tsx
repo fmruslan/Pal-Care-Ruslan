@@ -4,16 +4,13 @@ import {
   ArrowRight,
   FileText,
   ShieldCheck,
-  CircleDollarSign,
-  CalendarDays,
+  Sparkles,
 } from "lucide-react";
 import { getDemoData } from "@/lib/demo/repository";
 import { Shell } from "@/components/shell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { PageHeading } from "@/components/page-heading";
-import { CareOSPanel } from "@/components/careos-panel";
 import { TwinList } from "@/components/vault";
 import { PurchaseActivity } from "@/components/purchase-activity";
 import { CareBriefing } from "@/components/careos/briefing";
@@ -22,7 +19,7 @@ import { getKnowledge } from "@/lib/careos/knowledge-repository";
 import { getGuardian } from "@/lib/price-guardian/runtime";
 import { getPurchaseActivity } from "@/lib/careos/activity-repository";
 
-export const metadata = { title: "Your care space" };
+export const metadata = { title: "Home · Your care space" };
 export default async function Dashboard() {
   const data = await getDemoData();
   const [guardian, activity, knowledge] = await Promise.all([
@@ -33,13 +30,17 @@ export default async function Dashboard() {
   return (
     <Shell active="/dashboard" source={data.source}>
       <PageHeading
-        eyebrow="Your everyday, beautifully connected."
+        eyebrow="Home · Your everyday, connected."
         title={`Your care space, ${data.customer.name}.`}
-        description="Your purchases, useful guidance, and the paperwork that belongs with them."
+        description="Start with your purchases. Explore source-labeled Insights and the paperwork that belongs with them."
         action={
-          <Button asChild variant="outline" className="hidden sm:inline-flex">
-            <Link href="/shop">
-              Explore the demo shop
+          <Button asChild variant="outline" className="min-w-0 max-w-full">
+            <Link href="/insights">
+              <Sparkles
+                className="text-intelligence-foreground"
+                aria-hidden="true"
+              />
+              <span className="min-w-0 break-words">View Insights</span>
               <ArrowRight aria-hidden="true" />
             </Link>
           </Button>
@@ -84,9 +85,9 @@ export default async function Dashboard() {
         ))}
       </div>
       <section aria-labelledby="purchases-title">
-        <div className="mb-5 flex items-center justify-between gap-4">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
           <h2 id="purchases-title" className="section-title">
-            Your purchase vault
+            Your purchases
           </h2>
           <Link
             href="/vault"
@@ -112,56 +113,54 @@ export default async function Dashboard() {
             activity={{ ...activity, items: activity.items.slice(0, 5) }}
           />
         </section>
-        <div className="space-y-5 xl:pt-16">
-          <CareOSPanel compact />
-          {[
-            {
-              icon: CircleDollarSign,
-              title: "Price Guardian",
-              description:
-                "Merchant price comparisons and approval workflows are implemented. Actual Sandbox refund verification awaits a separately approved test.",
-            },
-            {
-              icon: CalendarDays,
-              title: "Recall Guardian",
-              description:
-                "Real official CPSC evidence with conservative exact-model matching. One reviewed notice—not continuous monitoring or a safety certification.",
-            },
-          ].map(({ icon: Icon, title, description }) => (
-            <Card key={title} className="rounded-2xl">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h3 className="flex items-center gap-2 text-sm font-semibold">
-                  <Icon className="size-4 text-primary" aria-hidden="true" />
-                  {title}
-                </h3>
-                <Badge>
-                  {title === "Price Guardian"
-                    ? "Sandbox test pending"
-                    : "Limited official evidence"}
-                </Badge>
-              </div>
-              <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                {description}
-              </p>
-              {title === "Price Guardian" && (
-                <Link
-                  className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-primary"
-                  href="/guardian"
-                >
-                  Explore Price Guardian →
-                </Link>
-              )}
-              {title === "Recall Guardian" && (
-                <Link
-                  className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-primary"
-                  href="/safety"
-                >
-                  Explore official recall evidence →
-                </Link>
-              )}
-            </Card>
-          ))}
-        </div>
+        <Card className="rounded-2xl xl:mt-16">
+          <h2 className="text-base font-semibold">Explore at your pace</h2>
+          <p className="mt-2 text-sm leading-7 text-muted-foreground">
+            Open saved paperwork or explore a specific aftercare question. These
+            views do not authorize payments or confirm coverage.
+          </p>
+          <nav aria-label="Purchase resources" className="mt-4 divide-y">
+            {[
+              {
+                href: "/documents",
+                label: "Documents",
+                detail: "Receipts and available guides",
+              },
+              {
+                href: "/guardian",
+                label: "Price Guardian",
+                detail: "Recorded comparisons · financial activation off",
+              },
+              {
+                href: "/safety",
+                label: "Safety & recalls",
+                detail: "One reviewed official notice · limited coverage",
+              },
+              {
+                href: "/replacements",
+                label: "Replacement options",
+                detail: "Care first · fixture comparisons are labeled",
+              },
+            ].map(({ href, label, detail }) => (
+              <Link
+                key={href}
+                href={href}
+                className="flex min-h-11 items-center justify-between gap-3 py-3 text-sm"
+              >
+                <span className="min-w-0">
+                  <span className="font-semibold text-primary">{label}</span>
+                  <span className="mt-1 block leading-6 text-muted-foreground">
+                    {detail}
+                  </span>
+                </span>
+                <ArrowRight
+                  className="size-4 shrink-0 text-primary"
+                  aria-hidden="true"
+                />
+              </Link>
+            ))}
+          </nav>
+        </Card>
       </div>
     </Shell>
   );
