@@ -17,6 +17,8 @@ export type CustomerPurchase = {
   name: string;
   model: string;
   category: string;
+  /** Decorative, known catalog artwork only; never a remote image URL. */
+  illustration?: "headphones" | "kettle" | "speaker" | "computer";
   purchasedOn: string;
   origin: "sample" | "sandbox";
   amountMinor: number | null;
@@ -361,6 +363,9 @@ export function customerDataset(
       name: product.name,
       model: product.model,
       category: product.category,
+      illustration: (
+        ["headphones", "kettle", "speaker", "computer"] as const
+      ).find((kind) => kind === product.illustration),
       purchasedOn: twin.purchasedOn,
       origin: twin.origin as "sample" | "sandbox",
       // Zero on the reference ownership record is a placeholder, not free goods.

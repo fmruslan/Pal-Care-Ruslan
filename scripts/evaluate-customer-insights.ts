@@ -657,7 +657,15 @@ async function main(run: ReturnType<typeof customerAcceptanceRun>) {
       await expect(
         page.getByText("bundled sample preview", { exact: false }),
       ).toHaveCount(0);
-      const initial = page.getByTestId("insight-source-records");
+      await expect(view(page, "My Purchases")).toBeEnabled({ timeout: 20000 });
+      const initial = page
+        .locator("details")
+        .filter({
+          has: page
+            .locator("summary")
+            .filter({ hasText: /^Source records & accessible summary/ }),
+        })
+        .getByTestId("insight-source-records");
       await expect(initial).toHaveCount(1);
       const records = await rows(initial);
       assert.ok(
@@ -690,12 +698,6 @@ async function main(run: ReturnType<typeof customerAcceptanceRun>) {
         .filter({ hasText: /^Explore$/ })
         .click();
       checkpoint = "static-workspace-mount";
-      await page
-        .getByRole("button", {
-          name: "Explore interactive Insights",
-          exact: true,
-        })
-        .click();
       await expect(view(page, "My Purchases")).toBeEnabled({ timeout: 20000 });
       await expect(
         page

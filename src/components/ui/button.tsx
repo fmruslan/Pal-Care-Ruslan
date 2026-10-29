@@ -14,6 +14,9 @@ const buttonVariants = cva(
         ghost: "hover:bg-accent text-foreground",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        intelligence:
+          "bg-intelligence-accent text-intelligence-on-accent hover:bg-intelligence-accent/85",
+        care: "bg-care text-care-foreground hover:bg-care/80",
       },
       size: { default: "", sm: "px-4 text-xs", icon: "size-11 p-0" },
     },

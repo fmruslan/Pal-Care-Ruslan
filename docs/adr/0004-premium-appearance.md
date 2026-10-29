@@ -4,6 +4,8 @@
 **Date:** 2026-10-22
 **Scope:** Frontend presentation, appearance preference and regression coverage only.
 
+**2026-10-29 partial supersession:** owner-approved [ADR 0010](0010-blue-saffron-purple.md) changes CareOS to saffron, supporting care to deep purple, and standard card sizing. Original decisions/evidence below remain historical; appearance, architecture and payment-integrity constraints continue.
+
 ## Decision
 
 Use blue for commerce/navigation, lavender for explicitly labeled CareOS intelligence, and neutral white/midnight surfaces. A product-passport motif, original theme-aware SVGs and a custom interlocking mark give Pal Care a distinctive identity without copying another brand. Replace serif display typography with locally bundled Geist Sans via the maintained `geist` package.

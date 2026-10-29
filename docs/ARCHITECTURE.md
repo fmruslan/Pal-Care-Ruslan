@@ -16,7 +16,7 @@ The bounded Sandbox purchase/Twin flow has historical actual acceptance evidence
 
 ## Frontend appearance
 
-The original Blue & Lavender identity uses semantic light/dark tokens, original SVGs and shared passport/card/status components. Geist is self-hosted; System is the default. Appearance changes neither remount checkout nor call financial APIs. The customer continuation uses **Home / Purchases / Insights / Documents** on desktop and mobile, with contextual Explore routes and no Customer/Merchant workspace switch; merchant routes remain secondary. The new layout/navigation is under integrated verification. See [ADR 0004](adr/0004-premium-appearance.md) and [Design system](DESIGN.md).
+The owner-approved Blue / Saffron / Deep Purple refresh uses semantic light/dark tokens, original SVGs and shared passport/card/status components. [ADR 0010](adr/0010-blue-saffron-purple.md) supersedes ADR 0004's lavender CareOS assignment only. Geist remains self-hosted; System is the default. Appearance changes neither remount checkout nor call financial APIs. **Home / Purchases / Insights / Documents** remains the customer navigation; merchant routes stay secondary. Home + Insights are the first visual-review checkpoint. Native Studio resolves the same CSS color roles; Insights mounts directly only when the unchanged local evaluation gate permits. Loaded-window totals/highlights are separate from native filtered-selection widgets. [Design system](DESIGN.md) · [refresh evidence](evidence/UI-REFRESH.md).
 
 ## Implemented foundation
 

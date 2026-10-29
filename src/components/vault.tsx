@@ -48,18 +48,29 @@ export function EmptyVault({ compact = false }: { compact?: boolean }) {
   );
 }
 
-export function TwinList({ data, ids }: { data: DemoData; ids?: string[] }) {
+export function TwinList({
+  data,
+  ids,
+  compact = false,
+}: {
+  data: DemoData;
+  ids?: string[];
+  compact?: boolean;
+}) {
   const twins = data.twins.filter((twin) => !ids || ids.includes(twin.id));
   if (!twins.length) return <EmptyVault />;
   return (
-    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {twins.map((twin) => {
         const record = findTwin(data, twin.id);
         if (!record) return null;
         return (
-          <Card key={twin.id} className="motion-card group p-4 sm:p-5">
+          <Card key={twin.id} className="motion-card group p-3 sm:p-4">
             <div className="relative">
-              <ProductArt kind={record.product.illustration} />
+              <ProductArt
+                kind={record.product.illustration}
+                size={compact ? "compact" : "card"}
+              />
               <span className="absolute top-3 left-3">
                 <PurchaseBadge origin={twin.origin} />
               </span>
@@ -67,15 +78,15 @@ export function TwinList({ data, ids }: { data: DemoData; ids?: string[] }) {
                 <Layers2 className="size-4" aria-hidden="true" />
               </span>
             </div>
-            <div className="px-1 pt-5">
+            <div className="px-1 pt-3">
               <p className="text-sm text-muted-foreground">
                 {record.product.brand} <span aria-hidden="true">/</span>{" "}
                 {record.product.category}
               </p>
-              <h2 className="mt-2 text-lg font-semibold tracking-tight">
+              <h2 className="mt-1 text-base font-semibold tracking-tight">
                 {record.product.name}
               </h2>
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5">
                   <CalendarDays className="size-3.5" aria-hidden="true" />
                   {displayDate(twin.purchasedOn)}
@@ -86,7 +97,7 @@ export function TwinList({ data, ids }: { data: DemoData; ids?: string[] }) {
                     : money(twin.purchasePriceMinor)}
                 </span>
               </div>
-              <div className="passport-divider mt-5 flex flex-wrap items-center justify-between gap-2 pt-3">
+              <div className="passport-divider mt-3 flex flex-wrap items-center justify-between gap-2 pt-2">
                 <span className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
                   <FileText className="size-4" aria-hidden="true" />
                   {record.documents.length} document

@@ -2,21 +2,27 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #fafbff;
+  --background: #f7f9fc;
   --foreground: #172033;
   --card: #ffffff;
-  --primary: #3157b7;
+  --sidebar: #ffffff;
+  --primary: #3458bf;
   --primary-foreground: #ffffff;
   --secondary: #eaf1ff;
-  --secondary-foreground: #3157b7;
-  --muted-foreground: #59667e;
+  --secondary-foreground: #3458bf;
+  --muted-foreground: #59677e;
   --accent: #f2f6ff;
-  --border: #e2e8f3;
+  --border: #e0e6f0;
   --input: #7c89a3;
-  --ring: #3157b7;
-  --brand: #4f7df3;
-  --intelligence: #f5f1ff;
-  --intelligence-foreground: #7354b3;
+  --ring: #3458bf;
+  --brand: #3458bf;
+  --intelligence: #fff6e6;
+  --intelligence-foreground: #895000;
+  --intelligence-accent: #d98a1e;
+  --intelligence-on-accent: #172033;
+  --intelligence-border: #e7c48d;
+  --care: #f2ecfc;
+  --care-foreground: #6b42b8;
   --lavender: #ad9af7;
   --success: #116149;
   --success-surface: #e9f7f0;
@@ -31,7 +37,7 @@
   --art-body: #6385df;
   --art-edge: #304d9c;
   --art-highlight: #c3d3ff;
-  --art-alt: #b7a5ef;
+  --art-alt: #8b65ca;
   --art-shadow: #3157b7;
   --elevation: 0 4px 24px -14px rgb(34 58 112 / 18%);
   --elevation-hover: 0 16px 40px -22px rgb(49 87 183 / 30%);
@@ -39,21 +45,27 @@
 }
 
 .dark {
-  --background: #0b1020;
-  --foreground: #f3f6ff;
-  --card: #121a2b;
-  --primary: #90afff;
-  --primary-foreground: #0b1020;
+  --background: #0e111d;
+  --foreground: #f3f6fc;
+  --sidebar: #131926;
+  --card: #192236;
+  --primary: #9bb6ff;
+  --primary-foreground: #0e111d;
   --secondary: #1a2540;
   --secondary-foreground: #afc4ff;
-  --muted-foreground: #a9b5d0;
+  --muted-foreground: #b0bed4;
   --accent: #202c46;
-  --border: #2d3954;
+  --border: #303b51;
   --input: #7182a4;
   --ring: #afc4ff;
-  --brand: #90afff;
-  --intelligence: #292342;
-  --intelligence-foreground: #ddd2ff;
+  --brand: #9bb6ff;
+  --intelligence: #352919;
+  --intelligence-foreground: #f2b24d;
+  --intelligence-accent: #f2b24d;
+  --intelligence-on-accent: #172033;
+  --intelligence-border: #7e6032;
+  --care: #2c2142;
+  --care-foreground: #b794f4;
   --lavender: #c4b5fd;
   --success: #9ce0bf;
   --success-surface: #142c29;
@@ -68,7 +80,7 @@
   --art-body: #87a8fa;
   --art-edge: #cfddff;
   --art-highlight: #b5cbff;
-  --art-alt: #bca9ed;
+  --art-alt: #b794f4;
   --art-shadow: #050918;
   --elevation: 0 6px 28px -16px rgb(0 0 0 / 45%);
   --elevation-hover: 0 16px 40px -20px rgb(0 0 0 / 65%);
@@ -79,6 +91,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
+  --color-sidebar: var(--sidebar);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -91,6 +104,11 @@
   --color-brand: var(--brand);
   --color-intelligence: var(--intelligence);
   --color-intelligence-foreground: var(--intelligence-foreground);
+  --color-intelligence-accent: var(--intelligence-accent);
+  --color-intelligence-on-accent: var(--intelligence-on-accent);
+  --color-intelligence-border: var(--intelligence-border);
+  --color-care: var(--care);
+  --color-care-foreground: var(--care-foreground);
   --color-lavender: var(--lavender);
   --color-success: var(--success);
   --color-success-surface: var(--success-surface);
@@ -141,6 +159,12 @@
     outline: 2px solid var(--ring);
     outline-offset: 5px;
     border-radius: 4px;
+  }
+  summary:focus-visible,
+  input:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
   }
   button:not(:disabled),
   a {
@@ -231,7 +255,8 @@
     );
   }
   .intelligence-wash {
-    background: linear-gradient(140deg, var(--intelligence), var(--card));
+    background: var(--intelligence);
+    border-color: var(--intelligence-border);
   }
   .product-wash {
     background:
@@ -262,19 +287,17 @@
     font-weight: 600;
   }
   .page-title {
-    font-size: clamp(2rem, 3.5vw, 3rem);
+    font-size: clamp(1.75rem, 2.8vw, 2.5rem);
     font-weight: 600;
     line-height: 1.1;
   }
   .motion-card {
     transition:
-      transform 180ms ease,
       box-shadow 180ms ease,
       border-color 180ms ease;
   }
   @media (hover: hover) {
     .motion-card:hover {
-      transform: translateY(-3px);
       box-shadow: var(--elevation-hover);
       border-color: var(--input);
     }

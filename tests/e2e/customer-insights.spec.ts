@@ -125,6 +125,17 @@ function viewButton(page: Page, name: string) {
     .getByRole("button", { name, exact: true });
 }
 
+function evidenceButton(page: Page, origin: "all" | "sandbox" | "sample") {
+  return page
+    .getByRole("group", { name: "Purchase evidence filters" })
+    .getByRole("button", {
+      name: { all: "All", sandbox: "Verified Sandbox", sample: "Samples" }[
+        origin
+      ],
+      exact: true,
+    });
+}
+
 function ids(records: SourceRecord[]) {
   return records.map((record) => record.id).sort();
 }
@@ -134,7 +145,12 @@ async function openWorkspace(page: Page) {
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Personal Purchase Intelligence",
   );
-  const initialRecords = page.getByTestId("insight-source-records");
+  await expect(viewButton(page, "My Purchases")).toBeEnabled({
+    timeout: 20_000,
+  });
+  const initialRecords = sourceSummary(page).getByTestId(
+    "insight-source-records",
+  );
   await expect(initialRecords).toHaveCount(1);
   const records = await readRecords(initialRecords);
   const sampleIds = demoData.twins.map((twin) => twin.id).sort();
@@ -152,12 +168,6 @@ async function openWorkspace(page: Page) {
       exact: false,
     }),
   ).toBeVisible();
-  const explore = page.getByRole("button", {
-    name: "Explore interactive Insights",
-    exact: true,
-  });
-  await explore.focus();
-  await explore.press("Enter");
   await expect(page.getByTestId("customer-studio")).toBeVisible({
     timeout: 20_000,
   });
@@ -355,9 +365,7 @@ test("native purchase grid, chart and KPI share provenance filters and real cate
     fullPage: true,
     animations: "disabled",
   });
-  await page
-    .getByLabel("Purchase evidence", { exact: true })
-    .selectOption("sandbox");
+  await evidenceButton(page, "sandbox").click();
   const sandbox = records.filter((record) => record.origin === "sandbox");
   await assertSelection(page, sandbox);
   if (dataSource === "fixtures") expect(sandbox).toHaveLength(0);
@@ -367,9 +375,7 @@ test("native purchase grid, chart and KPI share provenance filters and real cate
   await expect(
     sources.getByText("Sample purchase", { exact: true }),
   ).toHaveCount(0);
-  await page
-    .getByLabel("Purchase evidence", { exact: true })
-    .selectOption("sample");
+  await evidenceButton(page, "sample").click();
   const samples = records.filter((record) => record.origin === "sample");
   await assertSelection(page, samples);
   const audio = samples.filter((record) => record.category === "Audio");
@@ -380,9 +386,10 @@ test("native purchase grid, chart and KPI share provenance filters and real cate
   await category.press("Enter");
   await expect(category).toHaveAttribute("aria-pressed", "true");
   await assertSelection(page, audio);
-  await expect(
-    page.getByLabel("Purchase evidence", { exact: true }),
-  ).toHaveValue("sample");
+  await expect(evidenceButton(page, "sample")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   await expect(page.getByLabel("Category", { exact: true })).toHaveValue("all");
   await page.getByLabel("Category", { exact: true }).selectOption("Kitchen");
   await expect(category).toHaveAttribute("aria-pressed", "false");
@@ -397,11 +404,77 @@ test("native purchase grid, chart and KPI share provenance filters and real cate
     .getByRole("button", { name: "Clear filters", exact: true })
     .click();
   await assertSelection(page, records);
-  await expect(
-    page.getByLabel("Purchase evidence", { exact: true }),
-  ).toHaveValue("all");
+  await expect(evidenceButton(page, "all")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   await expect(page.getByLabel("From", { exact: true })).toHaveValue("");
   await expect(page.getByLabel("Through", { exact: true })).toHaveValue("");
+});
+
+test("search and evidence buttons update the real native selection without changing loaded-window totals", async ({
+  page,
+}) => {
+  const records = await openWorkspace(page);
+  const totals = page.getByRole("definition");
+  const before = await totals.allTextContents();
+  const search = page.getByRole("searchbox", { name: "Search purchases" });
+  await search.fill("headphones");
+  await assertSelection(
+    page,
+    records.filter((p) => /headphones/i.test(p.name)),
+  );
+  await evidenceButton(page, "sandbox").focus();
+  await evidenceButton(page, "sandbox").press("Enter");
+  await assertSelection(
+    page,
+    records.filter((p) => /headphones/i.test(p.name) && p.origin === "sandbox"),
+  );
+  await search.fill("no-matching-product");
+  await assertSelection(page, []);
+  expect(await totals.allTextContents()).toEqual(before);
+  await page
+    .getByRole("button", { name: "Clear filters", exact: true })
+    .click();
+  await expect(search).toHaveValue("");
+  await expect(evidenceButton(page, "all")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await assertSelection(page, records);
+});
+
+test("native analytics resolve the shared palette in both appearances without losing the selection", async ({
+  page,
+}) => {
+  const records = await openWorkspace(page);
+  await page.getByLabel("Category", { exact: true }).selectOption("Audio");
+  const audio = records.filter((p) => p.category === "Audio");
+  for (const appearance of ["dark", "light"]) {
+    await page
+      .getByRole("combobox", { name: "Appearance" })
+      .selectOption(appearance);
+    await assertSelection(page, audio);
+    await expect
+      .poll(() =>
+        page.getByTestId("customer-studio").evaluate((node) => {
+          const sensor =
+            node.querySelector(".ag-studio-style-sensor") ??
+            node.querySelector(".ag-studio-layout");
+          if (!sensor) return false;
+          const style = getComputedStyle(sensor);
+          const probe = document.createElement("span");
+          sensor.appendChild(probe);
+          probe.style.color = style.getPropertyValue("--ag-accent-color");
+          const native = getComputedStyle(probe).color;
+          probe.style.color = "var(--primary)";
+          const platform = getComputedStyle(probe).color;
+          probe.remove();
+          return native === platform;
+        }),
+      )
+      .toBe(true);
+  }
 });
 
 test("Insights source records retain the exact Twin, receipt and reference-care links", async ({
@@ -621,9 +694,7 @@ test("one CareOS host executes real Studio tools for suggested categories, docum
   });
   if (dataSource === "fixtures") expect(total).toBe(0);
   // Even a test DB with recorded Sandbox cases cannot turn samples into refunds.
-  await page
-    .getByLabel("Purchase evidence", { exact: true })
-    .selectOption("sample");
+  await evidenceButton(page, "sample").click();
   await assertSelection(page, [], false);
   await expect(adjustments.getByText("$0.00", { exact: true })).toBeVisible();
 
@@ -692,9 +763,7 @@ test("browser-local layout add/save/restore is idempotent and does not restore p
   // A fresh document retains the saved browser-local layout, not the open SDK.
   await openWorkspace(page);
   await expect(charts).toHaveCount(1);
-  await page
-    .getByLabel("Purchase evidence", { exact: true })
-    .selectOption("sandbox");
+  await evidenceButton(page, "sandbox").click();
   const sandbox = records.filter((record) => record.origin === "sandbox");
   await assertSelection(page, sandbox);
   await page
@@ -704,9 +773,10 @@ test("browser-local layout add/save/restore is idempotent and does not restore p
     page.getByRole("status").filter({ hasText: "Saved layout restored" }),
   ).toBeVisible();
   await expect(charts).toHaveCount(2);
-  await expect(
-    page.getByLabel("Purchase evidence", { exact: true }),
-  ).toHaveValue("sandbox");
+  await expect(evidenceButton(page, "sandbox")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
   await assertSelection(page, sandbox);
   await page.evaluate((key) => {
     localStorage.setItem(
@@ -834,9 +904,7 @@ for (const narrow of [false, true])
       .getByRole("button", { name: "Reset views", exact: true })
       .click();
     await openWorkspace(page);
-    await page
-      .getByLabel("Purchase evidence", { exact: true })
-      .selectOption("sample");
+    await evidenceButton(page, "sample").click();
     await page
       .getByRole("button", { name: "Restore layout", exact: true })
       .click();

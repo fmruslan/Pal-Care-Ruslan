@@ -1,16 +1,12 @@
 import Link from "next/link";
-import {
-  Archive,
-  ArrowRight,
-  FileText,
-  ShieldCheck,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { getDemoData } from "@/lib/demo/repository";
 import { Shell } from "@/components/shell";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { PageHeading } from "@/components/page-heading";
+import { ProductArt } from "@/components/product-art";
+import { PurchaseMetrics } from "@/components/purchase-metrics";
+import { findTwin } from "@/lib/demo/presentation";
 import { TwinList } from "@/components/vault";
 import { PurchaseActivity } from "@/components/purchase-activity";
 import { CareBriefing } from "@/components/careos/briefing";
@@ -27,65 +23,33 @@ export default async function Dashboard() {
     getPurchaseActivity(data),
     getKnowledge(),
   ]);
+  const featured = data.twins
+    .map((twin) => findTwin(data, twin.id))
+    .find(Boolean);
   return (
     <Shell active="/dashboard" source={data.source}>
-      <PageHeading
-        eyebrow="Home · Your everyday, connected."
-        title={`Your care space, ${data.customer.name}.`}
-        description="Start with your purchases. Explore source-labeled Insights and the paperwork that belongs with them."
-        action={
-          <Button asChild variant="outline" className="min-w-0 max-w-full">
-            <Link href="/insights">
-              <Sparkles
-                className="text-intelligence-foreground"
-                aria-hidden="true"
-              />
-              <span className="min-w-0 break-words">View Insights</span>
-              <ArrowRight aria-hidden="true" />
-            </Link>
-          </Button>
-        }
-      />
+      <div className="mb-5 flex items-center justify-between gap-6 [&>div:first-child]:mb-0">
+        <PageHeading
+          eyebrow="Home · Your everyday, connected."
+          title={`Your care space, ${data.customer.name}.`}
+          description="Start with your purchases. Explore source-labeled Insights and the paperwork that belongs with them."
+        />
+        {featured && (
+          <div className="hidden shrink-0 md:block">
+            <ProductArt kind={featured.product.illustration} size="hero" />
+          </div>
+        )}
+      </div>
       <CareBriefing
         items={buildBriefing(data, knowledge, guardian.cases, activity)}
       />
-      <div className="mb-8 grid grid-cols-3 gap-2 sm:gap-3">
-        {[
-          { icon: Archive, value: data.twins.length, label: "Purchase Twins" },
-          {
-            icon: FileText,
-            value: data.documents.length,
-            label: "Documents together",
-          },
-          {
-            icon: ShieldCheck,
-            value: data.twins.filter((twin) => twin.origin === "sandbox")
-              .length,
-            label: "Verified sandbox purchases",
-          },
-        ].map(({ icon: Icon, value, label }) => (
-          <div
-            key={label}
-            className="flex flex-col items-start gap-1 rounded-2xl border bg-card px-3 py-3 sm:flex-row sm:items-center sm:gap-3 sm:px-5 sm:py-4"
-          >
-            <span className="inline-flex items-center gap-2">
-              <Icon
-                className="size-4 shrink-0 text-primary sm:size-5"
-                strokeWidth={1.6}
-                aria-hidden="true"
-              />
-              <span className="text-xl font-semibold tabular-nums">
-                {value}
-              </span>
-            </span>
-            <span className="text-xs leading-5 text-muted-foreground sm:text-sm">
-              {label}
-            </span>
-          </div>
-        ))}
-      </div>
+      <PurchaseMetrics
+        purchases={data.twins.length}
+        documents={data.documents.length}
+        verified={data.twins.filter((twin) => twin.origin === "sandbox").length}
+      />
       <section aria-labelledby="purchases-title">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-4">
           <h2 id="purchases-title" className="section-title">
             Your purchases
           </h2>
@@ -97,7 +61,7 @@ export default async function Dashboard() {
             <ArrowRight className="size-4" aria-hidden="true" />
           </Link>
         </div>
-        <TwinList data={data} />
+        <TwinList data={data} compact />
       </section>
       <div className="mt-9 grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <section className="min-w-0" aria-labelledby="care-title">

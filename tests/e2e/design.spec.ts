@@ -16,13 +16,13 @@ test("System is the default, follows OS changes, and updates native/browser colo
   await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
   await expect(
     page.locator('meta[name="theme-color"]').first(),
-  ).toHaveAttribute("content", "#0B1020");
+  ).toHaveAttribute("content", "#0e111d");
   await page.emulateMedia({ colorScheme: "light" });
   await expect(page.locator("html")).toHaveClass(/light/);
   await expect(selector).toHaveValue("system");
   await expect(
     page.locator('meta[name="theme-color"]').first(),
-  ).toHaveAttribute("content", "#FAFBFF");
+  ).toHaveAttribute("content", "#f7f9fc");
 });
 
 test("Light/Dark overrides persist across reload/navigation and System restores OS following", async ({
@@ -249,6 +249,7 @@ test("large text and narrow reflow do not cause page overflow", async ({
 for (const [name, path] of [
   ["home", "/"],
   ["dashboard", "/dashboard"],
+  ["insights", "/insights"],
   ["passport", twin],
   ["shop", "/shop"],
 ]) {
@@ -259,6 +260,14 @@ for (const [name, path] of [
     await expect(
       page.getByRole("combobox", { name: "Appearance" }),
     ).toBeEnabled();
+    if (name === "insights") {
+      await expect(
+        page
+          .getByTestId("customer-studio")
+          .locator(".ag-studio-chart-widget canvas")
+          .first(),
+      ).toBeVisible({ timeout: 20_000 });
+    }
     await expect(page).toHaveScreenshot(`${name}.png`);
     await page.screenshot({
       path: `test-results/design/${test.info().project.name}-${name}-full.png`,

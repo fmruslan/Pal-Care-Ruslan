@@ -70,9 +70,6 @@ test("injected customer planning uses Studio capability, actual SDK state, stric
     commands: [],
   });
   await page.goto("/insights");
-  await page
-    .getByRole("button", { name: "Explore interactive Insights", exact: true })
-    .click();
   await expect(page.getByTestId("insight-documents-care")).toBeVisible({
     timeout: 20000,
   });

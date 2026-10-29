@@ -168,7 +168,8 @@ export function CareOSProvider({
           <Dialog.Trigger asChild>
             <Button
               ref={trigger}
-              className="careos-launcher border border-intelligence-foreground/30 bg-intelligence text-intelligence-foreground shadow-lift hover:bg-intelligence"
+              variant="intelligence"
+              className="careos-launcher shadow-lift"
             >
               <Sparkles aria-hidden="true" /> Ask CareOS
             </Button>
@@ -601,6 +602,7 @@ export function CareOSProvider({
                   />
                   <Button
                     type="submit"
+                    variant="intelligence"
                     className="shrink-0 px-[12px] py-[10px]"
                     disabled={unavailable || !draft.trim()}
                     aria-label="Send to CareOS"
@@ -660,6 +662,7 @@ export function AskCareOS({
   return (
     <Button
       variant="outline"
+      className="border-intelligence-foreground bg-intelligence text-intelligence-foreground hover:bg-intelligence/80"
       onClick={() => {
         if (context) assistant.select(context);
         assistant.open();

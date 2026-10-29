@@ -39,7 +39,7 @@ The product's central object is a **Purchase Twin**, a durable, item-level recor
 
 CareOS adds a persistent customer assistant, scoped receipts, factual briefings and source-selected product care. Forma F-01 still has no manufacturer manual. Fixture mode says **no live AI**; private subscription mode says **Using ChatGPT plan · Sol Medium**. Paid API activation remains separate. [CareOS engineering](docs/CAREOS.md).
 
-Pal Care's original product-passport identity uses blue for commerce, lavender for CareOS intelligence, and spacious white or midnight surfaces. Color does not establish a connected model or accepted feature. **System is the default:** Light/Dark overrides are available from the appearance selector and persist locally. Geist Sans uses the maintained package's bundled, self-hosted fonts—no custom font service or browser request to Google Fonts.
+The owner-approved appearance refresh uses **blue for Pal Care, saffron for CareOS and deep purple for supporting product care**, with layered light/dark surfaces. Home + Insights are the first review checkpoint; page-specific redesign of the remaining routes and owner visual acceptance are still pending. [Refresh evidence](docs/evidence/UI-REFRESH.md). Color does not establish a connected model or accepted feature. **System is the default:** Light/Dark overrides persist locally. Geist Sans remains bundled and self-hosted—no custom font service or browser request to Google Fonts.
 
 See [Design system and visual references](docs/DESIGN.md). The Purchase Twin is the signature experience; deterministic/fixture/private-AI execution, in-progress features and sample/verified-sandbox provenance remain explicit in both themes.
 

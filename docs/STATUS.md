@@ -2,6 +2,10 @@
 
 Last updated: 2026-10-29
 
+## Owner-approved UI refresh — Home + Insights review checkpoint
+
+**Implemented; owner visual acceptance pending:** Blue platform / saffron CareOS / deep-purple supporting care replaces the previous lavender CareOS assignment under [ADR 0010](adr/0010-blue-saffron-purple.md). Shared tokens/controls, compact shell/Home, original artwork sizes, factual Insights totals/highlights, direct gated native workspace loading, provenance buttons and search are implemented. Native grid/chart/KPI, cross-filters, exact SDK verification and local layouts remain; loaded-window totals are explicitly distinct from filtered selection. No schema/API endpoint/payment/provider/inference behavior is activated. Other routes inherit shared styles but are not claimed page-specifically redesigned. Lint/format/type/build, **733 units**, **113 dedicated PostgreSQL checks**, **540 fixture browser checks** (including **36 comparison-only visual references**), **70 deterministic / 14 offline checks** pass. Focused database browsers, compatibility and the refreshed actual preview are recorded separately as they complete in the [fresh verification ledger](evidence/UI-REFRESH.md); exact-commit CI is not run without a push. Initial failures/corrections remain visible. This is not shipped customer acceptance.
+
 ## Mobile recovery and private testing baseline
 
 **Implemented; local and actual-application checks verified, owner acceptance open:** Home's activity/resources grid now shrinks around saved source digests instead of widening a mobile viewport. Permanent 320/375/390/430/834/1440px navigation/CareOS/focus/axe regressions and the confirmed streaming-navigation selector fix are added. Workspace/startup guards and ignored exact-commit build provenance protect the primary checkout and private launcher. The current port-3000 setup instruction is corrected to the bounded port-3002 owner preview. [Recovery evidence, original failures and verification ledger](evidence/MOBILE-BASELINE.md) · [workspace checks](WORKSPACE.md#enforced-startup-and-build-checks).

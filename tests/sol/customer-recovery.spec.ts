@@ -32,12 +32,6 @@ test("a lost customer plan recovers by GET and requires explicit SDK application
   });
   async function load() {
     await page.goto("/insights");
-    await page
-      .getByRole("button", {
-        name: "Explore interactive Insights",
-        exact: true,
-      })
-      .click();
     await expect(page.getByTestId("insight-documents-care")).toBeVisible({
       timeout: 20000,
     });
@@ -55,7 +49,9 @@ test("a lost customer plan recovers by GET and requires explicit SDK application
     .click();
   try {
     await expect(
-      page.locator('select[aria-label="Purchase evidence"]'),
+      page
+        .getByRole("group", { name: "Purchase evidence filters" })
+        .getByRole("button", { name: "All", exact: true, includeHidden: true }),
     ).toBeDisabled();
     await expect(page.getByTestId("customer-studio")).toHaveAttribute(
       "inert",

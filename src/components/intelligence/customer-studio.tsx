@@ -9,7 +9,6 @@ import {
 } from "ag-studio-react";
 import {
   AgStudioAiModule,
-  studioTheme,
   type AgBaseRegistry,
   type AgDefaultWidgetDefinition,
   type AgWidgetData,
@@ -50,6 +49,7 @@ import { useInsightsControl } from "./customer-control";
 import { AskCareOS } from "../careos/provider";
 import { executeCustomerAgent } from "./customer-agent";
 import { customerPlanApi } from "./customer-client";
+import { purchaseStudioTheme } from "./studio-theme";
 import { ValueRecovery, AdjustmentStatus, EvidenceFreshness } from "./summary";
 import {
   observedWidgets,
@@ -220,29 +220,6 @@ function PurchaseWidget(
   );
 }
 
-const theme = studioTheme
-  .withParams(
-    {
-      fontFamily: "var(--font-geist-sans), sans-serif",
-      accentColor: "#3157B7",
-      backgroundColor: "#FFFFFF",
-      foregroundColor: "#172033",
-      borderColor: "#E2E8F3",
-      browserColorScheme: "light",
-    },
-    "light",
-  )
-  .withParams(
-    {
-      fontFamily: "var(--font-geist-sans), sans-serif",
-      accentColor: "#90AFFF",
-      backgroundColor: "#121A2B",
-      foregroundColor: "#F3F6FF",
-      borderColor: "#2D3954",
-      browserColorScheme: "dark",
-    },
-    "dark",
-  );
 const pageNames: Record<InsightPage, string> = {
   purchases: "My Purchases",
   documents: "Documents & Care",
@@ -931,12 +908,10 @@ export function CustomerStudio({
   );
   return (
     <>
-      <div className="intelligence-wash mb-5 flex flex-wrap items-center justify-between gap-4 rounded-2xl border p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">
-            A little less to keep track of.
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <h2 className="text-lg font-semibold">Your interactive Insights</h2>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
             Ask CareOS to explore these records, or choose a view below.{" "}
             {live
               ? "Private live planning requires your Studio scope."
@@ -945,7 +920,7 @@ export function CustomerStudio({
         </div>
         <AskCareOS>Explore with CareOS</AskCareOS>
       </div>
-      <div className="mb-5 flex flex-wrap gap-2" aria-label="Insight views">
+      <div className="mb-4 flex flex-wrap gap-2" aria-label="Insight views">
         {insightPages.map((id) => (
           <Button
             key={id}
@@ -969,26 +944,49 @@ export function CustomerStudio({
         <legend className="px-2 text-sm font-semibold">
           Explore your purchases
         </legend>
-        <label className="min-w-0 max-w-full text-sm">
-          Purchase evidence
-          <select
-            aria-label="Purchase evidence"
-            className="mt-2 block min-h-11 w-full max-w-full rounded-xl border bg-card px-3"
-            value={filters.origin}
-            onChange={(e) =>
-              select({ ...filtersRef.current, origin: e.target.value })
-            }
+        <div className="min-w-0 max-w-full text-sm">
+          <span>Purchase evidence</span>
+          <span
+            className="mt-2 flex flex-wrap gap-1 rounded-xl bg-neutral p-1"
+            role="group"
+            aria-label="Purchase evidence filters"
           >
-            <option value="all">All evidence types</option>
-            <option value="sandbox">Verified Sandbox only</option>
-            <option value="sample">Samples only</option>
-          </select>
+            {(
+              [
+                ["all", "All"],
+                ["sandbox", "Verified Sandbox"],
+                ["sample", "Samples"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={filters.origin === value}
+                onClick={() => select({ ...filtersRef.current, origin: value })}
+                className={`min-h-11 rounded-lg px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${filters.origin === value ? "bg-secondary text-primary shadow-card" : "text-muted-foreground hover:bg-card"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </span>
+        </div>
+        <label className="min-w-0 flex-1 basis-44 text-sm">
+          Search purchases
+          <input
+            type="search"
+            value={filters.query}
+            onChange={(e) =>
+              select({ ...filtersRef.current, query: e.target.value })
+            }
+            placeholder="Product, model or category"
+            className="mt-2 block min-h-11 w-full rounded-xl border border-input bg-card px-3"
+          />
         </label>
         <label className="min-w-0 max-w-full text-sm">
           Category
           <select
             aria-label="Category"
-            className="mt-2 block min-h-11 w-full max-w-full rounded-xl border bg-card px-3"
+            className="mt-2 block min-h-11 w-full max-w-full rounded-xl border border-input bg-card px-3"
             value={filters.category}
             onChange={(e) =>
               select({ ...filtersRef.current, category: e.target.value })
@@ -1004,7 +1002,7 @@ export function CustomerStudio({
           From
           <input
             type="date"
-            className="mt-2 block min-h-11 w-full rounded-xl border bg-card px-3"
+            className="mt-2 block min-h-11 w-full rounded-xl border border-input bg-card px-3"
             value={filters.from}
             onChange={(e) =>
               select({ ...filtersRef.current, from: e.target.value })
@@ -1015,7 +1013,7 @@ export function CustomerStudio({
           Through
           <input
             type="date"
-            className="mt-2 block min-h-11 w-full rounded-xl border bg-card px-3"
+            className="mt-2 block min-h-11 w-full rounded-xl border border-input bg-card px-3"
             value={filters.to}
             onChange={(e) =>
               select({ ...filtersRef.current, to: e.target.value })
@@ -1219,7 +1217,7 @@ export function CustomerStudio({
             context={context}
             widgets={boundedWidgets}
             initialState={initial as unknown as AgReportState<Registry>}
-            theme={theme}
+            theme={purchaseStudioTheme}
             // The SDK divides minSize.width by minWidth / columns when dragging.
             // Zero produces infinite spans and silently rejects move/resize.
             layout={{ minWidth: canvasWidth, columns: 24, rowHeight: 16 }}

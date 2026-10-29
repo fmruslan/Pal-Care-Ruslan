@@ -1,4 +1,6 @@
-# Pal Care — Blue & Lavender design system
+# Pal Care — Blue / Saffron / Deep Purple design system
+
+**2026-10-29 owner-approved refresh:** [ADR 0010](adr/0010-blue-saffron-purple.md) replaces lavender CareOS branding with saffron and reserves deep purple for supporting care. Home + Insights are the first visual review checkpoint, not a completed whole-site page redesign or owner acceptance. Historical visual/functional evidence below remains historical; [refresh evidence](evidence/UI-REFRESH.md) records fresh results separately.
 
 ## Product direction
 
@@ -8,7 +10,7 @@
 
 Pal Care is a purchase companion, not an administrative ledger. The signature object is the **Purchase Twin**: a digital product passport that brings identity, purchase evidence, documents and care history together. The visual language uses an original interlocking P mark, layered passport frames, restrained orbital illustration details and a perforated document divider. No third-party logos or proprietary artwork are copied.
 
-Blue represents commerce and navigation. Lavender represents CareOS intelligence, with explicit deterministic/fixture/private-AI and in-progress labels where applicable. Neutral surfaces provide breathing room. Neither a purple accent nor a polished panel implies that an AI service is connected or a new capability is accepted.
+Blue represents commerce and navigation. Saffron represents CareOS intelligence; deep purple supports product care. Explicit deterministic/fixture/private-AI and in-progress labels remain. Neutral surfaces provide breathing room. Color and polish never imply that an AI service is connected or a capability is accepted.
 
 ## Semantic colors
 
@@ -16,29 +18,32 @@ Colors live in `src/app/globals.css`; components use semantic tokens rather than
 
 | Role | Light | Dark |
 | --- | --- | --- |
-| Page / card | `#FAFBFF` / `#FFFFFF` | `#0B1020` / `#121A2B` |
-| Main text | `#172033` | `#F3F6FF` |
-| Secondary text | `#59667E` | `#A9B5D0` |
-| Primary action / text on action | `#3157B7` / white | `#90AFFF` / `#0B1020` |
-| Brand accent | `#4F7DF3` | `#90AFFF` |
-| Secondary surface / text | `#EAF1FF` / `#3157B7` | `#1A2540` / `#AFC4FF` |
-| Intelligence surface / text | `#F5F1FF` / `#7354B3` | `#292342` / `#DDD2FF` |
+| Page / card | `#F7F9FC` / `#FFFFFF` | `#0E111D` / `#192236` |
+| Sidebar / header | `#FFFFFF` | `#131926` |
+| Main text | `#172033` | `#F3F6FC` |
+| Secondary text | `#59677E` | `#B0BED4` |
+| Primary action / text on action | `#3458BF` / white | `#9BB6FF` / `#0E111D` |
+| Brand accent | `#3458BF` | `#9BB6FF` |
+| Secondary surface / text | `#EAF1FF` / `#3458BF` | `#1A2540` / `#AFC4FF` |
+| CareOS surface / text | `#FFF6E6` / `#895000` | `#352919` / `#F2B24D` |
+| CareOS filled action / text | `#D98A1E` / `#172033` | `#F2B24D` / `#172033` |
+| Supporting care surface / text | `#F2ECFC` / `#6B42B8` | `#2C2142` / `#B794F4` |
 | Lavender illustration accent | `#AD9AF7` | `#C4B5FD` |
-| Decorative border | `#E2E8F3` | `#2D3954` |
+| Decorative border | `#E0E6F0` | `#303B51` |
 | Control boundary | `#7C89A3` | `#7182A4` |
 
 Success, warning and error use separate foreground/surface pairs, always accompanied by text and/or an icon. Sample provenance is neutral; a verified-sandbox badge means payment evidence, not insurance, warranty coverage, recall safety or AI confidence.
 
-White on the requested brand blue is only about 3.78:1, so normal-text light-mode primary buttons use the deeper blue (about 6.61:1). Dark primary buttons use navy text on pale blue. Unit tests enforce 4.5:1 for ten semantic text pairs per theme and 3:1 for input/focus indicators against page/card surfaces. Automated axe scans also inspect rendered pages; this is not a full accessibility certification.
+White on the current primary blue measures 6.37:1. White on light saffron is only 2.76:1, so amber buttons use navy text (5.89:1); brown-on-cream CareOS text measures 6.10:1. Dark primary buttons use navy text on pale blue. Unit tests enforce 4.5:1 for semantic text pairs, including CareOS and supporting care, plus 3:1 for input/focus indicators. Decorative borders are not sufficient control indicators. Rendered axe/browser checks supplement these calculations; neither is a full accessibility certification.
 
 ## Typography and components
 
 - Geist Sans comes from the exact-pinned maintained `geist` package (`geist/font/sans`). It supplies local font assets through Next.js font optimization, not a custom font pipeline or browser request to Google Fonts. Its copyright and SIL Open Font License are retained in [`public/licenses/geist-OFL.txt`](../public/licenses/geist-OFL.txt), served with the app.
 - Body text is 16px; meaningful secondary information is generally 14px. Compact metadata is 12px. Headings use the same sans-serif family with a consistent responsive scale and tighter tracking.
-- Standard cards use a 24px radius, controls 12px, passport frames 28px. Spacing follows Tailwind's shared scale rather than per-page arbitrary margins.
+- Standard cards use a 16px radius, nested surfaces/controls 12px, passport frames retain 28px. Spacing follows the shared scale, primarily 8px-based.
 - Shared components: `PageHeading`, `Badge`, `PurchaseBadge`, `ProductArt`, `CareOSPanel`, `StandaloneShell`, theme selector, buttons, cards and inputs.
 - Product illustrations are original inline SVGs with theme tokens for body, edge, highlight and shadow. They remain decorative; product identity is available as text.
-- Gradients are restrained and static. Hover movement is limited to a three-pixel card lift; reduced-motion preferences disable transitions and animation.
+- CareOS uses a solid warm surface rather than a gradient. Other gradients are restrained and static. Card hover uses border/shadow, not movement; reduced-motion preferences disable transitions and animation.
 
 ## Appearance behavior
 
@@ -68,7 +73,7 @@ The package's early theme script sets the HTML class before page content. The se
 
 ## Navigation and screen hierarchy
 
-The customer-first continuation, **under integrated verification**, uses **Home / Purchases / Insights / Documents** on desktop and mobile. There is **no Customer/Merchant workspace switch in the customer navigation**. An **Explore** disclosure keeps shop, Guardian, safety and replacement journeys accessible without turning them into competing applications. Merchant routes remain secondary; hiding their links does not change their authorization. Personal Insights uses the same Blue & Lavender tokens, native Studio analytics plus source-backed custom widgets, one customer CareOS panel and an accessible source summary. No customer must enter a merchant workspace to explore purchases. Updated screenshots and human acceptance remain separate evidence gates.
+The customer-first continuation, **under integrated verification**, uses **Home / Purchases / Insights / Documents** on desktop and mobile. There is **no Customer/Merchant workspace switch in the customer navigation**. An **Explore** disclosure keeps shop, Guardian, safety and replacement journeys accessible without turning them into competing applications. Merchant routes remain secondary; hiding their links does not change their authorization. Personal Insights uses the shared semantic tokens, native Studio analytics plus source-backed custom widgets, one customer CareOS panel and an accessible source summary. No customer must enter a merchant workspace to explore purchases. Updated screenshots and human acceptance remain separate evidence gates.
 
 **Historical merchant visual checkpoint:** the earlier continuation preserved the passport identity and paperwork hierarchy, with three evidence-led merchant summary/custom-widget views, explicit sample/recorded selectors, browser-local layout tools and a visibly scripted assistant. Later actual private model-planned merchant-Studio acceptance is recorded separately in [subscription evidence](evidence/SUBSCRIPTION-QUALITY.md); neither proves the new customer workspace. Recall evidence and replacement profiles retain semantic cards, conditional provenance and readable source limits. A redundant mobile Guardian-page Ask action was hidden because the global launcher remained available; no checkout or financial behavior changed. Historical workbench width/scroll checks are not the new customer layout's acceptance. No third-party watermark or license notice may be hidden.
 
@@ -94,7 +99,7 @@ Stage 5 keeps these tokens and identity. Safety/replacement links carry a saved 
 | CareOS, desktop | [Image](../tests/e2e/visual/desktop-light/assistant.png) | [Image](../tests/e2e/visual/desktop-dark/assistant.png) |
 | CareOS, mobile | [Image](../tests/e2e/visual/mobile-light/assistant.png) | [Image](../tests/e2e/visual/mobile-dark/assistant.png) |
 
-`playwright.config.ts` covers desktop (1440px), tablet (834px) and mobile (390px), each in light and dark. The suite tests fresh System behavior, live OS changes, manual overrides, reload/navigation persistence, returning to System, hydration/initial-heading theme, storage failure, reduced motion, keyboard access, reflow and checkout POST counts. Four flagship pages plus the open CareOS assistant have screenshot comparisons in all six projects; full-page artifacts are saved separately for manual review. Normal CI compares committed baselines and does **not** update them.
+`playwright.config.ts` covers desktop (1440px), tablet (834px) and mobile (390px), each in light and dark. The suite tests fresh System behavior, live OS changes, manual overrides, reload/navigation persistence, returning to System, hydration/initial-heading theme, storage failure, reduced motion, keyboard access, reflow and checkout POST counts. Five pages (including the new Insights reference) plus the open CareOS assistant have **36** screenshot comparisons across all six projects; full-page artifacts are saved separately for review. Normal CI compares committed baselines and does **not** update them. The 2026-10-29 refresh deliberately generated/reviewed references separately from comparison-only verification; [refresh evidence](evidence/UI-REFRESH.md) distinguishes those results from owner acceptance.
 
 Update visual baselines deliberately with `pnpm test:e2e --update-snapshots`, inspect the resulting images, then commit the approved references. Snapshot tolerance is 0.5% to allow small renderer differences; layout/functional and accessibility assertions run independently.
 

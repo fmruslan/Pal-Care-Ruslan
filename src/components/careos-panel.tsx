@@ -4,7 +4,7 @@ import { Badge } from "./ui/badge";
 
 export function CareOSPanel({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="intelligence-wash rounded-3xl border p-6 sm:p-7">
+    <div className="intelligence-wash rounded-2xl border p-5 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="inline-flex items-center gap-2 text-sm font-semibold text-intelligence-foreground">
           <Sparkles className="size-4" aria-hidden="true" />

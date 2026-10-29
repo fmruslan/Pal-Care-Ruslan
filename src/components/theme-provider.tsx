@@ -10,7 +10,9 @@ function BrowserThemeColor() {
     document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
       meta.setAttribute(
         "content",
-        resolvedTheme === "dark" ? "#0B1020" : "#FAFBFF",
+        getComputedStyle(document.documentElement)
+          .getPropertyValue("--background")
+          .trim(),
       );
     });
   }, [resolvedTheme]);

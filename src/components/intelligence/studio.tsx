@@ -7,7 +7,6 @@ import {
   type AgWidgetDefinition,
 } from "ag-studio-react";
 import {
-  studioTheme,
   AgStudioAiModule,
   type AgBaseRegistry,
   type AgDefaultWidgetDefinition,
@@ -33,6 +32,7 @@ import type { DashboardCommand } from "@/lib/intelligence/commands";
 import { scriptedPrompts } from "@/lib/intelligence/commands";
 import { validateDashboardPlan } from "@/lib/intelligence/commands";
 import { pageStage, withPageStage } from "@/lib/intelligence/filters";
+import { purchaseStudioTheme } from "./studio-theme";
 
 type WidgetId = "value-recovery" | "adjustment-status" | "evidence-freshness";
 type CustomData = AgWidgetData<
@@ -140,29 +140,6 @@ export function defaultReport(compact = false): AgReportState<Registry> {
     },
   };
 }
-const theme = studioTheme
-  .withParams(
-    {
-      fontFamily: "var(--font-geist-sans), sans-serif",
-      accentColor: "#3157B7",
-      backgroundColor: "#FFFFFF",
-      foregroundColor: "#172033",
-      borderColor: "#E2E8F3",
-      browserColorScheme: "light",
-    },
-    "light",
-  )
-  .withParams(
-    {
-      fontFamily: "var(--font-geist-sans), sans-serif",
-      accentColor: "#90AFFF",
-      backgroundColor: "#121A2B",
-      foregroundColor: "#F3F6FF",
-      borderColor: "#2D3954",
-      browserColorScheme: "dark",
-    },
-    "dark",
-  );
 export function IntelligenceStudio({
   dataset,
   stage,
@@ -573,7 +550,7 @@ export function IntelligenceStudio({
           widgets={widgets}
           context={context}
           initialState={initial}
-          theme={theme}
+          theme={purchaseStudioTheme}
           layout={{ minWidth: 0, columns: 24, rowHeight: 16 }}
           loadThemeGoogleFonts={false}
           mode={edit ? "edit" : "view"}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { CustomerPurchase } from "@/lib/intelligence/customer-model";
 import { money, displayDate } from "@/lib/demo/presentation";
 import { Badge } from "../ui/badge";
+import { ProductArt } from "../product-art";
 
 export function CustomerRecords({
   purchases,
@@ -11,7 +12,7 @@ export function CustomerRecords({
   compact?: boolean;
 }) {
   return (
-    <div className="space-y-4" data-testid="insight-source-records">
+    <div className="space-y-3" data-testid="insight-source-records">
       {!purchases.length && (
         <p className="py-4 text-sm text-muted-foreground">
           No saved purchases match this view. Clear the filters to explore your
@@ -21,14 +22,17 @@ export function CustomerRecords({
       {purchases.map((p) => (
         <article
           key={p.id}
-          className="rounded-xl border p-4"
+          className="min-w-0 rounded-xl border bg-card p-4"
           data-purchase-id={p.id}
         >
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
+          <div className="flex flex-wrap items-start gap-3">
+            {!compact && p.illustration && (
+              <ProductArt kind={p.illustration} size="thumbnail" />
+            )}
+            <div className="min-w-0 flex-1 basis-44">
               <Link
                 href={p.href}
-                className="inline-flex min-h-11 items-center text-base font-semibold text-primary underline-offset-4 hover:underline"
+                className="inline-flex min-h-11 items-center text-base font-semibold text-foreground underline-offset-4 hover:text-primary hover:underline"
               >
                 {p.name}
               </Link>
@@ -39,7 +43,7 @@ export function CustomerRecords({
                   : money(p.amountMinor)}
               </p>
             </div>
-            <Badge tone={p.origin === "sandbox" ? "blue" : "neutral"}>
+            <Badge tone={p.origin === "sandbox" ? "success" : "neutral"}>
               {p.origin === "sandbox"
                 ? "Verified Sandbox purchase"
                 : "Sample purchase"}

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ArrowUpRight, Sparkles, X } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Sparkles, X } from "lucide-react";
 import type { BriefingItem } from "@/lib/careos/briefing";
 import { Button } from "../ui/button";
 
@@ -50,7 +50,7 @@ export function CareBriefing({ items }: { items: BriefingItem[] }) {
   return (
     <section
       aria-labelledby="careos-briefing"
-      className="intelligence-wash mb-8 rounded-3xl border p-5 sm:p-7"
+      className="intelligence-wash mb-5 rounded-2xl border p-4 sm:p-5"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -58,16 +58,32 @@ export function CareBriefing({ items }: { items: BriefingItem[] }) {
             <Sparkles className="size-4" aria-hidden="true" />
             CareOS · Your purchase companion
           </p>
-          <h2 id="careos-briefing" className="mt-3 text-2xl font-semibold">
+          <h2
+            id="careos-briefing"
+            className="mt-2 text-xl font-semibold sm:text-2xl"
+          >
             A little less to keep track of.
           </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Saved receipts and supported product guidance, close at hand.
+          </p>
         </div>
+        <Button
+          asChild
+          variant="outline"
+          size="sm"
+          className="border-intelligence-foreground bg-transparent text-intelligence-foreground hover:bg-card"
+        >
+          <Link href="/insights">
+            View Insights <ArrowRight aria-hidden="true" />
+          </Link>
+        </Button>
       </div>
-      <div className="mt-5 grid gap-3 md:grid-cols-2">
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
         {active.map((item) => (
           <article
             key={item.id}
-            className="relative rounded-2xl border bg-card p-5"
+            className="relative min-w-0 rounded-xl border bg-card p-4"
           >
             <button
               type="button"
@@ -80,12 +96,18 @@ export function CareBriefing({ items }: { items: BriefingItem[] }) {
             <p className="pr-7 text-xs font-medium text-intelligence-foreground">
               {item.provenance}
             </p>
-            <h3 className="mt-3 text-base font-semibold">{item.title}</h3>
+            <h3 className="mt-2 pr-3 text-base font-semibold">{item.title}</h3>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {item.detail}
             </p>
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <Button asChild variant="secondary" size="sm">
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <Button
+                asChild
+                variant={
+                  item.action.href.endsWith("/care") ? "care" : "intelligence"
+                }
+                size="sm"
+              >
                 <Link href={item.action.href}>
                   {item.action.label}
                   <ArrowUpRight aria-hidden="true" />

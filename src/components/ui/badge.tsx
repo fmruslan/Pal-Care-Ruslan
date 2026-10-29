@@ -2,11 +2,18 @@ import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
 
 type Tone =
-  "neutral" | "blue" | "intelligence" | "success" | "warning" | "danger";
+  | "neutral"
+  | "blue"
+  | "intelligence"
+  | "care"
+  | "success"
+  | "warning"
+  | "danger";
 const tones: Record<Tone, string> = {
   neutral: "bg-neutral text-muted-foreground",
   blue: "bg-secondary text-secondary-foreground",
   intelligence: "bg-intelligence text-intelligence-foreground",
+  care: "bg-care text-care-foreground",
   success: "bg-success-surface text-success",
   warning: "bg-warning-surface text-warning",
   danger: "bg-danger-surface text-danger",

@@ -70,8 +70,8 @@ export function Shell({
       "Purchase Twin");
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
-      <aside className="sticky top-0 hidden h-dvh flex-col border-r bg-card lg:flex">
-        <div className="px-7 py-8">
+      <aside className="sticky top-0 hidden h-dvh flex-col border-r bg-sidebar lg:flex">
+        <div className="px-7 py-6">
           <Brand href={merchant ? "/merchant" : "/dashboard"} />
           <p className="mt-5 text-sm text-muted-foreground">
             {merchant ? "Your merchant workspace" : "Your everyday, cared for."}
@@ -126,7 +126,7 @@ export function Shell({
         </div>
       </aside>
       <div className="min-w-0">
-        <header className="relative flex min-h-22 flex-wrap items-center justify-between gap-3 border-b bg-card px-5 py-4 sm:px-8 lg:px-10">
+        <header className="relative flex min-h-18 flex-wrap items-center justify-between gap-3 border-b bg-sidebar px-5 py-3 sm:px-8 lg:px-8">
           <div className="lg:hidden">
             <Brand href={merchant ? "/merchant" : "/dashboard"} />
           </div>
@@ -183,11 +183,11 @@ export function Shell({
         </header>
         <main
           id="main-content"
-          className="mx-auto max-w-[1440px] break-words px-5 py-6 sm:px-8 sm:py-8 lg:px-10"
+          className="mx-auto max-w-[1280px] break-words px-5 py-5 sm:px-8 sm:py-6"
         >
           <div
             role="note"
-            className="mb-7 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-xl border bg-card px-4 py-3 text-sm text-muted-foreground"
+            className="mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-xl border bg-card px-4 py-2 text-sm text-muted-foreground"
           >
             <span className="inline-flex items-center gap-2">
               <ShieldCheck
