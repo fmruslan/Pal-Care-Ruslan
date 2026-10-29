@@ -7,6 +7,14 @@ import {
 import { restrictedRuntimeUrls } from "../src/lib/careos/subscription/runtime-policy";
 
 export const previewOrigin = "http://127.0.0.1:3002";
+
+export function previewExitCode(
+  code: number | null,
+  signal: string | null,
+  stopping: boolean,
+) {
+  return stopping ? 0 : signal ? 1 : (code ?? 1);
+}
 const application = z.strictObject({
   origin: z.literal(previewOrigin),
   customer: z.string().regex(/^[a-f0-9]{64}$/),

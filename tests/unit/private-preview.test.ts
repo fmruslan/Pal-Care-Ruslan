@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import {
   privatePreviewEnvironment,
+  previewExitCode,
   previewOrigin,
 } from "../../scripts/private-preview-policy";
 import { SUBSCRIPTION_SESSION } from "../../src/lib/careos/subscription/policy";
@@ -50,6 +51,12 @@ const session = {
 };
 
 describe("persistent private website is not AI authorization", () => {
+  it("distinguishes an intentional supervisor stop from an unexpected child crash", () => {
+    expect(previewExitCode(null, "SIGKILL", false)).toBe(1);
+    expect(previewExitCode(null, "SIGTERM", true)).toBe(0);
+    expect(previewExitCode(0, null, true)).toBe(0);
+    expect(previewExitCode(2, null, false)).toBe(2);
+  });
   it("checks the original deadline at event time, including resume and invalid clocks", () => {
     expect(evaluationWindowExpired(expiry, expiry - 1)).toBe(false);
     expect(evaluationWindowExpired(expiry, expiry)).toBe(true);

@@ -9,7 +9,10 @@ import {
   assertEvidenceGuards,
 } from "../src/db/authority";
 import { assertBuild, primary } from "./workspace.mjs";
-import { privatePreviewEnvironment } from "./private-preview-policy";
+import {
+  privatePreviewEnvironment,
+  previewExitCode,
+} from "./private-preview-policy";
 
 async function existing(name: string) {
   try {
@@ -73,13 +76,17 @@ try {
       env: { ...env, HOME: homedir(), PATH: "/usr/local/bin:/usr/bin:/bin" },
     },
   );
+  let stopping = false;
   for (const signal of ["SIGINT", "SIGTERM"] as const)
-    process.on(signal, () => child.kill(signal));
+    process.on(signal, () => {
+      stopping = true;
+      child.kill(signal);
+    });
   child.on("error", () => {
     process.exitCode = 2;
   });
   child.on("exit", (code, signal) => {
-    process.exitCode = signal ? 1 : (code ?? 1);
+    process.exitCode = previewExitCode(code, signal, stopping);
   });
 } catch {
   console.error(
