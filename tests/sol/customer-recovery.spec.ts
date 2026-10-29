@@ -50,7 +50,10 @@ test("a lost customer plan recovers by GET and requires explicit SDK application
   try {
     await expect(
       page
-        .getByRole("group", { name: "Purchase evidence filters" })
+        .getByRole("group", {
+          name: "Purchase evidence filters",
+          includeHidden: true,
+        })
         .getByRole("button", { name: "All", exact: true, includeHidden: true }),
     ).toBeDisabled();
     await expect(page.getByTestId("customer-studio")).toHaveAttribute(

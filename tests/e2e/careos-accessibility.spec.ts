@@ -579,14 +579,37 @@ test("wide compact mode leaves purchase reading space; expand and close restore 
   await page.setViewportSize({ width: 1440, height: 1000 });
   const state = await injectConversation(page);
   const { dialog } = await openAssistant(page);
-  const main = page.locator("#main-content");
   await expect
-    .poll(async () => {
-      const content = await main.boundingBox();
-      const panel = await dialog.boundingBox();
-      return content!.x + content!.width <= panel!.x;
-    })
-    .toBe(true);
+    // Sample one layout frame, avoiding two independently waiting WebKit locator
+    // resolutions. Keep readiness and exact rectangles visible in any failure.
+    .poll(() =>
+      page.evaluate(() => {
+        const content = document.querySelector<HTMLElement>("#main-content");
+        const panel = document.querySelector<HTMLElement>(
+          ".careos-assistant[role=dialog]",
+        );
+        if (!content || !panel) return { ready: false, noOverlap: false };
+        const c = content.getBoundingClientRect();
+        const p = panel.getBoundingClientRect();
+        const title = document.getElementById(
+          panel.getAttribute("aria-labelledby") ?? "",
+        );
+        return {
+          ready:
+            document.documentElement.classList.contains(
+              "careos-reading-space",
+            ) &&
+            title?.textContent?.trim() === "CareOS" &&
+            p.width > 0 &&
+            p.height > 0,
+          noOverlap: c.right <= p.left,
+          content: c.toJSON(),
+          panel: p.toJSON(),
+          viewport: innerWidth,
+        };
+      }),
+    )
+    .toMatchObject({ ready: true, noOverlap: true });
   await dialog
     .getByRole("button", { name: "Expand assistant", exact: true })
     .click();
