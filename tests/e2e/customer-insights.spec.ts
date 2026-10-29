@@ -731,6 +731,125 @@ test("browser-local layout add/save/restore is idempotent and does not restore p
   await assertSelection(page, sandbox);
 });
 
+for (const narrow of [false, true])
+  test(`native pointer resize and move persist exact layouts through reload without changing filters${narrow ? " at 320px and enlarged text" : ""}`, async ({
+    page,
+  }) => {
+    if (narrow) {
+      await page.setViewportSize({ width: 320, height: 900 });
+      await page.addInitScript(() => {
+        document.addEventListener(
+          "DOMContentLoaded",
+          () => {
+            document.documentElement.style.fontSize = "200%";
+          },
+          { once: true },
+        );
+      });
+    }
+    const records = await openWorkspace(page);
+    type Position = {
+      xTrack: number;
+      yTrack: number;
+      xSpan: number;
+      ySpan: number;
+    };
+    type Layout = { pages: Record<string, Record<string, Position>> };
+    const save = async () => {
+      await page
+        .getByRole("button", { name: "Save layout", exact: true })
+        .click();
+      return page.evaluate(() => {
+        const key = Object.keys(localStorage).find((key) =>
+          key.startsWith("palcare-personal-layout:v1:"),
+        )!;
+        return JSON.parse(localStorage.getItem(key)!) as Layout;
+      });
+    };
+    const before = await save();
+    await page
+      .getByRole("button", { name: "Customize layout", exact: true })
+      .click();
+    const count = nativeWidget(page, "Purchases in this view");
+    const handle = count.locator(
+      '.ag-studio-layout-widget-overlay-resize[data-direction="e"]',
+    );
+    // Center the target above fixed mobile navigation; mere viewport intersection
+    // does not prove that a pointer can reach it.
+    await handle.evaluate((node) =>
+      node.scrollIntoView({ block: "center", inline: "nearest" }),
+    );
+    const edge = (await handle.boundingBox())!;
+    const edgeHit = await handle.evaluate((node) => {
+      const r = node.getBoundingClientRect();
+      const hit = document.elementFromPoint(
+        r.x + r.width / 2,
+        r.y + r.height / 2,
+      );
+      return {
+        reachable: !!hit && node.contains(hit),
+        hit: hit?.className,
+        rect: r.toJSON(),
+        viewport: { width: innerWidth, height: innerHeight },
+      };
+    });
+    expect(edgeHit.reachable, JSON.stringify(edgeHit)).toBe(true);
+    await page.mouse.move(edge.x + edge.width / 2, edge.y + edge.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(
+      edge.x + edge.width / 2 - 80,
+      edge.y + edge.height / 2,
+      { steps: 12 },
+    );
+    await page.mouse.up();
+    const resized = await save();
+    expect(resized.pages.purchases.count.xSpan).toBeLessThan(
+      before.pages.purchases.count.xSpan,
+    );
+    // Shrinking first leaves a real vacant destination even in the narrow,
+    // single-column layout. Dragging into an occupied widget is not a move proof.
+    // Coarse-pointer resize handles are 44px tall and overlap the title. The
+    // widget's central body is the actual move target on touch-sized layouts.
+    await count.evaluate((node) =>
+      node.scrollIntoView({ block: "center", inline: "nearest" }),
+    );
+    const box = (await count.boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 50, box.y + box.height / 2, {
+      steps: 12,
+    });
+    await page.mouse.up();
+    const moved = await save();
+    expect(moved.pages.purchases.count.xTrack).toBeGreaterThan(
+      resized.pages.purchases.count.xTrack,
+    );
+    expect(moved.pages.purchases.count.xSpan).toBe(
+      resized.pages.purchases.count.xSpan,
+    );
+    await page
+      .getByRole("button", { name: "Finish layout editing", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Reset views", exact: true })
+      .click();
+    await openWorkspace(page);
+    await page
+      .getByLabel("Purchase evidence", { exact: true })
+      .selectOption("sample");
+    await page
+      .getByRole("button", { name: "Restore layout", exact: true })
+      .click();
+    expect(await save()).toEqual(moved);
+    await assertSelection(
+      page,
+      records.filter((record) => record.origin === "sample"),
+    );
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
+  });
+
 test("native Insights and the unified assistant support keyboard, reduced motion, 320px reflow and axe checks", async ({
   page,
 }) => {

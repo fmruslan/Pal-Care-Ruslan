@@ -309,6 +309,27 @@ export function CustomerStudio({
   const [edit, setEdit] = useState(false);
   const [adding, setAdding] = useState(false);
   const [add, setAdd] = useState<InsightWidget>("category-chart");
+  const canvas = useRef<HTMLDivElement>(null);
+  const [canvasWidth, setCanvasWidth] = useState(0);
+  useEffect(() => {
+    const measure = () => {
+      const host = canvas.current!;
+      const layout = host.querySelector<HTMLElement>(".ag-studio-layout");
+      const style = layout ? getComputedStyle(layout) : null;
+      // SDK wrapper spacing is outside the canvas, including enlarged text.
+      const width = Math.floor(
+        Math.min(host.clientWidth, layout?.clientWidth ?? host.clientWidth) -
+          (style
+            ? parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
+            : 0),
+      );
+      if (width > 0) setCanvasWidth(width);
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(canvas.current!);
+    measure();
+    return () => observer.disconnect();
+  }, [ready]);
   const conversation = useRef<string | null>(null);
   const compact = useMemo(
     () =>
@@ -449,7 +470,7 @@ export function CustomerStudio({
           form: (p) => p.createDefaults({ dataMappingItems: [] }),
           toolbar: [],
           defaultSize: { width: 400, height: 420 },
-          minSize: { width: 240, height: 160 },
+          minSize: { width: Math.min(240, canvasWidth), height: 160 },
           ai: {
             description:
               "Saved customer purchase evidence. Read-only, never financial authority.",
@@ -470,7 +491,7 @@ export function CustomerStudio({
         ],
         defaultType: "grid",
       }),
-    [],
+    [canvasWidth],
   );
 
   const boundedWidgets = useMemo(
@@ -1185,51 +1206,56 @@ export function CustomerStudio({
         </div>
       )}
       <div
+        ref={canvas}
         data-testid="customer-studio"
         inert={phase !== "idle" || adding}
         className="ag-theme-mode relative h-[760px] min-w-0 overflow-hidden rounded-2xl border"
         data-ag-theme-mode={resolvedTheme === "dark" ? "dark" : "light"}
       >
-        <AgStudio<Registry>
-          style={{ height: "100%", width: "100%" }}
-          data={data}
-          context={context}
-          widgets={boundedWidgets}
-          initialState={initial as unknown as AgReportState<Registry>}
-          theme={theme}
-          layout={{ minWidth: 0, columns: 24, rowHeight: 16 }}
-          loadThemeGoogleFonts={false}
-          mode={edit ? "edit" : "view"}
-          panels={{
-            view: { left: [], right: [] },
-            edit: { left: [], right: [] },
-          }}
-          modules={[AgStudioAiModule]}
-          onApiReady={(event) => {
-            api.current = event.api as unknown as AgStudioApi;
-            setReady(true);
-          }}
-          onStateUpdated={(event) => {
-            if (
-              insightPages.includes(event.state.selectedPageId as InsightPage)
-            )
-              setPage(event.state.selectedPageId as InsightPage);
-            const selectedCategory = event.state.pages.find(
-              (p) => p.id === "purchases",
-            )?.crossFilter?.values?.categories?.[0];
-            setCrossCategory(
-              selectedCategory?.type === "value" &&
-                typeof selectedCategory.values[0] === "string"
-                ? selectedCategory.values[0]
-                : "",
-            );
-          }}
-          onErrorRaised={() =>
-            setNotice(
-              "Studio reported a configuration issue. Inspect the source records below; no financial outcome is implied.",
-            )
-          }
-        />
+        {canvasWidth > 0 && (
+          <AgStudio<Registry>
+            style={{ height: "100%", width: "100%" }}
+            data={data}
+            context={context}
+            widgets={boundedWidgets}
+            initialState={initial as unknown as AgReportState<Registry>}
+            theme={theme}
+            // The SDK divides minSize.width by minWidth / columns when dragging.
+            // Zero produces infinite spans and silently rejects move/resize.
+            layout={{ minWidth: canvasWidth, columns: 24, rowHeight: 16 }}
+            loadThemeGoogleFonts={false}
+            mode={edit ? "edit" : "view"}
+            panels={{
+              view: { left: [], right: [] },
+              edit: { left: [], right: [] },
+            }}
+            modules={[AgStudioAiModule]}
+            onApiReady={(event) => {
+              api.current = event.api as unknown as AgStudioApi;
+              setReady(true);
+            }}
+            onStateUpdated={(event) => {
+              if (
+                insightPages.includes(event.state.selectedPageId as InsightPage)
+              )
+                setPage(event.state.selectedPageId as InsightPage);
+              const selectedCategory = event.state.pages.find(
+                (p) => p.id === "purchases",
+              )?.crossFilter?.values?.categories?.[0];
+              setCrossCategory(
+                selectedCategory?.type === "value" &&
+                  typeof selectedCategory.values[0] === "string"
+                  ? selectedCategory.values[0]
+                  : "",
+              );
+            }}
+            onErrorRaised={() =>
+              setNotice(
+                "Studio reported a configuration issue. Inspect the source records below; no financial outcome is implied.",
+              )
+            }
+          />
+        )}
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
         Actual AG Studio 3.0.0 · local evaluation, vendor notices retained.

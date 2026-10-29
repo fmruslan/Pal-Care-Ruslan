@@ -10,6 +10,8 @@ CareOS uses a separate customer presentation planner/conversation under the exis
 
 Layouts are browser-local, versioned and reconstructed from known widget definitions and validated positions. Chart selections and source drill-down must remain consistent; unavailable dependencies do not turn into empty-result assurances. Interrupted planning retains the original request envelope. Saved-result GET recovery does not repeat inference or automatically execute a plan; explicit **Apply saved view** is required. [HTTP contract](API.md#customer-first-insights) · [capability gates](CUSTOMER-FIRST-PLAN.md).
 
+Customer pointer editing uses finite measured canvas width (excluding SDK wrapper padding) and bounded custom-widget minimums. A zero SDK minimum previously rejected drag/resize calculations. Regression acceptance reads back changed positions and exact browser-local restoration after reload, including 320px/enlarged text and unchanged purchase filters. [Mobile/control recovery ledger](evidence/MOBILE-BASELINE.md). No HTTP or authorization contract changes are introduced.
+
 **Acceptance checkpoint:** local unit/database/browser, injected Sol/recovery and **5/5 actual private customer Sol/SDK tasks** pass with separate evidence in [STATUS](STATUS.md) and the [verification ledger](evidence/CUSTOMER-INSIGHTS.md). Exact-commit CI and owner review remain gates; automation/coding-agent review is not owner/real-device certification. Historical merchant Studio plans remain evidence only for the prior implementation. Public/judging license coverage and safe deployed AI remain blocked pending separate owner decisions.
 
 ## Historical merchant workspace contract

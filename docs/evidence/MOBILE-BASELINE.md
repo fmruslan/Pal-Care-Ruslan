@@ -12,6 +12,14 @@ feedback and the separate public/provider/licensing gates remain open.
 - The navigation test chooses the known 1024px breakpoint and waits for that
   navigation. It no longer takes a one-time visibility snapshot before the
   server-streamed shell arrives. Assertions and CI retry policy are unchanged.
+- The owner-approved follow-up corrects customer Studio's `minWidth: 0`.
+  The SDK divides widget minimum width by canvas minimum width/columns when
+  processing pointer input; zero produced infinite spans and rejected changes.
+  Studio now uses measured available width, subtracts SDK wrapper padding and
+  clamps custom-widget minimums. Pointer regressions shrink then move into vacant
+  space, read back exact saved positions after reload/restore, preserve filters,
+  and cover normal widths plus 320px/200% text. Actual preview and integrated
+  acceptance are recorded separately below.
 - `customer-reflow.spec.ts` exercises 320/375/390/430/834/1440px, long
   saved-source-shaped text, all four main destinations, actual control hit
   testing, keyboard activation/focus return, CareOS draft entry and axe. Its
@@ -74,6 +82,29 @@ Complete sequential run **07:22–08:07 UTC**, no retries/skips/failures:
 Exact delivered-commit CI, refreshed-preview checks and judge walkthrough results
 remain separate pending gates. No old green commit substitutes for them.
 
+The approved Studio follow-up has separately passed lint/format/typecheck,
+**716 units** and **84 affected fixture-browser checks** (all six configured
+viewport/theme projects, zero retries). Dedicated-database, Firefox/WebKit,
+injected-Sol and refreshed actual-preview results remain pending at this checkpoint.
+
+### Preservation and operational boundaries
+
+Read-only application inspection matches **all 30 table fingerprints**, including
+the migration journal, against the pre-task snapshot. Original 0000–0015 hashes
+match; 0016 remains unapplied. Five Twins remain (four samples, one genuine
+completed $129 Sandbox purchase with exactly one receipt/policy/purchase event).
+The separate pending eCheck has no Twin; refund rows/completed cases remain zero.
+Restricted reader/CareOS catalog/role checks also pass; the broader all-table
+comparison used an existing local read-only maintenance connection that never
+entered the web environment.
+
+At **17:15 UTC**, 28 protected files, eight historical worktrees, 97
+verification-copy files and 18 historical conversation mappings match. Journal
+usage remains **33/50: 30 completed, 1 failed, 2 unknown**, with the original
+**2026-10-29T22:10:58.310Z** deadline. The two unknowns remain reserved. No live
+inference, provider/payment request, credential issuance, application migration,
+authorization renewal or public exposure occurs in this task.
+
 Retained execution issues:
 
 1. The first focused run passed 19 checks before its outer tool's 120-second
@@ -85,6 +116,30 @@ Retained execution issues:
    rejected type generation before shared-build mutation. Its identified wrapper
    was shut down with SIGTERM; `orphan-server-guard.log` is retained. The guard also
    rejected type generation while the original owner preview was serving.
+4. The initial refreshed-preview audit at `d535707` was **22 passed / 2 failed**:
+   all Home/reflow and fresh-visitor checks passed, but both pointer probes exposed
+   the Studio defect above. `actual-initial-results.json`,
+   `actual-initial-failures/` and `widget-diagnostic.json` retain this failure.
+   The first width correction missed wrapper padding. Subsequent mobile probe
+   failures diagnosed fixed navigation covering an edge and 44px coarse-pointer
+   resize handles covering the title. The final probe centers its target and
+   drags the widget body; assertions still require actual saved-state changes.
+
+## Owner testing handoff
+
+Use the existing Mac browser profile and exact **`http://127.0.0.1:3002`** origin.
+The private tunnel is:
+
+```bash
+ssh -N -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 -L 127.0.0.1:3002:127.0.0.1:3002 bigrus@greatbison.tail9e8802.ts.net
+```
+
+Start with `/dashboard`, then `/vault`, `/insights` and `/documents`.
+`/ai-evaluation` reports existing owner scopes; switching browser/profile/origin
+does not transfer them. Keep existing credentials and pairing history. The
+[short review path and ranked UX findings](JUDGE-EXPERIENCE.md) identify useful
+manual checks without an inference or payment request. The service stops at the
+original deadline above; this handoff does not extend it or enable boot restart.
 
 ## Incomplete / Blocked / Next
 
