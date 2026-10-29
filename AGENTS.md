@@ -2,6 +2,13 @@
 
 This is an independent PayPal AI Hackathon project. Treat `docs/STATUS.md` as the source of truth for implemented features; **never describe a roadmap item as shipped.**
 
+## Primary development workspace
+
+- Use **Pal Care** in OpenCode, `/home/bigrus/projects/palcare`, branch **`main`**, remote **`fmruslan/Pal-Care-Ruslan`**. Before editing, confirm the current directory, branch, remote and working-tree status. This checkout is authoritative; an older conversation may still open its historical worktree.
+- Do not create or switch to another worktree/branch merely to continue ordinary development. If a task actually needs an isolated checkout, explain why and obtain owner approval first. Preserve historical worktrees, conversations and their mappings until separately approved cleanup.
+- The owner-only preview runs from the primary folder at **`http://127.0.0.1:3002`**, through the bounded private launcher, never the generic public-binding `pnpm start`. Preserve its existing credentials, authorization deadline, scopes, accounting and unknown outcomes. Workspace consolidation does not authorize inference, financial operations or renewal.
+- Do not rebuild/replace the active preview's `.next` assets while it is running. Coordinate a bounded stop/build/start or an explicitly approved isolated verification location. See [workspace operations](docs/WORKSPACE.md).
+
 ## Before coding
 
 1. Read `README.md`, `docs/PRODUCT.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/CUSTOMER-FIRST-PLAN.md`, and ADRs 0002/0003. ADR 0001 is historical where superseded.

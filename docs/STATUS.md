@@ -2,6 +2,12 @@
 
 Last updated: 2026-10-29
 
+## Primary workspace consolidation
+
+The owner-approved operational slice makes `/home/bigrus/projects/palcare` on **`main`** the primary checkout and names the existing Git-backed OpenCode project **Pal Care**. `main` was fast-forwarded from `9605694` to the existing customer-first development commit `30fcac8`; no product feature, financial authority, schema migration or model authorization is added. Development branches, historical checkouts, local-only files and conversations are retained. [Workspace verification and remaining limits](WORKSPACE.md).
+
+**Consolidation verification:** fresh frozen install; lint/typecheck/build/format; **712 units**, **113 dedicated PostgreSQL tests**, **16 focused fixture + 16 dedicated-database browser checks**, **18 isolated owner-access checks**, **2 failure/cleanup checks**, **70 deterministic/fixture evaluations** and **14 offline review cases** pass. Actual port-3002 readiness is **200**, database/subscription mode; all three Insights views, native widgets, CareOS/merchant-Studio interfaces, original scope cookies and primary-folder pairing configuration are observed. No live inference, financial operation or application database write was dispatched. The 21 readable application tables and schema definitions match the preflight snapshot; historical preservation also passes. All 28 protected-file hashes, original **33/50** journal/two unknowns/expiry and the verification checkout's 97 changed files are unchanged. Inaccessible table contents and real-Mac SSH pairing are not newly certified. Exact final-main CI is reported separately at handoff; this operational acceptance does not mark the product shipped.
+
 ## Customer Intelligence increment — under integrated verification, not shipped
 
 **Implemented/in progress:** the working tree adds customer `/insights`, **My Purchases / Documents & Care / Price Adjustments**, native AG Studio grid/chart/KPI and custom source/attention/adjustment widgets, bounded CareOS presentation planning/recovery and **Home / Purchases / Insights / Documents** navigation. Merchant/operator functionality remains secondary and separately authorized. Implementation is **not acceptance**; follow the [A–E capability gates](CUSTOMER-FIRST-PLAN.md) and [customer contract](INTELLIGENCE.md).
