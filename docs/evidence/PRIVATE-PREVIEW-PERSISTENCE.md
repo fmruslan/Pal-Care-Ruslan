@@ -28,9 +28,25 @@ Linux shell syntax and `systemd-analyze --user verify` passed. These do not vali
 
 At **22:55:59 UTC**: **28 protected files** hashed, **33/50** attempts and **two unknowns** retained, original expiry unchanged and already expired. Complete prior `.next` preserved under `/tmp/opencode/palcare-persistence-20261029/previous-next`; earlier recovery builds remain. Before edits, the read-only **21 readable table/schema fingerprints** matched the prior UI checkpoint, and original preservation checks passed (**17 source tables**, **three original CareOS rows**, **29-table / 0015** schema). Inaccessible table contents are not independently certified.
 
-The reviewed user unit is installed and enabled; runtime activation/recovery is checked after committing/building clean main. `docker update --restart unless-stopped palcare-postgres-1` changed only the restart policy: container ID and **2026-10-28T22:07:46.680383749Z** start timestamp are unchanged. No database restart/recreation or volume operation occurred. Process-crash recovery, final readiness/UI and post-change fingerprints remain pending until observed. An enabled unit/linger/restart policy is boot configuration evidence, not an actual GreatBison reboot test.
+The reviewed user unit is installed, **enabled and active**, with `Restart=always`, `RuntimeMaxUSec=infinity`, primary cwd and a single **127.0.0.1:3002** listener. Clean code commit **`0ea9237714e448f7959f2004cb6bc8d82062bdf6`**, build **`q0Z9NKPxjqXjObhb61Que`**, source hash **`2568d7071366e2f0c94151993cfa938de736dd6849a0ca19a6dc00c3ee4e83d1`** started successfully. Readiness returns **200 / database / subscription / AI expired**, with checkout/Guardian disabled and discovery fixture. Running process inspection confirms all seven financial/external-refresh flags false, owner pairing false, no admin/migration/bootstrap/provider-key variables and original AI expiry retained.
 
-The reviewed six-file non-secret Mac bundle is `/tmp/opencode/palcare-persistence-20261029/Pal-Care-Mac-Tunnel-20261029.zip`, SHA-256 `ce0c23433453d2e3f790ecb8fc6b2b20ceb1772fafac3c8985a8350f525abf24`. It includes only `ops/macos/` installer/tunnel/doctor/uninstaller/README files, no protected state or credentials. Delivery does not establish installation.
+**Actual crash recovery passed:** the harness identified the sole Next child by primary cwd, exact parent PID and `palcare-preview.service` cgroup, then killed only that child with SIGKILL. The launcher exited nonzero; systemd scheduled its ten-second restart. A different supervisor PID returned readiness **200 in 12.99 seconds**, restart counter **0 → 1**, AI still expired. Journal evidence is retained, as is `crash-recovery.json` outside Git. This proves an actual app-process crash recovery, not a reboot or arbitrary network-failure guarantee.
+
+**Actual application checks passed**, desktop-light/mobile-dark: Home, Purchases, Documents and Insights; all three native views; provenance filter/clear; original **five purchases / six documents / one verified Sandbox purchase**; exact saved **USD 129.00** receipt and Twin back-link. The assistant visibly reports expired access and disables send/input, with **zero attempted browser mutations**, no uncaught browser errors and passing Insights axe scans. Two deliberate expired conversation/planner POST probes returned **403**, no model/record operation. This is distinct from the browser's zero-mutation observation; no live inference/PayPal/provider request was performed. Screenshots and `actual-preview.json` remain private under the evidence root.
+
+Post-start read-only checks match all **28 protected files**, **21 readable table/schema fingerprints** and historical **17 source tables / three CareOS rows / 29-table 0015 schema**. Usage remains **33/50**, **two unknowns**, original **2026-10-29T22:10:58.310Z** expiry. Final documentation-only commit receives another safe stop/build/start and exact-build handoff verification; these code-commit observations are not silently relabeled as exact-final-commit CI.
+
+`docker update --restart unless-stopped palcare-postgres-1` changed only the restart policy: container ID and **2026-10-28T22:07:46.680383749Z** start timestamp are unchanged. No database restart/recreation or volume operation occurred. Linger remains yes and Docker enabled. These are boot configuration checks, **not an actual GreatBison reboot test**.
+
+The reviewed six-file non-secret Mac bundle is preserved under the evidence root and durably at **`/home/bigrus/.local/share/palcare/Pal-Care-Mac-Tunnel-20261029.zip`**, SHA-256 `ce0c23433453d2e3f790ecb8fc6b2b20ceb1772fafac3c8985a8350f525abf24`. It includes only `ops/macos/` installer/tunnel/doctor/uninstaller/README files, no protected state or credentials. Taildrop delivery was **denied by local file-send permissions**; the noninteractive sudo attempt required a password. No operator, ACL or host security setting was changed to bypass this. No delivery or Mac installation is claimed.
+
+One-time acquisition, run on the Mac with existing owner SSH access:
+
+```sh
+scp bigrus@greatbison.tail9e8802.ts.net:/home/bigrus/.local/share/palcare/Pal-Care-Mac-Tunnel-20261029.zip ~/Downloads/
+```
+
+Unzip in Finder and double-click **Install Pal Care Tunnel.command**. If macOS blocks it, use the included README's one-time `sh install.sh` method. Installer preflight must succeed before claiming unattended access. No routine SSH command should be needed afterward while valid SSH/Tailscale authentication and the logged-in Mac are available. Do not replace an unrelated Downloads file; retain/review any earlier bundle first.
 
 ### Exact-commit CI
 
@@ -46,4 +62,4 @@ Mac one-time setup requires owner execution; it cannot be remotely installed mer
 
 ## Next
 
-Finish server crash/restart and preservation acceptance, then have the owner install the Mac bundle once and verify Chrome with Terminal/OpenCode closed, login, sleep/wake and Tailscale reconnect. Further authentication-policy changes require a separate exact owner decision if unattended SSH fails. Continue customer gates A–E only on their own evidence; persistence does not mark those capabilities shipped.
+Owner installs the Mac bundle once and verifies Chrome with Terminal/OpenCode closed, login, sleep/wake and Tailscale reconnect. Further authentication-policy changes require a separate exact owner decision if unattended SSH fails. GreatBison reboot testing also needs coordination for its other workloads. Continue customer gates A–E only on their own evidence; persistence does not mark those capabilities shipped.
