@@ -1,6 +1,8 @@
 import { spawn } from "node:child_process";
 import { testRuntimeRoles } from "../tests/helpers/runtime-roles";
 import "./environment";
+import { assertBuild } from "./workspace.mjs";
+assertBuild();
 const port = process.argv[2];
 if (!port || !/^\d{4,5}$/.test(port))
   throw new Error("Explicit test port required");

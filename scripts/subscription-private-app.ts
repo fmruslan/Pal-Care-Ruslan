@@ -16,6 +16,7 @@ import {
   SUBSCRIPTION_SESSION,
 } from "../src/lib/careos/subscription/session";
 import { restrictedRuntimeUrls } from "../src/lib/careos/subscription/runtime-policy";
+import { assertBuild, assertWorkspace } from "./workspace.mjs";
 
 // Owner-only launcher: read ONLY the already verified restricted runtime URLs.
 // Neither the source file nor arbitrary process credentials reach the web child.
@@ -80,6 +81,8 @@ async function manifest(): Promise<Manifest> {
   return { core, oldCare, schema: { tables, solUsageColumn } };
 }
 try {
+  assertWorkspace();
+  if (process.argv[2] === "start") assertBuild(true);
   const urls = restrictedRuntimeUrls(parse(await readFile(runtimeFile)));
   connections = {
     reader: new Pool({

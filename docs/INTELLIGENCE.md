@@ -46,6 +46,8 @@ Injected browser tests remain separate from actual subscription evidence: genuin
 
 ## Official references
 
+**License-document review, 2026-10-29:** the vendor's [Enterprise licence page](https://www.ag-grid.com/studio/react/enterprise-licence/) explicitly says an AG Studio licence covers its built-in grid/chart widgets. Standalone Enterprise Grid/Charts instances (including inside custom widgets) require separate licences; the current custom purchase/evidence widgets do not import those standalone components. This clarifies the documented product boundary, not our actual licence entitlement: no trial/key was activated, AI feature coverage/public-origin wiring remain unverified, and coverage through December 15 still requires an owner/vendor decision. A 45-day trial activated October 29 would reach approximately December 13, too early for the full judging period.
+
 - [Local evaluation permission / license setup](https://www.ag-grid.com/studio/react/licence-install/)
 - [Compatibility](https://www.ag-grid.com/studio/react/compatibility/)
 - [Custom widgets](https://www.ag-grid.com/studio/react/custom-widgets/)

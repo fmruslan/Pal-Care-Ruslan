@@ -1,5 +1,7 @@
 # Pal Care
 
+**Mobile recovery checkpoint:** a narrow Home reflow fix, responsive regression coverage and primary-workspace/build guards are undergoing final verification. [Evidence and remaining gates](docs/evidence/MOBILE-BASELINE.md). This is an ongoing private testing baseline, not submission readiness.
+
 **Primary development workspace:** OpenCode **Pal Care** → `/home/bigrus/projects/palcare` → **`main`** in [`fmruslan/Pal-Care-Ruslan`](https://github.com/fmruslan/Pal-Care-Ruslan). Older worktrees/conversations are retained as history, not alternate primary versions. The private loopback preview uses this folder on port **3002**, subject to its existing authorization deadline. [Workspace operations and consolidation evidence](docs/WORKSPACE.md).
 
 **Customer-first increment — under integrated verification, not shipped:** Home → Purchases → Insights → Documents. Personal Purchase Intelligence uses the existing AG Studio 3.0.0 runtime and bounded CareOS planner; merchant/operator code remains secondary and separately authorized. Local unit/database/browser, actual SDK and injected-recovery checks passed. The refreshed private preview passed five genuine customer-path Sol Medium tasks; exact-commit CI and owner review remain distinct gates. See the [capability plan](docs/CUSTOMER-FIRST-PLAN.md), [current results](docs/STATUS.md) and [Insights contract](docs/INTELLIGENCE.md). Build → Test → Verify → Improve → Accept → Continue; no calendar-based engineering milestones.
@@ -110,10 +112,11 @@ Requires Node.js 22.23.x and pnpm 10.34.7. For the explicitly labeled fixture pr
 ```bash
 corepack enable
 pnpm install --frozen-lockfile
-APP_ORIGIN=http://localhost:3000 pnpm dev
+pnpm workspace:check
+APP_ORIGIN=http://127.0.0.1:3000 pnpm dev
 ```
 
-Open `http://localhost:3000`. Customer destinations are **Home** (`/dashboard`), **Purchases** (`/vault`), **Insights** (`/insights`) and **Documents** (`/documents`). Insights is also available in the refreshed private port-3002 preview; integrated verification and owner acceptance remain separate gates. `/shop`, `/guardian`, `/safety` and `/replacements` are secondary/contextual routes; existing `/merchant` and `/merchant/intelligence` remain secondary read-only views, not the customer's primary workflow. Bundled preview mode is labeled; checkout requires separate explicit Sandbox configuration. No database/provider outage silently falls back to mock payments. For permitted local Studio evaluation, set `AG_STUDIO_LOCAL_EVALUATION_ENABLED=true` with an exact local `APP_ORIGIN`; the original vendor watermark remains. This does not establish public/judging license coverage.
+Open `http://127.0.0.1:3000`. On GreatBison, use the primary folder on `main` and coordinate a bounded stop before dev/build/tests; the existing private preview uses **port 3002** and its private launcher ([workspace checks](docs/WORKSPACE.md)). Customer destinations are **Home** (`/dashboard`), **Purchases** (`/vault`), **Insights** (`/insights`) and **Documents** (`/documents`). Insights is also available in the refreshed private port-3002 preview; integrated verification and owner acceptance remain separate gates. `/shop`, `/guardian`, `/safety` and `/replacements` are secondary/contextual routes; existing `/merchant` and `/merchant/intelligence` remain secondary read-only views, not the customer's primary workflow. Bundled preview mode is labeled; checkout requires separate explicit Sandbox configuration. No database/provider outage silently falls back to mock payments. For permitted local Studio evaluation, set `AG_STUDIO_LOCAL_EVALUATION_ENABLED=true` with an exact local `APP_ORIGIN`; the original vendor watermark remains. This does not establish public/judging license coverage.
 
 See [Setup & Render deployment](docs/SETUP.md) for PostgreSQL and hosting, and [PayPal Sandbox setup](docs/PAYPAL.md) for credentials, safety limits and the actual end-to-end verification checklist. Browsing needs no PayPal account. Sandbox checkout needs a fictional PayPal buyer; never commit buyer passwords.
 

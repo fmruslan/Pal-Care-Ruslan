@@ -28,6 +28,7 @@ uploads/
 private/
 receipts/
 customer-data/
+docs/DESIGN-REFRESH-PLAN.md
 *.bak
 *.zip
 

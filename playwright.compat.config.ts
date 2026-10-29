@@ -6,7 +6,7 @@ export default defineConfig({
   // Individual assertions retain their normal deadlines; this is not retry masking.
   timeout: 60_000,
   testMatch:
-    /(?:stage5-journey|intelligence|customer-insights|careos-interaction|careos-purchase-choice|careos-accessibility)\.spec\.ts/,
+    /(?:stage5-journey|intelligence|customer-insights|customer-reflow|careos-interaction|careos-purchase-choice|careos-accessibility)\.spec\.ts/,
   outputDir: "test-results/compatibility",
   reporter: [
     ["list"],

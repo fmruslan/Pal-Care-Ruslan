@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 import { config } from "dotenv";
+import { assertWorkspace } from "./scripts/workspace.mjs";
+
+assertWorkspace();
 
 config({ path: ".env.local", quiet: true });
 const dataSource = process.env.E2E_DATA_SOURCE ?? "fixtures";

@@ -296,9 +296,15 @@ test("customer navigation keeps four coherent destinations and secondary explora
   page,
 }) => {
   await page.goto("/dashboard");
-  const desktop = page.getByRole("navigation", { name: "Main navigation" });
-  const mobile = page.getByRole("navigation", { name: "Mobile navigation" });
-  const navigation = (await mobile.isVisible()) ? mobile : desktop;
+  // Select by the known CSS breakpoint, not a non-waiting visibility snapshot
+  // while the server-streamed shell may still be arriving.
+  const navigation = page.getByRole("navigation", {
+    name:
+      page.viewportSize()!.width < 1024
+        ? "Mobile navigation"
+        : "Main navigation",
+  });
+  await expect(navigation).toBeVisible();
   for (let index = 0; index < primaryLabels.length; index++) {
     await expect(navigation.getByRole("link")).toHaveText(primaryLabels);
     for (let link = 0; link < primaryPaths.length; link++)

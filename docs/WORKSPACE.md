@@ -18,6 +18,7 @@ From a terminal, start OpenCode with an explicit directory:
 cd /home/bigrus/projects/palcare
 git status --short --branch
 git remote -v
+pnpm workspace:check
 opencode
 ```
 
@@ -32,6 +33,14 @@ The launcher reads only the existing restricted URLs from protected `.env.local`
 The approved window expires at **2026-10-29T22:10:58.310Z**. At consolidation preflight, the existing journal held **33/50** attempts, including **two unknowns**. These are timestamped observations, not permission to renew, reset or make a new request. Stop before startup if the current files show expiry/denial. The transient service must be bounded by the remaining original window; reboot does not automatically restore it. Boot persistence is not added.
 
 Before replacing an active build, arrange a bounded stop/build/start and preserve the prior build. Do not run `pnpm build`, type generation or browser suites that mutate the preview's shared build while it is serving. Application database preservation checks are read-only; integration/browser suites use only an explicit, independently verified dedicated `TEST_DATABASE_URL`.
+
+## Enforced startup and build checks
+
+`pnpm workspace:check` reports the actual root, branch, SHA, origin, dirty paths, intended port-3002 source, running Next PIDs and ignored `.next/palcare-build.json` provenance. Run it at the start of every session. It never fixes, stashes, switches or deletes anything. The preserved local design plan is explicitly ignored.
+
+Standard dev/build/typecheck/lint/test commands require the correct repository. On GreatBison they also require the primary root and `main`; CI and isolated deployment checkouts remain portable (including detached HEAD). Dev/build/typecheck and test commands stop if that checkout is serving Next, preventing shared-build replacement. Browser configuration and the test-server launcher also check the workspace. These are accidental-use safeguards, not an OS sandbox; direct underlying binaries and unchanged historical scripts can bypass them. Always check the session path first; retained historical checkouts are not retroactively modified.
+
+Successful `pnpm build` writes build ID, exact commit, source-input SHA-256, directory, runtime and build time under ignored `.next/`. Private startup requires clean tracked `main`, the primary build, matching build ID/input hash and exact current commit. Test startup checks source/build agreement. Missing/stale provenance fails closed: preserve the old build, stop the service under existing authority, build, then restart with **only the remaining original window**. A documentation-only commit still needs a new exact-commit private build. Generic deployment start is rejected on GreatBison, and normal dev binds loopback. Neither check creates or renews credentials, authorizes a provider call, runs a migration or changes exposure.
 
 ## Consolidation evidence — 2026-10-29
 

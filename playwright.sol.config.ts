@@ -1,6 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 import { randomBytes } from "node:crypto";
 import { solTestScope } from "./tests/helpers/sol-scopes";
+import { assertWorkspace } from "./scripts/workspace.mjs";
+
+assertWorkspace();
 
 // Independent fixture identities, not deleted quotas or increased rate limits.
 // Propagated to server/worker processes; never read by the private app launcher.

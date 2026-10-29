@@ -1,4 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
+import { assertWorkspace } from "./scripts/workspace.mjs";
+
+assertWorkspace();
 
 export default defineConfig({
   testDir: "./tests/access",

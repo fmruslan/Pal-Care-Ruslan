@@ -2,6 +2,12 @@
 
 Last updated: 2026-10-29
 
+## Mobile recovery and private testing baseline
+
+**Implemented; final verification in progress:** Home's activity/resources grid now shrinks around saved source digests instead of widening a mobile viewport. Permanent 320/375/390/430/834/1440px navigation/CareOS/focus/axe regressions and the confirmed streaming-navigation selector fix are added. Workspace/startup guards and ignored exact-commit build provenance protect the primary checkout and private launcher. The current port-3000 setup instruction is corrected to the bounded port-3002 owner preview. [Recovery evidence, original failures and verification ledger](evidence/MOBILE-BASELINE.md) · [workspace checks](WORKSPACE.md#enforced-startup-and-build-checks).
+
+The previous actual mobile audit failed (390px screen / 510px document); its old green CI also included one database-navigation retry. Neither is claimed as verification of this new fix. The new complete local run passes lint/format/type/build, **716 units, 113 PostgreSQL, 510 fixture + 510 database browsers, 62 compatibility, 18 access, 2 failure, 6 synthetic Guardian, 6 injected Sol, 70 deterministic and 14 offline checks**, with zero local retries. Actual refreshed-application checks and exact delivered-SHA CI remain pending. Existing protected files, history, records and original authorization are preserved; this slice performs no live inference, payment, application migration, renewal or public deployment. Customer Insights remains under owner acceptance, not shipped.
+
 ## Primary workspace consolidation
 
 The owner-approved operational slice makes `/home/bigrus/projects/palcare` on **`main`** the primary checkout and names the existing Git-backed OpenCode project **Pal Care**. `main` was fast-forwarded from `9605694` to the existing customer-first development commit `30fcac8`; no product feature, financial authority, schema migration or model authorization is added. Development branches, historical checkouts, local-only files and conversations are retained. [Workspace verification and remaining limits](WORKSPACE.md).

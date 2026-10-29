@@ -99,8 +99,8 @@ export default async function Dashboard() {
         </div>
         <TwinList data={data} />
       </section>
-      <div className="mt-9 grid items-start gap-6 xl:grid-cols-[1.4fr_1fr]">
-        <section aria-labelledby="care-title">
+      <div className="mt-9 grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <section className="min-w-0" aria-labelledby="care-title">
           <div className="mb-5">
             <h2 id="care-title" className="section-title">
               A little care, along the way.
@@ -113,7 +113,7 @@ export default async function Dashboard() {
             activity={{ ...activity, items: activity.items.slice(0, 5) }}
           />
         </section>
-        <Card className="rounded-2xl xl:mt-16">
+        <Card className="min-w-0 rounded-2xl xl:mt-16">
           <h2 className="text-base font-semibold">Explore at your pace</h2>
           <p className="mt-2 text-sm leading-7 text-muted-foreground">
             Open saved paperwork or explore a specific aftercare question. These
