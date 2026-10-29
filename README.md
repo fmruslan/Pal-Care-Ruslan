@@ -1,6 +1,6 @@
 # Pal Care
 
-**Mobile recovery checkpoint:** a narrow Home reflow fix, responsive regression coverage and primary-workspace/build guards are undergoing final verification. [Evidence and remaining gates](docs/evidence/MOBILE-BASELINE.md). This is an ongoing private testing baseline, not submission readiness.
+**Mobile recovery checkpoint:** Home reflow, customer Studio drag/resize, responsive regressions and primary-workspace/build guards have local and actual-application evidence. Exact delivered-commit CI/runtime are reported at handoff; owner review remains open. [Evidence and remaining gates](docs/evidence/MOBILE-BASELINE.md) · [screenshot-backed experience review](docs/evidence/JUDGE-EXPERIENCE.md). This is an ongoing private testing baseline, not submission readiness.
 
 **Primary development workspace:** OpenCode **Pal Care** → `/home/bigrus/projects/palcare` → **`main`** in [`fmruslan/Pal-Care-Ruslan`](https://github.com/fmruslan/Pal-Care-Ruslan). Older worktrees/conversations are retained as history, not alternate primary versions. The private loopback preview uses this folder on port **3002**, subject to its existing authorization deadline. [Workspace operations and consolidation evidence](docs/WORKSPACE.md).
 

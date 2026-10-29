@@ -79,13 +79,42 @@ Complete sequential run **07:22–08:07 UTC**, no retries/skips/failures:
 | Injected Sol protocol / actual SDK | **6/6**, no live requests |
 | Production dependency audit | **0 known vulnerabilities**, 211 dependency records; 37 direct packages consistent, lockfile unchanged |
 
-Exact delivered-commit CI, refreshed-preview checks and judge walkthrough results
-remain separate pending gates. No old green commit substitutes for them.
+The approved Studio follow-up separately passes lint/format/typecheck/build,
+**716 units, 84 affected fixture + 84 dedicated-database browsers, 28 focused
+Firefox/WebKit and 6 injected-Sol checks**, with zero retries. These are affected
+reruns, not additions to the earlier full-suite counts. Final exact-commit CI
+must independently cover the complete expanded suite; its SHA/run/result are
+recorded in the delivery handoff and private `final-ci-*` evidence, not inferred
+from an older green run.
 
-The approved Studio follow-up has separately passed lint/format/typecheck,
-**716 units** and **84 affected fixture-browser checks** (all six configured
-viewport/theme projects, zero retries). Dedicated-database, Firefox/WebKit,
-injected-Sol and refreshed actual-preview results remain pending at this checkpoint.
+### Actual application verification
+
+At code commit `8c36b879be0d84a3d6ee38ab2f2cc5a61646089e`, the bounded preview
+uses the primary folder, original restricted connections and original expiry.
+Readiness returns **200**, database/subscription mode, with checkout/Guardian off
+and discovery fixture. Financial/external-provider flags remain false; no
+administrator or paid-provider credential is injected into the web process.
+
+The refreshed audit passed **23/24** checks, including desktop/mobile pointer
+resize/move and exact saved-layout restoration after reload with filters intact.
+The remaining failure was an audit-only heading wait while the mobile modal made
+the background page inaccessible. The corrected fresh-visitor checks pass **2/2**.
+Separate native-chart pointer checks pass **2/2**, reading back exact Audio IDs
+across grid/KPI/evidence and clearing back to all five purchases. No request to a
+model, payment provider or authorized conversation/planner write was dispatched.
+
+Actual responsive checks cover **320/375/390/430/834/1440px**, the four primary
+destinations and secondary purchase/care/Guardian/safety/discovery/shop/landing
+routes. Navigation hit tests, CareOS composer/focus return, theme/reduced motion,
+320px/enlarged text, axe, source links, original receipt, missing records and
+disabled checkout pass. Fresh anonymous CareOS receives a genuine **403 before
+store creation**. Original Customer/Studio scope checks remain valid.
+
+The disposable-browser negative control is **390px fixed / 510px original grid
+rules**, including source-shaped long-text stress; no database row changed.
+The final documentation-only delivery build is checked again at startup and in
+the actual-preview suite; exact SHA/build ID/results live in the private delivery
+report. [Screenshot-backed findings and future judge access](JUDGE-EXPERIENCE.md).
 
 ### Preservation and operational boundaries
 
@@ -124,6 +153,14 @@ Retained execution issues:
    failures diagnosed fixed navigation covering an edge and 44px coarse-pointer
    resize handles covering the title. The final probe centers its target and
    drags the widget body; assertions still require actual saved-state changes.
+5. The post-fix **23/24** audit and modal-heading wait failure are retained in
+   `actual-controls-initial-results.json` and `actual-controls-initial-artifacts/`.
+   The corrected wait targets the visible modal, without changing product code.
+6. The first direct chart probe targeted the paint-only canvas; the SDK's
+   series-area overlay intercepted it, and the outer command timed out. No
+   application failure was inferred. Hit testing identified the actual native
+   interaction surface; corrected desktop/mobile pointer checks both pass.
+   `native-chart-canvas-target-initial-artifacts/` retains that diagnostic.
 
 ## Owner testing handoff
 
@@ -146,6 +183,8 @@ original deadline above; this handoff does not extend it or enable boot restart.
 Owner/real-Mac and physical-device observations, fresh provider/token-refresh
 acceptance, public isolation/hosting/licensing and separately approved financial,
 Channel3/API/0016/webhook work remain distinct. This audit makes no model or PayPal
-call and does not renew/reset the existing authorization. Next: finish the
-integrated verification and actual-preview walkthrough, then obtain owner UX
-feedback before prioritizing the next customer improvement.
+call and does not renew/reset the existing authorization. Next: confirm the
+delivered-SHA CI/private runtime handoff, then obtain owner UX feedback on gates
+C/D before prioritizing the next customer improvement. Public readiness gate E
+still needs the separate hosting/licence/model-mode decisions described in the
+judge review; no engineering date or new financial authority is invented.
