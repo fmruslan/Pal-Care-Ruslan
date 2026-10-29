@@ -1,5 +1,9 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
+## Persistent private preview health
+
+In the explicitly scoped loopback-only persistent preview, `GET /api/ready` still checks local database connectivity, restricted effective roles, immutable-evidence guards and required demo records, but no longer requires an unexpired AI session/token. It adds `aiAuthorization: "active" | "expired" | "unavailable"` for the configured evaluation window only; this is not model readiness, a scope grant or provider verification. All existing conversation/planner authorization and dispatch guards remain. Missing/corrupt AI settings fail closed without scripted fallback. Other runtime readiness retains its existing checks. [Operational contract and limitations](evidence/PRIVATE-PREVIEW-PERSISTENCE.md).
+
 ## Customer-first Insights
 
 **Implementation contracts under integrated verification, not accepted/shipped.** Local unit/database/browser, scripted SDK, injected recovery and five actual private customer Sol/SDK tasks have separately scoped passing evidence. Exact-commit CI and owner review remain separate gates. [Current results and remaining checks](STATUS.md) · [retained failures and corrections](evidence/CUSTOMER-INSIGHTS.md).

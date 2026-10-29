@@ -6,6 +6,7 @@ import { parseCareConfig } from "./careos/config";
 import { discoveryConfig } from "./discovery/contracts";
 import { refundScope } from "./commerce/refund-contracts";
 import { evaluationSettings } from "./careos/evaluation-access";
+import { persistentPrivatePreview } from "./private-preview";
 export function readinessPlan(env: Record<string, string | undefined>) {
   if (
     env.MIGRATION_DATABASE_URL ||
@@ -16,7 +17,10 @@ export function readinessPlan(env: Record<string, string | undefined>) {
   )
     throw new Error("Invalid runtime isolation/origin");
   const care = parseCareConfig(env);
-  if (care.mode === "responses" || care.mode === "subscription")
+  if (
+    !persistentPrivatePreview(env) &&
+    (care.mode === "responses" || care.mode === "subscription")
+  )
     evaluationSettings(env);
   if (
     env.DISCOVERY_PROVIDER &&

@@ -1,5 +1,7 @@
 # Security and privacy design
 
+**Owner-approved private persistence:** `palcare-preview.service` keeps only the loopback website available after the original AI window ends. Its allowlisted runtime preserves subscription mode and denies missing/expired authority; no fixture AI, renewal, owner pairing, paid fallback or financial operation is enabled. Only private website readiness is decoupled; all model/scope/session/accounting guards remain authoritative. Actual database roles/evidence guards still gate startup and readiness. The Mac launchd tunnel uses strict existing SSH trust/batch authentication and loopback binding, not a public service or an authentication bypass. Same-user/Docker/root and local-forwarding risks remain; persistence does not establish public isolation. [Evidence and limitations](evidence/PRIVATE-PREVIEW-PERSISTENCE.md).
+
 ## Sensitive assets
 
 Sensitive assets include database URLs, PayPal app credentials/OAuth tokens, anonymous checkout capabilities and selected sandbox transaction references. Product/customer data is fictional and public. No real customer data is allowed. Raw provider responses and payer identity are never persisted or logged.

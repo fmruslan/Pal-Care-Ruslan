@@ -164,7 +164,7 @@ function main() {
     );
   if (state.ownerHost && command === "start")
     throw new Error(
-      "Use the bounded private launcher on GreatBison; generic start is for an approved isolated deployment.",
+      "Use palcare-preview.service on GreatBison; generic start is for an approved isolated deployment.",
     );
   if (/^(build|typecheck|dev|test(?::.*)?)$/.test(command)) {
     const pids = servingPids();

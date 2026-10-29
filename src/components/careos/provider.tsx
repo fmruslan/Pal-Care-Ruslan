@@ -29,6 +29,7 @@ import { AnswerActions } from "./answer-actions";
 import { PurchaseChoices } from "./purchase-choices";
 import { useVisibleViewport } from "./use-visible-viewport";
 import { useInsightsControl } from "../intelligence/customer-control";
+import { evaluationWindowExpired } from "@/lib/careos/window";
 
 type AssistantState = {
   select: (context: CareContext | null) => void;
@@ -44,10 +45,26 @@ export function useCareOS() {
 export function CareOSProvider({
   children,
   mode = "fixture",
+  aiExpiresAt,
 }: {
   children: ReactNode;
   mode?: "fixture" | "disabled" | "responses" | "subscription" | "unavailable";
+  aiExpiresAt?: number;
 }) {
+  const [clock, setClock] = useState(0);
+  const aiExpired =
+    aiExpiresAt !== undefined && (clock === 0 || clock >= aiExpiresAt);
+  useEffect(() => {
+    if (aiExpiresAt === undefined) return;
+    const tick = () => setClock(Date.now());
+    tick();
+    const timer = setInterval(tick, 1000);
+    window.addEventListener("focus", tick);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("focus", tick);
+    };
+  }, [aiExpiresAt]);
   const pathname = usePathname();
   const router = useRouter();
   const visible =
@@ -72,6 +89,7 @@ export function CareOSProvider({
   const [draft, setDraft] = useState("");
   const busy = phase !== "idle";
   const unavailable =
+    aiExpired ||
     busy ||
     !!pending ||
     (analytics && (!insights.connected || !!insights.recoverable));
@@ -109,7 +127,8 @@ export function CareOSProvider({
     setContext(value);
   }, []);
   async function ask(message: string, intent?: Intent, selected?: CareContext) {
-    if (unavailable || !message.trim()) return false;
+    if (unavailable || evaluationWindowExpired(aiExpiresAt) || !message.trim())
+      return false;
     if (analytics) {
       setOpen(true);
       return insights.send(message.trim());
@@ -132,6 +151,7 @@ export function CareOSProvider({
   }
   async function open() {
     setOpen(true);
+    if (evaluationWindowExpired(aiExpiresAt)) return;
     if (analytics) {
       insights.restore();
       return;
@@ -202,15 +222,17 @@ export function CareOSProvider({
                     Your purchase companion
                   </Dialog.Description>
                   <p className="mt-1 text-xs font-medium text-intelligence-foreground">
-                    {mode === "fixture"
-                      ? "Demo · no live AI"
-                      : mode === "subscription"
-                        ? "Using ChatGPT plan"
-                        : mode === "responses"
-                          ? "Live model enabled · answers cite sources"
-                          : mode === "disabled"
-                            ? "Model disabled · saved records only"
-                            : "Model configuration unavailable"}
+                    {aiExpired
+                      ? "AI access expired · saved purchases remain available"
+                      : mode === "fixture"
+                        ? "Demo · no live AI"
+                        : mode === "subscription"
+                          ? "Using ChatGPT plan"
+                          : mode === "responses"
+                            ? "Live model enabled · answers cite sources"
+                            : mode === "disabled"
+                              ? "Model disabled · saved records only"
+                              : "Model configuration unavailable"}
                   </p>
                   {mode === "subscription" && (
                     <a
@@ -302,6 +324,16 @@ export function CareOSProvider({
                 role="region"
                 tabIndex={0}
               >
+                {aiExpired && (
+                  <p
+                    role="status"
+                    className="rounded-xl border bg-warning-surface p-4 text-sm text-warning"
+                  >
+                    The AI authorization window has ended. Your purchases,
+                    documents and native Insights still work. No renewal or
+                    model request is performed automatically.
+                  </p>
+                )}
                 {!conversation?.turns.length && !pending && (
                   <div className="rounded-2xl bg-intelligence p-5">
                     <h2 className="text-xl font-semibold">
@@ -571,6 +603,7 @@ export function CareOSProvider({
                   <textarea
                     ref={composer}
                     id="careos-message"
+                    disabled={aiExpired}
                     value={draft}
                     onChange={(e) => {
                       setDraft(e.target.value);

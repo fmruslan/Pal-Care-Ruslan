@@ -6,13 +6,16 @@ import { CUSTOMER_ID, MERCHANT_ID } from "./demo/fixtures";
 import { readinessPlan } from "./readiness-plan";
 import { subscriptionFiles } from "./careos/subscription/provider";
 import { subscriptionSession } from "./careos/subscription/session";
+import { persistentPrivatePreview } from "./private-preview";
+import { evaluationAccessStatus } from "./careos/evaluation-access";
 const state = globalThis as unknown as {
   readiness?: { key: string; until: number; work: Promise<void> };
 };
 export async function readiness() {
   const config = getEnvironment(),
     plan = readinessPlan(process.env);
-  if (plan.features.careos === "subscription") {
+  const persistent = persistentPrivatePreview(process.env);
+  if (plan.features.careos === "subscription" && !persistent) {
     const files = subscriptionFiles();
     await files.prepare();
     await subscriptionSession(files);
@@ -73,6 +76,9 @@ export async function readiness() {
     source: config.dataSource,
     records: "demo",
     features: plan.features,
+    ...(persistent
+      ? { aiAuthorization: evaluationAccessStatus({}, process.env).window }
+      : {}),
   };
 }
 

@@ -1,5 +1,7 @@
 # Pal Care
 
+**Private GreatBison preview:** the owner-approved persistent `palcare-preview.service` keeps **127.0.0.1:3002** available independently of OpenCode and expired AI authorization. AI scopes/deadlines/accounting remain enforced; no automatic renewal, provider spending or public exposure. A one-time [Mac launchd tunnel setup](ops/macos/README.md) replaces routine manual SSH. [Operations](docs/WORKSPACE.md) · [verification/remaining Mac limits](docs/evidence/PRIVATE-PREVIEW-PERSISTENCE.md).
+
 **Mobile recovery checkpoint:** Home reflow, customer Studio drag/resize, responsive regressions and primary-workspace/build guards have local and actual-application evidence. Exact delivered-commit CI/runtime are reported at handoff; owner review remains open. [Evidence and remaining gates](docs/evidence/MOBILE-BASELINE.md) · [screenshot-backed experience review](docs/evidence/JUDGE-EXPERIENCE.md). This is an ongoing private testing baseline, not submission readiness.
 
 **Primary development workspace:** OpenCode **Pal Care** → `/home/bigrus/projects/palcare` → **`main`** in [`fmruslan/Pal-Care-Ruslan`](https://github.com/fmruslan/Pal-Care-Ruslan). Older worktrees/conversations are retained as history, not alternate primary versions. The private loopback preview uses this folder on port **3002**, subject to its existing authorization deadline. [Workspace operations and consolidation evidence](docs/WORKSPACE.md).

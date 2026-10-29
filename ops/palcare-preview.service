@@ -1,0 +1,21 @@
+[Unit]
+Description=Pal Care private loopback preview (AI authorization remains separately bounded)
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=/home/bigrus/projects/palcare
+ExecStart=/usr/bin/node --import tsx scripts/private-preview.ts
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Restart=always
+RestartSec=10
+TimeoutStopSec=30
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

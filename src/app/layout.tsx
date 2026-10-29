@@ -45,7 +45,18 @@ export default function RootLayout({
             Skip to content
           </a>
           <InsightsControlProvider>
-            <CareOSProvider mode={mode}>{children}</CareOSProvider>
+            <CareOSProvider
+              mode={mode}
+              aiExpiresAt={
+                mode === "subscription" || mode === "responses"
+                  ? Date.parse(
+                      process.env.CAREOS_EVALUATION_EXPIRES_AT ?? "",
+                    ) || 1
+                  : undefined
+              }
+            >
+              {children}
+            </CareOSProvider>
           </InsightsControlProvider>
         </ThemeProvider>
       </body>
