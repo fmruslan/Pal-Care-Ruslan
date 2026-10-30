@@ -3,7 +3,9 @@ import {
   CareHttpError,
   contextIdentity,
   readPending,
+  readUnsent,
 } from "@/components/careos/conversation-client";
+import { ownerSendState } from "@/components/careos/owner-status";
 
 const snapshot = {
   input: {
@@ -17,6 +19,45 @@ const snapshot = {
   createdAt: 1000,
 };
 describe("CareOS browser recovery hints", () => {
+  it("retains known-unsent drafts without downgrading uncertain dispatched envelopes", () => {
+    const unsent = { ...snapshot, conversationId: null };
+    expect(readUnsent(JSON.stringify([unsent, snapshot]), 2000)).toHaveLength(
+      1,
+    );
+    expect(readUnsent(JSON.stringify([unsent]), 2000)[0].input).toEqual(
+      snapshot.input,
+    );
+    expect(readUnsent(JSON.stringify([unsent]), 86401000)).toEqual([]);
+    expect(readUnsent("x".repeat(81921), 2000)).toEqual([]);
+    expect(
+      readUnsent(
+        JSON.stringify(Array.from({ length: 11 }, () => unsent)),
+        2000,
+      ),
+    ).toEqual([]);
+  });
+  it("checks actual browser recognition separately from active policy/provider refresh", () => {
+    const status = {
+      remembered: true,
+      liveEnabled: true,
+      policy: "approved",
+      revoked: false,
+      providerBlocked: false,
+      remaining: 298,
+      provider: "Refresh needed before authorized use",
+    };
+    expect(ownerSendState(status)).toBe("ready");
+    expect(ownerSendState({ ...status, remembered: false })).toBe("signin");
+    expect(ownerSendState({ ...status, revoked: true })).toBe("disabled");
+    expect(ownerSendState({ ...status, remaining: 0 })).toBe("exhausted");
+    expect(ownerSendState({ ...status, providerBlocked: true })).toBe(
+      "provider",
+    );
+    expect(ownerSendState({ ...status, provider: "Sign in required" })).toBe(
+      "provider",
+    );
+    expect(ownerSendState({ remembered: true })).toBe("unavailable");
+  });
   it("retains the exact envelope but never restores a sending state", () => {
     const restored = readPending(JSON.stringify(snapshot), 2000);
     expect(restored?.input).toEqual(snapshot.input);

@@ -3,7 +3,6 @@ import { z } from "zod";
 import {
   assertOwnerRequest,
   OWNER_COOKIE,
-  OWNER_MAX_AGE,
   StandingOwner,
 } from "@/lib/careos/standing-owner";
 import { standingOwnerMode } from "@/lib/careos/standing-runtime";
@@ -72,10 +71,10 @@ export async function POST(request: Request) {
       return careResponse({ id: pair.id }); // Public request ID, never the secret.
     }
     if (parsed.data.action === "finish") {
-      await owner.authenticate(proof);
+      const expiresAt = await owner.finishBrowser(proof);
       jar.set(OWNER_COOKIE, proof.token!, {
         ...cookieOptions,
-        maxAge: OWNER_MAX_AGE / 1000,
+        maxAge: Math.max(0, Math.floor((expiresAt - Date.now()) / 1000)),
       });
     } else if (parsed.data.action === "logout") {
       // A stale/expired local cookie can always be cleared; valid sessions are revoked.

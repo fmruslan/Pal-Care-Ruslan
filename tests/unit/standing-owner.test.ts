@@ -54,6 +54,35 @@ afterEach(async () => {
 });
 
 describe("remembered private owner and independent standing permission (no live provider)", () => {
+  it("distinguishes host approval from finished browser recognition without extending the session", async () => {
+    const { owner, proof, files, pair, advance } = await setup();
+    expect(await owner.status(proof)).toMatchObject({
+      remembered: true,
+      browserCompletion: "finish-needed",
+    });
+    const before = (await files.read("owner-state.json")) as {
+      sessions: { id: string; createdAt: number; approvedAt: number }[];
+      events: unknown[];
+      policy: unknown;
+    };
+    const original = before.sessions.find((s) => s.id === pair.id)!;
+    advance(3600000);
+    expect(await owner.finishBrowser(proof)).toBe(
+      original.createdAt + OWNER_MAX_AGE,
+    );
+    expect(await owner.status(proof)).toMatchObject({
+      remembered: true,
+      browserCompletion: "complete",
+    });
+    await owner.finishBrowser(proof);
+    const after = (await files.read("owner-state.json")) as typeof before;
+    expect(after.events.length).toBe(before.events.length + 1);
+    expect(after.sessions.find((s) => s.id === pair.id)).toMatchObject({
+      createdAt: original.createdAt,
+      approvedAt: original.approvedAt,
+    });
+    expect(after.policy).toEqual(before.policy);
+  });
   it("atomically rejects simultaneous reservations beyond the remaining total even with four slots", async () => {
     const { owner, files, proof, policy } = await setup(3);
     await owner.installPolicy({

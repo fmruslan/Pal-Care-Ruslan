@@ -6,6 +6,7 @@ import { Button } from "../ui/button";
 
 const statusSchema = z.object({
   remembered: z.boolean(),
+  browserCompletion: z.enum(["not-verified", "finish-needed", "complete"]),
   policy: z.string(),
   revoked: z.boolean(),
   used: z.number(),
@@ -83,7 +84,13 @@ export function OwnerSettings() {
       <dl className="grid gap-3 rounded-xl border p-4 text-sm">
         <div>
           <dt className="font-semibold">Browser access</dt>
-          <dd>{status?.remembered ? "Remembered" : "Not verified"}</dd>
+          <dd>
+            {status?.remembered
+              ? status.browserCompletion === "complete"
+                ? "Remembered"
+                : "Verified for this visit — finish remembering below"
+              : "Not verified"}
+          </dd>
         </div>
         <div>
           <dt className="font-semibold">AI access</dt>
@@ -129,6 +136,13 @@ export function OwnerSettings() {
         do not need live AI.
       </p>
       <div className="flex flex-wrap gap-3">
+        {status?.remembered &&
+          status.browserCompletion === "finish-needed" &&
+          !id && (
+            <Button disabled={busy} onClick={() => void act("finish")}>
+              Finish remembering browser
+            </Button>
+          )}
         {!status?.remembered && !id && (
           <Button disabled={busy || !status} onClick={() => void act("pair")}>
             Remember this browser

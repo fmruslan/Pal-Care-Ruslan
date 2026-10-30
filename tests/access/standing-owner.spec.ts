@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
+import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { PilotFiles } from "../../src/lib/careos/subscription/files";
 import {
@@ -16,7 +17,7 @@ import {
 const local = "http://127.0.0.1:3116";
 let home: string;
 let server: ChildProcess | undefined;
-async function start() {
+async function start(standingLive = false) {
   server = spawn(
     process.execPath,
     [
@@ -38,7 +39,7 @@ async function start() {
         DEMO_DATA_SOURCE: "fixtures",
         CAREOS_PROVIDER: "fixture",
         CAREOS_OWNER_MODE: "true",
-        CAREOS_STANDING_AI_ENABLED: "false",
+        CAREOS_STANDING_AI_ENABLED: standingLive ? "true" : "false",
         CAREOS_EVALUATION_ENABLED: "false",
         CAREOS_OWNER_PAIRING_ENABLED: "false",
         PAYPAL_CHECKOUT_ENABLED: "false",
@@ -211,4 +212,120 @@ test("owner settings replace testing requests without making saved records depen
     await expect(button).toHaveAttribute("aria-pressed", "true");
   }
   await page.waitForLoadState("networkidle");
+});
+
+test("current browser auth gates Send and legacy unsent hello recovers without clearing history or draft", async ({
+  page,
+}) => {
+  // Actual production routes/cookies in an isolated HOME, fictional data and a
+  // synthetic provider-status record only. No inference/provider transport.
+  await stop();
+  await start(true);
+  await page.goto(OWNER_ORIGIN + "/dashboard");
+  await page.getByRole("button", { name: "Ask CareOS", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "CareOS", exact: true });
+  const input = dialog.getByRole("textbox", {
+    name: "Ask about your purchase",
+  });
+  await input.fill("Keep my current draft");
+  await expect(dialog.getByLabel("Browser AI access")).toContainText(
+    "not verified yet",
+  );
+  await expect(
+    dialog.getByRole("button", { name: "Send to CareOS" }),
+  ).toBeDisabled();
+  await expect(
+    dialog.getByRole("button", { name: "Find receipt", exact: true }),
+  ).toBeDisabled();
+  await expect(input).toHaveValue("Keep my current draft");
+  await dialog.getByRole("button", { name: "Close CareOS" }).click();
+  await page.goto(OWNER_ORIGIN + "/ai-evaluation");
+  await page
+    .getByRole("button", { name: "Remember this browser", exact: true })
+    .click();
+  const id = (await page.locator("code").textContent())!.match(
+    /[a-f0-9-]{36}$/,
+  )![0];
+  const owner = new StandingOwner(
+    new PilotFiles(join(home, ".config/palcare-standing-owner")),
+  );
+  await owner.approve(id);
+  await page
+    .getByRole("button", { name: "Finish remembering browser" })
+    .click();
+  await expect(page.getByText("Remembered", { exact: true })).toBeVisible();
+  await owner.installPolicy({
+    id: randomUUID(),
+    approvedAt: Date.now(),
+    provider: "chatgpt-subscription",
+    model: "gpt-6.1-sol",
+    reasoning: "medium",
+    origin: OWNER_ORIGIN,
+    scopes: ["customer"],
+    requestLimit: 300,
+    concurrency: 4,
+    requestsPerMinute: 30,
+    maxRetries: 1,
+    creditsDisabledConfirmed: true,
+    providerPermissionConfirmed: true,
+    historicalJournalHash: "a".repeat(64),
+  });
+  const provider = new PilotFiles(join(home, ".config/palcare-chatgpt-pilot"));
+  await provider.prepare();
+  await provider.write("registration.json", {
+    format: "palcare-chatgpt-pilot-v1",
+    clientId: "synthetic-client",
+    subject: "synthetic-owner",
+    tokens: {
+      accessToken: "synthetic",
+      refreshToken: "synthetic",
+      idToken: "synthetic",
+      nonce: "synthetic",
+      scopes: ["openid", "resource.invoke", "chatgpt.tokens.use.direct"],
+      savedAt: Date.now(),
+      expiresAt: Date.now() + 3600000,
+    },
+  });
+  await page.evaluate(() =>
+    sessionStorage.setItem(
+      "palcare-careos-pending-v1",
+      JSON.stringify({
+        input: {
+          requestId: crypto.randomUUID(),
+          twinId: null,
+          revision: 0,
+          message: "hello",
+        },
+        context: null,
+        conversationId: null,
+        createdAt: Date.now(),
+      }),
+    ),
+  );
+  await page.goto(OWNER_ORIGIN + "/dashboard");
+  await page.getByRole("button", { name: "Ask CareOS", exact: true }).click();
+  await expect(dialog.locator("[data-unsent-question]")).toContainText("hello");
+  await expect(dialog.locator("[data-pending-question]")).toHaveCount(0);
+  await input.fill("What does CareOS do?");
+  await expect(
+    dialog.getByRole("button", { name: "Send to CareOS" }),
+  ).toBeEnabled();
+  await expect(
+    dialog.getByRole("button", { name: "Find receipt", exact: true }),
+  ).toBeEnabled();
+  await dialog.getByRole("button", { name: "Send to CareOS" }).click();
+  await expect(dialog.locator("[data-latest-answer]")).toContainText(
+    "not an official PayPal",
+  );
+  await input.fill("Keep this draft after revocation");
+  await owner.revokeSession(id);
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(dialog.getByLabel("Browser AI access")).toContainText(
+    "not verified yet",
+  );
+  await expect(
+    dialog.getByRole("button", { name: "Send to CareOS" }),
+  ).toBeDisabled();
+  await expect(input).toHaveValue("Keep this draft after revocation");
+  expect((await owner.status({ agent: "" })).used).toBe(0);
 });

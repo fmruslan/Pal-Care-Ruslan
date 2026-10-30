@@ -14,6 +14,8 @@ import {
   conversationKey,
   pendingKey,
   readPending,
+  readUnsent,
+  unsentKey,
   type PendingQuestion,
 } from "./conversation-client";
 
@@ -29,6 +31,43 @@ export function useConversation() {
   const initialized = useRef(false);
   const initializing = useRef<Promise<Conversation> | null>(null);
   const [error, setError] = useState("");
+  const [unsent, setUnsent] = useState<PendingQuestion[]>([]);
+  const unsentRef = useRef<PendingQuestion[]>([]);
+  const unsentLoaded = useRef(false);
+  function loadUnsent() {
+    if (unsentLoaded.current) return;
+    unsentLoaded.current = true;
+    try {
+      unsentRef.current = readUnsent(sessionStorage.getItem(unsentKey));
+      setUnsent(unsentRef.current);
+    } catch {
+      /* Optional tab-local recovery storage. */
+    }
+  }
+  function rememberUnsent(question: PendingQuestion) {
+    loadUnsent();
+    const values = [
+      ...unsentRef.current.filter(
+        (v) => v.input.requestId !== question.input.requestId,
+      ),
+      { ...question, conversationId: null, status: "not-sent" as const },
+    ].slice(-10);
+    unsentRef.current = values;
+    setUnsent(values);
+    try {
+      sessionStorage.setItem(
+        unsentKey,
+        JSON.stringify(
+          values.map(({ status: _status, ...v }) => {
+            void _status;
+            return v;
+          }),
+        ),
+      );
+    } catch {
+      /* The in-memory draft remains usable. */
+    }
+  }
 
   function storePending(value: PendingQuestion | null) {
     pendingRef.current = value;
@@ -60,6 +99,7 @@ export function useConversation() {
     }
   }
   async function ensure() {
+    loadUnsent();
     if (current.current) return current.current;
     if (initializing.current) return initializing.current;
     initializing.current = (async () => {
@@ -69,7 +109,12 @@ export function useConversation() {
         if (!initialized.current) {
           const restored = readPending(sessionStorage.getItem(pendingKey));
           // A just-submitted question takes precedence over a storage hint.
-          if (!pendingRef.current) storePending(restored);
+          if (!pendingRef.current) {
+            if (restored?.status === "not-sent") {
+              rememberUnsent(restored);
+              storePending(null);
+            } else storePending(restored);
+          }
           id = restored?.conversationId ?? id;
         }
       } catch {
@@ -84,7 +129,7 @@ export function useConversation() {
           if (
             !(error instanceof CareHttpError) ||
             error.status !== 404 ||
-            pendingRef.current
+            pendingRef.current?.conversationId
           )
             throw error;
           value = await careApi<Conversation>("", "POST", {});
@@ -148,8 +193,13 @@ export function useConversation() {
       try {
         const restored = readPending(sessionStorage.getItem(pendingKey));
         if (restored) {
-          storePending(restored);
-          return false;
+          if (restored.status === "not-sent") {
+            rememberUnsent(restored);
+            storePending(null);
+          } else {
+            storePending(restored);
+            return false;
+          }
         }
       } catch {
         /* Optional. */
@@ -192,10 +242,10 @@ export function useConversation() {
         }
       }
       if (pendingRef.current) {
-        storePending({
-          ...question,
-          status: dispatched ? "uncertain" : "not-sent",
-        });
+        if (!dispatched) {
+          rememberUnsent(question);
+          storePending(null);
+        } else storePending({ ...question, status: "uncertain" });
         setError(careMessage(e));
       }
     } finally {
@@ -222,8 +272,11 @@ export function useConversation() {
       current.current = null;
       setConversation(null);
       storePending(null);
+      unsentRef.current = [];
+      setUnsent([]);
       try {
         sessionStorage.removeItem(conversationKey);
+        sessionStorage.removeItem(unsentKey);
       } catch {
         /* Optional. */
       }
@@ -234,5 +287,15 @@ export function useConversation() {
       setPhase("idle");
     }
   }
-  return { conversation, pending, phase, error, restore, send, check, clear };
+  return {
+    conversation,
+    pending,
+    unsent,
+    phase,
+    error,
+    restore,
+    send,
+    check,
+    clear,
+  };
 }

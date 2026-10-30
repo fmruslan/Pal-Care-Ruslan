@@ -30,6 +30,12 @@ import { PurchaseChoices } from "./purchase-choices";
 import { useVisibleViewport } from "./use-visible-viewport";
 import { useInsightsControl } from "../intelligence/customer-control";
 import { evaluationWindowExpired } from "@/lib/careos/window";
+import {
+  ownerSendState,
+  ownerSendMessage,
+  ownerStatusSchema,
+  type OwnerSendState,
+} from "./owner-status";
 
 type AssistantState = {
   select: (context: CareContext | null) => void;
@@ -92,12 +98,43 @@ export function CareOSProvider({
   const check = analytics ? insights.check : regular.check;
   const [draft, setDraft] = useState("");
   const busy = phase !== "idle";
-  const unavailable =
+  const [ownerState, setOwnerState] = useState<OwnerSendState>("checking");
+  const [finishNeeded, setFinishNeeded] = useState(false);
+  const checkOwnerAccess = useCallback(async () => {
+    if (!ownerAccess) return true;
+    try {
+      const response = await fetch("/api/ai/owner", { cache: "no-store" });
+      const value: unknown = response.ok ? await response.json() : null;
+      const state = response.ok ? ownerSendState(value) : "unavailable";
+      const parsed = ownerStatusSchema.safeParse(value);
+      setFinishNeeded(
+        parsed.success &&
+          parsed.data.remembered &&
+          parsed.data.browserCompletion === "finish-needed",
+      );
+      setOwnerState(state);
+      return state === "ready";
+    } catch {
+      setOwnerState("unavailable");
+      return false;
+    }
+  }, [ownerAccess]);
+  useEffect(() => {
+    if (!ownerAccess || !isOpen) return;
+    const focus = () => {
+      void checkOwnerAccess();
+    };
+    window.addEventListener("focus", focus);
+    return () => window.removeEventListener("focus", focus);
+  }, [ownerAccess, isOpen, checkOwnerAccess]);
+  const interactionBlocked =
     aiAccessDisabled ||
     aiExpired ||
     busy ||
     !!pending ||
     (analytics && (!insights.connected || !!insights.recoverable));
+  const unavailable =
+    interactionBlocked || (ownerAccess && ownerState !== "ready");
   const trigger = useRef<HTMLButtonElement>(null);
   const composing = useRef(false);
   const composer = useRef<HTMLTextAreaElement>(null);
@@ -132,8 +169,14 @@ export function CareOSProvider({
     setContext(value);
   }, []);
   async function ask(message: string, intent?: Intent, selected?: CareContext) {
-    if (unavailable || evaluationWindowExpired(aiExpiresAt) || !message.trim())
+    if (
+      interactionBlocked ||
+      evaluationWindowExpired(aiExpiresAt) ||
+      !message.trim()
+    )
       return false;
+    setOpen(true);
+    if (!(await checkOwnerAccess())) return false;
     if (analytics) {
       setOpen(true);
       return insights.send(message.trim());
@@ -156,6 +199,7 @@ export function CareOSProvider({
   }
   async function open() {
     setOpen(true);
+    if (!(await checkOwnerAccess())) return;
     if (aiAccessDisabled || evaluationWindowExpired(aiExpiresAt)) return;
     if (analytics) {
       insights.restore();
@@ -169,10 +213,14 @@ export function CareOSProvider({
   function submit() {
     if (!draft.trim() || unavailable) return;
     const submitted = draft;
-    // send() admits synchronously; keep any draft typed during the request untouched.
-    void ask(submitted);
-    setDraft("");
-    if (composer.current) composer.current.style.height = "auto";
+    // An authorization/restoration rejection must never erase an unsent draft.
+    // Also retain any different draft typed while the admitted request is pending.
+    void ask(submitted).then((admitted) => {
+      if (!admitted) return;
+      setDraft((current) => (current === submitted ? "" : current));
+      if (composer.current?.value === submitted)
+        composer.current.style.height = "auto";
+    });
   }
 
   return (
@@ -352,6 +400,45 @@ export function CareOSProvider({
                     model request is performed automatically.
                   </p>
                 )}
+                {ownerAccess && ownerState === "ready" && finishNeeded && (
+                  <p
+                    role="status"
+                    className="rounded-xl border p-3 text-sm text-muted-foreground"
+                  >
+                    This browser is verified for this visit.{" "}
+                    <Link
+                      href="/ai-evaluation"
+                      onClick={() => setOpen(false)}
+                      className="inline-flex min-h-11 items-center font-semibold text-primary underline"
+                    >
+                      Finish remembering this browser
+                    </Link>{" "}
+                    to stay connected on future visits.
+                  </p>
+                )}
+                {ownerAccess && ownerState !== "ready" && (
+                  <div
+                    className="space-y-2 rounded-xl border bg-warning-surface p-4 text-sm text-warning"
+                    role="status"
+                    aria-label="Browser AI access"
+                  >
+                    <p>{ownerSendMessage[ownerState]}</p>
+                    <Link
+                      href="/ai-evaluation"
+                      onClick={() => setOpen(false)}
+                      className="inline-flex min-h-11 items-center font-semibold underline"
+                    >
+                      Open AI access
+                    </Link>
+                    <Button
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() => void open()}
+                    >
+                      Check AI access
+                    </Button>
+                  </div>
+                )}
                 {!conversation?.turns.length && !pending && (
                   <div className="rounded-2xl bg-intelligence p-5">
                     <h2 className="text-xl font-semibold">
@@ -507,6 +594,41 @@ export function CareOSProvider({
                     </div>
                   </article>
                 ))}
+                {!analytics &&
+                  regular.unsent.map((question) => (
+                    <article
+                      key={question.input.requestId}
+                      data-unsent-question
+                      className="space-y-3 rounded-xl border p-3"
+                    >
+                      <p
+                        data-user-message
+                        className="whitespace-pre-wrap break-words text-base"
+                      >
+                        {question.input.message}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        This question wasn’t sent. You can edit it or ask a new
+                        question; your saved conversation is unchanged.
+                      </p>
+                      <Button
+                        variant="outline"
+                        disabled={unavailable || !!draft.trim()}
+                        title={
+                          draft.trim()
+                            ? "Your current draft is kept. Send or edit it before choosing another question."
+                            : undefined
+                        }
+                        onClick={() => {
+                          select(question.context);
+                          setDraft(question.input.message);
+                          composer.current?.focus();
+                        }}
+                      >
+                        Edit unsent question
+                      </Button>
+                    </article>
+                  ))}
                 {pending && (
                   <article
                     data-pending-question
@@ -534,7 +656,7 @@ export function CareOSProvider({
                       {pending.status === "sending"
                         ? "Preparing your answer…"
                         : pending.status === "not-sent"
-                          ? "Your question wasn’t sent. Clear this conversation to start again."
+                          ? "This question wasn’t sent. Your draft is kept; check your connection and try again."
                           : "No confirmed answer yet. Your question will not be sent again automatically."}
                     </p>
                     {pending.status !== "sending" &&

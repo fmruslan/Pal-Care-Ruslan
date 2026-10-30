@@ -3,6 +3,7 @@ import { turnSchema, type CareContext } from "@/lib/careos/contracts";
 
 export const conversationKey = "palcare-careos-conversation";
 export const pendingKey = "palcare-careos-pending-v1";
+export const unsentKey = "palcare-careos-unsent-v1";
 const pendingSchema = z.strictObject({
   input: turnSchema,
   context: z
@@ -39,6 +40,24 @@ export function readPending(raw: string | null, now = Date.now()) {
     } as PendingQuestion;
   } catch {
     return null;
+  }
+}
+
+// Known pre-turn failures are editable drafts, not unresolved provider work.
+// Persist only the newest ten bounded, tab-local hints. Never replay them.
+export function readUnsent(
+  raw: string | null,
+  now = Date.now(),
+): PendingQuestion[] {
+  if (!raw || raw.length > 81920) return [];
+  try {
+    const values: unknown = JSON.parse(raw);
+    if (!Array.isArray(values) || values.length > 10) return [];
+    return values
+      .map((v) => readPending(JSON.stringify(v), now))
+      .filter((v): v is PendingQuestion => v?.status === "not-sent");
+  } catch {
+    return [];
   }
 }
 

@@ -121,6 +121,143 @@ async function open(page: Page) {
   };
 }
 
+test("legacy unsent hello never traps Send or suggestions and can be edited without clearing saved history", async ({
+  page,
+}) => {
+  const state = await transport(page, { history: true });
+  const originalId = "00000000-0000-4000-8000-000000000077";
+  await page.goto(forma);
+  await page.evaluate(
+    ({ id, context, originalId }) => {
+      sessionStorage.setItem("palcare-careos-conversation", id);
+      sessionStorage.setItem(
+        "palcare-careos-pending-v1",
+        JSON.stringify({
+          input: {
+            requestId: originalId,
+            twinId: context.twinId,
+            revision: 1,
+            message: "hello",
+          },
+          context,
+          conversationId: null,
+          createdAt: Date.now(),
+        }),
+      );
+    },
+    { id, context, originalId },
+  );
+  await page.reload();
+  await page.locator(".careos-launcher").click();
+  const dialog = page.getByRole("dialog"),
+    composer = dialog.getByLabel("Ask about your purchase");
+  await expect(dialog.locator("[data-unsent-question]")).toContainText("hello");
+  await expect(dialog.locator("[data-pending-question]")).toHaveCount(0);
+  await expect(
+    dialog.getByText("Older question 4", { exact: true }),
+  ).toBeVisible();
+  expect(state.inputs).toHaveLength(0);
+  await composer.fill("Keep this newer draft");
+  await expect(
+    dialog.getByRole("button", { name: "Send to CareOS" }),
+  ).toBeEnabled();
+  await expect(
+    dialog.getByRole("button", { name: "Find receipt", exact: true }),
+  ).toBeEnabled();
+  await expect(
+    dialog.getByRole("button", { name: "Edit unsent question" }),
+  ).toBeDisabled();
+  await expect(composer).toHaveValue("Keep this newer draft");
+  await composer.fill("");
+  await dialog.getByRole("button", { name: "Edit unsent question" }).click();
+  await expect(composer).toHaveValue("hello");
+  state.hold.release();
+  await dialog.getByRole("button", { name: "Send to CareOS" }).click();
+  await expect(dialog.locator("[data-pending-question]")).toHaveCount(0);
+  await expect.poll(() => state.inputs.length).toBe(1);
+  expect(state.inputs[0].requestId).not.toBe(originalId);
+  await expect.poll(() => state.saved.turns.length).toBe(5);
+});
+
+test("a rejected conversation bootstrap keeps the unsent question editable and permits a later send without Clear", async ({
+  page,
+}) => {
+  const state = await transport(page);
+  let reject = true;
+  await page.route("**/api/careos/conversations", async (route) => {
+    if (reject)
+      await route.fulfill({
+        status: 403,
+        json: { error: "careos_owner_signin_required" },
+      });
+    else await route.fallback();
+  });
+  const { dialog, composer } = await open(page);
+  await composer.fill("hello");
+  await dialog.getByRole("button", { name: "Send to CareOS" }).click();
+  await expect(dialog.locator("[data-unsent-question]")).toContainText("hello");
+  await expect(dialog.locator("[data-pending-question]")).toHaveCount(0);
+  await expect(dialog.getByRole("alert")).toContainText("verify this browser");
+  expect(state.inputs).toHaveLength(0);
+  reject = false;
+  await composer.fill("Show my receipt");
+  state.hold.release();
+  await expect(
+    dialog.getByRole("button", { name: "Send to CareOS" }),
+  ).toBeEnabled();
+  await dialog.getByRole("button", { name: "Send to CareOS" }).click();
+  await expect(
+    dialog.getByText("Answer begins here.", { exact: false }),
+  ).toBeVisible();
+  expect(state.inputs).toHaveLength(1);
+  await expect(dialog.locator("[data-unsent-question]")).toContainText("hello");
+});
+
+test("an expired conversation hint does not strand a question that never reached the turn endpoint", async ({
+  page,
+}) => {
+  const state = await transport(page);
+  const expired = "00000000-0000-4000-8000-000000000098";
+  await page.route(`**/api/careos/conversations/${expired}`, (route) =>
+    route.fulfill({
+      status: 404,
+      json: { error: "careos_conversation_not_found" },
+    }),
+  );
+  await page.goto(forma);
+  await page.evaluate((expired) => {
+    sessionStorage.setItem("palcare-careos-conversation", expired);
+    sessionStorage.setItem(
+      "palcare-careos-pending-v1",
+      JSON.stringify({
+        input: {
+          requestId: crypto.randomUUID(),
+          twinId: null,
+          revision: 0,
+          message: "hello",
+        },
+        context: null,
+        conversationId: null,
+        createdAt: Date.now(),
+      }),
+    );
+  }, expired);
+  await page.reload();
+  await page.locator(".careos-launcher").click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.locator("[data-unsent-question]")).toContainText("hello");
+  await dialog.getByLabel("Ask about your purchase").fill("A new question");
+  await expect(
+    dialog.getByRole("button", { name: "Send to CareOS" }),
+  ).toBeEnabled();
+  expect(state.inputs).toHaveLength(0);
+  expect(
+    await page.evaluate(() =>
+      sessionStorage.getItem("palcare-careos-conversation"),
+    ),
+  ).toBe(id);
+});
+
 test("question renders before a held response; Enter, newline, IME and repeat guards send once", async ({
   page,
 }) => {

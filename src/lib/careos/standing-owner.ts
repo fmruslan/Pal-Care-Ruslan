@@ -39,6 +39,7 @@ const eventSchema = z.strictObject({
   kind: z.enum([
     "pair",
     "approve",
+    "finish-browser",
     "approve-policy",
     "provider-block",
     "logout",
@@ -83,6 +84,7 @@ const stateSchema = z.strictObject({
         createdAt: time,
         lastSeen: time,
         approvedAt: time.nullable(),
+        finishedAt: time.optional(),
         revoked: z.boolean(),
       }),
     )
@@ -243,6 +245,17 @@ export class StandingOwner {
       return entry.id;
     });
   }
+  async finishBrowser(proof: OwnerProof) {
+    return this.change((s) => {
+      const entry = this.session(s, proof);
+      if (entry.finishedAt === undefined) {
+        entry.finishedAt = this.now();
+        this.event(s, "finish-browser", entry.id);
+      }
+      // Finishing never extends the original absolute lifetime or grants AI.
+      return entry.createdAt + OWNER_MAX_AGE;
+    });
+  }
   async revokeSession(id: string) {
     return this.change((s) => {
       const entry = s.sessions.find((v) => v.id === id);
@@ -326,15 +339,20 @@ export class StandingOwner {
     await this.files.prepare();
     const s = await this.state();
     let remembered = false;
+    let browserCompletion: "not-verified" | "finish-needed" | "complete" =
+      "not-verified";
     try {
-      this.session(s, proof);
+      const entry = this.session(s, proof);
       remembered = true;
+      browserCompletion =
+        entry.finishedAt === undefined ? "finish-needed" : "complete";
     } catch {
       /* No authority from status. */
     }
     const used = s.events.filter((e) => e.kind === "reserve").length;
     return {
       remembered,
+      browserCompletion,
       policyId: s.policy?.id ?? null,
       requestLimit: s.policy?.requestLimit ?? 0,
       concurrency: s.policy?.concurrency ?? 0,
