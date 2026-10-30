@@ -1,5 +1,7 @@
 # Private preview persistence — 2026-10-29
 
+**Access superseded:** use **https://greatbison.tail9e8802.ts.net:8444/dashboard**, not the historical tunnel/installer below. Original ZIP moved intact to `~/.local/share/palcare/retired/mac-tunnel-20261029/`; do not install it. Recovery/evidence remains preserved. [Current HTTPS/inventory](TAILSCALE-ACCESS.md) · [conditional Mac cleanup](../MAC-CLEANUP.md).
+
 ## Implemented
 
 Owner requested an always-available private development website and self-recovering Mac tunnel, retaining existing data, protected configuration and expired AI authority. This is operational reliability for the customer experience, not a new A–E capability acceptance or public deployment.

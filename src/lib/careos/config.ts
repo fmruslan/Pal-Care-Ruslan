@@ -6,6 +6,7 @@ import {
   EVALUATION_MAX_MICRO,
 } from "./model-policy";
 import { SUBSCRIPTION_SESSION } from "./subscription/policy";
+import { privateHttpsPresentation } from "../private-preview-origin";
 
 export function parseCareConfig(env: Record<string, string | undefined>) {
   const mode = z
@@ -23,7 +24,10 @@ export function parseCareConfig(env: Record<string, string | undefined>) {
         origin: z.url().refine((v) => {
           const u = new URL(v);
           return (
-            ["127.0.0.1", "localhost"].includes(u.hostname) &&
+            (["127.0.0.1", "localhost"].includes(u.hostname) ||
+              (privateHttpsPresentation(env) &&
+                env.CAREOS_EVALUATION_ENABLED === "false" &&
+                env.CAREOS_OWNER_PAIRING_ENABLED === "false")) &&
             ["http:", "https:"].includes(u.protocol) &&
             u.origin === v
           );

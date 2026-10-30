@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import {
   privatePreviewEnvironment,
@@ -15,6 +15,9 @@ import { subscriptionSession } from "../../src/lib/careos/subscription/session";
 import { studioEvaluationAllowed } from "../../src/lib/intelligence/access";
 import type { PilotFiles } from "../../src/lib/careos/subscription/files";
 import { evaluationWindowExpired } from "../../src/lib/careos/window";
+import { privateHttpsOrigin } from "../../src/lib/private-preview-origin";
+import { parseCareConfig } from "../../src/lib/careos/config";
+import { assertOrigin } from "../../src/lib/careos/security";
 
 const source = {
   DEMO_DATA_SOURCE: "database",
@@ -83,7 +86,10 @@ describe("persistent private website is not AI authorization", () => {
       "reader",
       "careos",
     ]);
-    expect(studioEvaluationAllowed(env, "127.0.0.1:3002")).toBe(true);
+    expect(studioEvaluationAllowed(env, new URL(privateHttpsOrigin).host)).toBe(
+      true,
+    );
+    expect(studioEvaluationAllowed(env, "127.0.0.1:3002")).toBe(false);
     expect(studioEvaluationAllowed(env, "example.com")).toBe(false);
     expect(env).not.toHaveProperty("ADMIN_DATABASE_URL");
     expect(env).not.toHaveProperty("OPENAI_API_KEY");
@@ -106,7 +112,7 @@ describe("persistent private website is not AI authorization", () => {
       expect(readinessPlan(env).requirements).toHaveLength(2);
     }
   });
-  it("does not alter valid existing capability checks, blocks or exhausted history", async () => {
+  it("does not migrate valid localhost grants or weaken original capability/session checks", async () => {
     const future = Date.now() + 3600000;
     const env = privatePreviewEnvironment(
       source,
@@ -115,6 +121,17 @@ describe("persistent private website is not AI authorization", () => {
     );
     expect(() =>
       assertEvaluationAccess("customer", app.customer, env),
+    ).toThrow();
+    expect(
+      evaluationAccessStatus({ customer: app.customer }, env).scopes,
+    ).toEqual({ customer: false, studio: false });
+    expect(evaluationAccessStatus({}, env).window).toBe("unavailable");
+    expect(() =>
+      assertEvaluationAccess("customer", app.customer, {
+        ...env,
+        APP_ORIGIN: previewOrigin,
+        CAREOS_EVALUATION_ENABLED: "true",
+      }),
     ).not.toThrow();
     expect(() => assertEvaluationAccess("studio", app.customer, env)).toThrow();
     const files = {
@@ -161,8 +178,14 @@ describe("persistent private website is not AI authorization", () => {
     expect(launcher).toContain('"127.0.0.1"');
     expect(launcher).not.toContain("0.0.0.0");
   });
-  it("Mac tunnel retains strict authentication, conflict detection and loopback binding", () => {
-    const script = readFileSync("ops/macos/tunnel.sh", "utf8");
+  it("keeps the retired tunnel as evidence, not an active installation path", () => {
+    expect(existsSync("ops/macos/tunnel.sh")).toBe(false);
+    expect(existsSync("ops/macos/install.sh")).toBe(false);
+    expect(existsSync("ops/macos/Install Pal Care Tunnel.command")).toBe(false);
+    const script = readFileSync(
+      "docs/archive/mac-tunnel/tunnel.sh.txt",
+      "utf8",
+    );
     for (const option of [
       "exec /usr/bin/ssh",
       "BatchMode=yes",
@@ -173,10 +196,61 @@ describe("persistent private website is not AI authorization", () => {
       "127.0.0.1:3002:127.0.0.1:3002",
     ])
       expect(script).toContain(option);
-    const install = readFileSync("ops/macos/install.sh", "utf8");
+    const install = readFileSync(
+      "docs/archive/mac-tunnel/install.sh.txt",
+      "utf8",
+    );
     expect(install).toContain("Nothing was killed or replaced");
     expect(install).toContain("KeepAlive -bool true");
     expect(install).not.toContain("ssh-keygen");
     expect(install).not.toContain("StrictHostKeyChecking=no");
+    expect(readFileSync("ops/macos/README.md", "utf8")).toContain(
+      privateHttpsOrigin,
+    );
+  });
+  it("allows only the pinned explicitly enabled presentation origin, never header-based authority", () => {
+    const env = privatePreviewEnvironment(source, app, session);
+    expect(parseCareConfig(env).mode).toBe("subscription");
+    for (const change of [
+      { PALCARE_PRIVATE_HTTPS_PREVIEW: "false" },
+      { APP_ORIGIN: "https://other.tail9e8802.ts.net:8444" },
+      { APP_ORIGIN: "http://greatbison.tail9e8802.ts.net:8444" },
+      { APP_ORIGIN: "https://greatbison.tail9e8802.ts.net:8443" },
+      { APP_ORIGIN: privateHttpsOrigin + "/" },
+      { CAREOS_EVALUATION_ENABLED: "true" },
+      { CAREOS_OWNER_PAIRING_ENABLED: "true" },
+    ]) {
+      expect(() => parseCareConfig({ ...env, ...change })).toThrow();
+    }
+    for (const host of [
+      "evil.example",
+      "greatbison.tail9e8802.ts.net:8443",
+      "127.0.0.1:3002",
+      "greatbison.tail9e8802.ts.net:8444.evil.example",
+    ])
+      expect(studioEvaluationAllowed(env, host)).toBe(false);
+    expect(
+      studioEvaluationAllowed(
+        { ...env, AG_STUDIO_PRIVATE_DEVELOPMENT_ENABLED: "false" },
+        new URL(privateHttpsOrigin).host,
+      ),
+    ).toBe(false);
+    const forged = new Request(privateHttpsOrigin + "/api/ai/evaluation", {
+      headers: {
+        Origin: "https://evil.example",
+        Host: new URL(privateHttpsOrigin).host,
+        "X-Forwarded-Host": new URL(privateHttpsOrigin).host,
+        "X-Forwarded-Proto": "https",
+      },
+    });
+    expect(() => assertOrigin(forged, privateHttpsOrigin)).toThrow();
+    expect(() =>
+      assertOrigin(
+        new Request(privateHttpsOrigin, {
+          headers: { Origin: privateHttpsOrigin },
+        }),
+        privateHttpsOrigin,
+      ),
+    ).not.toThrow();
   });
 });

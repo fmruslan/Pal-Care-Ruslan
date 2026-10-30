@@ -1,5 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { CareError } from "./contracts";
+import { privateHttpsPresentation } from "../private-preview-origin";
 
 export type EvaluationScope = "customer" | "studio";
 export const evaluationCookie = (scope: EvaluationScope) =>
@@ -22,6 +23,21 @@ export function evaluationAccessStatus(
     expiresAt: null,
     scopes: { customer: false, studio: false },
   };
+  // Read-only legacy deadline display. This does not accept/migrate localhost
+  // grants, enable pairing, call providers or change evaluationSettings below.
+  if (
+    privateHttpsPresentation(env) &&
+    env.CAREOS_EVALUATION_ENABLED === "false"
+  ) {
+    const expires = Date.parse(env.CAREOS_EVALUATION_EXPIRES_AT ?? "");
+    return Number.isFinite(expires)
+      ? {
+          ...denied,
+          window: expires <= now ? "expired" : "unavailable",
+          expiresAt: new Date(expires).toISOString(),
+        }
+      : denied;
+  }
   try {
     const expires = Date.parse(env.CAREOS_EVALUATION_EXPIRES_AT ?? "");
     // Validate even an expired configuration before describing it as renewable.

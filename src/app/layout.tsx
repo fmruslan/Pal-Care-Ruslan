@@ -34,6 +34,8 @@ export default function RootLayout({
   } catch {
     mode = "unavailable";
   }
+  const liveMode = mode === "subscription" || mode === "responses";
+  const expires = Date.parse(process.env.CAREOS_EVALUATION_EXPIRES_AT ?? "");
   return (
     <html lang="en" suppressHydrationWarning className={GeistSans.variable}>
       <body>
@@ -48,11 +50,10 @@ export default function RootLayout({
             <CareOSProvider
               mode={mode}
               aiExpiresAt={
-                mode === "subscription" || mode === "responses"
-                  ? Date.parse(
-                      process.env.CAREOS_EVALUATION_EXPIRES_AT ?? "",
-                    ) || 1
-                  : undefined
+                liveMode && Number.isFinite(expires) ? expires : undefined
+              }
+              aiAccessDisabled={
+                liveMode && process.env.CAREOS_EVALUATION_ENABLED !== "true"
               }
             >
               {children}

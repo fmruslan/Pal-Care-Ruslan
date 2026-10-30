@@ -1,10 +1,13 @@
+import { privateHttpsPresentation } from "./private-preview-origin";
+
 /** Website health only; this flag never grants model, scope or license authority. */
 export function persistentPrivatePreview(
   env: Record<string, string | undefined>,
 ) {
   if (env.PALCARE_PERSISTENT_PREVIEW !== "true") return false;
   if (
-    env.APP_ORIGIN !== "http://127.0.0.1:3002" ||
+    (env.APP_ORIGIN !== "http://127.0.0.1:3002" &&
+      !privateHttpsPresentation(env)) ||
     env.DEMO_DATA_SOURCE !== "database" ||
     env.CAREOS_PROVIDER !== "subscription" ||
     [

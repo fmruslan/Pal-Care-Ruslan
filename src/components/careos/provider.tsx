@@ -46,10 +46,12 @@ export function CareOSProvider({
   children,
   mode = "fixture",
   aiExpiresAt,
+  aiAccessDisabled = false,
 }: {
   children: ReactNode;
   mode?: "fixture" | "disabled" | "responses" | "subscription" | "unavailable";
   aiExpiresAt?: number;
+  aiAccessDisabled?: boolean;
 }) {
   const [clock, setClock] = useState(0);
   const aiExpired =
@@ -89,6 +91,7 @@ export function CareOSProvider({
   const [draft, setDraft] = useState("");
   const busy = phase !== "idle";
   const unavailable =
+    aiAccessDisabled ||
     aiExpired ||
     busy ||
     !!pending ||
@@ -151,7 +154,7 @@ export function CareOSProvider({
   }
   async function open() {
     setOpen(true);
-    if (evaluationWindowExpired(aiExpiresAt)) return;
+    if (aiAccessDisabled || evaluationWindowExpired(aiExpiresAt)) return;
     if (analytics) {
       insights.restore();
       return;
@@ -224,15 +227,17 @@ export function CareOSProvider({
                   <p className="mt-1 text-xs font-medium text-intelligence-foreground">
                     {aiExpired
                       ? "AI access expired · saved purchases remain available"
-                      : mode === "fixture"
-                        ? "Demo · no live AI"
-                        : mode === "subscription"
-                          ? "Using ChatGPT plan"
-                          : mode === "responses"
-                            ? "Live model enabled · answers cite sources"
-                            : mode === "disabled"
-                              ? "Model disabled · saved records only"
-                              : "Model configuration unavailable"}
+                      : aiAccessDisabled
+                        ? "AI access unavailable · saved purchases remain available"
+                        : mode === "fixture"
+                          ? "Demo · no live AI"
+                          : mode === "subscription"
+                            ? "Using ChatGPT plan"
+                            : mode === "responses"
+                              ? "Live model enabled · answers cite sources"
+                              : mode === "disabled"
+                                ? "Model disabled · saved records only"
+                                : "Model configuration unavailable"}
                   </p>
                   {mode === "subscription" && (
                     <a
@@ -603,7 +608,7 @@ export function CareOSProvider({
                   <textarea
                     ref={composer}
                     id="careos-message"
-                    disabled={aiExpired}
+                    disabled={aiExpired || aiAccessDisabled}
                     value={draft}
                     onChange={(e) => {
                       setDraft(e.target.value);

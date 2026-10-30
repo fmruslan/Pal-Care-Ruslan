@@ -5,6 +5,7 @@ import {
   SUBSCRIPTION_SESSION,
 } from "../src/lib/careos/subscription/session";
 import { restrictedRuntimeUrls } from "../src/lib/careos/subscription/runtime-policy";
+import { privateHttpsOrigin } from "../src/lib/private-preview-origin";
 
 export const previewOrigin = "http://127.0.0.1:3002";
 
@@ -42,8 +43,9 @@ export function privatePreviewEnvironment(
   return {
     NODE_ENV: "production" as const,
     NEXT_TELEMETRY_DISABLED: "1",
-    APP_ORIGIN: previewOrigin,
+    APP_ORIGIN: privateHttpsOrigin,
     PALCARE_PERSISTENT_PREVIEW: "true",
+    PALCARE_PRIVATE_HTTPS_PREVIEW: "true",
     DEMO_DATA_SOURCE: "database",
     DATABASE_URL: urls.reader,
     CAREOS_DATABASE_URL: urls.careos,
@@ -52,11 +54,12 @@ export function privatePreviewEnvironment(
     CAREOS_SUBSCRIPTION_ENABLED: "true",
     CAREOS_SUBSCRIPTION_CREDITS_DISABLED: "true",
     CAREOS_SUBSCRIPTION_SESSION_ID: SUBSCRIPTION_SESSION,
-    CAREOS_EVALUATION_ENABLED: valid ? "true" : "false",
+    // Existing localhost grants are NOT migrated to the new HTTPS origin.
+    CAREOS_EVALUATION_ENABLED: "false",
     CAREOS_OWNER_PAIRING_ENABLED: "false",
-    CAREOS_EVALUATION_EXPIRES_AT: new Date(
-      valid ? app.data.expiresAt : 1,
-    ).toISOString(),
+    CAREOS_EVALUATION_EXPIRES_AT: valid
+      ? new Date(app.data.expiresAt).toISOString()
+      : "",
     CAREOS_CUSTOMER_ACCESS_HASH: valid
       ? hash(app.data.customer)
       : "0".repeat(64),
@@ -69,6 +72,7 @@ export function privatePreviewEnvironment(
     DISCOVERY_PROVIDER: "fixture",
     CHANNEL3_LIVE_ENABLED: "false",
     CPSC_REFRESH_ENABLED: "false",
-    AG_STUDIO_LOCAL_EVALUATION_ENABLED: "true",
+    AG_STUDIO_LOCAL_EVALUATION_ENABLED: "false",
+    AG_STUDIO_PRIVATE_DEVELOPMENT_ENABLED: "true",
   };
 }

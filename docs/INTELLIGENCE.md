@@ -26,6 +26,8 @@ When the optional Studio workbench opens, the semantic summary is available thro
 
 ### Actual AG Studio, local evaluation only
 
+**Current owner private development:** a distinct explicit private-development gate permits native presentation only at exact **https://greatbison.tail9e8802.ts.net:8444** with matching Host. Neither arbitrary tailnet hosts nor forwarded headers enable it. Vendor watermarks/warnings/checks remain. This is not public/judging licensing, trial activation or model/owner authority. The localhost-only rules below remain for other configurations/historical evidence. [Actual HTTPS acceptance](evidence/TAILSCALE-ACCESS.md).
+
 Current evaluation gate additionally requires **`AG_STUDIO_LOCAL_EVALUATION_ENABLED=true`**, exact local `APP_ORIGIN` and matching request Host. Host alone cannot enable it. Default is off. For example, `APP_ORIGIN=http://localhost:3000 AG_STUDIO_LOCAL_EVALUATION_ENABLED=true pnpm dev` enables permitted local evaluation, not public deployment. The initial mobile layout stacks custom widgets; saved layout remains presentation only.
 
 Exact-pinned `ag-studio` / `ag-studio-react` **3.0.0**. Published React peer range includes 19; documented TypeScript minimum is 5.8.3 (application uses 5.9.3). Matched transitive Grid/Charts versions are lockfile-pinned. **At the historical merchant-only checkpoint**, Studio was loaded dynamically only when opened and customer routes did not import its runtime. The new customer `/insights` implementation now has its own gated/dynamically loaded Studio runtime; the old no-customer-import statement does not apply to it. No Google Fonts loading. Theme uses the existing light/dark identity.

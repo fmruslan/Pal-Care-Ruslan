@@ -8,7 +8,8 @@
 | Primary branch | `main` |
 | Primary folder on GreatBison | `/home/bigrus/projects/palcare` |
 | OpenCode project | **Pal Care** — choose the workspace at the primary folder |
-| Private preview | `http://127.0.0.1:3002`, served from the primary folder |
+| Private bookmark | `https://greatbison.tail9e8802.ts.net:8444/dashboard` |
+| Backend | `127.0.0.1:3002`, primary folder only, through private Serve 8444 |
 
 Start new work in the primary workspace. Reopening an old conversation intentionally retains its historical directory; project naming does not silently move conversations. Check the displayed path before editing. OpenCode also retains an older, empty project record explicitly labeled **Pal Care — legacy project record**; do not use it for new work.
 
@@ -30,14 +31,14 @@ The owner-approved persistent preview uses **`palcare-preview.service`**, a user
 
 The website has **no AI runtime deadline**. The original session/application records, hashes, expiry, attempts and unknowns remain intact. Expired/missing AI is denied, never renewed and never replaced with scripted answers; saved purchases/documents and locally permitted native analytics remain usable. Private readiness still checks database connectivity, actual roles, evidence guards and required records; its `aiAuthorization` field describes the configured evaluation window, not provider health or permission to infer. Owner pairing is off in this persistent launcher; renewal/pairing requires separate approval. The historical `palcare-careos-private.service` transient AI-bounded launcher is retained but superseded, not edited into a bypass.
 
-The Mac uses the one-time [launchd tunnel installer](../ops/macos/README.md). Keep the same Chrome profile and exact **http://127.0.0.1:3002/dashboard** hostname. Only loopback is exposed on either end. Mac installation/unattended SSH, Tailscale reauthentication and actual sleep/login tests must be verified on the Mac; server readiness alone cannot prove them. [Persistence evidence and limitations](evidence/PRIVATE-PREVIEW-PERSISTENCE.md).
+Open **https://greatbison.tail9e8802.ts.net:8444/dashboard** while connected to Tailscale. No Mac installer or SSH forward is needed. Persistent Serve 8444 proxies to loopback 3002; **OpenCode 8443 → 4096 stays untouched**. Never reset Serve or enable Funnel. Exact configured HTTPS origin/Host enables native presentation only, not arbitrary hosts, forwarded-header trust or owner/model authority. Localhost AI grants are not migrated; original expiry/accounting remain and pairing stays off. Vendor notices remain; no public/judging license or trial is activated. [Current HTTPS evidence](evidence/TAILSCALE-ACCESS.md) · [conditional Mac cleanup](MAC-CLEANUP.md). Historical tunnel evidence below is retained but superseded.
 
 ### Routine approved preview refresh
 
 1. Confirm primary `main`, remote, status and `pnpm workspace:check`. Preserve protected-file hashes/read-only data fingerprints and the complete recovery build outside Git.
 2. `systemctl --user stop palcare-preview.service` **before** typegen/build/application suites. Do not rebuild serving `.next` files. Do not stop/recreate the database.
 3. Make the requested reversible edits and run relevant tests, lint, format, typecheck and build. Commit locally on `main` when authorized. Build again after the final commit: startup requires clean tracked main, exact commit, source hash and build ID.
-4. `systemctl --user start palcare-preview.service`. Check `systemctl --user status palcare-preview.service`, `curl --fail http://127.0.0.1:3002/api/ready`, listener/cwd/build provenance, actual UI and preservation. Never adjust AI budgets/deadlines to make startup work.
+4. `systemctl --user start palcare-preview.service`. Check service state, `curl --fail https://greatbison.tail9e8802.ts.net:8444/api/ready`, loopback listener/cwd/build provenance, actual HTTPS/native Studio and preservation. Loopback readiness alone is not end-to-end evidence. Never change AI budgets/deadlines to make startup work.
 5. If startup fails, inspect `journalctl --user -u palcare-preview.service -n 60 --no-pager`. No automatic Git pull/build, credential renewal, migration or seed is performed. Dirty/stale code intentionally fails closed until a safe rebuild; persistent uptime does not mean serving unapproved edits.
 
 Installation (owner-approved persistence scope only): install the reviewed unit into `~/.config/systemd/user/`, `systemctl --user daemon-reload`, then `systemctl --user enable --now palcare-preview.service`. Existing linger is required for boot start. Stop/disable this unit to undo supervision; retain configuration/data/recovery builds. Do not enable another concurrent port-3002 service. Reboot configuration is not an actual reboot test; do not reboot GreatBison's other workloads without coordination.
