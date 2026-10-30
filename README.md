@@ -18,6 +18,8 @@
 
 **Send recovery:** known-unsent questions no longer block the composer or require clearing saved history. They remain editable; uncertain dispatched work is never automatically replayed. CareOS checks the current browser's real access status and offers a direct Finish step for an already-approved valid cookie whose remembered completion was not recorded. [Diagnosis and Chrome acceptance boundary](docs/evidence/COMPOSER-RECOVERY.md).
 
+**Browser verification diagnostics:** AI Access recovers a pending request after reload, keeps repeat requests from replacing a valid proof, checks Finish by read-back and explains the current cookie/approval state. Personal Chrome acceptance is still unresolved until its own diagnostic and Send outcome are observed; a separate test browser cannot prove it. [Read-only diagnostic procedure](docs/evidence/OWNER-BROWSER-LIFECYCLE.md).
+
 The original failed pilot is retained as historical evidence. Its empty terminal-output issue was diagnosed and corrected in a separately approved session, later increased to **50 total subscription requests without resetting usage**. API-dollar budgets are not applied to subscription inference. [Historical pilot](docs/evidence/CHATGPT-PILOT.md).
 
 Useful fresh Sol Medium calls are authorized only within the existing actually unexpired session and remaining allowance/accounting. Check actual expiry/usage before every call; preserve attempts and unknowns. Earlier **28/50** observations remain historical; the five customer acceptance tasks left **33/50**, two unknowns and unchanged **`2026-10-29T22:10:58.310Z`** expiry at the [documented checkpoint](docs/STATUS.md). Neither snapshot is future permission or renewal. No new allowance/reset/renewal or paid fallback is authorized.

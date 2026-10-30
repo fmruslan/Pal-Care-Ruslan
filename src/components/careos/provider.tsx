@@ -30,6 +30,7 @@ import { PurchaseChoices } from "./purchase-choices";
 import { useVisibleViewport } from "./use-visible-viewport";
 import { useInsightsControl } from "../intelligence/customer-control";
 import { evaluationWindowExpired } from "@/lib/careos/window";
+import { browserAccessMessage } from "./browser-access-state";
 import {
   ownerSendState,
   ownerSendMessage,
@@ -100,6 +101,7 @@ export function CareOSProvider({
   const busy = phase !== "idle";
   const [ownerState, setOwnerState] = useState<OwnerSendState>("checking");
   const [finishNeeded, setFinishNeeded] = useState(false);
+  const [browserMessage, setBrowserMessage] = useState("");
   const checkOwnerAccess = useCallback(async () => {
     if (!ownerAccess) return true;
     try {
@@ -107,6 +109,11 @@ export function CareOSProvider({
       const value: unknown = response.ok ? await response.json() : null;
       const state = response.ok ? ownerSendState(value) : "unavailable";
       const parsed = ownerStatusSchema.safeParse(value);
+      setBrowserMessage(
+        parsed.success && parsed.data.browserAccess
+          ? browserAccessMessage[parsed.data.browserAccess]
+          : "",
+      );
       setFinishNeeded(
         parsed.success &&
           parsed.data.remembered &&
@@ -125,7 +132,13 @@ export function CareOSProvider({
       void checkOwnerAccess();
     };
     window.addEventListener("focus", focus);
-    return () => window.removeEventListener("focus", focus);
+    window.addEventListener("palcare-owner-status", focus);
+    document.addEventListener("visibilitychange", focus);
+    return () => {
+      window.removeEventListener("focus", focus);
+      window.removeEventListener("palcare-owner-status", focus);
+      document.removeEventListener("visibilitychange", focus);
+    };
   }, [ownerAccess, isOpen, checkOwnerAccess]);
   const interactionBlocked =
     aiAccessDisabled ||
@@ -423,6 +436,9 @@ export function CareOSProvider({
                     aria-label="Browser AI access"
                   >
                     <p>{ownerSendMessage[ownerState]}</p>
+                    {ownerState === "signin" && browserMessage && (
+                      <p>{browserMessage}</p>
+                    )}
                     <Link
                       href="/ai-evaluation"
                       onClick={() => setOpen(false)}

@@ -105,14 +105,47 @@ test("pair once, remember across reload/server restart, logout and deny stolen r
     .click();
   const code = await page.locator("code").textContent();
   const id = code!.match(/[a-f0-9-]{36}$/)![0];
+  const temporary = (await context.cookies()).find(
+    (v) => v.name === OWNER_COOKIE,
+  )!;
+  await page.reload();
+  await expect(page.locator("code")).toContainText(id);
+  await expect(
+    page.getByLabel("Browser verification diagnostic"),
+  ).toContainText("pending-approval");
+  await page
+    .getByRole("button", { name: "Finish remembering browser" })
+    .click();
+  await expect(page.getByRole("status")).toContainText(
+    "waiting for host approval",
+  );
+  // A repeated pair from another tab must not replace or renew the proof.
+  const repeated = await page.evaluate(async () => {
+    const response = await fetch("/api/ai/owner", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "pair" }),
+    });
+    return response.json();
+  });
+  expect(repeated.id).toBe(id);
+  expect(
+    (await context.cookies()).find((v) => v.name === OWNER_COOKIE),
+  ).toEqual(temporary);
   const owner = new StandingOwner(
     new PilotFiles(join(home, ".config/palcare-standing-owner")),
   );
   await owner.approve(id);
+  await expect(
+    page.getByLabel("Browser verification diagnostic"),
+  ).toContainText("finish-needed", { timeout: 10000 });
   await page
     .getByRole("button", { name: "Finish remembering browser" })
     .click();
   await expect(page.getByText("Remembered", { exact: true })).toBeVisible();
+  await expect(
+    page.getByLabel("Browser verification diagnostic"),
+  ).toContainText("remembered");
   const cookie = (await context.cookies()).find(
     (v) => v.name === OWNER_COOKIE,
   )!;
@@ -147,6 +180,52 @@ test("pair once, remember across reload/server restart, logout and deny stolen r
       })
     ).used,
   ).toBe(0);
+});
+
+test("cookie disappearance after Finish never produces a false success message", async ({
+  page,
+  context,
+}) => {
+  await page.goto(OWNER_ORIGIN + "/ai-evaluation");
+  await page
+    .getByRole("button", { name: "Remember this browser", exact: true })
+    .click();
+  const id = (await page.locator("code").textContent())!.match(
+    /[a-f0-9-]{36}$/,
+  )![0];
+  const owner = new StandingOwner(
+    new PilotFiles(join(home, ".config/palcare-standing-owner")),
+  );
+  await owner.approve(id);
+  // Simulate browser storage loss between a successful mutation and read-back.
+  let finished = false;
+  await page.route("**/api/ai/owner", async (route) => {
+    const request = route.request();
+    if (
+      request.method() === "POST" &&
+      request.postDataJSON().action === "finish"
+    ) {
+      finished = true;
+      return route.fulfill({ status: 200, json: { ok: true } });
+    }
+    if (finished && request.method() === "GET") {
+      await context.clearCookies();
+      const headers = await request.allHeaders();
+      delete headers.cookie;
+      return route.fallback({ headers });
+    }
+    return route.fallback();
+  });
+  await page
+    .getByRole("button", { name: "Finish remembering browser" })
+    .click();
+  await expect(page.getByRole("status")).toContainText(
+    "next request did not confirm",
+  );
+  await expect(page.getByText("Remembered", { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByLabel("Browser verification diagnostic"),
+  ).toContainText("missing-cookie");
 });
 
 test("exact HTTPS origin rejects cross-origin and HTTP approval/activation attempts", async ({

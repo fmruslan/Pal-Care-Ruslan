@@ -2,6 +2,12 @@
 
 Last updated: 2026-10-29
 
+## Owner browser lifecycle investigation — 2026-10-30
+
+**Implemented / owner resolution still incomplete:** pending pairing now survives reload via cookie-bound status; repeat-pair preserves the existing proof/deadline; Finish requires successful authentication read-back before success messaging. Safe public diagnostics distinguish missing/rejected cookie, pending/expired request, revoked/expired session and Finish-needed/remembered states; protected journal reasons never contain cookies/credentials. Focus/visibility/status changes refresh CareOS access. [Evidence and one read-only Chrome diagnostic](evidence/OWNER-BROWSER-LIFECYCLE.md).
+
+**Verified:** real Tailscale HTTPS on the previous `9c1196f` build reproduced pending-ID loss and demonstrated successful secure temporary→persistent cookie handoff in a separate controlled browser, with zero inference. The old personal approvals are intact but predate Finish logging; their missing completion markers cannot establish what happened in personal Chrome. New-source isolated lint/typecheck/format/build, **794 units**, **15 cross-engine access browsers**, **20 recovery browsers** pass. Post-deploy HTTPS, preservation and exact-commit CI are reported at handoff. Personal Chrome's exact rejection and real-answer acceptance remain **unresolved**, not accepted on Playwright evidence. Policy, original journals and owner sessions must remain preserved.
+
 ## CareOS Send / known-unsent recovery
 
 **Implemented; verification in progress:** the actual HTTPS pre-fix `hello` trap was reproduced with zero forwarded browser mutations/model requests. A known-unsent pending hint disabled Send and suggestions indefinitely while leaving the textarea editable. Known-unsent questions now become editable tab-local drafts, without clearing saved history; uncertain dispatched work retains GET-only recovery. Drafts survive denied admission and concurrent typing. The panel checks the current browser's real owner/policy/provider status and explains disabled states. Host approval and recorded Finish completion are now distinct; an existing valid approved cookie can finish directly without a new approval or extending the original deadline. No actual owner cookie is assumed valid from host approval alone. [Root cause, verification and Chrome acceptance boundary](evidence/COMPOSER-RECOVERY.md).

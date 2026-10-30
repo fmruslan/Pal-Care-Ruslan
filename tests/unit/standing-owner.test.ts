@@ -54,6 +54,77 @@ afterEach(async () => {
 });
 
 describe("remembered private owner and independent standing permission (no live provider)", () => {
+  it("diagnoses missing, rejected, pending, expired and revoked proofs without exposing secrets or granting authority", async () => {
+    const { owner, files, proof, advance } = await setup();
+    const before = await files.read("owner-state.json");
+    expect(await owner.status({ agent: proof.agent })).toMatchObject({
+      remembered: false,
+      browserAccess: "missing-cookie",
+      pairing: null,
+    });
+    const reason = vi.fn();
+    const rejected = await owner.status(
+      { ...proof, agent: "changed-browser" },
+      reason,
+    );
+    expect(rejected).toMatchObject({
+      remembered: false,
+      browserAccess: "cookie-rejected",
+      pairing: null,
+    });
+    expect(reason).toHaveBeenCalledWith("browser-agent-mismatch");
+    expect(JSON.stringify(rejected)).not.toContain(proof.token);
+    expect(await files.read("owner-state.json")).toEqual(before);
+    const pending = await owner.pair("pending-browser");
+    const pendingProof = { token: pending.token, agent: "pending-browser" };
+    expect(await owner.status(pendingProof)).toMatchObject({
+      remembered: false,
+      browserAccess: "pending-approval",
+      pairing: { id: pending.id },
+    });
+    await expect(owner.finishBrowser(pendingProof)).rejects.toThrow(
+      "careos_owner_pending_approval",
+    );
+    advance(300000);
+    expect(await owner.status(pendingProof)).toMatchObject({
+      remembered: false,
+      browserAccess: "request-expired",
+      pairing: null,
+    });
+    await expect(owner.finishBrowser(pendingProof)).rejects.toThrow(
+      "careos_owner_request_expired",
+    );
+    await owner.revokeSession(pending.id);
+    expect(await owner.status(pendingProof)).toMatchObject({
+      browserAccess: "revoked",
+    });
+    advance(OWNER_IDLE);
+    expect(await owner.status(proof)).toMatchObject({
+      remembered: false,
+      browserAccess: "session-expired",
+    });
+  });
+  it("reuses the same pending or approved request without rotating the cookie or extending deadlines", async () => {
+    const { owner, files, proof, pair } = await setup();
+    const pending = await owner.pair("another-browser");
+    const before = await files.read("owner-state.json");
+    expect(await owner.pair("another-browser", pending.token)).toEqual({
+      ...pending,
+      reused: true,
+    });
+    expect(await owner.pair(proof.agent, proof.token)).toEqual({
+      ...pair,
+      reused: true,
+    });
+    expect(await files.read("owner-state.json")).toEqual(before);
+    await owner.finishBrowser(proof);
+    const finished = await files.read("owner-state.json");
+    expect(await owner.pair(proof.agent, proof.token)).toEqual({
+      ...pair,
+      reused: true,
+    });
+    expect(await files.read("owner-state.json")).toEqual(finished);
+  });
   it("distinguishes host approval from finished browser recognition without extending the session", async () => {
     const { owner, proof, files, pair, advance } = await setup();
     expect(await owner.status(proof)).toMatchObject({

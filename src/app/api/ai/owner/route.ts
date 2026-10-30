@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import {
   assertOwnerRequest,
@@ -22,12 +23,22 @@ async function context(request: Request, mutation: boolean) {
   };
 }
 export async function GET(request: Request) {
+  const diagnosticId = randomUUID();
   try {
     const { owner, jar, agent } = await context(request, false);
-    const status = await owner.status({
-      token: jar.get(OWNER_COOKIE)?.value,
-      agent,
-    });
+    const status = await owner.status(
+      {
+        token: jar.get(OWNER_COOKIE)?.value,
+        agent,
+      },
+      (reason) => {
+        // Protected service journal only. Never log headers, tokens, hashes or UA.
+        if (reason !== "accepted")
+          console.info(
+            JSON.stringify({ ownerAccess: "status", diagnosticId, reason }),
+          );
+      },
+    );
     let provider = "Verify this browser to view the connection";
     if (status.remembered) {
       const registration = await subscriptionFiles().registration();
@@ -45,8 +56,16 @@ export async function GET(request: Request) {
       ...status,
       liveEnabled: process.env.CAREOS_STANDING_AI_ENABLED === "true",
       provider,
+      diagnosticId,
     });
   } catch (error) {
+    console.info(
+      JSON.stringify({
+        ownerAccess: "status-error",
+        diagnosticId,
+        code: error instanceof CareError ? error.code : "server-error",
+      }),
+    );
     return careError(error);
   }
 }
@@ -66,8 +85,9 @@ export async function POST(request: Request) {
     if (!parsed.success) throw new CareError("careos_invalid_request", 400);
     const proof = { token: jar.get(OWNER_COOKIE)?.value, agent };
     if (parsed.data.action === "pair") {
-      const pair = await owner.pair(agent);
-      jar.set(OWNER_COOKIE, pair.token, { ...cookieOptions, maxAge: 300 });
+      const pair = await owner.pair(agent, proof.token);
+      if (!pair.reused)
+        jar.set(OWNER_COOKIE, pair.token, { ...cookieOptions, maxAge: 300 });
       return careResponse({ id: pair.id }); // Public request ID, never the secret.
     }
     if (parsed.data.action === "finish") {
@@ -91,6 +111,12 @@ export async function POST(request: Request) {
     } else await owner.revokePolicy(proof);
     return careResponse({ ok: true });
   } catch (error) {
+    console.info(
+      JSON.stringify({
+        ownerAccess: "change-error",
+        code: error instanceof CareError ? error.code : "server-error",
+      }),
+    );
     return careError(error);
   }
 }

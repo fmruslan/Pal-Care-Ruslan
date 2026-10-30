@@ -1,12 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { z } from "zod";
 import { Button } from "../ui/button";
+import {
+  browserAccessSchema,
+  browserAccessMessage,
+  browserActionError,
+} from "./browser-access-state";
 
 const statusSchema = z.object({
   remembered: z.boolean(),
   browserCompletion: z.enum(["not-verified", "finish-needed", "complete"]),
+  browserAccess: browserAccessSchema,
+  diagnosticId: z.uuid(),
+  pairing: z.object({ id: z.uuid(), expiresAt: z.number() }).nullable(),
   policy: z.string(),
   revoked: z.boolean(),
   used: z.number(),
@@ -19,6 +27,15 @@ const statusSchema = z.object({
   concurrency: z.number(),
   requestsPerMinute: z.number(),
 });
+async function readOwnerStatus() {
+  const response = await fetch("/api/ai/owner", { cache: "no-store" });
+  const value = await response.json();
+  if (!response.ok)
+    throw new Error(
+      typeof value.error === "string" ? value.error : "unavailable",
+    );
+  return statusSchema.parse(value);
+}
 export function OwnerSettings() {
   const [status, setStatus] = useState<z.infer<typeof statusSchema> | null>(
     null,
@@ -26,23 +43,44 @@ export function OwnerSettings() {
   const [id, setId] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  async function refresh() {
-    const response = await fetch("/api/ai/owner", { cache: "no-store" });
-    if (!response.ok) throw new Error("unavailable");
-    setStatus(statusSchema.parse(await response.json()));
-  }
+  const acceptStatus = useCallback((next: z.infer<typeof statusSchema>) => {
+    setStatus(next);
+    setId(next.pairing?.id ?? "");
+    window.dispatchEvent(new Event("palcare-owner-status"));
+    return next;
+  }, []);
+  const refresh = useCallback(async () => {
+    return acceptStatus(await readOwnerStatus());
+  }, [acceptStatus]);
   useEffect(() => {
-    void fetch("/api/ai/owner", { cache: "no-store" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error("unavailable");
-        setStatus(statusSchema.parse(await response.json()));
-      })
+    void readOwnerStatus()
+      .then(acceptStatus)
       .catch(() =>
         setMessage(
           "AI settings are temporarily unavailable. Your saved records remain available.",
         ),
       );
-  }, []);
+  }, [acceptStatus]);
+  useEffect(() => {
+    const check = () => {
+      if (document.visibilityState === "visible")
+        void refresh().catch(() =>
+          setMessage(browserActionError("unavailable")),
+        );
+    };
+    window.addEventListener("focus", check);
+    document.addEventListener("visibilitychange", check);
+    // Read-only, only while a known request is awaiting host approval.
+    const timer =
+      status?.browserAccess === "pending-approval"
+        ? window.setInterval(check, 3000)
+        : undefined;
+    return () => {
+      window.removeEventListener("focus", check);
+      document.removeEventListener("visibilitychange", check);
+      if (timer !== undefined) window.clearInterval(timer);
+    };
+  }, [status?.browserAccess, refresh]);
   async function act(action: "pair" | "finish" | "logout" | "revoke") {
     if (busy) return;
     setBusy(true);
@@ -53,10 +91,20 @@ export function OwnerSettings() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
       });
-      if (!response.ok) throw new Error("denied");
-      if (action === "pair")
-        setId(z.object({ id: z.uuid() }).parse(await response.json()).id);
-      else {
+      const value = await response.json();
+      if (!response.ok)
+        throw new Error(
+          typeof value.error === "string" ? value.error : "denied",
+        );
+      const next = await refresh();
+      if (
+        action === "finish" &&
+        (!next.remembered || next.browserCompletion !== "complete")
+      )
+        throw new Error("cookie_readback_failed");
+      if (action === "pair" && next.browserAccess === "missing-cookie")
+        throw new Error("cookie_readback_failed");
+      if (action !== "pair") {
         setId("");
         setMessage(
           action === "finish"
@@ -66,10 +114,11 @@ export function OwnerSettings() {
               : "AI permission revoked. Saved records remain available.",
         );
       }
-      await refresh();
-    } catch {
+    } catch (error) {
       setMessage(
-        "Could not complete this change. Check your owner connection and try again; no AI request was sent.",
+        browserActionError(
+          error instanceof Error ? error.message : "unavailable",
+        ),
       );
     } finally {
       setBusy(false);
@@ -121,6 +170,24 @@ export function OwnerSettings() {
           </dd>
         </div>
       </dl>
+      {status && (
+        <div
+          className="space-y-2 rounded-xl border p-3 text-sm"
+          aria-label="Browser verification diagnostic"
+        >
+          <p>{browserAccessMessage[status.browserAccess]}</p>
+          <p className="break-all text-xs text-muted-foreground">
+            Diagnostic: {status.browserAccess} · {status.diagnosticId}
+          </p>
+          {status.pairing && (
+            <p>
+              Finish before{" "}
+              {new Date(status.pairing.expiresAt).toLocaleTimeString()} in this
+              browser. Reloading preserves this request.
+            </p>
+          )}
+        </div>
+      )}
       {!!status?.requestLimit && (
         <p className="text-sm text-muted-foreground">
           Approved total: {status.requestLimit} provider requests. Up to{" "}

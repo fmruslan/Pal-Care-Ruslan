@@ -148,6 +148,57 @@ export class StandingOwner {
       return deny("signin_required");
     return entry;
   }
+  private inspectBrowser(s: State, proof: OwnerProof) {
+    if (!proof.token)
+      return { state: "missing-cookie" as const, reason: "missing-cookie" };
+    const entry = /^[a-f0-9]{64}$/.test(proof.token)
+      ? s.sessions.find((v) => v.tokenHash === hash(proof.token!))
+      : undefined;
+    if (!entry)
+      return {
+        state: "cookie-rejected" as const,
+        reason: "unknown-or-malformed-cookie",
+      };
+    if (entry.agentHash !== hash(proof.agent))
+      return {
+        state: "cookie-rejected" as const,
+        reason: "browser-agent-mismatch",
+      };
+    if (entry.revoked) return { state: "revoked" as const, reason: "revoked" };
+    const now = this.now();
+    if (now < entry.createdAt)
+      return {
+        state: "cookie-rejected" as const,
+        reason: "clock-before-creation",
+      };
+    if (
+      now >= entry.createdAt + OWNER_MAX_AGE ||
+      now >= entry.lastSeen + OWNER_IDLE
+    )
+      return {
+        state: "session-expired" as const,
+        reason: "absolute-or-idle-expiry",
+      };
+    if (entry.approvedAt === null) {
+      if (now >= entry.createdAt + 300000)
+        return {
+          state: "request-expired" as const,
+          reason: "approval-window-expired",
+        };
+      return {
+        state: "pending-approval" as const,
+        reason: "pending-approval",
+        pairing: { id: entry.id, expiresAt: entry.createdAt + 300000 },
+      };
+    }
+    return {
+      state:
+        entry.finishedAt === undefined
+          ? ("finish-needed" as const)
+          : ("remembered" as const),
+      reason: "accepted",
+    };
+  }
   private allowed(
     s: State,
     proof: OwnerProof,
@@ -181,9 +232,24 @@ export class StandingOwner {
       return deny("rate_limited");
     return p;
   }
-  async pair(agent: string) {
+  async pair(agent: string, existingToken?: string) {
     const token = randomBytes(32).toString("hex");
     return this.change((s) => {
+      // A second tab/reload must not replace a valid or pending browser secret.
+      // Returning the existing public request ID does not renew its cookie.
+      const existing = this.inspectBrowser(s, { token: existingToken, agent });
+      if (existing.state === "pending-approval")
+        return {
+          id: existing.pairing!.id,
+          token: existingToken!,
+          reused: true,
+        };
+      if (existing.state === "remembered" || existing.state === "finish-needed")
+        return {
+          id: s.sessions.find((v) => v.tokenHash === hash(existingToken!))!.id,
+          token: existingToken!,
+          reused: true,
+        };
       if (
         s.events.filter((e) => e.kind === "pair" && e.at > this.now() - 3600000)
           .length >= 10
@@ -200,7 +266,7 @@ export class StandingOwner {
         revoked: false,
       });
       this.event(s, "pair", id);
-      return { id, token };
+      return { id, token, reused: false };
     });
   }
   /** Only the local owner CLI calls this. No web approval endpoint. */
@@ -247,6 +313,9 @@ export class StandingOwner {
   }
   async finishBrowser(proof: OwnerProof) {
     return this.change((s) => {
+      const browser = this.inspectBrowser(s, proof);
+      if (browser.state !== "finish-needed" && browser.state !== "remembered")
+        return deny(browser.state.replaceAll("-", "_"));
       const entry = this.session(s, proof);
       if (entry.finishedAt === undefined) {
         entry.finishedAt = this.now();
@@ -335,9 +404,11 @@ export class StandingOwner {
       this.event(s, "provider-block", "permission-or-usage-denied");
     });
   }
-  async status(proof: OwnerProof) {
+  async status(proof: OwnerProof, diagnostic?: (reason: string) => void) {
     await this.files.prepare();
     const s = await this.state();
+    const browser = this.inspectBrowser(s, proof);
+    diagnostic?.(browser.reason);
     let remembered = false;
     let browserCompletion: "not-verified" | "finish-needed" | "complete" =
       "not-verified";
@@ -353,6 +424,8 @@ export class StandingOwner {
     return {
       remembered,
       browserCompletion,
+      browserAccess: browser.state,
+      pairing: browser.pairing ?? null,
       policyId: s.policy?.id ?? null,
       requestLimit: s.policy?.requestLimit ?? 0,
       concurrency: s.policy?.concurrency ?? 0,

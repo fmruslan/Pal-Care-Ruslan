@@ -1,7 +1,9 @@
 import { z } from "zod";
+import { browserAccessSchema } from "./browser-access-state";
 
 export const ownerStatusSchema = z.object({
   remembered: z.boolean(),
+  browserAccess: browserAccessSchema.optional(),
   liveEnabled: z.boolean(),
   policy: z.enum(["approved", "disabled"]),
   revoked: z.boolean(),
