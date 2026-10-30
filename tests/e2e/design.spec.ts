@@ -43,7 +43,11 @@ test("purchase-card CareOS uses the existing assistant, keeps drafts across appe
   await expect(composer).toHaveCSS("background-color", "rgb(29, 38, 48)");
   await expect(page.locator("aside").first()).toHaveCSS(
     "background-color",
-    "rgb(29, 38, 48)",
+    "rgb(39, 51, 62)",
+  );
+  await expect(page.locator("header").first()).toHaveCSS(
+    "background-color",
+    "rgb(39, 51, 62)",
   );
   await expect(composer).toHaveCSS("border-top-color", "rgb(169, 161, 255)");
   expect(

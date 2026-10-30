@@ -5,12 +5,20 @@ const css = readFileSync(
   new URL("../../src/app/globals.css", import.meta.url),
   "utf8",
 );
-it("matches the charcoal shell while retaining lighter card and art surfaces", () => {
+it("keeps the bars between canvas and cards, nearer to the charcoal canvas", () => {
   const dark = css.match(/\.dark\s*\{([^}]+)\}/)![1];
   expect(dark).toContain("--background: #1d2630");
   expect(dark).toContain("--card: #45525f");
-  expect(dark).toContain("--sidebar: #1d2630");
+  expect(dark).toContain("--sidebar: #27333e");
   expect(dark).toContain("--art-surface: #aab4be");
+  const color = (name: string) =>
+    dark.match(new RegExp(`--${name}:\\s*(#[0-9a-f]{6})`))![1];
+  const canvas = luminance(color("background"));
+  const bars = luminance(color("sidebar"));
+  const card = luminance(color("card"));
+  expect(bars).toBeGreaterThan(canvas);
+  expect(bars).toBeLessThan(card);
+  expect(bars - canvas).toBeLessThan(card - bars);
 });
 function luminance(hex: string) {
   const channels = [1, 3, 5]
