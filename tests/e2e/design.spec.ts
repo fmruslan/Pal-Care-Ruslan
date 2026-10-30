@@ -3,6 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 
 const themeKey = "palcare-appearance";
 const twin = "/vault/00000000-0000-4000-8000-000000000201";
+const dataSource = process.env.E2E_DATA_SOURCE ?? "fixtures";
 
 test("System is the default, follows OS changes, and updates native/browser colors", async ({
   page,
@@ -261,6 +262,15 @@ for (const [name, path] of [
       page.getByRole("combobox", { name: "Appearance" }),
     ).toBeEnabled();
     if (name === "insights") {
+      // Provenance differs intentionally between bundled preview and database
+      // records. Never mask it or compare both modes to a fixture reference.
+      await expect(
+        page.getByText(
+          dataSource === "database"
+            ? /available purchases · newest 100 saved purchase window/
+            : /available purchases · bundled sample preview/,
+        ),
+      ).toBeVisible();
       await expect(
         page
           .getByTestId("customer-studio")
@@ -268,9 +278,13 @@ for (const [name, path] of [
           .first(),
       ).toBeVisible({ timeout: 20_000 });
     }
-    await expect(page).toHaveScreenshot(`${name}.png`);
+    await expect(page).toHaveScreenshot(
+      name === "insights" && dataSource === "database"
+        ? "insights-database.png"
+        : `${name}.png`,
+    );
     await page.screenshot({
-      path: `test-results/design/${test.info().project.name}-${name}-full.png`,
+      path: `test-results/${dataSource}/design/${test.info().project.name}-${name}-full.png`,
       fullPage: true,
     });
   });

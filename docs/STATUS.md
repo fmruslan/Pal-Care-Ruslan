@@ -2,6 +2,12 @@
 
 Last updated: 2026-10-29
 
+## Database Insights screenshot mode correction
+
+**Implemented (test/docs only):** database-mode Insights now uses six explicit `insights-database.png` references rather than fixture `insights.png`. The visual test also asserts the correct source/window wording. Existing fixture references, application labels, screenshot threshold **0.005**, and other visual/SDK assertions remain unchanged. Full-page artifacts are data-mode scoped. [Exact cause, reproduction and isolation](evidence/INSIGHTS-VISUAL-MODES.md).
+
+**Verified so far:** the original database mobile Light/Dark failures reproduced in isolated services at the exact **1,800/1,946** pixel counts. After correction, normal comparison passes **72 database + 72 fixture design tests**, including all mobile/desktop/tablet themes. Standard checks and final exact-commit CI (including formerly skipped stages) are reported in the handoff. **30 protected hashes**, preview PID/build, Tailscale mappings and original 17-table/three-CareOS-row/schema preservation checks match. The private preview is neither restarted nor rebuilt; no browser/AI policy, accounting, credentials, application records, Tailscale configuration or app code is changed. This does not reopen owner authentication or claim new live inference.
+
 ## Owner browser lifecycle investigation — 2026-10-30
 
 **Implemented / owner resolution still incomplete:** pending pairing now survives reload via cookie-bound status; repeat-pair preserves the existing proof/deadline; Finish requires successful authentication read-back before success messaging. Safe public diagnostics distinguish missing/rejected cookie, pending/expired request, revoked/expired session and Finish-needed/remembered states; protected journal reasons never contain cookies/credentials. Focus/visibility/status changes refresh CareOS access. [Evidence and one read-only Chrome diagnostic](evidence/OWNER-BROWSER-LIFECYCLE.md).
