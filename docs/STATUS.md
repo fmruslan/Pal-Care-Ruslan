@@ -2,6 +2,10 @@
 
 Last updated: 2026-10-29
 
+## Charcoal canvas follow-up — 2026-10-30
+
+**Implemented; isolated verification passed, release/CI reported at handoff:** owner found the live `#2C3742` adjustment insufficient. The revised dark canvas is **`#1D2630`**, with matching theme metadata and exact-color regressions. Cards, sidebar, art surfaces, accents and Light mode stay unchanged; shared canvas-backed inputs follow the canvas. This supersedes only the earlier dark canvas choice, not the Bronze/Violet identity or other component styling. Isolated lint/format/typecheck/build, **811 units**, **72 fixture design/care/recovery** and **39 database design** checks pass across all three dark profiles. Dark reference pixels are explicitly recorded at CSS scale and reviewed; Light references and normal screenshot thresholds are unchanged. Exact commit/CI and actual HTTPS release results are reported at handoff; no auth/accounting/model/financial capability is changed. Evidence: `/tmp/opencode/palcare-charcoal-20261030/`.
+
 ## Dark canvas refinement — 2026-10-30
 
 **Implemented; isolated verification passed, release/CI reported at handoff:** owner requested a slightly darker main grey background after reviewing the actual private preview. Only the dark canvas token changes **`#35414C` → `#2C3742`**, plus matching browser theme color and exact-color regressions. Card/sidebar/art/raised surfaces, accents and Light mode remain unchanged. This is an appearance refinement, not milestone B or a new authentication task. Isolated **811 units**, lint/format/typecheck/build, **72 fixture design/care/recovery** and **39 database design** checks pass across desktop/tablet/mobile Dark. Exact rendered CSS and new canvas pixels were checked; only 21 Dark references were recorded, with Light references unchanged. Final canonical comparison reruns pass (**42 fixture design/care + three database Insights screenshots**). No model/financial calls, migration, session changes or quota adjustment are part of this slice.

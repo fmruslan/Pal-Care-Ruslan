@@ -8,7 +8,7 @@ Owner approved direction and isolated milestone A visual review: [ADR 0011](../a
 
 | Role | Light | Dark |
 | --- | --- | --- |
-| Canvas | `#F8F9FC` | `#2C3742` |
+| Canvas | `#F8F9FC` | `#1D2630` |
 | Sidebar | `#FFFFFF` | `#303C47` |
 | Card | `#FFFFFF` | `#45525F` |
 | Raised surface | `#F1F3F6` | `#53616E` |
@@ -23,7 +23,7 @@ Owner approved direction and isolated milestone A visual review: [ADR 0011](../a
 | Decorative border | `#E1E6EB` | `#697786` |
 | Input boundary | `#7B8794` | `#B6C2CE` |
 
-**Owner refinement, 2026-10-30:** dark canvas is slightly deeper slate `#2C3742` instead of the initial `#35414C`. Card, sidebar, raised/product-art surfaces and Bronze/Violet accents are unchanged. Neutral surfaces explicitly using the shared canvas token (including the composer input) follow the canvas; this grants no permission and does not change appearance persistence.
+**Owner refinements, 2026-10-30:** the initial `#35414C` canvas was first lowered to `#2C3742`, which the owner found too subtle on the actual site. The revised canvas is visibly darker charcoal **`#1D2630`**. Card, sidebar, raised/product-art surfaces and Bronze/Violet accents are unchanged. Neutral surfaces explicitly using the shared canvas token (including the composer input) follow the canvas; this grants no permission and does not change appearance persistence.
 
 Fixed logo hues: bronze **#B8733A**, violet **#8078E5**. Verified accent **#2E9F61** is not white-on-green badge text: use the accessible success pairs above. Explicit Sample / Verified Sandbox labels convey status; no color alone establishes provenance, safety or coverage. Button labels need ≥4.5:1; controls/focus indicators ≥3:1 against adjacent surfaces. Decorative card borders are not control boundaries.
 

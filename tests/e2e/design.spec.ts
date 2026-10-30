@@ -40,7 +40,7 @@ test("purchase-card CareOS uses the existing assistant, keeps drafts across appe
   await page.getByRole("combobox", { name: "Appearance" }).selectOption("dark");
   await page.locator(".careos-launcher").click();
   await expect(composer).toHaveValue("Keep my unsent care question");
-  await expect(composer).toHaveCSS("background-color", "rgb(44, 55, 66)");
+  await expect(composer).toHaveCSS("background-color", "rgb(29, 38, 48)");
   await expect(composer).toHaveCSS("border-top-color", "rgb(169, 161, 255)");
   expect(
     await page
@@ -63,7 +63,7 @@ test("System is the default, follows OS changes, and updates native/browser colo
   await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
   await expect(
     page.locator('meta[name="theme-color"]').first(),
-  ).toHaveAttribute("content", "#2c3742");
+  ).toHaveAttribute("content", "#1d2630");
   await page.emulateMedia({ colorScheme: "light" });
   await expect(page.locator("html")).toHaveClass(/light/);
   await expect(selector).toHaveValue("system");
