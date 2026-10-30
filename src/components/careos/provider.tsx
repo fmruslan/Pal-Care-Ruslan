@@ -489,7 +489,7 @@ export function CareOSProvider({
                     )}
                     <p
                       data-user-message
-                      className="careos-user-message whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-secondary text-base leading-7 text-secondary-foreground"
+                      className="careos-user-message whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-accent text-base leading-7 text-foreground"
                     >
                       {turn.message}
                     </p>
@@ -739,7 +739,7 @@ export function CareOSProvider({
                       type="button"
                       key={label}
                       disabled={unavailable}
-                      className="min-h-11 rounded-xl border px-3 text-xs font-medium text-intelligence-foreground hover:bg-intelligence focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50"
+                      className="min-h-11 rounded-xl border border-intelligence-border px-3 text-[0.8125rem] font-medium text-intelligence-foreground hover:bg-intelligence focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-intelligence-foreground disabled:opacity-50"
                       onClick={() => void ask(label, intent as Intent)}
                     >
                       {label}
@@ -787,7 +787,7 @@ export function CareOSProvider({
                     maxLength={analytics ? 500 : 2000}
                     rows={1}
                     placeholder="Ask about your purchase…"
-                    className="max-h-36 min-h-11 min-w-0 flex-1 resize-none rounded-xl border border-input bg-background px-[12px] py-[10px] text-base focus-visible:outline-2 focus-visible:outline-ring"
+                    className="max-h-36 min-h-11 min-w-0 flex-1 resize-none rounded-xl border border-intelligence-border bg-background px-[12px] py-[10px] text-base focus-visible:outline-2 focus-visible:outline-intelligence-foreground"
                   />
                   <Button
                     type="submit"
@@ -842,15 +842,18 @@ export function CareContextRegistration({
 }
 export function AskCareOS({
   context,
+  label,
   children = "Ask about this product",
 }: {
   context?: CareContext;
+  label?: string;
   children?: ReactNode;
 }) {
   const assistant = useCareOS();
   return (
     <Button
       variant="outline"
+      aria-label={label}
       className="border-intelligence-foreground bg-intelligence text-intelligence-foreground hover:bg-intelligence/80"
       onClick={() => {
         if (context) assistant.select(context);

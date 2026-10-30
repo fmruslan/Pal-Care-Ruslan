@@ -13,9 +13,6 @@ export function ProductArt({
       data-product-art={kind}
       className={`product-wash relative flex items-center justify-center overflow-hidden ${size === "hero" ? "rounded-full" : "rounded-xl"} ${large ? "min-h-80 h-full" : size === "thumbnail" ? "size-18 shrink-0" : size === "hero" ? "size-36 sm:size-40" : size === "compact" ? "h-36 sm:h-40" : "h-48"}`}
     >
-      {size !== "thumbnail" && (
-        <div className="absolute inset-3 rounded-full border border-brand/10" />
-      )}
       <svg
         viewBox="0 0 280 210"
         className={`relative max-w-full drop-shadow-sm ${large ? "h-72 w-full max-w-96" : size === "thumbnail" ? "h-16 w-18" : size === "hero" ? "h-36 w-40" : "h-36 w-48"}`}

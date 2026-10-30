@@ -32,7 +32,7 @@ Stage 5 removed privileged database fallbacks; Phase B verified actual restricte
 
 Webhooks are not yet implemented; actual Stage 4 refund verification still needs separate approval. Merchant intelligence has genuine model-planned private Studio actions plus a clearly scripted fixture mode. Recall coverage remains one reviewed official CPSC notice; discovery remains fixture-based. Public licensing/hosting, real Channel3 and actual paid API acceptance remain unverified.
 
-**Everything you buy. Taken care of.**  
+**Everything you own. All cared for.**
 *Powered by CareOS · Independent PayPal AI Hackathon project*
 
 > **Price Guardian remains financially disabled pending separate actual-refund acceptance.** Existing purchases/Guardian records are preserved. Genuine subscription inference is verified only in the private owner preview; scripted/fixture assistance is never labeled live. Public licensing, actual Channel3, webhooks, paid API acceptance and deployment remain incomplete. [Current status](docs/STATUS.md) · [actual private AI evidence](docs/evidence/SUBSCRIPTION-QUALITY.md) · [Price Guardian](docs/PRICE-GUARDIAN.md).
@@ -47,7 +47,7 @@ The product's central object is a **Purchase Twin**, a durable, item-level recor
 
 CareOS adds a persistent customer assistant, scoped receipts, factual briefings and source-selected product care. Forma F-01 still has no manufacturer manual. Fixture mode says **no live AI**; private subscription mode says **Using ChatGPT plan · Sol Medium**. Paid API activation remains separate. [CareOS engineering](docs/CAREOS.md).
 
-The owner-approved appearance refresh uses **blue for Pal Care, saffron for CareOS and deep purple for supporting product care**, with layered light/dark surfaces. Home + Insights are the first review checkpoint; page-specific redesign of the remaining routes and owner visual acceptance are still pending. [Refresh evidence](docs/evidence/UI-REFRESH.md). Color does not establish a connected model or accepted feature. **System is the default:** Light/Dark overrides persist locally. Geist Sans remains bundled and self-hosted—no custom font service or browser request to Google Fonts.
+The new owner-approved appearance direction uses **bronze for Pal Care, violet for CareOS and green for explicitly verified states**, with the written guide's layered slate dark palette. **Milestone A isolated visuals are owner-approved; deployment is pending CI/refresh:** shared identity, Home/purchase cards and the existing CareOS panel are implemented; remaining page-specific redesign is a later gate. [Current design baseline](docs/design/BRONZE-VIOLET.md) · [ADR 0011](docs/adr/0011-bronze-violet-identity.md). Color does not establish a connected model or accepted feature. **System is the default:** Light/Dark overrides retain the existing local preference. Inter v4.1 is self-hosted with its OFL—no custom font service or browser request to Google Fonts. The owner authorized a coordinated refresh only after checks and exact-commit CI pass; the working preview stays on its existing build until then.
 
 See [Design system and visual references](docs/DESIGN.md). The Purchase Twin is the signature experience; deterministic/fixture/private-AI execution, in-progress features and sample/verified-sandbox provenance remain explicit in both themes.
 

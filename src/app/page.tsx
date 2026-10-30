@@ -54,8 +54,8 @@ export default function Home() {
               id="hero-title"
               className="mt-6 text-[clamp(2.75rem,5.8vw,5.25rem)] leading-[1.06] font-semibold tracking-[-.065em] break-words"
             >
-              Everything you buy.
-              <span className="mt-1 block text-primary">Taken care of.</span>
+              Everything you own.
+              <span className="mt-1 block text-primary">All cared for.</span>
             </h1>
             <p className="mt-6 max-w-lg text-lg leading-8 text-muted-foreground">
               Your purchases, paperwork, and useful next steps—together. Meet a
@@ -183,7 +183,7 @@ export default function Home() {
       <footer className="flex flex-wrap items-start justify-between gap-5 border-t py-8 text-sm text-muted-foreground">
         <div>
           <Brand />
-          <p className="mt-3">Everything you buy. Taken care of.</p>
+          <p className="mt-3">Everything you own. All cared for.</p>
         </div>
         <p className="max-w-md text-sm leading-7">
           Independent PayPal AI Hackathon project. Not an official PayPal

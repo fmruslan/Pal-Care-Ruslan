@@ -1,0 +1,29 @@
+# Bronze / Violet milestone A
+
+## Implemented
+
+Owner approved the proposed design direction and requested implementation. [ADR 0011](../adr/0011-bronze-violet-identity.md) / [current baseline](../design/BRONZE-VIOLET.md) preserve that scope and distinguish implementation from visual acceptance. This increment is **not yet deployed** to the private preview. Milestone B page-specific restructuring is not included.
+
+- Shared semantic Bronze/Violet/Green palette, warm neutral light theme and explicitly specified layered slate dark theme. Original brand hues remain fixed in the PC SVG; text/action/control/status colors are contrast-adjusted. Explicit hover colors replace opacity-based filled-button hover.
+- Original PC vector lockup and favicon, transparent, violet-left/bronze-right, no extra ornament or theme reversal. Official Inter v4.1 WOFF2 is self-hosted via `next/font/local` with pinned source hash and OFL; no package install, browser font CDN or license activation.
+- Four primary customer destinations retained, 224px desktop sidebar, existing System/Light/Dark preference and reduced-motion behavior. No new login, PayPal-connection badge, profile, notification, import, upload, note or monitoring capability is invented.
+- Home's compact introduction and existing purchase metrics lead into actual purchase cards, followed by the factual source-labeled care briefing. Cards retain existing product/date/amount-or-reference/documents/provenance and get a clearly named contextual **Ask CareOS** button alongside **View details**.
+- The contextual button uses the existing assistant and selected Twin; it never auto-submits. CareOS keeps neutral response/input surfaces, violet actions/prompts/focus, unchanged sources/error/recovery/status controls and the same root provider. Only the brand slogan changes in role/identity copy; capability restrictions are unchanged. No financial, authentication or accounting implementation is edited.
+- Native Studio shares Inter and semantic theme roles; all license notices remain. Shared theme effects on detail/Documents/Insights/secondary pages are not claimed as their completed page-specific redesign.
+
+## Verified
+
+Isolated source copy and production test services use the existing dedicated `_test` PostgreSQL network namespace, not application PostgreSQL. Primary `.next`, owner/provider state and service processes remain outside test writes. No worktree/branch, migration, credentials, provider activation or new permission was created. Tests use fixture/injected transports, not live model/PayPal calls.
+
+- Lint, format, typecheck, **810 units** and production build pass. Static regressions enforce text/control/action/hover contrast, local font/OFL and mark asset constraints; pure scroll-intent checks distinguish range-clamping from real upward reading.
+- Two focused desktop/mobile checks pass for card-selected context, preserved draft across theme/close/reopen and no turn/plan POST or external font request.
+- **18** targeted rendered CareOS/Insights/accessibility/reflow checks pass, including 320/375/390/430/834/1440px widths across desktop-light/mobile-dark configurations.
+- Initial unit harness run lacked `/tmp/opencode`; precreating that directory in the container fixed setup, without touching security code. The first broad fixture run exposed real 4.34:1 selected-bronze text and 4.09:1 hovered-button defects and was deliberately interrupted. Explicit semantic link/hover pairs fixed those defects; the dedicated rerun passes. A tool timeout interrupted the first targeted rerun after 11 passing cases; the complete 18-case rerun passes. These initial attempts are retained, not counted as successful full suites.
+- Normal comparison passes **48 fixture design/care/recovery**, **78 database design**, **15 cross-engine standing-access** and **10 injected-Sol/native-Studio/recovery/expiry** browsers. Fixture/database screenshots remain separate at unchanged thresholds. Exact commit/CI and actual preview/preserved-state checks are reported at handoff after execution. Screenshots are isolated fictional test records, not the owner's live purchase/session state.
+- The larger composer exposed a genuine scroll-intent edge case. An initial theory that polling alone would resolve it was disproved by repeat runs. Numeric-only isolated diagnostics established that Chrome clamped a previous 22px offset to zero when the range disappeared, and the handler treated that automatic layout adjustment as upward reading. `intentionalUpwardScroll` now rejects an old offset outside the current range while preserving true upward reading. The existing <24px follow postcondition remains intact and is awaited across layout. **Six** repeated desktop/mobile send/keyboard checks pass after correction. Diagnostic instrumentation was removed and never deployed.
+
+Evidence root: `/tmp/opencode/palcare-brand-a-20261030/`. Initial failure artifacts are retained there. Representative review images live in `tests/e2e/visual/{desktop,mobile}-{light,dark}/dashboard.png` and `assistant.png`; separate database Insights references remain `insights-database.png`.
+
+## Incomplete / blocked / next
+
+The owner reviewed the isolated desktop/mobile Light/Dark sheet and selected **Approve and refresh**, authorizing the bounded refresh only after remaining checks and exact-commit CI pass. Actual private preview acceptance requires that later coordinated stop/build/start, preservation checks and no owner re-pairing. Until CI passes and the refresh executes, the working preview remains at its prior runtime build; repository UI changes do not silently replace serving assets. Human Mac/mobile keyboard observations, external provider acceptance, licensing and public readiness remain their own gates. No fresh AI call is necessary for visual acceptance, and none is dispatched here.

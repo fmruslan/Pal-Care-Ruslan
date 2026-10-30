@@ -2,6 +2,15 @@
 
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
+export function intentionalUpwardScroll(
+  previous: number,
+  top: number,
+  maxTop: number,
+) {
+  // A position outside the new range was clamped by layout, not the reader.
+  return top < previous - 2 && previous <= Math.max(0, maxTop) + 2;
+}
+
 // Only the transcript scrolls. Atomic long replies open at their beginning.
 export function useConversationScroll(
   requestId: string | undefined,
@@ -94,7 +103,13 @@ export function useConversationScroll(
     const node = viewport.current;
     if (!node) return;
     const top = node.scrollTop;
-    if (top < position.current - 2) {
+    if (
+      intentionalUpwardScroll(
+        position.current,
+        top,
+        node.scrollHeight - node.clientHeight,
+      )
+    ) {
       following.current = false;
       setShowJump(true);
     } else if (node.scrollHeight - node.clientHeight - top < 48) {

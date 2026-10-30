@@ -2,88 +2,98 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #f7f9fc;
-  --foreground: #172033;
+  --background: #f8f9fc;
+  --foreground: #172336;
   --card: #ffffff;
   --sidebar: #ffffff;
-  --primary: #3458bf;
+  --primary: #8b4e22;
+  --primary-action: #a45f2b;
+  --primary-hover: #8b4e22;
   --primary-foreground: #ffffff;
-  --secondary: #eaf1ff;
-  --secondary-foreground: #3458bf;
-  --muted-foreground: #59677e;
-  --accent: #f2f6ff;
-  --border: #e0e6f0;
-  --input: #7c89a3;
-  --ring: #3458bf;
-  --brand: #3458bf;
-  --intelligence: #fff6e6;
-  --intelligence-foreground: #895000;
-  --intelligence-accent: #d98a1e;
-  --intelligence-on-accent: #172033;
-  --intelligence-border: #e7c48d;
-  --care: #f2ecfc;
-  --care-foreground: #6b42b8;
-  --lavender: #ad9af7;
-  --success: #116149;
-  --success-surface: #e9f7f0;
+  --secondary: #f8efe6;
+  --secondary-foreground: #8b4e22;
+  --muted-foreground: #56667a;
+  --accent: #f1f3f6;
+  --border: #e1e6eb;
+  --input: #7b8794;
+  --ring: #a45f2b;
+  --brand: #b8733a;
+  --brand-violet: #8078e5;
+  --verified: #2e9f61;
+  --intelligence: #f3f1fc;
+  --intelligence-foreground: #6247be;
+  --intelligence-accent: #6f57cd;
+  --intelligence-hover: #6047b9;
+  --intelligence-on-accent: #ffffff;
+  --intelligence-border: #8b78c5;
+  --care: #f3f1fc;
+  --care-foreground: #6247be;
+  --lavender: #8078e5;
+  --success: #18683e;
+  --success-surface: #e9f7ee;
   --warning: #80520c;
   --warning-surface: #fff5df;
   --danger: #a32942;
   --danger-surface: #fff0f2;
-  --neutral: #f0f3f9;
-  --hero-start: #eef4ff;
-  --hero-end: #f4efff;
-  --art-surface: #eaf0fc;
+  --neutral: #f1f3f6;
+  --hero-start: #f8efe6;
+  --hero-end: #f3f1fc;
+  --art-surface: #eef1f4;
   --art-body: #6385df;
   --art-edge: #304d9c;
   --art-highlight: #c3d3ff;
   --art-alt: #8b65ca;
   --art-shadow: #3157b7;
-  --elevation: 0 4px 24px -14px rgb(34 58 112 / 18%);
-  --elevation-hover: 0 16px 40px -22px rgb(49 87 183 / 30%);
+  --elevation: 0 4px 20px -12px rgb(23 35 54 / 12%);
+  --elevation-hover: 0 10px 28px -18px rgb(23 35 54 / 22%);
   color-scheme: light;
 }
 
 .dark {
-  --background: #0e111d;
-  --foreground: #f3f6fc;
-  --sidebar: #131926;
-  --card: #192236;
-  --primary: #9bb6ff;
-  --primary-foreground: #0e111d;
-  --secondary: #1a2540;
-  --secondary-foreground: #afc4ff;
-  --muted-foreground: #b0bed4;
-  --accent: #202c46;
-  --border: #303b51;
-  --input: #7182a4;
-  --ring: #afc4ff;
-  --brand: #9bb6ff;
-  --intelligence: #352919;
-  --intelligence-foreground: #f2b24d;
-  --intelligence-accent: #f2b24d;
-  --intelligence-on-accent: #172033;
-  --intelligence-border: #7e6032;
-  --care: #2c2142;
-  --care-foreground: #b794f4;
-  --lavender: #c4b5fd;
-  --success: #9ce0bf;
-  --success-surface: #142c29;
+  --background: #35414c;
+  --foreground: #ffffff;
+  --sidebar: #303c47;
+  --card: #45525f;
+  --primary: #f0bb83;
+  --primary-action: #c98244;
+  --primary-hover: #dc9d66;
+  --primary-foreground: #1c2530;
+  --secondary: #514131;
+  --secondary-foreground: #ffe1bf;
+  --muted-foreground: #d9e2e8;
+  --accent: #53616e;
+  --border: #697786;
+  --input: #b6c2ce;
+  --ring: #f0bb83;
+  --brand: #b8733a;
+  --brand-violet: #8078e5;
+  --verified: #2e9f61;
+  --intelligence: #464563;
+  --intelligence-foreground: #d0caff;
+  --intelligence-accent: #a9a1ff;
+  --intelligence-hover: #bcb6ff;
+  --intelligence-on-accent: #1c2530;
+  --intelligence-border: #a9a1ff;
+  --care: #464563;
+  --care-foreground: #d0caff;
+  --lavender: #a9a1ff;
+  --success: #b9f4cf;
+  --success-surface: #334f44;
   --warning: #ffd38f;
   --warning-surface: #302818;
   --danger: #ffb1bd;
   --danger-surface: #351e2b;
-  --neutral: #1b2539;
-  --hero-start: #192848;
-  --hero-end: #28223f;
-  --art-surface: #1a2540;
-  --art-body: #87a8fa;
-  --art-edge: #cfddff;
-  --art-highlight: #b5cbff;
-  --art-alt: #b794f4;
-  --art-shadow: #050918;
-  --elevation: 0 6px 28px -16px rgb(0 0 0 / 45%);
-  --elevation-hover: 0 16px 40px -20px rgb(0 0 0 / 65%);
+  --neutral: #53616e;
+  --hero-start: #45525f;
+  --hero-end: #464563;
+  --art-surface: #aab4be;
+  --art-body: #4269bf;
+  --art-edge: #243b69;
+  --art-highlight: #d4e0fa;
+  --art-alt: #7851b8;
+  --art-shadow: #1c2530;
+  --elevation: 0 4px 20px -14px rgb(0 0 0 / 18%);
+  --elevation-hover: 0 10px 28px -18px rgb(0 0 0 / 25%);
   color-scheme: dark;
 }
 
@@ -93,6 +103,8 @@
   --color-card: var(--card);
   --color-sidebar: var(--sidebar);
   --color-primary: var(--primary);
+  --color-primary-action: var(--primary-action);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -105,6 +117,7 @@
   --color-intelligence: var(--intelligence);
   --color-intelligence-foreground: var(--intelligence-foreground);
   --color-intelligence-accent: var(--intelligence-accent);
+  --color-intelligence-hover: var(--intelligence-hover);
   --color-intelligence-on-accent: var(--intelligence-on-accent);
   --color-intelligence-border: var(--intelligence-border);
   --color-care: var(--care);
@@ -117,8 +130,8 @@
   --color-danger: var(--danger);
   --color-danger-surface: var(--danger-surface);
   --color-neutral: var(--neutral);
-  --font-sans: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  --font-display: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  --font-sans: var(--font-inter), Arial, Helvetica, sans-serif;
+  --font-display: var(--font-inter), Arial, Helvetica, sans-serif;
   --shadow-card: var(--elevation);
   --shadow-lift: var(--elevation-hover);
 }
@@ -130,8 +143,8 @@
   body {
     background: var(--background);
     color: var(--foreground);
-    font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-    line-height: 1.6;
+    font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }
   h1,
@@ -259,9 +272,7 @@
     border-color: var(--intelligence-border);
   }
   .product-wash {
-    background:
-      radial-gradient(ellipse at 50% 25%, var(--card), transparent 65%),
-      var(--art-surface);
+    background: var(--art-surface);
   }
   .passport-frame {
     background: linear-gradient(
@@ -283,13 +294,13 @@
     color: var(--primary);
   }
   .section-title {
-    font-size: clamp(1.35rem, 2.2vw, 1.75rem);
-    font-weight: 600;
+    font-size: clamp(1.25rem, 2.2vw, 1.375rem);
+    font-weight: 700;
   }
   .page-title {
-    font-size: clamp(1.75rem, 2.8vw, 2.5rem);
-    font-weight: 600;
-    line-height: 1.1;
+    font-size: clamp(1.625rem, 2.8vw, 2rem);
+    font-weight: 700;
+    line-height: 1.2;
   }
   .motion-card {
     transition:

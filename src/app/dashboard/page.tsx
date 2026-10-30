@@ -4,9 +4,7 @@ import { getDemoData } from "@/lib/demo/repository";
 import { Shell } from "@/components/shell";
 import { Card } from "@/components/ui/card";
 import { PageHeading } from "@/components/page-heading";
-import { ProductArt } from "@/components/product-art";
 import { PurchaseMetrics } from "@/components/purchase-metrics";
-import { findTwin } from "@/lib/demo/presentation";
 import { TwinList } from "@/components/vault";
 import { PurchaseActivity } from "@/components/purchase-activity";
 import { CareBriefing } from "@/components/careos/briefing";
@@ -23,26 +21,15 @@ export default async function Dashboard() {
     getPurchaseActivity(data),
     getKnowledge(),
   ]);
-  const featured = data.twins
-    .map((twin) => findTwin(data, twin.id))
-    .find(Boolean);
   return (
     <Shell active="/dashboard" source={data.source}>
-      <div className="mb-5 flex items-center justify-between gap-6 [&>div:first-child]:mb-0">
+      <div className="mb-8 max-w-3xl [&>div:first-child]:mb-0">
         <PageHeading
-          eyebrow="Home · Your everyday, connected."
-          title={`Your care space, ${data.customer.name}.`}
-          description="Start with your purchases. Explore source-labeled Insights and the paperwork that belongs with them."
+          eyebrow="Your purchases. A little more organized."
+          title={`Everything you own, ${data.customer.name}.`}
+          description="All cared for. Your saved purchases, receipts and supported guidance, together in one place."
         />
-        {featured && (
-          <div className="hidden shrink-0 md:block">
-            <ProductArt kind={featured.product.illustration} size="hero" />
-          </div>
-        )}
       </div>
-      <CareBriefing
-        items={buildBriefing(data, knowledge, guardian.cases, activity)}
-      />
       <PurchaseMetrics
         purchases={data.twins.length}
         documents={data.documents.length}
@@ -63,6 +50,11 @@ export default async function Dashboard() {
         </div>
         <TwinList data={data} compact />
       </section>
+      <div className="mt-8">
+        <CareBriefing
+          items={buildBriefing(data, knowledge, guardian.cases, activity)}
+        />
+      </div>
       <div className="mt-9 grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <section className="min-w-0" aria-labelledby="care-title">
           <div className="mb-5">

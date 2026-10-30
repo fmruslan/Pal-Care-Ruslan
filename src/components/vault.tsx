@@ -5,7 +5,6 @@ import {
   FileText,
   Download,
   CalendarDays,
-  Layers2,
   Check,
 } from "lucide-react";
 import { Button } from "./ui/button";
@@ -15,6 +14,7 @@ import type { CareDocument, DemoData } from "@/db/schema";
 import { findTwin, money, displayDate } from "@/lib/demo/presentation";
 import { REFERENCE_PRODUCT } from "@/lib/careos/knowledge";
 import { ProductArt } from "./product-art";
+import { AskCareOS } from "./careos/provider";
 
 export function PurchaseBadge({ origin }: { origin: string }) {
   return (
@@ -65,7 +65,11 @@ export function TwinList({
         const record = findTwin(data, twin.id);
         if (!record) return null;
         return (
-          <Card key={twin.id} className="motion-card group p-3 sm:p-4">
+          <Card
+            key={twin.id}
+            className="motion-card group flex flex-col p-4"
+            data-purchase-card={twin.id}
+          >
             <div className="relative">
               <ProductArt
                 kind={record.product.illustration}
@@ -74,11 +78,8 @@ export function TwinList({
               <span className="absolute top-3 left-3">
                 <PurchaseBadge origin={twin.origin} />
               </span>
-              <span className="absolute right-3 bottom-3 rounded-xl border bg-card p-2 text-primary">
-                <Layers2 className="size-4" aria-hidden="true" />
-              </span>
             </div>
-            <div className="px-1 pt-3">
+            <div className="flex flex-1 flex-col px-1 pt-4">
               <p className="text-sm text-muted-foreground">
                 {record.product.brand} <span aria-hidden="true">/</span>{" "}
                 {record.product.category}
@@ -107,7 +108,7 @@ export function TwinList({
                   href={`/vault/${twin.id}`}
                   className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary"
                 >
-                  View Twin
+                  View details
                   <span className="sr-only"> for {record.product.name}</span>
                   <ArrowRight
                     className="size-4 transition-transform group-hover:translate-x-0.5"
@@ -119,6 +120,19 @@ export function TwinList({
                 {record.events.length} source-labeled care event
                 {record.events.length !== 1 && "s"}
               </p>
+              <div className="mt-auto pt-4">
+                <AskCareOS
+                  label={`Ask CareOS about ${record.product.name}`}
+                  context={{
+                    twinId: twin.id,
+                    name: record.product.name,
+                    model: record.product.model,
+                    origin: twin.origin,
+                  }}
+                >
+                  Ask CareOS
+                </AskCareOS>
+              </div>
             </div>
           </Card>
         );

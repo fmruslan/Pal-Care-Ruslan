@@ -1,4 +1,6 @@
-# Pal Care — Blue / Saffron / Deep Purple design system
+# Pal Care — design system
+
+**Current owner-approved direction (2026-10-30):** [Bronze / Violet design baseline](design/BRONZE-VIOLET.md) and [ADR 0011](adr/0011-bronze-violet-identity.md) supersede the color/typography/logo assignments below. Milestone A (shared identity + Home/cards/CareOS) has owner approval of the isolated Light/Dark review; deployment awaits exact-commit CI and a coordinated refresh, not implied by screenshots alone. All security, appearance-persistence, source-truth, native SDK and financial boundaries remain in force. The following Blue/Saffron sections are preserved as historical evidence, not the active styling prescription.
 
 **2026-10-29 owner-approved refresh:** [ADR 0010](adr/0010-blue-saffron-purple.md) replaces lavender CareOS branding with saffron and reserves deep purple for supporting care. Home + Insights are the first visual review checkpoint, not a completed whole-site page redesign or owner acceptance. Historical visual/functional evidence below remains historical; [refresh evidence](evidence/UI-REFRESH.md) records fresh results separately.
 

@@ -541,7 +541,7 @@ test("Insights source records retain the exact Twin, receipt and reference-care 
   }
   await page.goto("/vault");
   const vaultRecords = await page
-    .getByRole("link", { name: /^View Twin for / })
+    .getByRole("link", { name: /^View details for / })
     .evaluateAll((links) =>
       links
         .map((link) => {

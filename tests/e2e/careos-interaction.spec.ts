@@ -303,13 +303,17 @@ test("question renders before a held response; Enter, newline, IME and repeat gu
   await expect(dialog.locator("[data-user-message]")).toHaveCount(1);
   await expect(composer).toHaveValue("A draft for later");
   await expect(composer).toBeFocused();
-  expect(
-    await dialog
-      .locator(".careos-transcript")
-      .evaluate(
-        (node) => node.scrollHeight - node.clientHeight - node.scrollTop,
-      ),
-  ).toBeLessThan(24);
+  // ResizeObserver restores following after composer/viewport reflow. Await its
+  // actual postcondition rather than racing it in the response's first frame.
+  await expect
+    .poll(() =>
+      dialog
+        .locator(".careos-transcript")
+        .evaluate(
+          (node) => node.scrollHeight - node.clientHeight - node.scrollTop,
+        ),
+    )
+    .toBeLessThan(24);
 });
 
 test("long atomic answers reveal their beginning, while intentional scroll-up pauses follow", async ({

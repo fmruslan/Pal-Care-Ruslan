@@ -234,7 +234,7 @@ test("a delayed answer retains its original product after client-side navigation
   await page.keyboard.press("Escape");
   await page.getByRole("link", { name: "Back to purchase vault" }).click();
   await page
-    .getByRole("link", { name: "View Twin for Raspberry Pi 5" })
+    .getByRole("link", { name: "View details for Raspberry Pi 5" })
     .click();
   await launcher(page).click();
   release();

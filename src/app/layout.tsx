@@ -1,14 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { GeistSans } from "geist/font/sans";
+import localFont from "next/font/local";
 import { ThemeProvider } from "@/components/theme-provider";
 import { CareOSProvider } from "@/components/careos/provider";
 import { InsightsControlProvider } from "@/components/intelligence/customer-control";
 import { parseCareConfig } from "@/lib/careos/config";
 import "./globals.css";
 
+const inter = localFont({
+  src: "../../public/fonts/InterVariable-v4.1.woff2",
+  variable: "--font-inter",
+  display: "swap",
+  weight: "100 900",
+});
+
 export const metadata: Metadata = {
   title: {
-    default: "Pal Care — Everything you buy. Taken care of.",
+    default: "Pal Care — Everything you own. All cared for.",
     template: "%s · Pal Care",
   },
   description:
@@ -19,8 +26,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   colorScheme: "light dark",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F7F9FC" },
-    { media: "(prefers-color-scheme: dark)", color: "#0E111D" },
+    { media: "(prefers-color-scheme: light)", color: "#F8F9FC" },
+    { media: "(prefers-color-scheme: dark)", color: "#35414C" },
   ],
 };
 
@@ -38,7 +45,7 @@ export default function RootLayout({
   const ownerMode = process.env.CAREOS_OWNER_MODE === "true";
   const expires = Date.parse(process.env.CAREOS_EVALUATION_EXPIRES_AT ?? "");
   return (
-    <html lang="en" suppressHydrationWarning className={GeistSans.variable}>
+    <html lang="en" suppressHydrationWarning className={inter.variable}>
       <body>
         <ThemeProvider>
           <a

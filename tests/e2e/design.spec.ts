@@ -5,6 +5,52 @@ const themeKey = "palcare-appearance";
 const twin = "/vault/00000000-0000-4000-8000-000000000201";
 const dataSource = process.env.E2E_DATA_SOURCE ?? "fixtures";
 
+test("purchase-card CareOS uses the existing assistant, keeps drafts across appearance changes and sends no model turn", async ({
+  page,
+}) => {
+  const turns: string[] = [],
+    remoteFonts: string[] = [];
+  page.on("request", (request) => {
+    if (
+      request.method() === "POST" &&
+      /\/turns$|\/plan$/.test(new URL(request.url()).pathname)
+    )
+      turns.push(request.url());
+    if (
+      /fonts\.(googleapis|gstatic)\.com/.test(new URL(request.url()).hostname)
+    )
+      remoteFonts.push(request.url());
+  });
+  await page.goto("/dashboard");
+  await expect(page.locator("[data-purchase-card]")).toHaveCount(4);
+  await page
+    .getByRole("button", {
+      name: "Ask CareOS about Everyday headphones",
+      exact: true,
+    })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "CareOS", exact: true });
+  await expect(
+    dialog.getByText("Everyday headphones · F-01", { exact: true }),
+  ).toBeVisible();
+  const composer = dialog.getByLabel("Ask about your purchase");
+  await composer.fill("Keep my unsent care question");
+  // The desktop panel is nonmodal; mobile closes/reopens without losing its draft.
+  await dialog.getByRole("button", { name: "Close CareOS" }).click();
+  await page.getByRole("combobox", { name: "Appearance" }).selectOption("dark");
+  await page.locator(".careos-launcher").click();
+  await expect(composer).toHaveValue("Keep my unsent care question");
+  await expect(composer).toHaveCSS("background-color", "rgb(53, 65, 76)");
+  await expect(composer).toHaveCSS("border-top-color", "rgb(169, 161, 255)");
+  expect(
+    await page
+      .locator("body")
+      .evaluate((el) => getComputedStyle(el).fontFamily),
+  ).toMatch(/inter/i);
+  expect(turns).toEqual([]);
+  expect(remoteFonts).toEqual([]);
+});
+
 test("System is the default, follows OS changes, and updates native/browser colors", async ({
   page,
 }) => {
@@ -17,13 +63,13 @@ test("System is the default, follows OS changes, and updates native/browser colo
   await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
   await expect(
     page.locator('meta[name="theme-color"]').first(),
-  ).toHaveAttribute("content", "#0e111d");
+  ).toHaveAttribute("content", "#35414c");
   await page.emulateMedia({ colorScheme: "light" });
   await expect(page.locator("html")).toHaveClass(/light/);
   await expect(selector).toHaveValue("system");
   await expect(
     page.locator('meta[name="theme-color"]').first(),
-  ).toHaveAttribute("content", "#f7f9fc");
+  ).toHaveAttribute("content", "#f8f9fc");
 });
 
 test("Light/Dark overrides persist across reload/navigation and System restores OS following", async ({

@@ -32,10 +32,15 @@ for (const theme of ["light", "dark"]) {
       ["muted-foreground", "card"],
       ["muted-foreground", "secondary"],
       ["primary-foreground", "primary"],
+      ["primary-foreground", "primary-action"],
+      ["primary-foreground", "primary-hover"],
+      ["primary", "card"],
+      ["primary", "secondary"],
       ["secondary-foreground", "secondary"],
       ["intelligence-foreground", "intelligence"],
       ["intelligence-foreground", "card"],
       ["intelligence-on-accent", "intelligence-accent"],
+      ["intelligence-on-accent", "intelligence-hover"],
       ["muted-foreground", "intelligence"],
       ["care-foreground", "care"],
       ["care-foreground", "card"],
@@ -48,7 +53,7 @@ for (const theme of ["light", "dark"]) {
           ratio(tokens[foreground], tokens[background]),
         ).toBeGreaterThanOrEqual(4.5));
     }
-    for (const indicator of ["ring", "input"]) {
+    for (const indicator of ["ring", "input", "intelligence-border"]) {
       it(`${indicator} is distinguishable on card and page surfaces`, () => {
         expect(ratio(tokens[indicator], tokens.card)).toBeGreaterThanOrEqual(3);
         expect(
@@ -58,3 +63,27 @@ for (const theme of ["light", "dark"]) {
     }
   });
 }
+
+it("uses the approved two-tone PC mark and a version-pinned local Inter asset", () => {
+  const logo = readFileSync(
+    new URL("../../src/app/icon.svg", import.meta.url),
+    "utf8",
+  );
+  expect(logo).toContain("#8078E5");
+  expect(logo).toContain("#B8733A");
+  expect(logo).toContain('rx="18"');
+  expect(logo).not.toMatch(/<text|<image|filter=|(?:href|src)="https?:/);
+  const layout = readFileSync(
+    new URL("../../src/app/layout.tsx", import.meta.url),
+    "utf8",
+  );
+  expect(layout).toContain("next/font/local");
+  expect(layout).toContain("InterVariable-v4.1.woff2");
+  expect(css).toContain("--font-inter");
+  expect(
+    readFileSync(
+      new URL("../../public/licenses/inter-OFL.txt", import.meta.url),
+      "utf8",
+    ),
+  ).toContain("SIL OPEN FONT LICENSE");
+});

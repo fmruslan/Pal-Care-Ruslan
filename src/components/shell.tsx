@@ -69,12 +69,14 @@ export function Shell({
       customerExploreNavigation.find((link) => link.href === active)?.label ??
       "Purchase Twin");
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
+    <div className="min-h-screen lg:grid lg:grid-cols-[224px_minmax(0,1fr)]">
       <aside className="sticky top-0 hidden h-dvh flex-col border-r bg-sidebar lg:flex">
         <div className="px-7 py-6">
           <Brand href={merchant ? "/merchant" : "/dashboard"} />
           <p className="mt-5 text-sm text-muted-foreground">
-            {merchant ? "Your merchant workspace" : "Your everyday, cared for."}
+            {merchant
+              ? "Your merchant workspace"
+              : "Everything you own. All cared for."}
           </p>
         </div>
         <nav
@@ -86,7 +88,7 @@ export function Shell({
               key={href}
               href={href}
               aria-current={selected === href ? "page" : undefined}
-              className={`flex min-h-12 items-center gap-3 rounded-xl px-4 text-sm font-medium transition-colors ${selected === href ? "bg-secondary text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+              className={`flex min-h-12 items-center gap-3 rounded-xl px-4 text-sm font-medium transition-colors ${selected === href ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
             >
               <Icon className="size-[18px]" aria-hidden="true" />
               {label}

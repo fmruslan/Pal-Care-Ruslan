@@ -31,7 +31,7 @@ This is an independent PayPal AI Hackathon project. Treat `docs/STATUS.md` as th
 ## Application boundaries
 
 - One Next.js modular monolith; background jobs share domain services.
-- Follow `docs/DESIGN.md` and ADR 0010 for the owner-approved Blue / Saffron / Deep Purple identity (superseding ADR 0004's lavender CareOS assignment). Use semantic light/dark tokens, System-default appearance, readable contrast and reduced-motion support. Keep sample, sandbox verification and planned intelligence labels explicit.
+- Follow `docs/DESIGN.md` and ADR 0011 for the owner-approved Bronze / Violet identity and slate dark theme (superseding ADR 0010's Blue / Saffron assignment). Milestone A's isolated visuals are approved; actual-preview/CI evidence is tracked in STATUS. Do not label later page-specific work complete from shared tokens alone. Use semantic light/dark tokens, System-default appearance, readable contrast and reduced-motion support. Keep sample, sandbox verification and planned intelligence labels explicit.
 - Appearance preference is browser-local and never authorization. Do not key/remount checkout by theme or issue financial requests when appearance changes. Existing approval/expiry defects are separate tasks, not visual-redesign fixes.
 - Use Render Managed PostgreSQL and Drizzle. No Supabase, customer registration, login, or real customer information in the hackathon MVP.
 - Both dashboards are public, read-only demo views. Only the explicitly enabled, bounded sandbox checkout service can create verified purchase records; dashboard visibility grants no merchant-write authority.
