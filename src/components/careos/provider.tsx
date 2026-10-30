@@ -239,17 +239,28 @@ export function CareOSProvider({
                                 ? "Model disabled · saved records only"
                                 : "Model configuration unavailable"}
                   </p>
-                  {mode === "subscription" && (
-                    <a
-                      href="https://chatgpt.com/settings/usage"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs text-primary underline"
-                      title="Private GPT-6.1 Sol · medium reasoning"
+                  {(mode === "subscription" || mode === "responses") && (
+                    <Link
+                      href="/ai-evaluation"
+                      onClick={() => setOpen(false)}
+                      className="mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-primary underline"
                     >
-                      Manage ChatGPT usage
-                    </a>
+                      Testing access
+                    </Link>
                   )}
+                  {mode === "subscription" &&
+                    !aiExpired &&
+                    !aiAccessDisabled && (
+                      <a
+                        href="https://chatgpt.com/settings/usage"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-primary underline"
+                        title="Private GPT-6.1 Sol · medium reasoning"
+                      >
+                        Manage ChatGPT usage
+                      </a>
+                    )}
                 </div>
                 <div className="flex gap-0">
                   <Button

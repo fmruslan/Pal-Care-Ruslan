@@ -1,5 +1,7 @@
 # Private ChatGPT-powered CareOS development
 
+**Current access procedure:** use the Tailscale HTTPS bookmark and [Testing access](TESTING-ACCESS.md), not historical tunnel/token-copy instructions below. The site currently prepares a request only; HTTPS renewal/pairing/live activation remain disabled pending exact owner approval. OAuth access tokens are separate from the testing window. The existing adapter refreshes provider tokens only within authorized server-side use; this request UI never refreshes or reconnects credentials. Preserve GreatBison's sole refresh chain and all prior attempts/unknowns.
+
 **Implemented and actual-application verified on GreatBison, 2026-10-27.** CareOS uses its own official ChatGPT authorization with `gpt-6.1-sol` / medium. The private preview binds to **127.0.0.1:3002**, uses the existing restricted PostgreSQL reader/CareOS logins and original **0015 / 29-table** database. Original port 3000/configuration is not replaced. No PayPal call, paid API fallback, public deployment or application migration.
 
 [Actual product-quality evaluation](evidence/SUBSCRIPTION-QUALITY.md) · [historical failed pilot](evidence/CHATGPT-PILOT.md) · [separately deferred API path](AI-EVALUATION.md)

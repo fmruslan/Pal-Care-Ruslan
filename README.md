@@ -14,6 +14,8 @@
 
 **Private owner/AI state:** `/ai-evaluation` reports the retained expired deadline; tailnet reachability and Studio presentation grant no owner/model authority. The HTTPS preview does not migrate localhost grants/cookies or enable pairing. No renewal, paid API or financial operation is authorized. [Historical pairing evidence](docs/evidence/PRIVATE-ACCESS.md) is not the current browsing procedure.
 
+**Testing access:** choose **Testing access** inside CareOS, or open `/ai-evaluation`. The HTTPS page explains expiry versus provider tokens and prepares a bounded non-secret request to copy into the existing owner OpenCode conversation. This is request preparation **only**, not a submitted request, owner authentication, renewal or live-chat activation. No manual token copying/SSH tunnel. [Steps and remaining activation boundary](docs/TESTING-ACCESS.md).
+
 The original failed pilot is retained as historical evidence. Its empty terminal-output issue was diagnosed and corrected in a separately approved session, later increased to **50 total subscription requests without resetting usage**. API-dollar budgets are not applied to subscription inference. [Historical pilot](docs/evidence/CHATGPT-PILOT.md).
 
 Useful fresh Sol Medium calls are authorized only within the existing actually unexpired session and remaining allowance/accounting. Check actual expiry/usage before every call; preserve attempts and unknowns. Earlier **28/50** observations remain historical; the five customer acceptance tasks left **33/50**, two unknowns and unchanged **`2026-10-29T22:10:58.310Z`** expiry at the [documented checkpoint](docs/STATUS.md). Neither snapshot is future permission or renewal. No new allowance/reset/renewal or paid fallback is authorized.
