@@ -47,11 +47,13 @@ export function CareOSProvider({
   mode = "fixture",
   aiExpiresAt,
   aiAccessDisabled = false,
+  ownerAccess = false,
 }: {
   children: ReactNode;
   mode?: "fixture" | "disabled" | "responses" | "subscription" | "unavailable";
   aiExpiresAt?: number;
   aiAccessDisabled?: boolean;
+  ownerAccess?: boolean;
 }) {
   const [clock, setClock] = useState(0);
   const aiExpired =
@@ -245,7 +247,7 @@ export function CareOSProvider({
                       onClick={() => setOpen(false)}
                       className="mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-primary underline"
                     >
-                      Testing access
+                      {ownerAccess ? "AI access" : "Testing access"}
                     </Link>
                   )}
                   {mode === "subscription" &&

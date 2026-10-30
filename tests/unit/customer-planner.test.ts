@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+vi.mock("server-only", () => ({}));
 import type { Pool } from "pg";
 import { z } from "zod";
 import { zodTextFormat } from "openai/helpers/zod";

@@ -367,14 +367,22 @@ export async function accessToken(
   } catch (error) {
     if (
       error instanceof PilotError &&
-      error.code.startsWith("pilot_oauth_") &&
-      error.code !== "pilot_oauth_invalid_client"
+      [
+        "invalid_grant",
+        "invalid_refresh_token",
+        "token_expired",
+        "refresh_token_expired",
+        "refresh_token_invalidated",
+        "refresh_token_reused",
+      ].some((code) => error.code === `pilot_oauth_${code}`)
     )
       await files.write("registration.json", {
         format: r.format,
         clientId: r.clientId,
         subject: r.subject,
       });
+    // Invalid-client, infrastructure and lost/malformed responses preserve the
+    // credential set and pending marker. Never replay a possibly rotated token.
     throw error;
   }
   const tokens = tokensFrom(raw, r.tokens.nonce, r.tokens.idToken);

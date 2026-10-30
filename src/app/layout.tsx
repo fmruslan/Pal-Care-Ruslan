@@ -35,6 +35,7 @@ export default function RootLayout({
     mode = "unavailable";
   }
   const liveMode = mode === "subscription" || mode === "responses";
+  const ownerMode = process.env.CAREOS_OWNER_MODE === "true";
   const expires = Date.parse(process.env.CAREOS_EVALUATION_EXPIRES_AT ?? "");
   return (
     <html lang="en" suppressHydrationWarning className={GeistSans.variable}>
@@ -49,11 +50,17 @@ export default function RootLayout({
           <InsightsControlProvider>
             <CareOSProvider
               mode={mode}
+              ownerAccess={ownerMode}
               aiExpiresAt={
-                liveMode && Number.isFinite(expires) ? expires : undefined
+                !ownerMode && liveMode && Number.isFinite(expires)
+                  ? expires
+                  : undefined
               }
               aiAccessDisabled={
-                liveMode && process.env.CAREOS_EVALUATION_ENABLED !== "true"
+                liveMode &&
+                (ownerMode
+                  ? process.env.CAREOS_STANDING_AI_ENABLED !== "true"
+                  : process.env.CAREOS_EVALUATION_ENABLED !== "true")
               }
             >
               {children}

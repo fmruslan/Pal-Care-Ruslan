@@ -41,7 +41,9 @@ type FileName =
   | "application.json"
   | "owner-access.json"
   | "preservation.json"
-  | "quality.json";
+  | "quality.json"
+  | "owner-state.json"
+  | "standing-approval.json";
 
 // Protected host storage. No environment loader or database dependency.
 // A stale lock is deliberately NOT stolen: inspect an interrupted run first.
@@ -77,7 +79,10 @@ export class PilotFiles {
         s.uid !== process.getuid?.() ||
         s.mode & 0o077 ||
         s.nlink !== 1 ||
-        s.size > (name === "quality.json" ? 1048576 : 131072)
+        s.size >
+          (["quality.json", "owner-state.json"].includes(name)
+            ? 1048576
+            : 131072)
       )
         throw new PilotError("pilot_unsafe_file");
       try {
@@ -93,7 +98,10 @@ export class PilotFiles {
     // Refuse unsafe existing targets, even though rename itself does not follow them.
     await this.read(name);
     const body = JSON.stringify(value, null, 2) + "\n";
-    if (Buffer.byteLength(body) > (name === "quality.json" ? 1048576 : 131072))
+    if (
+      Buffer.byteLength(body) >
+      (["quality.json", "owner-state.json"].includes(name) ? 1048576 : 131072)
+    )
       throw new PilotError("pilot_file_too_large");
     // Private host state is provisioned at runtime, never a deployment asset.
     const temp = join(

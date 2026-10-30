@@ -1,5 +1,7 @@
 import { EvaluationAccess } from "@/components/careos/evaluation-access";
 import { TestingAccess } from "@/components/careos/testing-access";
+import { OwnerSettings } from "@/components/careos/owner-settings";
+import { standingOwnerMode } from "@/lib/careos/standing-runtime";
 import { privateHttpsPresentation } from "@/lib/private-preview-origin";
 import { cookies } from "next/headers";
 import { homedir } from "node:os";
@@ -9,6 +11,16 @@ import {
   evaluationCookie,
 } from "@/lib/careos/evaluation-access";
 export default async function EvaluationPage() {
+  if (standingOwnerMode())
+    return (
+      <main
+        id="main-content"
+        className="mx-auto max-w-2xl space-y-5 p-5 sm:p-8"
+      >
+        <h1 className="text-2xl font-semibold">CareOS AI access</h1>
+        <OwnerSettings />
+      </main>
+    );
   const jar = await cookies();
   const access = evaluationAccessStatus(
     {

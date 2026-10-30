@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { z } from "zod";
 import { PilotFiles } from "./files";
 import { subscriptionStructured } from "./session";
+import { standingStructured } from "./standing";
+import { StandingOwner, type OwnerProof } from "../standing-owner";
 import {
   CARE_INSTRUCTIONS,
   CARE_SELECTION_INSTRUCTIONS,
@@ -16,7 +18,11 @@ export const subscriptionFiles = () =>
   new PilotFiles(join(homedir(), ".config/palcare-chatgpt-pilot"));
 export class SubscriptionProvider implements CareModel {
   constructor(
-    private context: { scope: "customer" | "studio"; requestId: string },
+    private context: {
+      scope: "customer" | "studio";
+      requestId: string;
+      ownerProof?: OwnerProof;
+    },
     private files = subscriptionFiles(),
   ) {}
   structured<T extends z.ZodType>(
@@ -26,6 +32,26 @@ export class SubscriptionProvider implements CareModel {
     signal: AbortSignal,
     prompt = CARE_INSTRUCTIONS,
   ) {
+    if (this.context.ownerProof) {
+      return standingStructured({
+        files: this.files,
+        owner: new StandingOwner(),
+        proof: this.context.ownerProof,
+        scope: this.context.scope === "studio" ? "customer-studio" : "customer",
+        enabled: () =>
+          process.env.CAREOS_OWNER_MODE === "true" &&
+          process.env.APP_ORIGIN ===
+            "https://greatbison.tail9e8802.ts.net:8444" &&
+          process.env.CAREOS_SUBSCRIPTION_CREDITS_DISABLED === "true" &&
+          process.env.CAREOS_STANDING_AI_ENABLED === "true",
+        requestId: this.context.requestId,
+        payload,
+        schema,
+        name,
+        signal,
+        prompt,
+      });
+    }
     return subscriptionStructured({
       files: this.files,
       ...this.context,

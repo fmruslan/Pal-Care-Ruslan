@@ -13,6 +13,10 @@ import {
   evaluationCookie,
 } from "@/lib/careos/evaluation-access";
 import { CareError } from "@/lib/careos/contracts";
+import {
+  assertStandingOwner,
+  standingOwnerMode,
+} from "@/lib/careos/standing-runtime";
 import { PostgresStore } from "@/lib/careos/postgres-store";
 import { ResponsesProvider } from "@/lib/careos/providers/responses";
 import { SubscriptionProvider } from "@/lib/careos/subscription/provider";
@@ -53,11 +57,22 @@ async function customerStudioAccess(request: Request, mutation: boolean) {
     !studioEvaluationAllowed(process.env, request.headers.get("host") ?? "")
   )
     throw new CareError("customer_dashboard_live_unavailable");
-  const token = (await cookies()).get(evaluationCookie("studio"))?.value;
-  assertEvaluationAccess("studio", token, process.env);
+  const ownerProof =
+    config.mode === "subscription" && standingOwnerMode()
+      ? await assertStandingOwner()
+      : undefined;
+  const token =
+    ownerProof?.token ??
+    (await cookies()).get(evaluationCookie("studio"))?.value;
+  if (!ownerProof) assertEvaluationAccess("studio", token, process.env);
   // Same Studio capability, distinct ownership: neither merchant Studio nor
   // customer CareOS conversations can be read, replayed or claimed here.
-  return { store, config, owner: digest(`customer-studio:${token}`) };
+  return {
+    store,
+    config,
+    ownerProof,
+    owner: digest(`customer-studio:${token}`),
+  };
 }
 
 function recoveryConversationId(request: Request) {
@@ -96,7 +111,10 @@ export async function DELETE(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { store, owner, config } = await customerStudioAccess(request, true);
+    const { store, owner, config, ownerProof } = await customerStudioAccess(
+      request,
+      true,
+    );
     const parsed = schema.safeParse(await readJson(request));
     if (!parsed.success) throw new CareError("careos_invalid_request", 400);
     const body = parsed.data;
@@ -136,6 +154,7 @@ export async function POST(request: Request) {
               : new SubscriptionProvider({
                   scope: "studio",
                   requestId: body.requestId,
+                  ownerProof,
                 }),
             body.message,
             data,

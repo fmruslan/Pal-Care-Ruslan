@@ -23,6 +23,7 @@ import {
 } from "./evaluation-access";
 import { accountedCall } from "./accounted-call";
 import { SubscriptionProvider } from "./subscription/provider";
+import { assertStandingOwner, standingOwnerMode } from "./standing-runtime";
 
 const state = globalThis as unknown as {
   careosMemory?: MemoryStore;
@@ -34,7 +35,10 @@ export function careRuntime() {
     throw new CareError("careos_origin_not_configured");
   const environment = getEnvironment();
   const config = parseCareConfig(process.env);
-  if (config.mode === "responses" || config.mode === "subscription")
+  if (
+    (config.mode === "responses" || config.mode === "subscription") &&
+    !standingOwnerMode()
+  )
     evaluationSettings(process.env);
   let store: ConversationStore;
   if (environment.dataSource === "database") {
@@ -58,6 +62,10 @@ export function careRuntime() {
 export async function assertCustomerRuntimeAccess(
   config: ReturnType<typeof parseCareConfig>,
 ) {
+  if (config.mode === "subscription" && standingOwnerMode()) {
+    await assertStandingOwner();
+    return;
+  }
   if (config.mode === "subscription")
     assertEvaluationAccess(
       "customer",
@@ -74,6 +82,10 @@ export async function answerTurn(
 ) {
   const { store, config } = careRuntime();
   await assertCustomerRuntimeAccess(config);
+  const ownerProof =
+    config.mode === "subscription" && standingOwnerMode()
+      ? await assertStandingOwner()
+      : undefined;
   const deadline = Date.now() + TURN_DEADLINE_MS;
   const [data, conversation] = await Promise.all([
     getCareData(input.twinId),
@@ -86,6 +98,7 @@ export async function answerTurn(
         ? new SubscriptionProvider({
             scope: "customer",
             requestId: input.requestId,
+            ownerProof,
           })
         : undefined;
   let calls = 0;
@@ -97,11 +110,13 @@ export async function answerTurn(
       !["responses", "subscription"].includes(config.mode)
     )
       throw new CareError("careos_live_not_authorized");
-    assertEvaluationAccess(
-      "customer",
-      (await cookies()).get(evaluationCookie("customer"))?.value,
-      process.env,
-    );
+    if (ownerProof) await assertStandingOwner();
+    else
+      assertEvaluationAccess(
+        "customer",
+        (await cookies()).get(evaluationCookie("customer"))?.value,
+        process.env,
+      );
     if (Date.now() >= deadline) throw new CareError("careos_deadline");
     if (++calls > 2) throw new CareError("careos_call_limit");
     if (config.mode === "subscription") {
