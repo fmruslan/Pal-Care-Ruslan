@@ -1,7 +1,8 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
-import { PilotFiles } from "./files";
+import { PilotFiles, PilotError } from "./files";
+import { CareError } from "../contracts";
 import { subscriptionStructured } from "./session";
 import { standingStructured } from "./standing";
 import { StandingOwner, type OwnerProof } from "../standing-owner";
@@ -50,6 +51,15 @@ export class SubscriptionProvider implements CareModel {
         name,
         signal,
         prompt,
+      }).catch((error: unknown) => {
+        if (
+          error instanceof PilotError &&
+          /pilot_(signin_required|refresh_unknown_reauthorize|plan_permission_missing|oauth_)/.test(
+            error.code,
+          )
+        )
+          throw new CareError("careos_owner_provider_reconnect", 503);
+        throw error;
       });
     }
     return subscriptionStructured({

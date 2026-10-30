@@ -57,10 +57,10 @@ export function privatePreviewEnvironment(
     // Existing localhost grants are NOT migrated to the new HTTPS origin.
     CAREOS_EVALUATION_ENABLED: "false",
     CAREOS_OWNER_PAIRING_ENABLED: "false",
-    // Remembered identity is independent of inference permission. No policy is
-    // provisioned here; live activation needs a separate reviewed change.
+    // Owner-approved standing mode: dispatch still requires the exact protected
+    // policy, browser identity and atomic remaining allowance on every call.
     CAREOS_OWNER_MODE: "true",
-    CAREOS_STANDING_AI_ENABLED: "false",
+    CAREOS_STANDING_AI_ENABLED: "true",
     CAREOS_EVALUATION_EXPIRES_AT: valid
       ? new Date(app.data.expiresAt).toISOString()
       : "",

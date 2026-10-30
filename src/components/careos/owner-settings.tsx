@@ -13,6 +13,10 @@ const statusSchema = z.object({
   unknown: z.number(),
   liveEnabled: z.boolean(),
   provider: z.string(),
+  providerBlocked: z.boolean(),
+  requestLimit: z.number(),
+  concurrency: z.number(),
+  requestsPerMinute: z.number(),
 });
 export function OwnerSettings() {
   const [status, setStatus] = useState<z.infer<typeof statusSchema> | null>(
@@ -90,9 +94,11 @@ export function OwnerSettings() {
                 ? "Permission revoked"
                 : !status.liveEnabled || status.policy === "disabled"
                   ? "Not enabled — awaiting separate owner approval"
-                  : status.remaining === 0
-                    ? "Approved usage limit reached"
-                    : "Approved; subject to provider availability"}
+                  : status.providerBlocked
+                    ? "Provider access unavailable — connection review needed"
+                    : status.remaining === 0
+                      ? "Approved usage limit reached"
+                      : "Approved; subject to provider availability"}
           </dd>
         </div>
         <div>
@@ -108,6 +114,14 @@ export function OwnerSettings() {
           </dd>
         </div>
       </dl>
+      {!!status?.requestLimit && (
+        <p className="text-sm text-muted-foreground">
+          Approved total: {status.requestLimit} provider requests. Up to{" "}
+          {status.concurrency} in flight and {status.requestsPerMinute} per
+          minute. Retries count too; unknown outcomes are not retried or
+          refunded.
+        </p>
+      )}
       <p className="text-sm text-muted-foreground">
         Historical testing remains expired: 33/50 attempts, including two
         unknown outcomes. Its unused requests are not available here. One chat

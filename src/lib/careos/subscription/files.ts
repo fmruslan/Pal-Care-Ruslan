@@ -3,6 +3,7 @@ import { lstat, mkdir, open, rename, realpath, unlink } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import { setTimeout as delay } from "node:timers/promises";
 
 export class PilotError extends Error {
   constructor(public code: string) {
@@ -167,6 +168,35 @@ export class PilotFiles {
     const hostId = `urn:uuid:${randomUUID()}`;
     await this.write("host.json", { hostId });
     return hostId;
+  }
+  /** Wait for contention, never steal a stale lock or replay work that started. */
+  async lockedWaiting<T>(
+    work: () => Promise<T>,
+    name: ".lock" | ".owner-access-lock" = ".lock",
+    signal?: AbortSignal,
+    waitMs = 2000,
+  ): Promise<T> {
+    const until = Date.now() + waitMs;
+    for (;;) {
+      signal?.throwIfAborted();
+      let entered = false;
+      try {
+        return await this.locked(async () => {
+          entered = true;
+          signal?.throwIfAborted();
+          return work();
+        }, name);
+      } catch (error) {
+        if (
+          entered ||
+          !(error instanceof PilotError) ||
+          error.code !== "pilot_locked_inspect_before_recovery" ||
+          Date.now() >= until
+        )
+          throw error;
+        await delay(20, undefined, { signal });
+      }
+    }
   }
   async registration() {
     const raw = await this.read("registration.json");

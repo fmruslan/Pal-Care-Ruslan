@@ -54,6 +54,49 @@ afterEach(async () => {
 });
 
 describe("remembered private owner and independent standing permission (no live provider)", () => {
+  it("atomically rejects simultaneous reservations beyond the remaining total even with four slots", async () => {
+    const { owner, files, proof, policy } = await setup(3);
+    await owner.installPolicy({
+      ...policy,
+      concurrency: 4,
+      requestsPerMinute: 30,
+      maxRetries: 1,
+    });
+    const outcomes = await Promise.allSettled(
+      Array.from({ length: 4 }, (_, i) =>
+        new StandingOwner(files).reserve(
+          proof,
+          "customer",
+          `parallel-${i}`,
+          true,
+        ),
+      ),
+    );
+    expect(outcomes.filter((v) => v.status === "fulfilled")).toHaveLength(3);
+    expect(await owner.status(proof)).toMatchObject({ used: 3, remaining: 0 });
+  });
+  it("enforces the approved rolling 30/minute independently of the 300 total cap", async () => {
+    const { owner, proof, policy, advance } = await setup(300);
+    await owner.installPolicy({
+      ...policy,
+      concurrency: 4,
+      requestsPerMinute: 30,
+      maxRetries: 1,
+    });
+    for (let i = 0; i < 30; i++) {
+      await owner.reserve(proof, "customer", `rate-${i}`, true);
+      await owner.settle(`rate-${i}`, "completed");
+    }
+    await expect(
+      owner.reserve(proof, "customer", "rate-30", true),
+    ).rejects.toThrow("rate_limited");
+    advance(60001);
+    await owner.reserve(proof, "customer", "rate-30", true);
+    expect(await owner.status(proof)).toMatchObject({
+      used: 31,
+      remaining: 269,
+    });
+  });
   it("remembers a browser after reconstruction but does not authorize AI", async () => {
     const { owner, files, proof } = await setup();
     expect(await new StandingOwner(files).authenticate(proof)).toBeTruthy();
@@ -266,6 +309,213 @@ async function credentials(files: PilotFiles, expired = false) {
   });
 }
 describe("standing adapter guards refresh and dispatch with injected transports only", () => {
+  it("runs four genuine transport calls concurrently, never a fifth", async () => {
+    const { files, owner, proof, policy } = await setup(300);
+    await credentials(files);
+    await owner.installPolicy({
+      ...policy,
+      concurrency: 4,
+      requestsPerMinute: 30,
+      maxRetries: 1,
+    });
+    let release!: () => void,
+      entered = 0,
+      allStarted!: () => void;
+    const held = new Promise<void>((r) => {
+      release = r;
+    });
+    const started = new Promise<void>((r) => {
+      allStarted = r;
+    });
+    const transport = vi.fn(async () => {
+      if (++entered === 4) allStarted();
+      await held;
+      throw new Error("synthetic uncertain response");
+    });
+    const run = () =>
+      standingStructured({
+        files,
+        owner,
+        proof,
+        scope: "customer" as const,
+        enabled: () => true,
+        requestId: randomUUID(),
+        payload: "synthetic",
+        schema: z.object({ ok: z.boolean() }),
+        name: "test",
+        signal: AbortSignal.timeout(2000),
+        transport,
+      });
+    const active = Promise.allSettled([run(), run(), run(), run()]);
+    try {
+      await started;
+      await expect(run()).rejects.toThrow("busy");
+      expect(await owner.status(proof)).toMatchObject({
+        used: 4,
+        remaining: 296,
+      });
+    } finally {
+      release();
+    }
+    await active;
+    expect(transport).toHaveBeenCalledTimes(4);
+    expect(await owner.status(proof)).toMatchObject({ used: 4, unknown: 4 });
+  });
+  it("allows one accounted retry only for explicit temporary pre-stream admission rejection", async () => {
+    const { files, owner, proof, policy } = await setup();
+    await credentials(files);
+    await owner.installPolicy({ ...policy, maxRetries: 1 });
+    const transport = vi.fn(async () =>
+      Response.json(
+        {
+          error: {
+            code: "subscription_sharing_usage_unavailable",
+            message: "synthetic temporary admission rejection",
+          },
+        },
+        { status: 503 },
+      ),
+    );
+    await expect(
+      standingStructured({
+        files,
+        owner,
+        proof,
+        scope: "customer",
+        enabled: () => true,
+        requestId: randomUUID(),
+        payload: "synthetic",
+        schema: z.object({ ok: z.boolean() }),
+        name: "test",
+        signal: AbortSignal.timeout(5000),
+        transport,
+      }),
+    ).rejects.toThrow();
+    expect(transport).toHaveBeenCalledTimes(2);
+    expect(await owner.status(proof)).toMatchObject({
+      used: 2,
+      unknown: 0,
+      remaining: 3,
+    });
+  });
+  it("charges an arbitrary 503 as unknown without automatic retry", async () => {
+    const { files, owner, proof, policy } = await setup();
+    await credentials(files);
+    await owner.installPolicy({ ...policy, maxRetries: 1 });
+    const transport = vi.fn(async () =>
+      Response.json(
+        { detail: "synthetic unknown infrastructure failure" },
+        { status: 503 },
+      ),
+    );
+    await expect(
+      standingStructured({
+        files,
+        owner,
+        proof,
+        scope: "customer",
+        enabled: () => true,
+        requestId: randomUUID(),
+        payload: "synthetic",
+        schema: z.object({ ok: z.boolean() }),
+        name: "test",
+        signal: AbortSignal.timeout(2000),
+        transport,
+      }),
+    ).rejects.toThrow();
+    expect(transport).toHaveBeenCalledOnce();
+    expect(await owner.status(proof)).toMatchObject({ used: 1, unknown: 1 });
+  });
+  it("cannot exceed quota through the retry path", async () => {
+    const { files, owner, proof, policy } = await setup(1);
+    await credentials(files);
+    await owner.installPolicy({ ...policy, maxRetries: 1 });
+    const transport = vi.fn(async () =>
+      Response.json(
+        {
+          error: {
+            code: "subscription_sharing_usage_unavailable",
+            message: "synthetic",
+          },
+        },
+        { status: 503 },
+      ),
+    );
+    await expect(
+      standingStructured({
+        files,
+        owner,
+        proof,
+        scope: "customer",
+        enabled: () => true,
+        requestId: randomUUID(),
+        payload: "synthetic",
+        schema: z.object({ ok: z.boolean() }),
+        name: "test",
+        signal: AbortSignal.timeout(5000),
+        transport,
+      }),
+    ).rejects.toThrow();
+    expect(transport).toHaveBeenCalledOnce();
+    expect((await owner.status(proof)).remaining).toBe(0);
+  });
+  it("rechecks policy revocation before a safe retry", async () => {
+    const { files, owner, proof, policy } = await setup();
+    await credentials(files);
+    await owner.installPolicy({ ...policy, maxRetries: 1 });
+    const transport = vi.fn(async () => {
+      await owner.revokePolicy(proof);
+      return Response.json(
+        {
+          error: {
+            code: "subscription_sharing_usage_unavailable",
+            message: "synthetic",
+          },
+        },
+        { status: 503 },
+      );
+    });
+    await expect(
+      standingStructured({
+        files,
+        owner,
+        proof,
+        scope: "customer",
+        enabled: () => true,
+        requestId: randomUUID(),
+        payload: "synthetic",
+        schema: z.object({ ok: z.boolean() }),
+        name: "test",
+        signal: AbortSignal.timeout(5000),
+        transport,
+      }),
+    ).rejects.toThrow("ai_disabled");
+    expect(transport).toHaveBeenCalledOnce();
+    expect((await owner.status(proof)).used).toBe(1);
+  });
+  it("never dispatches an already-cancelled request", async () => {
+    const { files, owner, proof, policy } = await setup();
+    await credentials(files);
+    await owner.installPolicy({ ...policy, maxRetries: 1 });
+    const transport = vi.fn();
+    await expect(
+      standingStructured({
+        files,
+        owner,
+        proof,
+        scope: "customer",
+        enabled: () => true,
+        requestId: randomUUID(),
+        payload: "synthetic",
+        schema: z.object({ ok: z.boolean() }),
+        name: "test",
+        signal: AbortSignal.abort(),
+        transport,
+      }),
+    ).rejects.toThrow();
+    expect(transport).not.toHaveBeenCalled();
+    expect((await owner.status(proof)).used).toBe(0);
+  });
   it("settles successful SSE usage without modifying the historical journal", async () => {
     const { files, owner, proof, policy } = await setup();
     await credentials(files);

@@ -26,8 +26,9 @@ export const standingPolicySchema = z.strictObject({
     .max(2)
     .refine((v) => new Set(v).size === v.length),
   requestLimit: z.number().int().min(1).max(500),
-  concurrency: z.literal(1),
-  requestsPerMinute: z.number().int().min(1).max(10),
+  concurrency: z.number().int().min(1).max(4),
+  requestsPerMinute: z.number().int().min(1).max(30),
+  maxRetries: z.number().int().min(0).max(1).default(0),
   creditsDisabledConfirmed: z.literal(true),
   providerPermissionConfirmed: z.literal(true),
   historicalJournalHash: digest,
@@ -115,7 +116,7 @@ export class StandingOwner {
     );
   }
   private async change<T>(work: (s: State) => T) {
-    return this.files.locked(async () => {
+    return this.files.lockedWaiting(async () => {
       const s = await this.state();
       const result = work(s);
       await this.files.write("owner-state.json", stateSchema.parse(s));
@@ -161,14 +162,14 @@ export class StandingOwner {
     const reservations = s.events.filter((e) => e.kind === "reserve");
     if (reservations.length >= p.requestLimit) return deny("quota_exhausted");
     if (
-      reservations.some(
+      reservations.filter(
         (e) =>
           !s.events.some(
             (v) =>
               v.subject === e.subject &&
               ["completed", "failed", "unknown"].includes(v.kind),
           ),
-      )
+      ).length >= p.concurrency
     )
       return deny("busy");
     if (
@@ -269,8 +270,8 @@ export class StandingOwner {
     enabled: boolean,
   ) {
     // Same cross-process lock as logout/revocation/accounting, not the provider lock.
-    return this.files.locked(async () => {
-      this.allowed(await this.state(), proof, selected, enabled);
+    return this.files.lockedWaiting(async () => {
+      return this.allowed(await this.state(), proof, selected, enabled);
     }, ".owner-access-lock");
   }
   async reserve(
@@ -334,6 +335,11 @@ export class StandingOwner {
     const used = s.events.filter((e) => e.kind === "reserve").length;
     return {
       remembered,
+      policyId: s.policy?.id ?? null,
+      requestLimit: s.policy?.requestLimit ?? 0,
+      concurrency: s.policy?.concurrency ?? 0,
+      requestsPerMinute: s.policy?.requestsPerMinute ?? 0,
+      maxRetries: s.policy?.maxRetries ?? 0,
       providerBlocked: s.events.some((e) => e.kind === "provider-block"),
       policy: s.policy ? "approved" : "disabled",
       revoked: s.events.some((e) => e.kind === "revoke-policy"),

@@ -8,6 +8,7 @@ import { subscriptionFiles } from "./careos/subscription/provider";
 import { subscriptionSession } from "./careos/subscription/session";
 import { persistentPrivatePreview } from "./private-preview";
 import { evaluationAccessStatus } from "./careos/evaluation-access";
+import { standingOwnerMode } from "./careos/standing-runtime";
 const state = globalThis as unknown as {
   readiness?: { key: string; until: number; work: Promise<void> };
 };
@@ -77,7 +78,11 @@ export async function readiness() {
     records: "demo",
     features: plan.features,
     ...(persistent
-      ? { aiAuthorization: evaluationAccessStatus({}, process.env).window }
+      ? {
+          aiAuthorization: standingOwnerMode()
+            ? "standing-policy-controlled"
+            : evaluationAccessStatus({}, process.env).window,
+        }
       : {}),
   };
 }
