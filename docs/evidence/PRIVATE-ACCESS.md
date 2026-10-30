@@ -1,5 +1,7 @@
 # Private browser access: focused usability/security verification
 
+**Historical owner-pairing evidence, not current browsing instructions.** Preferred access is now **https://greatbison.tail9e8802.ts.net:8444/dashboard**. No SSH tunnel or installer is needed. The HTTPS preview does not migrate the old localhost grants; expired AI/owner pairing remain denied. [Current HTTPS evidence](TAILSCALE-ACCESS.md) · [conditional Mac cleanup](../MAC-CLEANUP.md). Historical commands/timestamps below are retained for audit, not recommended setup.
+
 Date: 2026-10-28. Scope: recognize existing Customer/Studio cookies and add explicitly SSH-authorized, browser-bound owner bootstrap. No new account system, longer-lived cookie, model allowance or deployment.
 
 ## Cause, before changing code
