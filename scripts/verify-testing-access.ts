@@ -91,7 +91,7 @@ try {
       await request.inputValue(),
     );
     await page
-      .getByLabel("Requested duration", { exact: true })
+      .getByRole("combobox", { name: "Requested duration", exact: true })
       .selectOption("1");
     await expect(request).toHaveCount(0); // A prior proposal cannot silently survive edits.
     await page
