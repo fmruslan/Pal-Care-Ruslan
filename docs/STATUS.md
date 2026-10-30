@@ -2,6 +2,10 @@
 
 Last updated: 2026-10-29
 
+## Matching charcoal sidebar — 2026-10-30
+
+**Implemented; isolated verification passed, release/CI reported at handoff:** owner approved the actual charcoal canvas and requested the same treatment for the sidebar. Dark `--sidebar` changes **`#303C47` → `#1D2630`**; the existing header uses that same semantic surface and follows it. Canvas, Light mode, cards/art, selected bronze navigation and violet CareOS card stay unchanged. The unit invariant and rendered browser check cover the matching shell. Isolated lint/format/typecheck/build, **811 units**, **72 fixture design/care/recovery** and **39 database design** checks pass across desktop/tablet/mobile Dark. Dark references are reviewed at CSS scale; Light references and screenshot thresholds remain unchanged. Exact commit/CI and real HTTPS release are reported at handoff; no auth, accounting, model, financial, database or network authority changes. Evidence: `/tmp/opencode/palcare-charcoal-sidebar-20261030/`.
+
 ## Charcoal canvas follow-up — 2026-10-30
 
 **Implemented; isolated verification passed, release/CI reported at handoff:** owner found the live `#2C3742` adjustment insufficient. The revised dark canvas is **`#1D2630`**, with matching theme metadata and exact-color regressions. Cards, sidebar, art surfaces, accents and Light mode stay unchanged; shared canvas-backed inputs follow the canvas. This supersedes only the earlier dark canvas choice, not the Bronze/Violet identity or other component styling. Isolated lint/format/typecheck/build, **811 units**, **72 fixture design/care/recovery** and **39 database design** checks pass across all three dark profiles. Dark reference pixels are explicitly recorded at CSS scale and reviewed; Light references and normal screenshot thresholds are unchanged. Exact commit/CI and actual HTTPS release results are reported at handoff; no auth/accounting/model/financial capability is changed. Evidence: `/tmp/opencode/palcare-charcoal-20261030/`.

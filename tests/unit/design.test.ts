@@ -5,11 +5,11 @@ const css = readFileSync(
   new URL("../../src/app/globals.css", import.meta.url),
   "utf8",
 );
-it("keeps the charcoal canvas distinct from unchanged card/sidebar surfaces", () => {
+it("matches the charcoal shell while retaining lighter card and art surfaces", () => {
   const dark = css.match(/\.dark\s*\{([^}]+)\}/)![1];
   expect(dark).toContain("--background: #1d2630");
   expect(dark).toContain("--card: #45525f");
-  expect(dark).toContain("--sidebar: #303c47");
+  expect(dark).toContain("--sidebar: #1d2630");
   expect(dark).toContain("--art-surface: #aab4be");
 });
 function luminance(hex: string) {
