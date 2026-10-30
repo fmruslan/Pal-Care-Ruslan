@@ -5,6 +5,13 @@ const css = readFileSync(
   new URL("../../src/app/globals.css", import.meta.url),
   "utf8",
 );
+it("keeps the darker slate canvas distinct from unchanged card/sidebar surfaces", () => {
+  const dark = css.match(/\.dark\s*\{([^}]+)\}/)![1];
+  expect(dark).toContain("--background: #2c3742");
+  expect(dark).toContain("--card: #45525f");
+  expect(dark).toContain("--sidebar: #303c47");
+  expect(dark).toContain("--art-surface: #aab4be");
+});
 function luminance(hex: string) {
   const channels = [1, 3, 5]
     .map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
