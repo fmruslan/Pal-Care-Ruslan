@@ -2,6 +2,8 @@
 
 Implemented for the exact private HTTPS origin. **The owner subsequently approved activation with 300 provider requests, four concurrent requests, 30/minute and at most one safe counted retry.** Activation/provider acceptance results are recorded in STATUS/handoff, not inferred from configuration or isolated tests. The original disabled delivery and request-only/four-hour workflow remain historical.
 
+**Actual activation checkpoint:** policy `c29c6d4d-24dd-471d-8d98-c51772dc64cd` installed; necessary refresh/current-model catalog and actual HTTPS source-grounded chat + native Insights filter acceptance passed. **2/300 completed, 298 remaining, zero new unknowns/retries** at 2026-10-30 03:07 UTC. Test-browser revocation/replay denial passed; the original owner browser approval was preserved. Live state is shown by AI access, not this historical count. Original 33/50/two unknowns remain untouched. [Full scope, preservation and separate CI failure](STATUS.md).
+
 ## Independent layers
 
 - **Browser identity:** one-time browser-bound request, approved through the existing trusted host account. The random 256-bit secret is Secure, HttpOnly, SameSite=Strict, host-only and `__Host-` prefixed; only its SHA-256 digest is stored. A public request ID cannot finish pairing. Requests expire after five minutes and approval is single-use. Finish sets a persistent cookie; server checks enforce **30 days absolute / seven days inactive**, browser-agent binding, logout and host-CLI revocation. Activity touches are bounded to once an hour. No automatic owner/policy renewal.
