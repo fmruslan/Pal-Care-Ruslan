@@ -1,5 +1,5 @@
 {
-  "at": "2026-11-02T21:04:51.358Z",
+  "at": "2026-11-02T22:42:31.680Z",
   "observations": [
     {
       "profile": "desktop-light",
@@ -11,7 +11,7 @@
       "requests": [
         "POST /api/careos/conversations",
         "GET /api/careos/context",
-        "POST /api/careos/conversations/b37722f8-f44f-4c34-94d0-3f542725e117/turns"
+        "POST /api/careos/conversations/4b262563-586b-4c83-9637-91d5c9448ef4/turns"
       ],
       "expansionRequests": 0
     },
@@ -25,7 +25,7 @@
       "requests": [
         "POST /api/careos/conversations",
         "GET /api/careos/context",
-        "POST /api/careos/conversations/a3092d74-5ea8-4aed-89a5-e748042b759b/turns"
+        "POST /api/careos/conversations/65212cc2-9e90-4d2d-9dcc-27fea847479b/turns"
       ],
       "expansionRequests": 0
     },
@@ -39,7 +39,7 @@
       "requests": [
         "POST /api/careos/conversations",
         "GET /api/careos/context",
-        "POST /api/careos/conversations/3ce04a34-95f3-4824-9398-60271a71a11e/turns"
+        "POST /api/careos/conversations/757a989c-38e6-4b17-861e-b5e9d239bd80/turns"
       ],
       "expansionRequests": 0
     },
@@ -53,7 +53,7 @@
       "requests": [
         "POST /api/careos/conversations",
         "GET /api/careos/context",
-        "POST /api/careos/conversations/e00e8274-1b84-4b08-ad09-a05db12aa8ae/turns"
+        "POST /api/careos/conversations/16735c95-b19b-477b-a2ed-a5e7fb928612/turns"
       ],
       "expansionRequests": 0
     }

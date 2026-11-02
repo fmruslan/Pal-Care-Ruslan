@@ -1,6 +1,6 @@
 # North ☆ 1A — outstanding acceptance follow-up
 
-**In progress, not acceptance.** Owner requested resolution of three WebKit failures, a disposable dedicated recovery database, individual review of nine original AI flags, regressions, exact-commit CI and final screenshots. Owner clarified “50 more tests” as **50 automated regressions plus 50 genuine evaluations**. No 1B work, private-preview refresh, financial operation, paid credits, allowance reset or authorization renewal is permitted.
+**Automated browser/recovery follow-up passes; 1A acceptance remains incomplete.** Owner requested resolution of three WebKit failures, a disposable dedicated recovery database, individual review of nine original AI flags, regressions, exact-commit CI and final screenshots. Owner clarified “50 more tests” as **50 automated regressions plus 50 genuine evaluations**. The automated 50 pass; the genuine batch stopped at **17 known completions + one unknown**, with **32 never dispatched**. No 1B work, private-preview refresh, financial operation, paid credits, allowance reset or authorization renewal is permitted. [Consolidated review and final screenshots](NORTH-1A-REVIEW.md).
 
 ## Outcome and acceptance gate
 
@@ -24,7 +24,35 @@ Severity here describes customer impact, not a new score. **Medium** means a tas
 
 All nine inputs/outputs/expectations were reread from the original hash-chained ledgers. Original **151/160 strict passes** remains unchanged. The two historical semantic observations are also retained: alternative methods lost their relationship in rendering (already corrected with explicit alternative wording), and optional repeated identity was accurate but redundant. Absent-guide wording was already corrected; source applicability and recovery still require independent regressions.
 
-## Current execution state
+## Final verification window
+
+Clean isolated production build: **`3bc26db2d6a4ffffc03298be2dfa609ad20c8014`**, runtime hash **`93f8de2b9e8fa1315ec12858d12f94ef09053151247c4104db38272cb9f728e8`**, build **`Cmf1mTvvYelZ9l1wZt-xu`**, built **2026-11-02T22:09:06.983Z**, Node **22.23.3**. Later `5b640b5` updates only reviewed database references/docs, not runtime source. Primary/isolated source and actual patch files match. No new customer capability is accepted from these checks alone.
+
+| Final isolated evidence | Result |
+| --- | --- |
+| Lint/typecheck/production build/format | Pass; **1,107 units / 57 files** include exactly 50 new regressions, one no-terminal-HTTP-200/no-replay case and three actual-native-core lifecycle regressions. |
+| Complete Firefox/WebKit compatibility | **108/108**, no retries, including all original WebKit and later Firefox failures. |
+| Complete desktop-Light/mobile-Dark fixture browsers | **220/220**, no retries. |
+| Other four profiles: North/choices/held-import navigation | **72/72**, no retries. |
+| Ordinary visual/source comparisons | **36/36**, all six profiles, no retries. |
+| Chromium/Firefox/WebKit access | **33/33**, isolated synthetic owner/provider identities; no real grant reset. |
+| Dedicated-DB recovery/expiry/actual native SDK | **14/14**, injected protocol only; no real-provider/financial operation. |
+| Ordinary database Insights comparisons | **6/6**, after syncing only the four inspected references; mobile database references and all assertions/tolerances unchanged. |
+| Final actual isolated-app capture | **16 screenshots / four profiles**, captured **2026-11-02T22:42:31.680Z** and visually reviewed; no model/financial/external attempts/page errors and no expansion requests. |
+
+The dedicated database also passed **7/7** baseline migration/seed integrity, **113/113** integration and **2/2** real-server failure/role-cleanup checks in this follow-up. The final phases overlap coverage; do not sum them as unique scenarios. Logs/commands are in `evidence/final-stable-integrated-results.json` and `evidence/final-database-insights-six-profiles.json` beside the isolated app; each browser phase's artifacts were archived before output reuse. Prior screenshot packet is retained at `evidence/screenshots-before-followup` and in Git; final packet/hashes are under `docs/evidence/north-1a/` and private `evidence/final-screenshot-packet-hashes.json`.
+
+Final read-only preservation **2026-11-02T22:45:14Z**: **18/18 immutable protected files/original ledgers**, original policy/event prefix/browser states and preview PID **2510002** unchanged. Stopped new ledger SHA-256 **`13f2e8c5b50608099bc307395edb00d2662449e862e95ed2fdb39cd459c9b216`** unchanged. **181/300 reserved, 119 unreserved, one unknown**, no provider block. No verification runner remains active. Evidence: `evidence/north-1a-final-preservation-and-source.json`. No application DB read/write suite was run against the working preview; inaccessible financial rows are not claimed newly audited. The startup source/build mismatch is expected while serving the deliberately unchanged old preview; it is not permission to restart/rebuild it.
+
+Exact **`5b640b54cd3cfccdcc970bd9ce2cd4164b654bb0` [CI 41535096613](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/41535096613)** finished **cancelled**, not passed: the single job exceeded its existing **35-minute maximum**. It passed lint/format/typecheck/1,107 units/evaluations/113 integration/build/two failure tests/**33 access / 660 fixture / 660 database / six Guardian** checks. Compatibility logged **82 completed checks**, including all 54 Firefox cases and the original native WebKit tools journey, before interruption; it has no completed-suite pass result. The injected Sol/protocol stage was **skipped**. No assertion failure or retry is recorded in this run. Cancellation annotation, full logs and artifacts are retained under `evidence/exact-commit-ci-5b640b5-full.log` and `evidence/ci-5b640b5-cancelled-artifacts`.
+
+**CI orchestration correction, not relaxed deadlines:** the complete fixture/database matrices took **11.8 + 12.3 minutes** after setup/access, exhausting the single serial job's window. `.github/workflows/repository-checks.yml` now moves unchanged **access, full compatibility and full injected-protocol suites** to a second unconditional mandatory `native-acceptance` job. Both jobs keep **35-minute limits**, separate PostgreSQL 17 services, frozen installs/builds and explicit dedicated test URLs; common provider/financial flags remain off. Foundation retains every original lint/type/unit/evaluation/integration/failure/fixture/database/Guardian check. No test selector, assertion, browser deadline, retry policy or CI success rule is weakened; **both jobs must pass** before the workflow is green. Artifact names are disjoint. Two new local configuration regressions guard complete suite coverage, unconditional jobs, bounded windows and provider-off test isolation. A static before/after command inventory confirms **zero original commands removed**, only duplicated isolated setup prerequisites.
+
+**CI correction locally verified:** lint/typecheck/**1,109 units / 58 files**/production build/format pass, including both new CI guards. Prettier YAML/file checks and `--debug-check` pass. Latest isolated verification build **`IM1fwGc4WUebCTlseIwt1`**, **2026-11-02T22:51:32.138Z**, same runtime hash `93f8de2b…`; screenshots still identify their earlier clean `Cmf1mTvvYelZ9l1wZt-xu` build. Logs: `evidence/ci-isolation-local-results.json`; preserved command inventory: `evidence/ci-orchestration-command-preservation.json`. New exact-commit CI remains required.
+
+This later delta contains CI orchestration/configuration regressions plus report/screenshots, **no runtime-source change**. Actual private-preview acceptance, real-device keyboard/IME and owner approval remain unverified.
+
+## Execution checkpoints (historical; final results above supersede pending phases)
 
 - **Authorization read-back:** `2026-11-02T21:19:45Z`, standing policy `c29c6d4d-24dd-471d-8d98-c51772dc64cd`, **163/300 used, 137 remaining, zero unknown/active**, no revocation/provider block. Existing remembered sessions have unexpired absolute/idle limits. This snapshot is not a grant: production checks remain required before each genuine dispatch. Historical expired evaluation authority is not renewed.
 - **Dedicated database provisioned:** `palcare-north-1a-test-postgres`, PostgreSQL 17 Alpine, new `north_recovery_test`, 512 MiB tmpfs, loopback-only inside the existing verification container's **network-none namespace**, no published host ports, no application URL/credentials. Existing dedicated-URL hostname/name checks remain unchanged. Versioned test migrations/sample-only seed integrity **7/7 pass**; recovery/expiry **14/14 pass** on the unchanged baseline build. Final-source rerun remains separate.
@@ -68,6 +96,10 @@ Downloaded expected/actual/diff images were visually inspected for desktop/table
 
 Original failure artifacts, including all expected/actual/diff images and retries, are retained at `evidence/ci-deceb77-artifacts` beside the isolated app; before/after reference hashes and review scope are in `evidence/reviewed-database-reference-update.json`. These are dedicated-test-database sample images, never actual application financial records or verified-payment evidence.
 
+**Current final-source broad results:** ordinary Firefox/WebKit compatibility **108/108 pass (12.6 min)** and the complete desktop-Light/mobile-Dark fixture suite **220/220 pass (8.0 min)**, with zero retries in this isolated run. These supersede the earlier 106/2 and original WebKit failure gates on source hash `93f8de2b…`; every initial failure remains reported. The other four profiles, ordinary visual comparisons, access/recovery, capture and corrected-reference comparisons are still pending separate results.
+
+The `3bc26db2d6a4ffffc03298be2dfa609ad20c8014` [CI run 41534436528](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/41534436528) confirms the formatting fix passed; it again stopped at database browser **656 pass / the same four stale-reference failures**, before the reference correction existed in that SHA. Later stages were skipped. Current corrected-reference commit **`5b640b54cd3cfccdcc970bd9ce2cd4164b654bb0`** is under [CI run 41535096613](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/41535096613), not yet claimed green. Application/runtime source hash is unchanged by reference/documentation-only commits.
+
 Evidence logs are under `/tmp/opencode/palcare-north-1a-verification/evidence/`: `webkit-baseline-three.log`, `webkit-instrumented-baseline.log`, `webkit-sdk-resize-diagnostics.json`, `webkit-sdk-resize-before-after.json`, `webkit-resize-contained.log`, `followup-build-check.log` (the retained stale-metadata failure), `followup-build-check-corrected.log`, and `webkit-native-patch-focused.log` plus preserved focused artifacts. The older broad-run logs and written trace diagnosis remain; Playwright reused its compatibility output directory during reproduction, so the old original 375px/1440px trace ZIPs are no longer present there. Do not represent the newer traces as those original executions. Subsequent integrated output folders are explicitly archived before reuse.
 
 ## New genuine 50-case batch — stopped, never replayed
@@ -104,8 +136,8 @@ These are genuine provider-adapter/domain observations, not browser, recovery, n
 
 ## Handoff
 
-- **Implemented:** dedicated isolated test database; individual nine-flag review; library guard/negative-constraint prompt corrections; stress-test hydration barrier; pinned native resize patch; 50 automated cases and a separately frozen 50-evaluation harness.
-- **Verified:** original-ledger review; 14 baseline recovery cases; 50 new automated regressions; focused 6/6 ordinary WebKit checks; 17 new genuine responses semantically reviewed with observed usage. Broader checks/CI remain separate.
-- **Incomplete:** final integrated regressions, final-source screenshots, exact-commit CI, full 50 genuine completions and owner/real-device review.
+- **Implemented:** dedicated isolated test database; individual nine-flag review; library guard/negative-constraint prompt corrections; stress-test hydration barrier; pinned native value/grid lifecycle patch; 50 automated cases and a separately frozen 50-evaluation harness.
+- **Verified:** final runtime's complete 108 compatibility/220 fixture/72 other-profile/36 visual/33 access/14 recovery checks, six corrected-reference comparisons and 16 reviewed captures; latest isolated lint/typecheck/**1,109 units / 58 files**/build/format also cover the two CI guards. Genuine 17 responses remain separate provider-adapter evidence; preservation and stopped unknown accounting pass. CI `5b640b5` passed both complete 660-case matrices but timed out before finishing compatibility/protocol.
+- **Incomplete:** new two-job exact-commit CI, full 50 genuine completions and owner/real-device/refreshed-private-app review.
 - **Blocked:** the genuine evaluation's retained unknown reservation stops further inference. No replay/reset/renewal or replacement batch is permitted. Owner/real-device review remain human gates.
-- **Next:** finish the stable-source integrated window and exact-commit CI, report remaining blockers, and request owner 1A review. Wait for approval before 1B or preview refresh.
+- **Next:** record the exact CI conclusion and request the owner's 1A review decision on the consolidated packet and retained evaluation blocker. Wait for separate approval before 1B or preview refresh.

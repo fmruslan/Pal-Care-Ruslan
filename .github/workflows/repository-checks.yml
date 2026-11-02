@@ -7,6 +7,23 @@ on:
 permissions:
   contents: read
 
+# Both mandatory jobs use independent disposable PostgreSQL services and the
+# same provider-off policy; neither can read application/owner credentials.
+env:
+  DATABASE_URL: postgresql://palcare:${{ github.run_id }}-${{ github.run_attempt }}@127.0.0.1:5432/palcare_test
+  TEST_DATABASE_URL: postgresql://palcare:${{ github.run_id }}-${{ github.run_attempt }}@127.0.0.1:5432/palcare_test
+  DEMO_DATA_SOURCE: database
+  PAYPAL_CHECKOUT_ENABLED: "false"
+  CAREOS_PROVIDER: "fixture"
+  CAREOS_LIVE_ENABLED: "false"
+  GUARDIAN_REFUNDS_ENABLED: "false"
+  GUARDIAN_PROVIDER_READS_ENABLED: "false"
+  PRICE_GUARDIAN_CHECKOUT_ENABLED: "false"
+  DISCOVERY_PROVIDER: "fixture"
+  CHANNEL3_LIVE_ENABLED: "false"
+  CHANNEL3_FREE_CREDITS_CONFIRMED: "false"
+  CPSC_REFRESH_ENABLED: "false"
+
 jobs:
   foundation:
     runs-on: ubuntu-24.04
@@ -25,20 +42,6 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-    env:
-      DATABASE_URL: postgresql://palcare:${{ github.run_id }}-${{ github.run_attempt }}@127.0.0.1:5432/palcare_test
-      TEST_DATABASE_URL: postgresql://palcare:${{ github.run_id }}-${{ github.run_attempt }}@127.0.0.1:5432/palcare_test
-      DEMO_DATA_SOURCE: database
-      PAYPAL_CHECKOUT_ENABLED: "false"
-      CAREOS_PROVIDER: "fixture"
-      CAREOS_LIVE_ENABLED: "false"
-      GUARDIAN_REFUNDS_ENABLED: "false"
-      GUARDIAN_PROVIDER_READS_ENABLED: "false"
-      PRICE_GUARDIAN_CHECKOUT_ENABLED: "false"
-      DISCOVERY_PROVIDER: "fixture"
-      CHANNEL3_LIVE_ENABLED: "false"
-      CHANNEL3_FREE_CREDITS_CONFIRMED: "false"
-      CPSC_REFRESH_ENABLED: "false"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -67,8 +70,6 @@ jobs:
       - name: Unavailable database readiness (real production server)
         run: pnpm test:failure
       - run: pnpm exec playwright install --with-deps chromium firefox webkit
-      - name: Private owner pairing, browser persistence and expiry (isolated fixture, no inference)
-        run: pnpm exec playwright test --config=playwright.access.config.ts
       - name: Fixture-preview browser and accessibility tests
         run: pnpm test:e2e
       - name: PostgreSQL-backed browser and accessibility tests
@@ -77,6 +78,54 @@ jobs:
           E2E_DATA_SOURCE: database
       - name: Exclusive Guardian flow (test DB and injected provider only)
         run: pnpm test:guardian:e2e
+      - name: Browser artifacts
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: browser-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  # An independent mandatory runner prevents the complete fixture/database
+  # matrices from consuming this suite's job window. Keep all existing test
+  # deadlines/retries and the 35-minute job bound; no coverage is filtered out.
+  native-acceptance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: palcare
+          POSTGRES_DB: palcare_test
+          POSTGRES_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U palcare -d palcare_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Workspace and source provenance
+        run: pnpm workspace:check
+      - name: PostgreSQL migrations, seeds and integrity tests
+        run: pnpm test:integration
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium firefox webkit
+      - name: Private owner pairing, browser persistence and expiry (isolated fixture, no inference)
+        run: pnpm exec playwright test --config=playwright.access.config.ts
       - name: Firefox and WebKit essential journeys (emulation, not real-device certification)
         run: pnpm test:compat
         env:
@@ -87,7 +136,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: browser-results
+          name: native-browser-results
           path: |
             playwright-report/
             test-results/

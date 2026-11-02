@@ -1,83 +1,92 @@
-# North ☆ 1A — owner review packet
+# North ☆ 1A — consolidated owner review
 
-**Owner-requested follow-up:** [individual nine-flag review, dedicated-database recovery, WebKit fixes, 50 automated cases and the stopped additional genuine evaluation](NORTH-1A-FOLLOWUP.md). It supersedes the older blocker snapshot below only where new actual evidence is recorded. The 50-call milestone is incomplete after 17 known completions and one unknown; no further inference/replay is permitted. Private preview and 1B remain untouched.
-
-**Implemented; bounded verification finished with open acceptance gates. Private preview unchanged.** Chromium checks and screenshots pass; three WebKit compatibility failures remain unresolved, and the dedicated-database recovery suite could not start. North Star is Pal Care’s assistant, not a separate product. This report does not accept 1A or authorize 1B/preview refresh. Changes remain uncommitted/unpushed.
+**1A is implemented and automated browser/recovery verification passes; acceptance remains incomplete.** The requested additional 50 genuine completions stopped at **17 completed + one unknown attempt**. Owner/real-device review and exact-commit CI remain separate gates. **The working private preview is unchanged; 1B is not authorized.** [Implementation truth](../STATUS.md) · [detailed findings/accounting](NORTH-1A-FOLLOWUP.md) · [initial packet and retained failure history](NORTH-1A-REVIEW-INITIAL.md).
 
 ## Implemented
 
-- North ☆ / accessible **North Star**, outlined star, **Ask North ☆ / Explore with North ☆**, no assistant “Powered by” attribution; bronze Pal Care/violet assistant identity retained.
-- Compact header/overflow, persistent composer and one transcript scroll region.
-- Searchable dated purchase context, direct selection/removal, dismissible one-click purchase clarification and bounded dismissal persistence.
-- One visible care/Insights timeline; drafts and explicit context survive navigation, close/reopen, expansion and optional per-tab reload storage. Owned server histories remain separate; browser hints never become trusted transcript content.
-- Exactly four optional discovery suggestions. They collapse after conversation starts, preserve existing drafts and disclose unimplemented library tasks rather than substituting a selected purchase’s price.
-- Recovery preserves original request identity and usage. Clear now hydrates pending-only IDs even when expired/denied access prevented restoration; denial, active lease or uncertain delivery does not discard the recovery hint. Restored native plans never apply automatically.
-- Missing-source care wording and explicit alternative-method labeling follow genuine-output semantic review. Original outputs and failed scores remain intact.
+- North ☆, pronounced **North Star**, within Pal Care: outlined star/violet accents, compact header/overflow, neutral response/composer surfaces and no assistant “Powered by” attribution.
+- Searchable/removable **dated purchase context** and direct dismissible choices; persistent product context stays distinct from each question's scope.
+- One visible care/Insights timeline; drafts/context/history survive navigation, close/reopen and expansion. Underlying owned server conversations and original request/recovery IDs remain separate.
+- An honest 1A library-task guard, including linked-list/CSV wording, prevents one selected purchase's amount being presented as a library total. It does **not** implement library queries, totals or export.
+- Expired/pending-only Clear recovery retains uncertain work until owned deletion succeeds. Recovered native plans require explicit SDK application; neither recovery nor expansion replays a model POST.
+- Pinned **AG Studio 3.0.0** native value-resize/grid-lifecycle patch, plus stronger hydration/navigation regressions. Native widgets, mappings, license notices, error assertions and navigation deadlines remain intact.
+- Exactly **50 additional automated regressions**, one incomplete-HTTP-200/no-replay regression and three tests of the actual native grid core. All nine original AI flags individually classified; old outputs/scores unchanged.
 
-**Gate/dependencies:** approved 1A interaction foundation within the customer-first A–C sequence, reusing the existing monolith, Purchase Twins, source controls, native Insights runtime and protected transport/accounting. No framework, application migration, credential provisioning, financial/provider fallback or public exposure was added.
+**Customer outcome/gate:** reliable 1A purchase-assistant interaction, reusing the existing monolith, fixed fictional scope, Purchase Twins, native Insights and protected transport/accounting. No 1B capability, application migration, production credential provisioning, financial operation, paid fallback or public exposure was added.
 
-## Screenshots for review
+## Screenshots and actual UX observations
 
-Actual isolated fixture production app, recaptured from the final build at **2026-11-02T21:04:51Z**. Desktop **1440×1000**; mobile **390×844 Chromium emulation**, not a real phone. These are screenshots, not mockups and not the unchanged private preview.
+Final runtime-source capture: **2026-11-02T22:42:31.680Z**, isolated fixture **production app**, desktop **1440×1000**, mobile **390×844 Chromium emulation**. Not mockups, the working private preview, or a real phone.
 
 | Presentation | Light | Dark |
 | --- | --- | --- |
-| Desktop | [Open screenshot](north-1a/desktop-light-welcome.png) | [Open screenshot](north-1a/desktop-dark-welcome.png) |
-| Mobile | [Open screenshot](north-1a/mobile-light-welcome.png) | [Open screenshot](north-1a/mobile-dark-welcome.png) |
+| Desktop | [Welcome](north-1a/desktop-light-welcome.png) · [Receipt](north-1a/desktop-light-receipt.png) | [Welcome](north-1a/desktop-dark-welcome.png) · [Receipt](north-1a/desktop-dark-receipt.png) |
+| Mobile | [Welcome](north-1a/mobile-light-welcome.png) · [Receipt](north-1a/mobile-light-receipt.png) | [Welcome](north-1a/mobile-dark-welcome.png) · [Receipt](north-1a/mobile-dark-receipt.png) |
 
-[Four-profile overview](north-1a/welcome-sheet.png) · [searchable context](north-1a/context-sheet.png) · [exact receipt](north-1a/receipt-sheet.png) · [same conversation expanded](north-1a/expanded-sheet.png) · [request/error observations](north-1a/observations.json).
+[Four-profile overview](north-1a/welcome-sheet.png) · [searchable context](north-1a/context-sheet.png) · [receipt response](north-1a/receipt-sheet.png) · [same conversation expanded](north-1a/expanded-sheet.png) · [request/error observations](north-1a/observations.json).
 
-All **16 captures** were visually reviewed by the coding agent. Context search focus was corrected from inherited bronze to violet, matching the approved North identity. Each profile made one bounded conversation bootstrap, one public context GET and one deterministic receipt turn. **Zero model calls, financial/external attempts or uncaught page errors; expansion made zero additional requests.** No human/owner acceptance is implied.
+Coding-agent visual inspection covered all **16 captures**:
+
+- Pal Care remains the primary shell identity; North is compact and secondary. Both themes retain readable neutral transcript/composer surfaces and clear bronze receipt/violet assistant controls.
+- The search dialog shows **Everyday headphones · F-01 / Oct 18, 2026 / Sample / PC-000201**; Cancel and Remove remain visible. Searching/selecting context does not submit a question.
+- The receipt response retains the same dated Sample scope, labels **“From saved records · no model call”**, and links the exact saved receipt. Context and question-scope metadata repeat deliberately; no incorrect payment-verification label appears.
+- Mobile context, response/action and composer fit the captured viewport without clipping; expanded mode increases transcript room and preserves the answer. This does not prove real-device keyboard/IME behavior.
+- Discovery still exposes later library tasks; those produce an explicit 1A limitation rather than actual results. Expanded mode is the **same conversation**, not an expanded native analytics workspace.
+
+Each profile made one bounded conversation bootstrap, one context GET and one deterministic receipt turn. **Zero model calls, financial/external attempts, uncaught page errors or additional expansion requests.** Sources remain collapsed in these images; complete source/SDK assertions are separate browser evidence. Agent inspection is not independent human usability research.
 
 ## Verified
 
-| Evidence class | Actual result |
+### Isolated tests and actual isolated-application observations
+
+| Evidence | Actual result / boundary |
 | --- | --- |
-| Isolated lint/typecheck/units/build | Pass; **1,053 units / 55 files**. Final production source hash `f1f62ff36214ef72da90de4b7f20b111b2ace74660c8d1dc77cb0bf1ce90b2a9`, build `L1OexP4LbD6waGmLW2jNr`, Node 22.23.3. |
-| Formatting | Pass. |
-| Deterministic/fixture + offline evaluation | **70/70 + 14/14**, zero inference/financial calls. |
-| Genuine fixture model calls | **160 completed and semantically reviewed**, original **54/60** + additional **97/100** strict passes; all nine flags and interpretative findings retained. |
-| Observed token usage | **120,601 input + 4,854 output = 125,455**, including 90 reasoning tokens in output; caches zero. Subscription dollar cost unavailable, never estimated. |
-| Accounting/access preservation | At 20:00:13Z: **163/300 used, 137 remaining, zero unknowns**, unchanged policy/limits. Four temporary evaluation sessions revoked; original sessions/history preserved by harness checks. |
-| Preview/immutable-file preservation | **16/16** protected baseline hashes unchanged, including original `.env.local`, preview build/ID, expired historical journal and approval file. Only authorized provider registration/accounting paths are excluded from byte-equality. |
-| Actual isolated application | Four Light/Dark desktop/mobile journeys, **16 reviewed captures**; exact sample receipt/context/mode and zero-request expansion observed. |
-| Chromium fixture browsers | **216/216** complete desktop-Light/mobile-Dark suite; **64/64** North/purchase-choice checks in the other four profiles; **18/18** focused reflow/keyboard checks. |
-| Ordinary visual comparisons | **36/36**, all six viewport/theme profiles, after deliberate reference review; no update flag or threshold relaxation. |
-| Firefox/WebKit compatibility | Full run: **100 pass / four WebKit failures**. The menu clipping fix subsequently passes **2/2 focused Firefox/WebKit checks**; **three failures remain unresolved** (SDK ResizeObserver + two navigation cases). No overall green compatibility claim. |
-| Owner-access | **33/33**, Chromium/Firefox/WebKit with isolated synthetic identities/host files. No real owner session renewed or allowance changed. |
-| Injected Sol/recovery/expiry suite | **Blocked before test execution:** server refused to start without a dedicated `TEST_DATABASE_URL`. Its 14 configured cases, including the new pending-only expired-Clear regressions, are not claimed verified. No guard bypass or application database use. |
-| Actual private application / exact-commit CI | **Not performed for 1A.** The preview is intentionally its previous build; changes remain uncommitted/unpushed. |
+| Lint / typecheck / units / production build / formatting | Pass; latest **1,109 units / 58 files** include two CI guards, build **`IM1fwGc4WUebCTlseIwt1`**. Capture uses clean `3bc26db2d6a4ffffc03298be2dfa609ad20c8014` build **`Cmf1mTvvYelZ9l1wZt-xu`** (1,107 units / 57 files). Same runtime hash **`93f8de2b9e8fa1315ec12858d12f94ef09053151247c4104db38272cb9f728e8`**, Node 22.23.3. Later CI/tests/reference/docs changes do not change runtime source. |
+| Deterministic / offline evaluation | **70/70 + 14/14**, zero inference/financial calls. |
+| Dedicated PostgreSQL | **7/7** migration/seed integrity baseline; **113/113** integration and **2/2** real-server failure/disposable-role cleanup in follow-up. No application DB credentials or guard bypass. |
+| Firefox/WebKit compatibility | **108/108**, ordinary final-source run, no retries; original three WebKit and later two Firefox failures now pass. |
+| Complete fixture browsers | **220/220** desktop-Light/mobile-Dark. |
+| Other-profile North / choices / held-import navigation | **72/72**, desktop-Dark/mobile-Light/tablet-Light/tablet-Dark. |
+| Ordinary visual / official-source comparisons | **36/36**, all six profiles. |
+| Owner-access browsers | **33/33**, Chromium/Firefox/WebKit, disposable synthetic identities/host state. |
+| Recovery / expiry / actual native SDK | **14/14**, explicit dedicated `TEST_DATABASE_URL`, injected model protocol and actual isolated server/SDK; not real-provider acceptance. |
+| Corrected database Insights references | **6/6** ordinary comparisons on current runtime, all six profiles; only four reviewed desktop/tablet references updated, both mobile references unchanged. No tolerance/assertion change. |
+| Actual isolated application capture | Four final-source journeys / **16 reviewed screenshots**; zero model/financial/external attempts or page errors, zero-request expansion. |
 
-The isolated app is `/tmp/opencode/palcare-north-1a-verification/app`, inside network-disabled `palcare-north-1a-verification`; no actual credentials or preview `.next` assets were copied. Final source comparison confirms the primary checkout's `src/` and `public/` match the isolated app. All **16 immutable protected baseline files** remain byte-identical and original preview PID **2510002** remains present. Final preservation/build evidence: `evidence/final-preservation-and-source.json` beside the isolated app. The original and additional model ledgers are separately fixed, hash-chained and capped. [Original evaluation review](NORTH-1A-AI.md) · [all additional 100 outputs reviewed](NORTH-1A-ADDITIONAL.md).
+These runs overlap in coverage; counts are not a claimed number of unique scenarios. All final isolated browser phases used **zero retries**. Commands, logs and archived artifacts: `/tmp/opencode/palcare-north-1a-verification/evidence/final-stable-integrated-results.json` and `final-database-insights-six-profiles.json`.
 
-The **216 + 64 + 36 + 18** browser results belong to the reflow snapshot `ed33ac72…`; the final snapshot adds only explicit Clear-menu button wrapping, verified by the two focused cross-engine checks plus the complete final lint/typecheck/unit/build/format runs and four recaptured application journeys. The broad compatibility suite was not silently reclassified as passing after that focused fix. Full logs/commands are retained under `evidence/final-browser-results-reflow.json` and `evidence/final-browser-results-access.json` beside the isolated app.
+### Exact-commit CI
 
-### Initial failures and corrections
+Implementation/reference commit **`5b640b54cd3cfccdcc970bd9ce2cd4164b654bb0`**, [run 41535096613](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/41535096613): **cancelled at the existing 35-minute job limit**, not green. All prerequisites, **33 access / 660 fixture / 660 database / six Guardian** checks passed; compatibility logged **82** completions before interruption, with no assertion failure/retry recorded. The injected-protocol stage was **skipped**. Local full compatibility/recovery passes are not substituted for those missing CI results.
 
-The initial browser run hit a 240-second harness timeout and was gracefully stopped; it is not counted as a passing suite. Saved artifacts show the old assistant screenshot references, a short-hex test parser defect (`#fff` became an invalid RGB expectation) and the real library-question routing defect on Insights. The routing fix preserves implemented native view commands while sending unsupported conversational library tasks to the existing 1A honesty guard. No screenshot tolerance, accessibility rule, authority check or source assertion was relaxed. The new alternative-method test initially failed lint for an unused binding; that binding was removed rather than suppressing lint.
+The complete access/compatibility/injected-protocol suites now occupy a second **unconditional mandatory job**, with its own disposable PostgreSQL service/frozen build. Both jobs retain **35-minute limits** and all existing tests, browser deadlines, retries and provider-off flags. Two configuration regressions guard against accidental coverage/isolation weakening; static command comparison confirms no original commands were removed. Local lint/typecheck/1,109 units/build/format and YAML/Prettier checks pass. A new exact-commit workflow must pass **both jobs**; its result is pending. Runtime hash remains `93f8de2b…`; this later delta is CI/tests/reports/screenshots, not a preview refresh or product change.
 
-A later complete focused run passed **90** checks and failed the same incorrect price expectation in six profiles: the test expected catalog **$129**, while the application correctly returned the recorded Sample purchase **$149**. The corrected test explicitly requires $149 and rejects $129; all six scoped reruns pass. Reference generation then passed **36/36** checks, deliberately changing 12 fixture references; database-specific references are untouched. The later ordinary comparisons passed separately. One 20-second formatting invocation timed out under browser load; the later completed formatting runs do not erase that failed invocation.
+Retained earlier CI outcomes:
 
-The first full desktop-Light/mobile-Dark fixture run completed **209 passes / seven failures**. Genuine layout regressions involved wrapping North labels at 320px/enlarged text and context text squeezed beside controls, consuming the transcript. A continuity test also expected the old scope text without the newly displayed date. Corrections preserve enlarged font sizes, metadata, 44px controls and the existing clipping/transcript assertions: labels wrap, context controls move to a separate row only when their natural rem-based widths require it, and continuity asserts exact dates/provenance/IDs. A ten-case targeted rerun passed nine; one remaining purchase-page label was corrected afterward. The later passing integrated results and final recapture are recorded above; initial failure evidence remains retained.
+- `deceb77` / [41530652445](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/41530652445): passed through fixture browsers; database browsers **656 pass / four stale Insights-reference failures**, including retry. Later Guardian/compatibility/Sol stages skipped.
+- `06fc929` / [41533615931](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/41533615931): failed formatting of the native lifecycle test; later verification stages skipped. Stable datasource-variable formatting fixed it without changing runtime/assertions.
+- `3bc26db` / [41534436528](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/41534436528): formatting/functional stages passed, then the same **656/four** stale-reference failure; later stages skipped. The four deliberately inspected replacements exist in `5b640b5`, not this older SHA.
 
-That reflow snapshot subsequently passed **18 focused + 216 full + 64 additional-profile + 36 normal visual checks**. Compatibility then completed **100 passes / four WebKit failures**, rather than green cross-engine acceptance. The previously documented `ResizeObserver loop completed with undelivered notifications` remains an actual failure, not filtered or suppressed. Clear-menu explicit wrapping passes its focused cross-engine rerun. The independent access suite and final capture passed; the Sol/recovery suite failed its dedicated-database prerequisite before running any case. These results are reported individually, not hidden behind the compatibility failure or converted into a green overall run.
+### Genuine model results and preservation
 
-**Navigation trace diagnosis:** in both 375px/1440px WebKit failures, Documents focus/Enter completed and the target RSC GET returned **HTTP 200** with Documents content, but the client URL remained `/insights` at the original five-second postcondition. No 375px page error was recorded; 1440px had an earlier React hydration #418 before North opened. SDK initialization overlaps the interaction, but neither causality nor a minimal 1A fix is established. These are unresolved actual-browser failures—not automatically attributed to the known ResizeObserver defect, ignored as test noise, or fixed by increasing the timeout. A follow-up diagnostic should instrument click/default prevention, active-element/route-transition progress and SDK teardown before changing shared lifecycle code.
+- Original **160 completions / 151 strict passes / nine preserved flags**; all nine reviewed individually, four Medium scope errors and five Low minimality/rubric discrepancies. Corrections do not rewrite historical scores.
+- New fixed batch: **17 known completions / 14 strict passes / three preserved discrepancies**; attempt 18 stopped at `pilot_completion_or_model_missing`, unknown usage retained; **32 cases never dispatched**. Both temporary sessions revoked. No replay, replacement, renewal/reset or paid fallback.
+- Combined: **177 known completions, 165 strict passes / 12 discrepancies, plus one unknown attempt**. This is adapter/domain evidence over fictional records, not population accuracy, browser proof or independent human review.
+- Known new usage: **12,666 input + 432 output = 13,098 tokens**; cumulative known batch usage **133,267 input + 5,286 output = 138,553 tokens**, including 90 reasoning tokens in output. Caches zero. Unknown-attempt usage and subscription dollar cost unavailable, never zero/refunded estimates.
+- Final read-only preservation at **2026-11-02T22:45:14Z**: **18/18 protected baseline files/original ledgers unchanged**, original policy/event prefix/browser states retained, new stopped ledger hash unchanged. Standing accounting **181/300 reserved, 119 unreserved, one unknown**; unreserved allowance does not override the stop.
+- Primary/isolated runtime and native patch match exactly; no verification runner remains active. Original preview PID **2510002**, cwd and protected build/ID remain unchanged. No application/financial DB suite was pointed at the working preview. Private evidence: `evidence/north-1a-final-preservation-and-source.json`.
 
 ## Incomplete
 
-- Three unresolved WebKit failures, the unexecuted dedicated-database Sol/recovery suite, independent owner acceptance, exact-commit CI and real-device keyboard/IME observations.
-- 1B library/date retrieval, totals/trends, formatting-only result reuse, provider-free conversational queries and expanded native analytics are **not implemented by this checkpoint**.
-- Existing native presentation planning still belongs to `/insights`. Expanding the assistant preserves its current conversation/context/draft; it does not create a second Studio or turn Home into a native analytics workspace.
-- Genuine provider-adapter fixture evaluation does not prove end-to-end browser behavior or native SDK execution. Browser emulation is not real-device testing; coding-agent semantic review is not independent human research.
-- No dedicated PostgreSQL suite was run in this fixture-only, network-disabled verification copy. No database/schema or financial acceptance is inferred.
+- The requested **50 genuine completions**; the stopped ledger must not be extended/replayed or replaced.
+- Exact-commit CI conclusion, independent owner acceptance and real-device keyboard/IME observations.
+- 1B library/date retrieval, conversational totals/trends, formatting-only reuse/provider-free conversation and expanded native analytics remain later capabilities—not shipped by the rename or these tests.
+- The current private preview still serves its earlier build; this packet does not establish refreshed-private-app acceptance or live-provider recovery.
 
 ## Blocked
 
-Private-preview refresh and 1B require the owner’s separate 1A review approval. Public licensing/deployment, actual financial operations and paid API activation retain their separate gates. Remaining standing allowance is not authorization for extra calls beyond the fixed completed evaluation batches.
-
-Complete cross-engine acceptance is blocked by the three retained failures. Recovery/expiry acceptance also needs an explicitly dedicated test database reachable inside an approved isolated verification environment; no application credential, network relaxation, database provisioning or migration is inferred from this report.
+The **unknown provider completion** blocks further live evaluation under this task. Owner review/real-device evidence remain human gates. Preview refresh and 1B require separate exact owner approval; passing automation cannot authorize either. Financial operations, paid APIs, credential provisioning/application migrations, licensing and public deployment retain their independent approval boundaries.
 
 ## Next
 
-Owner reviews the screenshots/interaction foundation and requests revisions or gives a scoped review decision. Before claiming complete 1A acceptance, resolve/verify the three WebKit failures and run the blocked suite against an approved dedicated test database. Keep the working preview unchanged and 1B on hold; neither a visual review nor these partial results silently waives the acceptance gates.
+Record the exact CI conclusion, then obtain the owner's **1A review decision** on this packet and the incomplete live-evaluation gate. Keep the preview and 1B unchanged until separately authorized; do not invent a replacement batch or engineering deadline. Conservative submission cutoff remains **November 12, 2026 at 12:00 PM PST**, with judge access through **December 15, 2026**, subject to actual authorization/license expiry.
