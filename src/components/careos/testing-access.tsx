@@ -157,8 +157,8 @@ export function TestingAccess({
                 }}
               />
               {scope === "customer"
-                ? "Customer CareOS chat"
-                : "CareOS planning for my Insights"}
+                ? "North Star chat"
+                : "North Star planning for my Insights"}
             </label>
           ))}
         </fieldset>

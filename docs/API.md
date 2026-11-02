@@ -1,5 +1,18 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
+## North ☆ interaction foundation — checkpoint 1A
+
+North ☆ (spoken North Star) is the renamed customer assistant within Pal Care. Existing `/api/careos/` paths, ownership, cookies, fingerprints, rate limits, original request IDs and usage accounting remain unchanged. Branding does not grant model or financial authority.
+
+- **`GET /api/careos/context`** returns at most 100 server-derived dated purchase choices from the existing fixed fictional customer/merchant read projection. It accepts no customer/merchant identity, performs no inference or purchase writes, sets `private, no-store` and returns a sanitized 503 on read failure without substituting fixtures. The context selector uses this read; choosing/removing context sends no turn.
+- New answers may include optional **`questionScope: "library" | "purchase" | "general"`**; context metadata may include optional **`purchasedOn`**. Old stored turns/pending envelopes remain compatible and are not rewritten. The browser's persistent product context is a separate presentation hint, never request authority.
+- The 1A library-question guard returns an honest unsupported result with `questionScope: "library"`, no calculated totals or purchase choices, and existing Purchases/Insights links. Actual conversational library retrieval/provider-free questions are 1B+.
+  The guard also covers explicit library-result reformat/export wording before classification; it does not treat a linked-list request as a single-purchase summary. Negated library corrections retain working one-purchase tasks.
+- Care and customer-Insights transport ownership remain separate. One visible timeline combines their results without trusting combined browser history as server/model context. Draft/context storage is bounded per-tab and optional. Uncertain work retains its original envelope and GET-only recovery; recovered native plans still require explicit application/read-back.
+- The optional presentation hint also retains bounded UUID-only timeline/dismissal indexes, never answer text or authority. Expired/denied access may skip history restoration, but explicit Clear still checks stored pending conversation IDs through the owned DELETE endpoints before forgetting them; denial, active lease and uncertain delivery retain the hint and consumed usage.
+
+The owner has not approved preview replacement or advancement to 1B. See [the plan](NORTH-STAR-PLAN.md) and [current evidence](STATUS.md); no new behavior is accepted merely by this contract.
+
 ## Persistent private preview health
 
 **Testing access UI:** `/ai-evaluation` uses the existing `GET /api/ai/evaluation` in the pinned HTTPS preview. It displays window/expiry and prepares a non-secret bounded request in browser memory/clipboard for owner review in OpenCode. No POST, server queue, cookie, renewal or grant is added. Provider-token refresh is not performed or validated by this page. Existing pairing/evaluation mutations remain denied. [Request-only contract](TESTING-ACCESS.md).

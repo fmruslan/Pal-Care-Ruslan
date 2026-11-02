@@ -46,7 +46,7 @@ export function IntelligenceWorkspace({
         <div className="flex flex-wrap items-center justify-between gap-4">
           <p className="flex items-center gap-2 text-sm font-semibold text-intelligence-foreground">
             <ChartNoAxesCombined className="size-5" aria-hidden="true" />
-            CareOS Intelligence · Evidence before action
+            Merchant intelligence · Evidence before action
           </p>
           <Badge tone="intelligence">Read-only commerce data</Badge>
         </div>

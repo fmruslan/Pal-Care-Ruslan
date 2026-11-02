@@ -43,13 +43,14 @@ export default async function CarePage({
         Back to {record.product.name}
       </Link>
       <PageHeading
-        eyebrow="CareOS · Guidance with a source"
+        eyebrow="Pal Care · Guidance with a source"
         title="A little knowledge. Better care."
         description={`${record.product.name} · ${record.product.brand} ${record.product.model}. Only documentation matched to this product is shown.`}
         action={
-          <AskCareOS context={contextOf(record)}>
-            Ask about product care
-          </AskCareOS>
+          <AskCareOS
+            context={contextOf(record)}
+            label="Ask North Star about product care"
+          />
         }
       />
       {!sources.length && (
@@ -104,7 +105,7 @@ export default async function CarePage({
                 CC BY-SA 4.0
               </a>
               . Excerpt selection adapted for Raspberry Pi 5 running Raspberry
-              Pi OS; other model shortcuts omitted. CareOS summaries of this
+              Pi OS; other model shortcuts omitted. North Star summaries of this
               material are adaptations under the same licence. No endorsement is
               implied.
             </p>

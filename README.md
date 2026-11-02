@@ -1,5 +1,9 @@
 # Pal Care
 
+**North 1A review:** [desktop/mobile Light/Dark screenshots and prior results](docs/evidence/NORTH-1A-REVIEW.md) · [acceptance follow-up and remaining blockers](docs/evidence/NORTH-1A-FOLLOWUP.md). The original **160 genuine calls** remain reviewed; **17 additional responses** are reviewed, followed by one unknown attempt that stopped the new 50-call milestone. All 14 dedicated-database recovery cases and the focused WebKit corrections pass; broad regressions/CI and owner acceptance remain separate gates. The private preview is unchanged.
+
+**North ☆ checkpoint 1A — implementation/review in progress, private preview unchanged:** Pal Care's customer assistant is now named **North ☆** (spoken **North Star**). The new interaction foundation adds a compact header, searchable/removable purchase context, direct dismissible purchase choices, a shared visible care/Insights timeline and retained drafts. North is an assistant within Pal Care, not a separate product or attribution. Library intelligence, calculated totals, provider-free conversational queries and expanded native analytics are later checkpoints, not shipped by this rename. The four optional discovery suggestions label those limits honestly. [Approved plan and owner-review gates](docs/NORTH-STAR-PLAN.md) · [implementation truth](docs/STATUS.md).
+
 **Private bookmark: [https://greatbison.tail9e8802.ts.net:8444/dashboard](https://greatbison.tail9e8802.ts.net:8444/dashboard).** Private Tailscale Serve proxies to persistent loopback-only Pal Care on **127.0.0.1:3002**. No SSH tunnel, Mac installer or open OpenCode session is needed. OpenCode remains on 8443; Funnel stays off. [HTTPS verification](docs/evidence/TAILSCALE-ACCESS.md) · [optional Mac cleanup](docs/MAC-CLEANUP.md) · [operations](docs/WORKSPACE.md).
 
 **Mobile recovery checkpoint:** Home reflow, customer Studio drag/resize, responsive regressions and primary-workspace/build guards have local and actual-application evidence. Exact delivered-commit CI/runtime are reported at handoff; owner review remains open. [Evidence and remaining gates](docs/evidence/MOBILE-BASELINE.md) · [screenshot-backed experience review](docs/evidence/JUDGE-EXPERIENCE.md). This is an ongoing private testing baseline, not submission readiness.
@@ -33,7 +37,7 @@ Stage 5 removed privileged database fallbacks; Phase B verified actual restricte
 Webhooks are not yet implemented; actual Stage 4 refund verification still needs separate approval. Merchant intelligence has genuine model-planned private Studio actions plus a clearly scripted fixture mode. Recall coverage remains one reviewed official CPSC notice; discovery remains fixture-based. Public licensing/hosting, real Channel3 and actual paid API acceptance remain unverified.
 
 **Everything you own. All cared for.**
-*Powered by CareOS · Independent PayPal AI Hackathon project*
+*Independent PayPal AI Hackathon project*
 
 > **Price Guardian remains financially disabled pending separate actual-refund acceptance.** Existing purchases/Guardian records are preserved. Genuine subscription inference is verified only in the private owner preview; scripted/fixture assistance is never labeled live. Public licensing, actual Channel3, webhooks, paid API acceptance and deployment remain incomplete. [Current status](docs/STATUS.md) · [actual private AI evidence](docs/evidence/SUBSCRIPTION-QUALITY.md) · [Price Guardian](docs/PRICE-GUARDIAN.md).
 
@@ -108,6 +112,8 @@ Pal Care is an independent hackathon concept and **not an official PayPal produc
 | Deployment | Render preparation exists; public deployment and workers not verified |
 | Testing | Vitest, Playwright, Postman; GitHub Actions CI |
 | Development | OpenCode on a Tailscale-connected remote server; Mac client |
+
+AG Studio stays pinned to **3.0.0**. `pnpm install --frozen-lockfile` applies the small tracked [native value-widget resize patch](patches/ag-studio@3.0.0.patch), deferring ResizeObserver-triggered layout writes and cancelling them on destruction. Native widgets, vendor notices and licensing requirements remain unchanged. [1A follow-up evidence and limitations](docs/evidence/NORTH-1A-FOLLOWUP.md).
 
 Using a ChatGPT subscription in OpenCode for development does **not** automatically provide deployed model API credits. Production credentials remain server-side.
 

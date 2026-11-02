@@ -29,7 +29,7 @@ export function useConversation() {
   >("idle");
   const locked = useRef(false);
   const initialized = useRef(false);
-  const initializing = useRef<Promise<Conversation> | null>(null);
+  const initializing = useRef<Promise<Conversation | null> | null>(null);
   const [error, setError] = useState("");
   const [unsent, setUnsent] = useState<PendingQuestion[]>([]);
   const unsentRef = useRef<PendingQuestion[]>([]);
@@ -98,7 +98,7 @@ export function useConversation() {
       /* Optional. */
     }
   }
-  async function ensure() {
+  async function ensure(createIfMissing = true) {
     loadUnsent();
     if (current.current) return current.current;
     if (initializing.current) return initializing.current;
@@ -132,9 +132,13 @@ export function useConversation() {
             pendingRef.current?.conversationId
           )
             throw error;
+          if (!createIfMissing) return null;
           value = await careApi<Conversation>("", "POST", {});
         }
-      } else value = await careApi<Conversation>("", "POST", {});
+      } else {
+        if (!createIfMissing) return null;
+        value = await careApi<Conversation>("", "POST", {});
+      }
       save(value);
       return value;
     })();
@@ -144,13 +148,14 @@ export function useConversation() {
       initializing.current = null;
     }
   }
-  async function restore() {
+  async function restore(createIfMissing = true) {
     if (locked.current) return null;
     locked.current = true;
     setPhase("restoring");
     setError("");
     try {
-      const value = await ensure();
+      const value = await ensure(createIfMissing);
+      if (!value) return null;
       // Reopen checks uncertain work through GET only, never repeats the turn POST.
       if (pendingRef.current?.conversationId) {
         const saved = await careApi<Conversation>(`/${value.id}`);
@@ -219,6 +224,7 @@ export function useConversation() {
     let dispatched = false;
     try {
       const value = await ensure();
+      if (!value) throw new Error("careos_conversation_unavailable");
       question = { ...question, conversationId: value.id };
       storePending(question);
       dispatched = true;
@@ -261,8 +267,26 @@ export function useConversation() {
     setPhase("clearing");
     setError("");
     try {
-      const id = current.current?.id ?? pendingRef.current?.conversationId;
-      if (id) {
+      // Opening can skip restoration when access is denied/expired. Hydrate
+      // recovery identities without creating or replaying any server request.
+      let storedId: string | null = null;
+      try {
+        const restored = readPending(sessionStorage.getItem(pendingKey));
+        if (!pendingRef.current && restored) storePending(restored);
+        const value = sessionStorage.getItem(conversationKey);
+        if (value && /^[a-f0-9-]{36}$/.test(value)) storedId = value;
+      } catch {
+        if (!initialized.current)
+          throw new Error("careos_recovery_unavailable");
+      }
+      const ids = new Set(
+        [
+          current.current?.id,
+          pendingRef.current?.conversationId,
+          storedId,
+        ].filter((id): id is string => !!id),
+      );
+      for (const id of ids) {
         try {
           await careApi(`/${id}`, "DELETE");
         } catch (e) {

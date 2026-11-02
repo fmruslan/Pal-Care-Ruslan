@@ -6,7 +6,7 @@ import { Shell } from "@/components/shell";
 import { PageHeading } from "@/components/page-heading";
 import { IntelligenceWorkspace } from "@/components/intelligence/workspace";
 import { studioEvaluationAllowed } from "@/lib/intelligence/access";
-export const metadata = { title: "CareOS Merchant Intelligence" };
+export const metadata = { title: "Merchant Intelligence" };
 export default async function IntelligencePage() {
   const [data, guardian, h] = await Promise.all([
     getDemoData(),

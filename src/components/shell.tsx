@@ -7,7 +7,6 @@ import {
   FileText,
   LayoutDashboard,
   ShieldCheck,
-  Sparkles,
   ChartNoAxesCombined,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -24,7 +23,7 @@ import { Badge } from "./ui/badge";
 const customerIcons = {
   "/dashboard": LayoutDashboard,
   "/vault": Archive,
-  "/insights": Sparkles,
+  "/insights": ChartNoAxesCombined,
   "/documents": FileText,
 };
 
@@ -55,7 +54,7 @@ export function Shell({
         },
         {
           href: "/merchant/intelligence",
-          label: "CareOS Intelligence",
+          label: "Merchant intelligence",
           mobile: "Intelligence",
           icon: ChartNoAxesCombined,
         },
@@ -103,17 +102,18 @@ export function Shell({
         </nav>
         <div className="mt-auto p-5">
           <div className="intelligence-wash rounded-2xl border p-4">
-            <Sparkles
+            <FileText
               className="mb-3 size-5 text-intelligence-foreground"
               aria-hidden="true"
             />
-            <p className="text-sm font-semibold">Powered by CareOS</p>
+            <p className="text-sm font-semibold">
+              Your purchases, close at hand.
+            </p>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              One product passport.
-              <br />A more thoughtful future.
+              Receipts, records and available product guidance in one place.
             </p>
             <Badge tone="intelligence" className="mt-3">
-              CareOS · records & guidance
+              Saved records · clear sources
             </Badge>
           </div>
           {merchant && (
@@ -223,7 +223,7 @@ export function Shell({
           {children}
         </main>
         <footer className="mx-auto flex max-w-[1440px] flex-wrap justify-between gap-3 px-5 pt-3 pb-[calc(7rem+env(safe-area-inset-bottom))] text-sm leading-6 text-muted-foreground sm:px-8 lg:px-10 lg:pb-8">
-          <span>Pal Care · Powered by CareOS</span>
+          <span>Pal Care</span>
           <span>Independent Sandbox demo · No coverage promise</span>
         </footer>
       </div>

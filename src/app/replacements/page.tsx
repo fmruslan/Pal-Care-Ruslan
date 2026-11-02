@@ -29,7 +29,7 @@ export default async function ReplacementsPage({
       <Shell active="/vault" source={data.source}>
         <CareContextRegistration context={journey.context} />
         <PageHeading
-          eyebrow="CareOS · Replacement Concierge"
+          eyebrow="Pal Care · Replacement Concierge"
           title="No matching replacement category."
           description={`${journey.context?.name} · ${journey.context?.model}. Unrelated products will not be substituted.`}
         />
@@ -62,7 +62,7 @@ export default async function ReplacementsPage({
         </p>
       )}
       <PageHeading
-        eyebrow="CareOS · Replacement Concierge"
+        eyebrow="Pal Care · Replacement Concierge"
         title="The next choice, thoughtfully."
         description="Keep what works. Check care and remedy options first. Explore replacements only when they make sense."
       />

@@ -25,18 +25,20 @@ test("purchase-card CareOS uses the existing assistant, keeps drafts across appe
   await expect(page.locator("[data-purchase-card]")).toHaveCount(4);
   await page
     .getByRole("button", {
-      name: "Ask CareOS about Everyday headphones",
+      name: "Ask North Star about Everyday headphones",
       exact: true,
     })
     .click();
-  const dialog = page.getByRole("dialog", { name: "CareOS", exact: true });
+  const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
   await expect(
     dialog.getByText("Everyday headphones · F-01", { exact: true }),
   ).toBeVisible();
-  const composer = dialog.getByLabel("Ask about your purchase");
+  const composer = dialog.getByLabel("Ask about your purchases", {
+    exact: true,
+  });
   await composer.fill("Keep my unsent care question");
   // The desktop panel is nonmodal; mobile closes/reopens without losing its draft.
-  await dialog.getByRole("button", { name: "Close CareOS" }).click();
+  await dialog.getByRole("button", { name: "Close North Star" }).click();
   await page.getByRole("combobox", { name: "Appearance" }).selectOption("dark");
   await page.locator(".careos-launcher").click();
   await expect(composer).toHaveValue("Keep my unsent care question");

@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   FileText,
   Layers2,
-  Sparkles,
   BookOpen,
   ShieldCheck,
   CalendarDays,
@@ -31,6 +30,7 @@ import { contextOf } from "@/lib/careos/contracts";
 import { Button } from "@/components/ui/button";
 import { getKnowledge } from "@/lib/careos/knowledge-repository";
 import { REFERENCE_PRODUCT } from "@/lib/careos/knowledge";
+import { AssistantName } from "@/components/assistant-name";
 import { getGuardian } from "@/lib/price-guardian/runtime";
 import { GuardianCard } from "@/components/guardian";
 import { GuardianTimeline } from "@/components/guardian-timeline";
@@ -109,7 +109,7 @@ export default async function TwinPage({
               <span className="absolute right-4 bottom-4 rounded-full border bg-card px-3 py-1.5 text-xs font-medium text-intelligence-foreground">
                 {careSources.length
                   ? "Source-backed care available"
-                  : "CareOS · Purchase assistance"}
+                  : "Pal Care · Purchase assistance"}
               </span>
             </div>
             <div className="min-w-0 lg:col-start-2">
@@ -243,9 +243,8 @@ export default async function TwinPage({
             className="intelligence-wash rounded-3xl border p-6 sm:p-7"
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="inline-flex items-center gap-2 text-sm font-semibold text-intelligence-foreground">
-                <Sparkles className="size-4" aria-hidden="true" />
-                CareOS intelligence
+              <span className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-2 text-sm font-semibold text-intelligence-foreground">
+                <AssistantName /> <span>· Purchase guidance</span>
               </span>
               <Badge tone="intelligence">Available documents only</Badge>
             </div>
@@ -259,7 +258,7 @@ export default async function TwinPage({
             <p className="mt-3 text-sm leading-7 text-muted-foreground">
               {careSources.length
                 ? "Explore matched manufacturer guidance for this reference product. Ownership is sample-only; documentation has its own source."
-                : `No manufacturer care guide is available for ${product.brand} ${product.model}. CareOS can still find your receipt and explain saved purchase details.`}{" "}
+                : `No manufacturer care guide is available for ${product.brand} ${product.model}. North Star can still find your receipt and explain saved purchase details.`}{" "}
               No live AI model is connected in fixture mode.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">

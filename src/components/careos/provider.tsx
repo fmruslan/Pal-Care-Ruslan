@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
 import Link from "next/link";
 import {
@@ -17,16 +17,29 @@ import {
   FileText,
   Maximize2,
   Minimize2,
-  Sparkles,
+  MoreHorizontal,
+  ChevronDown,
   X,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import type { CareContext, Intent } from "@/lib/careos/contracts";
-import { contextIdentity } from "./conversation-client";
 import { useConversation } from "./use-conversation";
 import { useConversationScroll } from "./use-conversation-scroll";
 import { AnswerActions } from "./answer-actions";
 import { PurchaseChoices } from "./purchase-choices";
+import { ContextPicker } from "./context-picker";
+import { AssistantName } from "../assistant-name";
+import {
+  assistantSuggestions,
+  ASSISTANT_SPOKEN_NAME,
+} from "@/lib/assistant-identity";
+import {
+  interactionKey,
+  readInteraction,
+  mergeAssistantTurns,
+} from "./interaction-state";
+import { displayDate } from "@/lib/demo/presentation";
+import { questionUsesInsights } from "@/lib/careos/interaction-limits";
 import { useVisibleViewport } from "./use-visible-viewport";
 import { useInsightsControl } from "../intelligence/customer-control";
 import { evaluationWindowExpired } from "@/lib/careos/window";
@@ -40,6 +53,7 @@ import {
 
 type AssistantState = {
   select: (context: CareContext | null) => void;
+  register: (context: CareContext | null) => void;
   open: () => void;
   ask: (message: string, intent?: Intent, context?: CareContext) => void;
 };
@@ -77,7 +91,6 @@ export function CareOSProvider({
     };
   }, [aiExpiresAt]);
   const pathname = usePathname();
-  const router = useRouter();
   const visible =
     /^\/(dashboard|vault|documents|guardian|safety|replacements|insights)(\/|$)/.test(
       pathname,
@@ -88,15 +101,34 @@ export function CareOSProvider({
   const [context, setContext] = useState<CareContext | null>(null);
   const contextRef = useRef<CareContext | null>(null);
   const registered = useRef(false);
+  const explicitContext = useRef(false);
+  const [contextExplicit, setContextExplicit] = useState(false);
+  const [contextOpen, setContextOpen] = useState(false);
+  const [dismissedChoices, setDismissedChoices] = useState<string[]>([]);
+  const [submittedOrder, setSubmittedOrder] = useState<string[]>([]);
+  const [presentationLoaded, setPresentationLoaded] = useState(false);
+  const loadedPresentation = useRef(false);
+  const [discoveryNotice, setDiscoveryNotice] = useState("");
   const revision = useRef(0);
   const regular = useConversation();
   const insights = useInsightsControl();
   const analytics = pathname === "/insights";
-  const { conversation, pending, phase, error, clear } = analytics
-    ? insights
-    : regular;
+  const turns = mergeAssistantTurns(
+    regular.conversation?.turns ?? [],
+    insights.conversation?.turns ?? [],
+    submittedOrder,
+  );
+  const conversation = turns.length ? { turns } : null;
+  const pending = regular.pending ?? insights.pending;
+  const phase = regular.phase !== "idle" ? regular.phase : insights.phase;
+  const error = regular.error || insights.error;
+  async function clear() {
+    if (regular.phase !== "idle" || insights.phase !== "idle") return;
+    await regular.clear();
+    await insights.clear();
+  }
   const { restore, send } = regular;
-  const check = analytics ? insights.check : regular.check;
+  const check = regular.pending ? regular.check : insights.check;
   const [draft, setDraft] = useState("");
   const busy = phase !== "idle";
   const [ownerState, setOwnerState] = useState<OwnerSendState>("checking");
@@ -140,17 +172,19 @@ export function CareOSProvider({
       document.removeEventListener("visibilitychange", focus);
     };
   }, [ownerAccess, isOpen, checkOwnerAccess]);
-  const interactionBlocked =
-    aiAccessDisabled ||
-    aiExpired ||
-    busy ||
-    !!pending ||
-    (analytics && (!insights.connected || !!insights.recoverable));
+  const interactionBlocked = aiAccessDisabled || aiExpired || busy || !!pending;
   const unavailable =
     interactionBlocked || (ownerAccess && ownerState !== "ready");
+  const plannerBlocked =
+    analytics &&
+    questionUsesInsights(draft, !!context) &&
+    (!insights.connected || !!insights.recoverable);
+  const submitBlocked = unavailable || plannerBlocked;
   const trigger = useRef<HTMLButtonElement>(null);
   const composing = useRef(false);
+  const admitting = useRef(false);
   const composer = useRef<HTMLTextAreaElement>(null);
+  const contextTrigger = useRef<HTMLButtonElement>(null);
   const panelRef = useVisibleViewport();
   const latest = conversation?.turns.at(-1);
   const { attach, onScroll, showJump, jump, focusTranscript } =
@@ -174,57 +208,139 @@ export function CareOSProvider({
       document.documentElement.classList.remove("careos-reading-space");
   }, [isOpen, visible, expanded]);
 
-  const select = useCallback((value: CareContext | null) => {
+  const updateContext = useCallback((value: CareContext | null) => {
     registered.current = true;
     if (JSON.stringify(contextRef.current) === JSON.stringify(value)) return;
     contextRef.current = value;
     revision.current++;
     setContext(value);
   }, []);
+  const register = useCallback(
+    (value: CareContext | null) => {
+      if (value && !explicitContext.current) updateContext(value);
+    },
+    [updateContext],
+  );
+  function loadPresentation() {
+    if (loadedPresentation.current) return;
+    loadedPresentation.current = true;
+    try {
+      const saved = readInteraction(sessionStorage.getItem(interactionKey));
+      if (saved) {
+        setDraft(saved.draft);
+        setSubmittedOrder(saved.order ?? []);
+        setDismissedChoices(saved.dismissed ?? []);
+        if (saved.explicit || !registered.current) {
+          explicitContext.current = saved.explicit;
+          setContextExplicit(saved.explicit);
+          updateContext(saved.context);
+        }
+      }
+    } catch {
+      /* Optional fictional, per-tab presentation hint. */
+    }
+    setPresentationLoaded(true);
+  }
+  function select(value: CareContext | null) {
+    loadPresentation();
+    explicitContext.current = true;
+    setContextExplicit(true);
+    updateContext(value);
+    setDismissedChoices((prior) => [
+      ...prior,
+      ...turns
+        .filter((turn) => turn.answer.outcome === "selection")
+        .map((turn) => turn.requestId),
+    ]);
+  }
+  useEffect(() => {
+    if (!presentationLoaded) return;
+    try {
+      sessionStorage.setItem(
+        interactionKey,
+        JSON.stringify({
+          version: 1,
+          context,
+          explicit: contextExplicit,
+          order: submittedOrder.slice(-80),
+          dismissed: dismissedChoices.slice(-80),
+          draft,
+          savedAt: Date.now(),
+        }),
+      );
+    } catch {
+      /* Keep in-memory drafts/context when storage is unavailable. */
+    }
+  }, [
+    context,
+    contextExplicit,
+    submittedOrder,
+    dismissedChoices,
+    draft,
+    presentationLoaded,
+  ]);
   async function ask(message: string, intent?: Intent, selected?: CareContext) {
+    loadPresentation();
     if (
+      admitting.current ||
       interactionBlocked ||
       evaluationWindowExpired(aiExpiresAt) ||
       !message.trim()
     )
       return false;
     setOpen(true);
-    if (!(await checkOwnerAccess())) return false;
-    if (analytics) {
-      setOpen(true);
-      return insights.send(message.trim());
-    }
     if (selected) select(selected);
     const bound = contextRef.current;
     const boundRevision = revision.current;
-    setOpen(true);
-    return send(
-      {
-        requestId: crypto.randomUUID(),
-        twinId: bound?.twinId ?? null,
-        revision: boundRevision,
-        message: message.trim(),
-        ...(intent ? { intent } : {}),
-        ...(bound?.example ? { example: bound.example } : {}),
-      },
-      bound,
-    );
+    const planning =
+      analytics &&
+      questionUsesInsights(message, !!bound, !!selected || !!intent);
+    if (planning && (!insights.connected || insights.recoverable)) return false;
+    admitting.current = true;
+    try {
+      if (!(await checkOwnerAccess())) return false;
+      const requestId = crypto.randomUUID();
+      setSubmittedOrder((prior) => [...prior, requestId]);
+      setDiscoveryNotice("");
+      setDismissedChoices((prior) => [
+        ...prior,
+        ...turns
+          .filter((t) => t.answer.outcome === "selection")
+          .map((t) => t.requestId),
+      ]);
+      if (planning) {
+        setOpen(true);
+        return await insights.send(message.trim(), requestId);
+      }
+      setOpen(true);
+      return await send(
+        {
+          requestId,
+          twinId: bound?.twinId ?? null,
+          revision: boundRevision,
+          message: message.trim(),
+          ...(intent ? { intent } : {}),
+          ...(bound?.example ? { example: bound.example } : {}),
+        },
+        bound,
+      );
+    } finally {
+      admitting.current = false;
+    }
   }
   async function open() {
+    loadPresentation();
     setOpen(true);
     if (!(await checkOwnerAccess())) return;
     if (aiAccessDisabled || evaluationWindowExpired(aiExpiresAt)) return;
-    if (analytics) {
-      insights.restore();
-      return;
-    }
-    const value = await restore();
+    void insights.restore();
+    const value = await restore(!analytics);
     const previous = value?.turns.at(-1)?.answer.context;
     if (!registered.current && !contextRef.current && previous)
       select(previous);
   }
   function submit() {
-    if (!draft.trim() || unavailable) return;
+    if (!draft.trim() || submitBlocked) return;
     const submitted = draft;
     // An authorization/restoration rejection must never erase an unsent draft.
     // Also retain any different draft typed while the admitted request is pending.
@@ -240,6 +356,7 @@ export function CareOSProvider({
     <AssistantContext.Provider
       value={{
         select,
+        register,
         open: () => void open(),
         ask: (m, i, c) => void ask(m, i, c),
       }}
@@ -257,7 +374,7 @@ export function CareOSProvider({
               variant="intelligence"
               className="careos-launcher shadow-lift"
             >
-              <Sparkles aria-hidden="true" /> Ask CareOS
+              Ask <AssistantName />
             </Button>
           </Dialog.Trigger>
           <Dialog.Portal>
@@ -273,57 +390,18 @@ export function CareOSProvider({
               }}
               aria-describedby="careos-description"
             >
-              <header className="careos-header intelligence-wash flex shrink-0 items-start justify-between gap-[8px] border-b">
+              <header className="careos-header flex shrink-0 items-center justify-between gap-2 border-b bg-card">
                 <div className="min-w-0">
                   <Dialog.Title className="flex items-center gap-2 text-lg font-semibold text-intelligence-foreground">
-                    <span className="flex size-[32px] shrink-0 items-center justify-center rounded-xl border border-intelligence-foreground/20 bg-intelligence">
-                      <Sparkles className="size-[20px]" aria-hidden="true" />
-                    </span>
-                    CareOS
+                    <AssistantName />
                   </Dialog.Title>
                   <Dialog.Description
                     id="careos-description"
-                    className="sr-only mt-1 text-sm text-muted-foreground sm:not-sr-only"
+                    className="sr-only"
                   >
-                    Your purchase companion
+                    Pal Care’s purchase assistant. Choose context or ask a
+                    question. Selection and expansion never send a question.
                   </Dialog.Description>
-                  <p className="mt-1 text-xs font-medium text-intelligence-foreground">
-                    {aiExpired
-                      ? "AI access expired · saved purchases remain available"
-                      : aiAccessDisabled
-                        ? "AI access unavailable · saved purchases remain available"
-                        : mode === "fixture"
-                          ? "Demo · no live AI"
-                          : mode === "subscription"
-                            ? "Using ChatGPT plan"
-                            : mode === "responses"
-                              ? "Live model enabled · answers cite sources"
-                              : mode === "disabled"
-                                ? "Model disabled · saved records only"
-                                : "Model configuration unavailable"}
-                  </p>
-                  {(mode === "subscription" || mode === "responses") && (
-                    <Link
-                      href="/ai-evaluation"
-                      onClick={() => setOpen(false)}
-                      className="mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-primary underline"
-                    >
-                      {ownerAccess ? "AI access" : "Testing access"}
-                    </Link>
-                  )}
-                  {mode === "subscription" &&
-                    !aiExpired &&
-                    !aiAccessDisabled && (
-                      <a
-                        href="https://chatgpt.com/settings/usage"
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-primary underline"
-                        title="Private GPT-6.1 Sol · medium reasoning"
-                      >
-                        Manage ChatGPT usage
-                      </a>
-                    )}
                 </div>
                 <div className="flex gap-0">
                   <Button
@@ -341,65 +419,144 @@ export function CareOSProvider({
                       <Maximize2 aria-hidden="true" />
                     )}
                   </Button>
+                  <details
+                    className="relative"
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape" && event.currentTarget.open) {
+                        event.stopPropagation();
+                        event.currentTarget.open = false;
+                        event.currentTarget.querySelector("summary")?.focus();
+                      }
+                    }}
+                    onClick={(event) => {
+                      if ((event.target as HTMLElement).closest("button, a"))
+                        event.currentTarget.open = false;
+                    }}
+                  >
+                    <summary
+                      aria-label="North Star options"
+                      className="flex size-11 cursor-pointer list-none items-center justify-center rounded-xl hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden"
+                    >
+                      <MoreHorizontal aria-hidden="true" />
+                    </summary>
+                    <div className="absolute top-full right-0 z-10 w-[min(16rem,calc(100vw-3rem))] space-y-1 rounded-xl border bg-card p-3 text-sm shadow-lift">
+                      <p className="mb-2 text-muted-foreground">
+                        {mode === "fixture"
+                          ? "Demo · no live AI"
+                          : mode === "subscription"
+                            ? "Using ChatGPT plan"
+                            : mode === "responses"
+                              ? "Model assistance · check sources"
+                              : "Model unavailable"}
+                      </p>
+                      {(mode === "subscription" || mode === "responses") && (
+                        <Link
+                          href="/ai-evaluation"
+                          onClick={() => setOpen(false)}
+                          className="flex min-h-11 items-center rounded-lg px-2 text-primary underline"
+                        >
+                          {ownerAccess ? "AI access" : "Testing access"}
+                        </Link>
+                      )}
+                      {mode === "subscription" && (
+                        <a
+                          href="https://chatgpt.com/settings/usage"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex min-h-11 items-center rounded-lg px-2 text-primary underline"
+                        >
+                          Manage ChatGPT usage
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void clear()}
+                        className="min-h-11 w-full min-w-0 max-w-full rounded-lg px-2 text-left whitespace-normal underline [overflow-wrap:anywhere] disabled:opacity-50"
+                      >
+                        Clear conversation history
+                      </button>
+                      <p className="text-xs text-muted-foreground">
+                        Clearing never resets usage or removes purchases.
+                      </p>
+                    </div>
+                  </details>
                   <Dialog.Close asChild>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="size-[44px] shrink-0"
-                      aria-label="Close CareOS"
+                      aria-label="Close North Star"
                     >
                       <X aria-hidden="true" />
                     </Button>
                   </Dialog.Close>
                 </div>
               </header>
-              <div className="careos-context flex shrink-0 items-center justify-between border-b bg-accent/50 text-xs">
+              <div
+                className="careos-context flex shrink-0 items-center justify-between border-b bg-accent/30 text-xs"
+                aria-label="Persistent purchase context"
+              >
                 <span className="min-w-0 text-muted-foreground">
-                  <span className="sr-only">Discussing </span>
+                  <span className="block text-xs">Purchase context</span>
                   <strong className="block break-words text-sm text-foreground">
-                    {analytics
-                      ? "Your purchases · Personal Insights"
-                      : context
-                        ? `${context.name} · ${context.model}`
-                        : "Choose a purchase"}
+                    {context
+                      ? `${context.name} · ${context.model}`
+                      : "No purchase selected"}
                   </strong>
-                  {analytics ? (
+                  {context && (
                     <span>
-                      Presentation only · this conversation stays in this tab
+                      {context.purchasedOn && (
+                        <>{displayDate(context.purchasedOn)} · </>
+                      )}
+                      {context.origin === "sandbox"
+                        ? "Verified Sandbox purchase"
+                        : context.example
+                          ? "Fictional ownership example · no purchase"
+                          : "Sample purchase"}{" "}
+                      {context.twinId && (
+                        <span className="hidden sm:inline">
+                          · PC-{context.twinId.slice(-6).toUpperCase()}
+                        </span>
+                      )}
                     </span>
-                  ) : (
-                    context && (
-                      <span>
-                        {context.origin === "sandbox"
-                          ? "Verified Sandbox purchase"
-                          : context.example
-                            ? "Fictional ownership example · no purchase"
-                            : "Sample purchase"}{" "}
-                        {context.twinId && (
-                          <span className="hidden sm:inline">
-                            · PC-{context.twinId.slice(-6).toUpperCase()}
-                          </span>
-                        )}
-                      </span>
-                    )
                   )}
                 </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="shrink-0 px-[8px] py-[8px]"
-                  asChild
-                >
-                  <Link href="/vault" onClick={() => mobile && setOpen(false)}>
-                    Switch
-                  </Link>
-                </Button>
+                <div className="flex shrink-0 items-center">
+                  <Button
+                    ref={contextTrigger}
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 px-[8px] py-[8px]"
+                    onClick={() => setContextOpen(true)}
+                  >
+                    Change <ChevronDown className="size-4" aria-hidden="true" />
+                  </Button>
+                  {context && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Remove purchase context"
+                      onClick={() => select(null)}
+                    >
+                      <X className="size-4" aria-hidden="true" />
+                    </Button>
+                  )}
+                </div>
               </div>
+              {contextOpen && (
+                <ContextPicker
+                  open={contextOpen}
+                  onOpenChange={setContextOpen}
+                  onSelect={select}
+                  returnFocus={contextTrigger}
+                />
+              )}
               <div
                 ref={attach}
                 onScroll={onScroll}
                 className="careos-transcript min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-                aria-label="CareOS conversation"
+                aria-label="North Star conversation"
                 role="region"
                 tabIndex={0}
               >
@@ -455,17 +612,64 @@ export function CareOSProvider({
                     </Button>
                   </div>
                 )}
-                {!conversation?.turns.length && !pending && (
-                  <div className="rounded-2xl bg-intelligence p-5">
-                    <h2 className="text-xl font-semibold">
-                      Less searching.
-                      <br />
-                      More taking care.
-                    </h2>
-                    <p className="mt-3 text-base leading-7 text-muted-foreground">
-                      Find a receipt, understand a purchase, or explore guidance
-                      from its available documents.
-                    </p>
+                {!conversation?.turns.length &&
+                  !pending &&
+                  !regular.unsent.length && (
+                    <div className="space-y-4 py-2" data-north-discovery>
+                      <h2 className="text-xl font-semibold">
+                        What would you like to know?
+                      </h2>
+                      <p className="text-base leading-7 text-muted-foreground">
+                        Find receipts, explore saved purchases, or get guidance
+                        for a product.
+                      </p>
+                      <div
+                        className="grid gap-2"
+                        aria-label="Optional starting questions"
+                      >
+                        {assistantSuggestions.map((suggestion, index) => (
+                          <button
+                            type="button"
+                            key={suggestion}
+                            className="min-h-11 rounded-xl border border-input bg-card px-3 py-3 text-left text-sm leading-6 hover:bg-intelligence focus-visible:outline-2 focus-visible:outline-ring"
+                            onClick={() => {
+                              if (index < 3)
+                                setDiscoveryNotice(
+                                  "Library lists and totals are coming in the next checkpoints. Explore saved records in Purchases or Insights for now. Nothing was sent; your product context is kept.",
+                                );
+                              else if (!context) setContextOpen(true);
+                              else {
+                                if (!draft.trim())
+                                  setDraft("Help me care for this product.");
+                                composer.current?.focus();
+                              }
+                            }}
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                {discoveryNotice && (
+                  <div
+                    role="status"
+                    className="space-y-2 rounded-xl border bg-accent/40 p-3 text-sm text-muted-foreground"
+                  >
+                    <p>{discoveryNotice}</p>
+                    <Link
+                      className="inline-flex min-h-11 items-center text-primary underline"
+                      href="/insights"
+                    >
+                      Explore saved records in Insights
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setDiscoveryNotice("")}
+                    >
+                      Dismiss
+                    </Button>
                   </div>
                 )}
                 {conversation?.turns.map((turn, index) => (
@@ -474,19 +678,23 @@ export function CareOSProvider({
                     data-request-id={turn.requestId}
                     className="space-y-3"
                   >
-                    {((index === 0 &&
-                      contextIdentity(turn.answer.context) !==
-                        contextIdentity(context)) ||
-                      (index > 0 &&
-                        contextIdentity(
-                          conversation.turns[index - 1].answer.context,
-                        ) !== contextIdentity(turn.answer.context))) && (
-                      <p className="border-t pt-3 text-xs text-muted-foreground">
-                        {turn.answer.context
-                          ? `${turn.answer.context.name} · ${turn.answer.context.model} · ${turn.answer.context.example ? "Reference example" : turn.answer.context.origin === "sandbox" ? "Sandbox" : "Sample"}`
-                          : "General assistance"}
-                      </p>
-                    )}
+                    <p
+                      data-answer-scope
+                      className="border-t pt-3 text-xs text-muted-foreground"
+                    >
+                      Question scope:{" "}
+                      {turn.answer.questionScope === "library"
+                        ? "all saved purchases · answer not yet supported"
+                        : turn.answer.outcome === "selection"
+                          ? "purchase choice needed"
+                          : turn.answer.context
+                            ? `${turn.answer.context.name} · ${turn.answer.context.model}${turn.answer.context.purchasedOn ? ` · ${displayDate(turn.answer.context.purchasedOn)}` : ""} · ${turn.answer.context.example ? "Reference example" : turn.answer.context.origin === "sandbox" ? "Sandbox" : "Sample"}${turn.answer.context.twinId ? ` · PC-${turn.answer.context.twinId.slice(-6).toUpperCase()}` : ""}`
+                            : insights.conversation?.turns.some(
+                                  (t) => t.requestId === turn.requestId,
+                                )
+                              ? "saved-purchase view · Personal Insights"
+                              : "no purchase used"}
+                    </p>
                     <p
                       data-user-message
                       className="careos-user-message whitespace-pre-wrap break-words rounded-2xl rounded-br-md bg-accent text-base leading-7 text-foreground"
@@ -504,7 +712,7 @@ export function CareOSProvider({
                       <div className="careos-answer text-base leading-7">
                         <p className="mb-2 inline-flex rounded-full bg-intelligence px-2 py-1 text-xs leading-5 font-medium text-intelligence-foreground">
                           {turn.answer.outcome === "unavailable"
-                            ? "CareOS unavailable · no answer generated"
+                            ? "North Star unavailable · no answer generated"
                             : turn.answer.mode === "fixture"
                               ? "Demo response · no live AI"
                               : turn.answer.mode === "live"
@@ -548,17 +756,22 @@ export function CareOSProvider({
                           choices={turn.answer.purchaseChoices}
                           active={
                             !unavailable &&
+                            !dismissedChoices.includes(turn.requestId) &&
                             index === conversation.turns.length - 1
                           }
-                          onContinue={(choice) => {
+                          onDismiss={() => {
+                            setDismissedChoices((prior) => [
+                              ...prior,
+                              turn.requestId,
+                            ]);
+                            composer.current?.focus();
+                          }}
+                          onChoose={(choice) => {
                             if (unavailable || !choice.context.twinId) return;
                             focusTranscript();
                             // This is a deliberate new, differently scoped question—not a replay.
                             // The original selection result and its request identity remain unchanged.
                             void ask(turn.message, undefined, choice.context);
-                            router.push(`/vault/${choice.context.twinId}`, {
-                              scroll: false,
-                            });
                           }}
                         />
                       ) : (
@@ -569,14 +782,22 @@ export function CareOSProvider({
                           }}
                         />
                       )}
-                      {analytics && insights.recoverable === turn.requestId && (
-                        <Button
-                          disabled={busy}
-                          onClick={() => void insights.applySaved()}
-                        >
-                          Apply saved view
-                        </Button>
-                      )}
+                      {insights.recoverable === turn.requestId &&
+                        (insights.connected ? (
+                          <Button
+                            disabled={busy}
+                            onClick={() => void insights.applySaved()}
+                          >
+                            Apply saved view
+                          </Button>
+                        ) : (
+                          <Link
+                            href="/insights"
+                            className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline"
+                          >
+                            Return to Insights to apply saved view
+                          </Link>
+                        ))}
                       {!!turn.answer.sources.length && (
                         <details className="rounded-xl border bg-accent/40 px-3 text-sm text-muted-foreground">
                           <summary className="min-h-11 cursor-pointer py-3">
@@ -610,41 +831,40 @@ export function CareOSProvider({
                     </div>
                   </article>
                 ))}
-                {!analytics &&
-                  regular.unsent.map((question) => (
-                    <article
-                      key={question.input.requestId}
-                      data-unsent-question
-                      className="space-y-3 rounded-xl border p-3"
+                {regular.unsent.map((question) => (
+                  <article
+                    key={question.input.requestId}
+                    data-unsent-question
+                    className="space-y-3 rounded-xl border p-3"
+                  >
+                    <p
+                      data-user-message
+                      className="whitespace-pre-wrap break-words text-base"
                     >
-                      <p
-                        data-user-message
-                        className="whitespace-pre-wrap break-words text-base"
-                      >
-                        {question.input.message}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        This question wasn’t sent. You can edit it or ask a new
-                        question; your saved conversation is unchanged.
-                      </p>
-                      <Button
-                        variant="outline"
-                        disabled={unavailable || !!draft.trim()}
-                        title={
-                          draft.trim()
-                            ? "Your current draft is kept. Send or edit it before choosing another question."
-                            : undefined
-                        }
-                        onClick={() => {
-                          select(question.context);
-                          setDraft(question.input.message);
-                          composer.current?.focus();
-                        }}
-                      >
-                        Edit unsent question
-                      </Button>
-                    </article>
-                  ))}
+                      {question.input.message}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      This question wasn’t sent. You can edit it or ask a new
+                      question; your saved conversation is unchanged.
+                    </p>
+                    <Button
+                      variant="outline"
+                      disabled={unavailable || !!draft.trim()}
+                      title={
+                        draft.trim()
+                          ? "Your current draft is kept. Send or edit it before choosing another question."
+                          : undefined
+                      }
+                      onClick={() => {
+                        select(question.context);
+                        setDraft(question.input.message);
+                        composer.current?.focus();
+                      }}
+                    >
+                      Edit unsent question
+                    </Button>
+                  </article>
+                ))}
                 {pending && (
                   <article
                     data-pending-question
@@ -701,8 +921,8 @@ export function CareOSProvider({
                           ? "No confirmed answer yet. Your question has not been resent."
                           : conversation?.turns.length
                             ? latest?.answer.outcome === "unavailable"
-                              ? "CareOS could not finish this answer. Your question is saved."
-                              : "CareOS answer ready. Review the answer and sources above."
+                              ? "North Star could not finish this answer. Your question is saved."
+                              : "North Star answer ready. Review the answer and sources above."
                             : ""}
                 </p>
                 {error && (
@@ -722,30 +942,27 @@ export function CareOSProvider({
                 </div>
               )}
               <div className="careos-composer shrink-0 border-t bg-card">
-                <div className="careos-quick-actions mb-3 flex flex-wrap gap-2">
-                  {(analytics
-                    ? [
-                        ["Show my purchases", "summary"],
-                        ["Which purchases have documents?", "documents"],
-                        ["Show my purchases by category", "summary"],
-                      ]
-                    : [
-                        ["Find receipt", "receipt"],
-                        ["Purchase summary", "summary"],
-                        ["Product care", "care"],
-                      ]
-                  ).map(([label, intent]) => (
-                    <button
-                      type="button"
-                      key={label}
-                      disabled={unavailable}
-                      className="min-h-11 rounded-xl border border-intelligence-border px-3 text-[0.8125rem] font-medium text-intelligence-foreground hover:bg-intelligence focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-intelligence-foreground disabled:opacity-50"
-                      onClick={() => void ask(label, intent as Intent)}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
+                <p className="mb-2 text-xs text-muted-foreground">
+                  {aiExpired
+                    ? "AI access expired · saved records remain available in Purchases and Insights"
+                    : aiAccessDisabled
+                      ? "AI access unavailable · saved records remain available"
+                      : ownerAccess && ownerState !== "ready"
+                        ? ownerSendMessage[ownerState]
+                        : plannerBlocked
+                          ? insights.recoverable
+                            ? "A saved view is ready to review in Insights. You can still ask a product question."
+                            : "Interactive Insights is not connected yet. Your draft is kept."
+                          : analytics
+                            ? "Personal Insights · presentation only"
+                            : mode === "fixture"
+                              ? "Sample demo · no live AI"
+                              : mode === "subscription"
+                                ? "Using ChatGPT plan"
+                                : mode === "responses"
+                                  ? "Model assistance · check sources"
+                                  : "Model unavailable"}
+                </p>
                 <form
                   className="flex items-end gap-2"
                   onSubmit={(event) => {
@@ -754,15 +971,22 @@ export function CareOSProvider({
                   }}
                 >
                   <label className="sr-only" htmlFor="careos-message">
-                    Ask about your purchase
+                    Ask about your purchases
                   </label>
                   <textarea
                     ref={composer}
                     id="careos-message"
-                    disabled={aiExpired || aiAccessDisabled}
                     value={draft}
                     onChange={(e) => {
                       setDraft(e.target.value);
+                      setDismissedChoices((prior) => [
+                        ...new Set([
+                          ...prior,
+                          ...turns
+                            .filter((t) => t.answer.outcome === "selection")
+                            .map((t) => t.requestId),
+                        ]),
+                      ]);
                       e.target.style.height = "auto";
                       e.target.style.height = `${Math.min(e.target.scrollHeight, 144)}px`;
                     }}
@@ -786,23 +1010,23 @@ export function CareOSProvider({
                     }}
                     maxLength={analytics ? 500 : 2000}
                     rows={1}
-                    placeholder="Ask about your purchase…"
+                    placeholder="Ask about your purchases…"
                     className="max-h-36 min-h-11 min-w-0 flex-1 resize-none rounded-xl border border-intelligence-border bg-background px-[12px] py-[10px] text-base focus-visible:outline-2 focus-visible:outline-intelligence-foreground"
                   />
                   <Button
                     type="submit"
                     variant="intelligence"
                     className="shrink-0 px-[12px] py-[10px]"
-                    disabled={unavailable || !draft.trim()}
-                    aria-label="Send to CareOS"
+                    disabled={submitBlocked || !draft.trim()}
+                    aria-label="Send to North Star"
                   >
                     <ArrowUp className="hidden sm:block" aria-hidden="true" />
                     <span>Send</span>
                   </Button>
                 </form>
-                <div className="careos-composer-note mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                <div className="careos-composer-note mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                   <span>Demo only. No personal information.</span>
-                  {analytics && pending && (
+                  {insights.pending && (
                     <button
                       type="button"
                       className="min-h-11 underline"
@@ -811,14 +1035,7 @@ export function CareOSProvider({
                       Stop request
                     </button>
                   )}
-                  <button
-                    type="button"
-                    disabled={busy}
-                    className="min-h-11 min-w-11 shrink-0 rounded-lg px-2 text-sm underline focus-visible:outline-2 focus-visible:outline-ring"
-                    onClick={() => void clear()}
-                  >
-                    Clear
-                  </button>
+                  {busy && <span>Working… your next draft is kept.</span>}
                 </div>
               </div>
             </Dialog.Content>
@@ -834,16 +1051,16 @@ export function CareContextRegistration({
 }: {
   context: CareContext | null;
 }) {
-  const { select } = useCareOS();
+  const { register } = useCareOS();
   useEffect(() => {
-    select(context);
-  }, [context, select]);
+    register(context);
+  }, [context, register]);
   return null;
 }
 export function AskCareOS({
   context,
   label,
-  children = "Ask about this product",
+  children,
 }: {
   context?: CareContext;
   label?: string;
@@ -853,15 +1070,23 @@ export function AskCareOS({
   return (
     <Button
       variant="outline"
-      aria-label={label}
-      className="border-intelligence-foreground bg-intelligence text-intelligence-foreground hover:bg-intelligence/80"
+      aria-label={
+        label?.replace(/CareOS|North ☆/g, ASSISTANT_SPOKEN_NAME) ??
+        (!children && context
+          ? "Ask North Star about this purchase"
+          : undefined)
+      }
+      className="max-w-full flex-wrap border-intelligence-foreground bg-intelligence text-intelligence-foreground hover:bg-intelligence/80"
       onClick={() => {
         if (context) assistant.select(context);
         assistant.open();
       }}
     >
-      <Sparkles aria-hidden="true" />
-      {children}
+      {children ?? (
+        <>
+          Ask <AssistantName />
+        </>
+      )}
     </Button>
   );
 }

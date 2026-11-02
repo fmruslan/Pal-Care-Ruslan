@@ -1,5 +1,7 @@
 # Product vision and scope
 
+**Assistant update approved; checkpoint 1A under review:** Pal Care remains the product. Its intelligent assistant is **North ☆**, pronounced **North Star**, with violet accents and no assistant attribution branding. The approved direction separates persistent product context from per-question scope and makes interactions dismissible. Library intelligence and personal analytics are subsequent checkpoints, not accepted by the rename. [Approved refinements and gates](NORTH-STAR-PLAN.md) · [implementation truth](STATUS.md). Historical CareOS descriptions below retain their original scope.
+
 ## North star
 
 **Approved customer-first direction — new increment under integrated verification, not shipped:** one personal purchase and aftercare product, not competing customer/merchant applications. Primary navigation is **Home / Purchases / Insights / Documents**. `/insights` connects **My Purchases / Documents & Care / Price Adjustments** to saved Purchase Twins, document provenance, supported care and recorded outcomes using actual AG Studio. CareOS is the shared customer assistant; merchant policies/catalog/approvals remain separately authorized secondary functions. Five actual private customer Sol/SDK tasks passed; remaining integrated checks, exact-commit CI and owner review are separate gates. [Capability-based acceptance](CUSTOMER-FIRST-PLAN.md) governs completion; [STATUS](STATUS.md) records evidence rather than planned capability.

@@ -1,81 +1,69 @@
 "use client";
 
-import { useId, useState } from "react";
 import type { PurchaseChoice } from "@/lib/careos/contracts";
 import { displayDate } from "@/lib/demo/presentation";
 import { Button } from "../ui/button";
 
+export function PurchaseChoiceLabel({ choice }: { choice: PurchaseChoice }) {
+  return (
+    <span className="min-w-0 break-words">
+      <span className="block font-medium">
+        {choice.context.name} · {choice.context.model}
+      </span>
+      <span className="mt-1 block text-sm text-muted-foreground">
+        <time dateTime={choice.purchasedOn}>
+          {displayDate(choice.purchasedOn)}
+        </time>{" "}
+        · {choice.provenance} · PC-
+        {choice.context.twinId?.slice(-6).toUpperCase()}
+      </span>
+    </span>
+  );
+}
+
 export function PurchaseChoices({
   choices,
   active,
-  onContinue,
+  onChoose,
+  onDismiss,
 }: {
   choices: PurchaseChoice[];
   active: boolean;
-  onContinue: (choice: PurchaseChoice) => void;
+  onChoose: (choice: PurchaseChoice) => void;
+  onDismiss: () => void;
 }) {
-  const groupId = useId();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selected = choices.find(
-    (choice) => selectedId !== null && choice.context.twinId === selectedId,
-  );
-
+  if (!active)
+    return (
+      <p className="text-sm text-muted-foreground">
+        Purchase choice closed. You can ask something else or change context
+        above.
+      </p>
+    );
   return (
-    <form
-      className="space-y-3"
-      onSubmit={(event) => {
-        event.preventDefault();
-        if (!active || !selected) return;
-        onContinue(selected);
-      }}
+    <section
+      aria-label="Choose a purchase"
+      className="space-y-2 rounded-xl border p-3"
     >
-      <fieldset disabled={!active} className="min-w-0 space-y-3">
-        <legend className="text-sm font-semibold">Choose a purchase</legend>
-        {choices.map((choice, index) => (
-          <label
-            key={choice.context.twinId}
-            htmlFor={`${groupId}-${index}`}
-            className={`flex min-h-11 items-start gap-3 rounded-xl border border-input p-3 text-base ${active ? "cursor-pointer" : "cursor-default"} ${selectedId === choice.context.twinId ? "bg-secondary text-secondary-foreground" : "bg-card text-foreground"}`}
-          >
-            <input
-              id={`${groupId}-${index}`}
-              type="radio"
-              name={groupId}
-              value={choice.context.twinId ?? ""}
-              checked={
-                selectedId !== null && selectedId === choice.context.twinId
-              }
-              disabled={!active || !choice.context.twinId}
-              onChange={() => setSelectedId(choice.context.twinId)}
-              className="mt-1 size-4 shrink-0 accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            />
-            <span className="min-w-0 break-words">
-              <span className="block font-medium">
-                {choice.context.name} · {choice.context.model}
-              </span>
-              <span className="mt-1 block text-sm text-muted-foreground">
-                <time dateTime={choice.purchasedOn}>
-                  {displayDate(choice.purchasedOn)}
-                </time>{" "}
-                · {choice.provenance} · PC-
-                {choice.context.twinId?.slice(-6).toUpperCase()}
-              </span>
-            </span>
-          </label>
-        ))}
-        <Button
-          type="submit"
-          disabled={!active || !selected}
-          className="w-full whitespace-normal text-left"
-        >
-          Use this purchase and continue
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold">Which purchase?</h3>
+        <Button variant="ghost" size="sm" onClick={onDismiss}>
+          Dismiss
         </Button>
-      </fieldset>
-      {!active && (
-        <p className="text-xs text-muted-foreground">
-          This earlier choice is inactive. Ask a new question to continue.
-        </p>
-      )}
-    </form>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Choose once to answer this question, or ask something else.
+      </p>
+      {choices.map((choice) => (
+        <button
+          key={choice.context.twinId}
+          type="button"
+          disabled={!choice.context.twinId}
+          className="w-full rounded-xl border border-input bg-card p-3 text-left text-base hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          onClick={() => onChoose(choice)}
+        >
+          <PurchaseChoiceLabel choice={choice} />
+        </button>
+      ))}
+    </section>
   );
 }

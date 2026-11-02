@@ -152,20 +152,23 @@ describe("subscription-only inference: no API-dollar ledger or live test authori
       );
     },
   );
-  it.each(["What does CareOS do?", "Tell me about CareOS"])(
-    "routes natural identity questions before product care: %s",
-    (message) => {
-      expect(interpret(message)).toBe("identity");
-      expect(
-        deterministicAnswer(demoData, {
-          requestId: randomUUID(),
-          twinId: demoData.twins[0].id,
-          revision: 1,
-          message,
-        }).text,
-      ).toContain("not an official PayPal");
-    },
-  );
+  it.each([
+    "What does North do?",
+    "Tell me about North Star",
+    "What is North ☆?",
+    "What does CareOS do?",
+    "Tell me about CareOS",
+  ])("routes natural identity questions before product care: %s", (message) => {
+    expect(interpret(message)).toBe("identity");
+    expect(
+      deterministicAnswer(demoData, {
+        requestId: randomUUID(),
+        twinId: demoData.twins[0].id,
+        revision: 1,
+        message,
+      }).text,
+    ).toContain("I’m North Star, Pal Care’s purchase assistant");
+  });
   it("distinguishes passive financial questions from explicit mutation requests", () => {
     expect(interpret("Did my refund finish?")).toBe("guardian");
     expect(interpret("When was this payment captured?")).toBe("summary");
@@ -429,6 +432,38 @@ describe("subscription-only inference: no API-dollar ledger or live test authori
       "unknown",
     );
   });
+  it("does not promote HTTP 200 without terminal/model completion, refund its reservation or replay it", async () => {
+    const files = await prepare();
+    const transport = vi.fn(
+      async () =>
+        new Response("data: [DONE]\n\n", {
+          status: 200,
+          headers: { "Content-Type": "text/event-stream" },
+        }),
+    );
+    const options = {
+      files,
+      scope: "diagnostic" as const,
+      requestId: randomUUID(),
+      payload: "unit",
+      schema: classificationSchema,
+      name: "unit",
+      signal: AbortSignal.timeout(1000),
+      transport,
+    };
+    await expect(subscriptionStructured(options)).rejects.toMatchObject({
+      code: "pilot_completion_or_model_missing",
+    });
+    const after = await subscriptionSession(files);
+    expect(after.attempts).toHaveLength(1);
+    expect(after.attempts[0].state).toBe("unknown");
+    await expect(subscriptionStructured(options)).rejects.toMatchObject({
+      code: "subscription_request_already_dispatched",
+    });
+    expect(transport).toHaveBeenCalledOnce();
+    expect((await subscriptionSession(files)).expiresAt).toBe(after.expiresAt);
+    expect((await subscriptionSession(files)).attempts).toEqual(after.attempts);
+  });
   it("blocks subsequent subscription calls after provider admission/usage denial", async () => {
     const files = await prepare();
     const transport = vi.fn(async () =>
@@ -495,10 +530,11 @@ describe("subscription-only inference: no API-dollar ledger or live test authori
       requestId: randomUUID(),
       twinId: demoData.twins[0].id,
       revision: 1,
-      message: "What is CareOS? What can you help me with?",
+      message: "What is North Star? What can you help me with?",
     };
     expect(interpret(input.message)).toBe("identity");
     const identity = deterministicAnswer(demoData, input);
+    expect(identity.text).toContain("I’m North Star");
     expect(identity.text).toContain("not an official PayPal");
     expect(identity.steps).toHaveLength(5);
     expect(identity.steps.join(" ")).toContain(

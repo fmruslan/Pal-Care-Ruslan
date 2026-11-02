@@ -187,7 +187,7 @@ export default function Home() {
         </div>
         <p className="max-w-md text-sm leading-7">
           Independent PayPal AI Hackathon project. Not an official PayPal
-          product, warranty, insurance, or coverage promise. CareOS fixture
+          product, warranty, insurance, or coverage promise. North Star fixture
           answers are labeled demonstrations; real AI is available only in the
           authorized private preview. Live monitoring and financial activation
           remain separate.

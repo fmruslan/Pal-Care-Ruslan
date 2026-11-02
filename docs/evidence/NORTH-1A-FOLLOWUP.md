@@ -1,0 +1,93 @@
+# North ☆ 1A — outstanding acceptance follow-up
+
+**In progress, not acceptance.** Owner requested resolution of three WebKit failures, a disposable dedicated recovery database, individual review of nine original AI flags, regressions, exact-commit CI and final screenshots. Owner clarified “50 more tests” as **50 automated regressions plus 50 genuine evaluations**. No 1B work, private-preview refresh, financial operation, paid credits, allowance reset or authorization renewal is permitted.
+
+## Outcome and acceptance gate
+
+Keep the existing 1A customer interaction foundation reliable: keyboard navigation must leave Insights during SDK initialization; saved requests must recover without replay or fabricated completion; answers must retain exact dated purchase/provenance and honest capability limits. The final evidence must distinguish domain tests, isolated application observations, genuine provider-adapter evaluations, exact-commit CI and human/real-device limitations.
+
+## Nine preserved AI flags — individual review
+
+Severity here describes customer impact, not a new score. **Medium** means a task/scope error that can mislead if unguarded; **Low** means excess/redundant presentation or a conservative rubric discrepancy with no incorrect factual claim. No critical/high financial, unsafe-procedure or fabricated-provenance defect was observed in these nine outputs. This is coding-agent review, not independent human research.
+
+| Original case | Severity / cause | Customer impact and disposition |
+| --- | --- | --- |
+| `date-01` | **Medium — model scope/classification defect.** Whole-library last-three-months list returned `history`. | A single-purchase history cannot answer this task. Existing v2 classification correction and deterministic library guard must be regression-verified; no library query is implemented. |
+| `spending-01` | **Medium — model scope/classification defect.** Library total returned `summary` despite focused headphones. | Risk of substituting one saved amount for a total. Existing v2 correction and deterministic guard retain an explicit unsupported/library response with no price/model dispatch. |
+| `formatting-01` | **Medium — model scope/classification defect.** Linked library results returned `summary`. | No saved library result exists for this 1A operation. Audit the deterministic guard for this exact “library purchase results” wording; preserve the original failed model score. |
+| `date-02` | **Medium — model scope/classification defect.** All-purchase October filter returned `history`. | Exact selected headphones are not the requested scope. Existing classifier/guard correction needs exact frozen-question regression; no date filter is claimed executed. |
+| `purchase-02` | **Low — model minimality defect.** Receipt/identity also selected the separate USD 149 sample-value fact. | The value was supplied and correct, not a catalog substitution or invented payment. Existing minimal-receipt prompt correction excludes that adjacent fact; retain original extra-fact failure. |
+| `followups-06` | **Low — conservative selection rubric mismatch.** Correct Pi zero-placeholder fact selected without separately selecting identity. | Question explicitly asks uncertainty, not identity; production renderer retains deterministic `base.text` and exact dated `context`. No wrong-product/provenance loss is demonstrated. Keep accuracy/context zeros; do not force redundant identity into every uncertainty-only response. |
+| `additional-followups-01` | **Low — same conservative rubric discrepancy in the exact retest.** | Same correct placeholder fact, same omitted model-selected identity, same application identity retention. Preserve this as a separate original failure; a renderer regression is not a retroactive model pass. |
+| `additional-recovery-10` | **Low — model minimality defect.** “Only why zero…” also selected the true no-receipt fact. | No recovered receipt was fabricated and no recovery operation was run. Negative “do not invent a receipt” wording appears to have attracted an adjacent receipt fact. Tighten selection guidance; separately test actual recovery, not adapter wording alone. |
+| `additional-context-11` | **Low — presentation/rubric discrepancy.** Two grounded desktop method/effect quotes where the rubric allowed one. | Both quotes match the current Pi 5/Pi OS source and neither reuses the old button method. “Just the desktop-menu method” does not explicitly require one quote. Preserve the one-step strict failure; future questions should explicitly request one passage, without silently truncating safety context. |
+
+All nine inputs/outputs/expectations were reread from the original hash-chained ledgers. Original **151/160 strict passes** remains unchanged. The two historical semantic observations are also retained: alternative methods lost their relationship in rendering (already corrected with explicit alternative wording), and optional repeated identity was accurate but redundant. Absent-guide wording was already corrected; source applicability and recovery still require independent regressions.
+
+## Current execution state
+
+- **Authorization read-back:** `2026-11-02T21:19:45Z`, standing policy `c29c6d4d-24dd-471d-8d98-c51772dc64cd`, **163/300 used, 137 remaining, zero unknown/active**, no revocation/provider block. Existing remembered sessions have unexpired absolute/idle limits. This snapshot is not a grant: production checks remain required before each genuine dispatch. Historical expired evaluation authority is not renewed.
+- **Dedicated database provisioned:** `palcare-north-1a-test-postgres`, PostgreSQL 17 Alpine, new `north_recovery_test`, 512 MiB tmpfs, loopback-only inside the existing verification container's **network-none namespace**, no published host ports, no application URL/credentials. Existing dedicated-URL hostname/name checks remain unchanged. Versioned test migrations/sample-only seed integrity **7/7 pass**; recovery/expiry **14/14 pass** on the unchanged baseline build. Final-source rerun remains separate.
+- Broad post-fix integrated regressions, final-source screenshots and exact-commit CI are **pending**, not inferred from focused passes. The automated 50-case set passes; the genuine 50-case set stopped as detailed below.
+
+## WebKit diagnosis and focused correction evidence
+
+| Original failure | Classification / evidence | Correction and focused result |
+| --- | --- | --- |
+| Native SDK tools journey (`customer-insights.spec.ts`, formerly line 576) | **Native SDK defect exposed by the product integration**, not a filtered test error. Reproduced repeatedly on the unchanged build. Observer instrumentation locates the last callback in AG Studio 3.0.0's native `.ag-studio-value-widget`; its callback synchronously calls `updateContent`, which measures and writes the content container. The actual loop error follows its first nonzero resize. | `patches/ag-studio@3.0.0.patch` changes only this native observer callback: coalesce writes in the next animation frame, check `isAlive`, cancel on destruction. Both ESM/CommonJS entry points are patched through the pinned lockfile. The same complete native-tool journey passes, with `pageerror` assertions and SDK/data postconditions unchanged. |
+| Keyboard Documents navigation after Insights at **375px** | **Test defect identified; intermittent timing remains separately tested.** The stress test changed visible SSR paragraph text before hydration. Instrumented variants reproduced React #418 before North opened; visibility alone did not prove client readiness. A focused unchanged-build rerun passed the navigation, so it was never a consistently missing request/Enter. | Wait for the actual interactive Appearance control before test-only DOM mutation and assert zero page errors. Do not add a sleep, wait for native SDK readiness before ordinary navigation, use a hard navigation fallback, or increase the five-second URL deadline. The original-width test passes after correction. |
+| Same navigation at **1440px** | **Same identified stress-test hydration defect**, with heavier native initialization contention. Original traces observed Documents HTTP 200 but URL still Insights; this is not proof of an HTTP/network failure or a financial/model operation. | Same correction; original-width case passes. A new held-import test separately proves departure while the real SDK download is pending and departure from a ready native workspace, preserving drafts and zero page errors. |
+
+The hydration defect is demonstrated; **its sole causality for both historical route timeouts is not proven**, and SDK overlap is not automatically blamed. Thus the route observations are resolved by corrected/reinforced acceptance tests, not a claim to have proved every internal scheduling cause. Broader compatibility is a separate pending gate. No environment-only excuse is substituted for a product/test finding.
+
+**Failed diagnostic experiment retained:** native value-widget `contain: size layout` did **not** fix the loop; it was never applied to production source. Instrumentation/containment edits existed only in the isolated test copy and were removed before the passing ordinary regression. No global ResizeObserver monkey-patch, error suppression, watermark removal, font reduction or timeout increase ships.
+
+**Focused ordinary WebKit result: 6/6**, including the three original cases, both held-import/ready-workspace regressions and existing coherent navigation. Tested source hash `3ad22294ac5d2edd66716c59f50102622be1d3ac8b6d51db860ebeb5e648524d`, build `EY6wTvINHIMJ3VoZmSM9H`. Lint/typecheck/**1,103 units / 56 files**/production build pass at this checkpoint; a later injected HTTP-200-without-completion regression is included in the integrated verification window. Exactly **50** new automated cases are in `tests/unit/north-1a-followup.test.ts`, separate from native/browser tests and the genuine batch.
+
+**Subsequent stable-source check:** lint/typecheck/**1,104 units / 56 files**/production build and formatting pass; this includes the new HTTP-200-without-terminal-completion unknown/no-replay regression. Source hash stays `3ad22294…`, build `K2Bb95tfxZtJagvG3IRP4`. Deterministic and offline reviews pass. Dedicated PostgreSQL integration, broad browser/compatibility/access/recovery reruns and final-source capture are continuing. The implementation is ready for exact-commit CI verification, not for 1A acceptance or preview refresh.
+
+### Exact-commit CI evidence boundary
+
+The complete repository workflow is `.github/workflows/repository-checks.yml`; no model or real financial provider is enabled in it. The [GitHub Actions run list](https://github.com/fmruslan/Pal-Care-Ruslan/actions/workflows/repository-checks.yml) exposes the run for this implementation commit. **At report authoring, new CI is not yet claimed passed.** The final owner handoff must name the exact SHA, observed run URL and conclusion, including failures/retries/skips; a prior baseline green run is not acceptance of this revision. No private-preview reload is part of committing/pushing for the requested CI.
+
+Evidence logs are under `/tmp/opencode/palcare-north-1a-verification/evidence/`: `webkit-baseline-three.log`, `webkit-instrumented-baseline.log`, `webkit-sdk-resize-diagnostics.json`, `webkit-sdk-resize-before-after.json`, `webkit-resize-contained.log`, `followup-build-check.log` (the retained stale-metadata failure), `followup-build-check-corrected.log`, and `webkit-native-patch-focused.log` plus preserved focused artifacts. The older broad-run logs and written trace diagnosis remain; Playwright reused its compatibility output directory during reproduction, so the old original 375px/1440px trace ZIPs are no longer present there. Do not represent the newer traces as those original executions. Subsequent integrated output folders are explicitly archived before reuse.
+
+## New genuine 50-case batch — stopped, never replayed
+
+One fixed manifest/registry/ledger was prepared for this separate approval. Version `north-1a-fictional-followup-50-v1`, fixture hash `e686cd1c990bca3a78752561d38d1b170e49a260b92d7b679b5774c4bb8f488c`, prompt version `careos-sol-medium-north-1a-v3`. First nine cases retain the exact original failed payloads and expectations; the other 41 are new explicit questions over fictional packets. v3 clarifies negative receipt constraints and deterministic identity retention; it does not change care instructions or the old rubrics.
+
+**17 completed / 18 reserved attempts; 14 strict passes / three preserved discrepancies.** At case 18 (`followup-18-recovery-04`), subscription HTTP 200 did not establish a valid terminal/model completion (`pilot_completion_or_model_missing`). Its reservation settled **unknown**, with usage unavailable. The production/harness guards stopped the batch at **2026-11-02T21:27:44Z** and revoked the temporary session. No retry, replay, replacement case, new allowance, permission renewal or paid fallback occurred. **The requested 50-completion milestone is blocked/incomplete; 32 cases were never dispatched.** Earlier 160-call ledgers are unchanged.
+
+Current standing accounting after this batch: **181/300 used, 119 unreserved, one unknown reservation retained**, no provider-block/policy-revocation event. Unreserved slots are not permission to bypass the unknown-stop condition. Both temporary sessions were revoked; original sessions and event prefix remained unchanged under the harness checks. One ordinary credential refresh occurred under existing authority, distinct from inference.
+
+Observed usage for the **17 known completions only**: **12,666 input + 432 output = 13,098 tokens**, reasoning/cached/cache-write zero. The 18th attempt has no measured usage; its reservation is not refunded or estimated as zero. Subscription dollar cost remains unavailable (`micro: null`). Private ledger: `/tmp/opencode/north-1a-owner50-20261102-a/unique.jsonl`; read-only `--review ... --followup-50` validates its hash chain. No further live call is permitted in this task under the retained stop rule.
+
+All 17 completed values were individually inspected against their supplied questions/records:
+
+| New index | Result and semantic review |
+| --- | --- |
+| 1–4 | Each exact original scope-failure retest now returns `unsupported`; no library operation is claimed. |
+| 5 | Exact original receipt retest selects dated Sample identity + receipt only, no separate price fact. |
+| 6 | Correct Pi zero-placeholder fact only; original conservative identity-selection accuracy/context failure retained. Application identity is independently retained. |
+| 7 | Exact repeated identity-rubric retest has the same correct uncertainty-only selection; separate original failure retained. |
+| 8 | Exact original negative-receipt retest now selects only the Pi zero-placeholder fact; no extraneous receipt fact or recovery claim. |
+| 9 | Exact desktop-method retest selects two correct current Pi OS method/effect quotes; original one-step formatting failure retained, not truncated or rescored. |
+| 10 | Correct North Star/Pal Care `identity` classification. |
+| 11 | New three-month saved-library request correctly `unsupported`. |
+| 12 | New October-library request correctly `unsupported`, not headphones history. |
+| 13 | New whole-library recorded-value sum correctly `unsupported`, not one amount. |
+| 14 | New Electronics-library total correctly `unsupported`. |
+| 15 | New all-purchase spending trend correctly `unsupported`, not kettle summary. |
+| 16 | New linked library-results request correctly `unsupported`; no invented result set. |
+| 17 | New library CSV request correctly `unsupported`; no export or retrieval claim. |
+| 18 | **Unknown terminal completion**, no accepted value/score; reservation retained. |
+
+These are genuine provider-adapter/domain observations, not browser, recovery, native SDK or independent human acceptance. Combined with the unchanged original batches: **177 known completed values, 165 strict passes / 12 strict discrepancies, plus one new unknown attempt**. Do not call this 178 completed answers or 210 completed evaluations.
+
+## Handoff
+
+- **Implemented:** dedicated isolated test database; individual nine-flag review; library guard/negative-constraint prompt corrections; stress-test hydration barrier; pinned native resize patch; 50 automated cases and a separately frozen 50-evaluation harness.
+- **Verified:** original-ledger review; 14 baseline recovery cases; 50 new automated regressions; focused 6/6 ordinary WebKit checks; 17 new genuine responses semantically reviewed with observed usage. Broader checks/CI remain separate.
+- **Incomplete:** final integrated regressions, final-source screenshots, exact-commit CI, full 50 genuine completions and owner/real-device review.
+- **Blocked:** the genuine evaluation's retained unknown reservation stops further inference. No replay/reset/renewal or replacement batch is permitted. Owner/real-device review remain human gates.
+- **Next:** finish the stable-source integrated window and exact-commit CI, report remaining blockers, and request owner 1A review. Wait for approval before 1B or preview refresh.

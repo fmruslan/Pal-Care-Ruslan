@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowUpRight, Sparkles } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
+import { AssistantName } from "../assistant-name";
 import type { CustomerPurchase } from "@/lib/intelligence/customer-model";
 import { purchaseHighlights } from "@/lib/intelligence/customer-presentation";
 import { displayDate } from "@/lib/demo/presentation";
@@ -17,9 +18,8 @@ export function CustomerHighlights({
       className="intelligence-wash mb-5 rounded-2xl border p-4 sm:p-5"
       aria-labelledby="insights-companion-title"
     >
-      <p className="flex items-center gap-2 text-sm font-semibold text-intelligence-foreground">
-        <Sparkles className="size-4" aria-hidden="true" /> CareOS · From your
-        saved records
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-intelligence-foreground">
+        <AssistantName /> <span>· From your saved records</span>
       </p>
       <h2 id="insights-companion-title" className="mt-2 text-xl font-semibold">
         A clearer picture. A useful next step.

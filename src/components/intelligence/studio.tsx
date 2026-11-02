@@ -194,12 +194,12 @@ export function IntelligenceStudio({
           defaultSize: { width: 360, height: 440 },
           minSize: { width: 260, height: 220 },
           ai: {
-            description: `CareOS ${label}. Scoped case window; illustrative data is never provider evidence.`,
+            description: `Pal Care ${label}. Scoped case window; illustrative data is never provider evidence.`,
           },
         })),
         menu: [
           {
-            label: "CareOS Intelligence",
+            label: "Merchant intelligence",
             widgetIds: [
               "value-recovery",
               "adjustment-status",

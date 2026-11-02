@@ -98,7 +98,7 @@ test("pair once, remember across reload/server restart, logout and deny stolen r
 }) => {
   await page.goto(OWNER_ORIGIN + "/ai-evaluation");
   await expect(
-    page.getByRole("heading", { name: "CareOS AI access" }),
+    page.getByRole("heading", { name: "Pal Care · AI access" }),
   ).toBeVisible();
   await page
     .getByRole("button", { name: "Remember this browser", exact: true })
@@ -301,23 +301,24 @@ test("current browser auth gates Send and legacy unsent hello recovers without c
   await stop();
   await start(true);
   await page.goto(OWNER_ORIGIN + "/dashboard");
-  await page.getByRole("button", { name: "Ask CareOS", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "CareOS", exact: true });
+  await page
+    .getByRole("button", { name: "Ask North Star", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
   const input = dialog.getByRole("textbox", {
-    name: "Ask about your purchase",
+    name: "Ask about your purchases",
   });
   await input.fill("Keep my current draft");
   await expect(dialog.getByLabel("Browser AI access")).toContainText(
     "not verified yet",
   );
   await expect(
-    dialog.getByRole("button", { name: "Send to CareOS" }),
+    dialog.getByRole("button", { name: "Send to North Star" }),
   ).toBeDisabled();
-  await expect(
-    dialog.getByRole("button", { name: "Find receipt", exact: true }),
-  ).toBeDisabled();
+  await input.press("Enter");
+  await expect(dialog.locator("[data-pending-question]")).toHaveCount(0);
   await expect(input).toHaveValue("Keep my current draft");
-  await dialog.getByRole("button", { name: "Close CareOS" }).click();
+  await dialog.getByRole("button", { name: "Close North Star" }).click();
   await page.goto(OWNER_ORIGIN + "/ai-evaluation");
   await page
     .getByRole("button", { name: "Remember this browser", exact: true })
@@ -382,17 +383,17 @@ test("current browser auth gates Send and legacy unsent hello recovers without c
     ),
   );
   await page.goto(OWNER_ORIGIN + "/dashboard");
-  await page.getByRole("button", { name: "Ask CareOS", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Ask North Star", exact: true })
+    .click();
   await expect(dialog.locator("[data-unsent-question]")).toContainText("hello");
   await expect(dialog.locator("[data-pending-question]")).toHaveCount(0);
-  await input.fill("What does CareOS do?");
+  await input.fill("What does North Star do?");
   await expect(
-    dialog.getByRole("button", { name: "Send to CareOS" }),
+    dialog.getByRole("button", { name: "Send to North Star" }),
   ).toBeEnabled();
-  await expect(
-    dialog.getByRole("button", { name: "Find receipt", exact: true }),
-  ).toBeEnabled();
-  await dialog.getByRole("button", { name: "Send to CareOS" }).click();
+  await expect(input).toBeEditable();
+  await dialog.getByRole("button", { name: "Send to North Star" }).click();
   await expect(dialog.locator("[data-latest-answer]")).toContainText(
     "not an official PayPal",
   );
@@ -403,7 +404,7 @@ test("current browser auth gates Send and legacy unsent hello recovers without c
     "not verified yet",
   );
   await expect(
-    dialog.getByRole("button", { name: "Send to CareOS" }),
+    dialog.getByRole("button", { name: "Send to North Star" }),
   ).toBeDisabled();
   await expect(input).toHaveValue("Keep this draft after revocation");
   expect((await owner.status({ agent: "" })).used).toBe(0);

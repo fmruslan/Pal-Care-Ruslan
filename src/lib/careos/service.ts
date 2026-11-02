@@ -21,6 +21,11 @@ import type { RecallEvidence } from "../safety/evidence";
 import { referenceContext } from "./journey";
 import type { PurchaseActivity } from "./activity";
 import { evidencePayload, selectedEvidence } from "./evidence-selection";
+import {
+  libraryQuestionPending,
+  pendingLibraryAnswer,
+  verifiedReceiptRequest,
+} from "./interaction-limits";
 
 function modelPayload(
   task: "classify" | "care",
@@ -81,6 +86,8 @@ export async function resolveTurn(options: {
   let sources = options.sources;
   if (input.example) {
     if (input.twinId) throw new CareError("careos_invalid_context", 400);
+    if (!isProhibited(input.message) && libraryQuestionPending(input.message))
+      return pendingLibraryAnswer(input.revision);
     const intent = isProhibited(input.message)
       ? "unsupported"
       : (input.intent ?? interpret(input.message));
@@ -134,6 +141,10 @@ export async function resolveTurn(options: {
     throw new CareError("careos_purchase_not_found", 404);
   if (isProhibited(input.message))
     return deterministicAnswer(data, input, "unsupported");
+  // 1A must not answer a library question with the focused product's price or
+  // force a purchase picker. Actual library queries belong to approved 1B+.
+  if (libraryQuestionPending(input.message))
+    return pendingLibraryAnswer(input.revision);
   if (record) {
     const brand = record.product.brand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const namedModel = input.message.match(
@@ -231,6 +242,10 @@ export async function resolveTurn(options: {
           "item",
           "order",
           "paypal",
+          "verified",
+          "sandbox",
+          "sample",
+          "fictional",
           "find",
           "show",
           "open",
@@ -289,6 +304,20 @@ export async function resolveTurn(options: {
         };
     }
   }
+  if (
+    verifiedReceiptRequest(input.message) &&
+    record?.twin.origin !== "sandbox"
+  )
+    return {
+      ...purchaseSelection(
+        data,
+        input,
+        (candidate) =>
+          !mentioned.length ||
+          mentioned.some((product) => product.id === candidate.product.id),
+      ),
+      text: "You asked for a PayPal or verified Sandbox receipt. I won’t substitute a fictional sample receipt. Choose a matching verified Sandbox purchase if one is saved, or ask about the sample explicitly.",
+    };
   let intent = input.intent ?? interpret(input.message);
   let classified = false;
   const history = options.history

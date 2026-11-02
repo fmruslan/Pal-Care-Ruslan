@@ -98,15 +98,15 @@ async function injectConversation(page: Page) {
 async function openAssistant(page: Page) {
   await page.goto(purchase);
   await page.locator(".careos-launcher").click();
-  const dialog = page.getByRole("dialog", { name: "CareOS", exact: true });
+  const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
   await expect(dialog.getByText(answerText, { exact: true })).toBeVisible();
   await page.evaluate(async () => {
     await document.fonts.ready;
   });
   return {
     dialog,
-    composer: dialog.getByLabel("Ask about your purchase", { exact: true }),
-    transcript: dialog.getByRole("region", { name: "CareOS conversation" }),
+    composer: dialog.getByLabel("Ask about your purchases", { exact: true }),
+    transcript: dialog.getByRole("region", { name: "North Star conversation" }),
     body: dialog.getByText(answerText, { exact: true }),
     question: dialog.getByText(questionText, { exact: true }),
   };
@@ -338,12 +338,20 @@ test("320px assistant has readable body/composer text and reachable 44px primary
   await composer.fill("Draft");
   for (const control of [
     composer,
-    dialog.getByRole("button", { name: "Send to CareOS", exact: true }),
-    dialog.getByRole("button", { name: "Close CareOS", exact: true }),
+    dialog.getByRole("button", { name: "Send to North Star", exact: true }),
+    dialog.getByRole("button", { name: "Close North Star", exact: true }),
     dialog.getByRole("button", { name: "Expand assistant", exact: true }),
-    dialog.getByRole("button", { name: "Clear", exact: true }),
+    dialog.locator('summary[aria-label="North Star options"]'),
   ])
     await expectControlFits(control);
+  await dialog.locator('summary[aria-label="North Star options"]').click();
+  await expectControlFits(
+    dialog.getByRole("button", {
+      name: "Clear conversation history",
+      exact: true,
+    }),
+  );
+  await dialog.locator('summary[aria-label="North Star options"]').click();
   const action = dialog.getByRole("link", {
     name: "Open receipt",
     exact: true,
@@ -382,12 +390,21 @@ test("200% text enlargement at 320px preserves readable content, controls and a 
   await expectUsableTranscript(transcript);
   for (const control of [
     composer,
-    dialog.getByRole("button", { name: "Send to CareOS", exact: true }),
-    dialog.getByRole("button", { name: "Close CareOS", exact: true }),
+    dialog.getByRole("button", { name: "Send to North Star", exact: true }),
+    dialog.getByRole("button", { name: "Close North Star", exact: true }),
     dialog.getByRole("button", { name: "Compact assistant", exact: true }),
-    dialog.getByRole("button", { name: "Clear", exact: true }),
+    dialog.locator('summary[aria-label="North Star options"]'),
   ])
     await expectControlFits(control);
+  await dialog.locator('summary[aria-label="North Star options"]').click();
+  await expectControlFits(
+    dialog.getByRole("button", {
+      name: "Clear conversation history",
+      exact: true,
+    }),
+  );
+  await expectNoHorizontalClipping(page, dialog);
+  await dialog.locator('summary[aria-label="North Star options"]').click();
   // Optional review artifact only: never a snapshot baseline or live evidence.
   await page.screenshot({
     path: info.outputPath("careos-320-text200-injected.png"),
@@ -406,8 +423,8 @@ test("keyboard focus remains visible and contained with reduced motion, then ret
   await expectControlFits(launcher);
   await launcher.focus();
   await launcher.press("Enter");
-  const dialog = page.getByRole("dialog", { name: "CareOS", exact: true });
-  const composer = dialog.getByLabel("Ask about your purchase", {
+  const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
+  const composer = dialog.getByLabel("Ask about your purchases", {
     exact: true,
   });
   await expect(dialog.getByText(answerText, { exact: true })).toBeVisible();
@@ -469,7 +486,7 @@ test("keyboard focus remains visible and contained with reduced motion, then ret
   );
   expect(animated, "assistant respects reduced-motion timing").toEqual([]);
   await expect(
-    dialog.getByRole("region", { name: "CareOS conversation" }),
+    dialog.getByRole("region", { name: "North Star conversation" }),
   ).toHaveCSS("scroll-behavior", "auto");
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
@@ -485,7 +502,7 @@ test("injected VisualViewport keyboard preserves the composer and reading area; 
   await installVisualViewport(page);
   const { dialog, composer, transcript } = await openAssistant(page);
   const close = dialog.getByRole("button", {
-    name: "Close CareOS",
+    name: "Close North Star",
     exact: true,
   });
   await close.focus();
@@ -505,7 +522,7 @@ test("injected VisualViewport keyboard preserves the composer and reading area; 
   ).toBeLessThanOrEqual(451);
   await expectControlFits(composer, 450);
   await expectControlFits(
-    dialog.getByRole("button", { name: "Send to CareOS", exact: true }),
+    dialog.getByRole("button", { name: "Send to North Star", exact: true }),
     450,
   );
   await expectControlFits(close, 450);
@@ -562,7 +579,7 @@ test("assistant-only axe checks use the project's light or dark appearance (inje
   const state = await injectConversation(page);
   const { dialog } = await openAssistant(page);
   await expect(
-    dialog.getByRole("heading", { name: "CareOS", exact: true }),
+    dialog.getByRole("heading", { name: "North Star", exact: true }),
   ).toBeVisible();
   const result = await new AxeBuilder({ page })
     .include(".careos-assistant")
@@ -599,7 +616,8 @@ test("wide compact mode leaves purchase reading space; expand and close restore 
             document.documentElement.classList.contains(
               "careos-reading-space",
             ) &&
-            title?.textContent?.trim() === "CareOS" &&
+            title?.querySelector(".sr-only")?.textContent?.trim() ===
+              "North Star" &&
             p.width > 0 &&
             p.height > 0,
           noOverlap: c.right <= p.left,
@@ -615,7 +633,7 @@ test("wide compact mode leaves purchase reading space; expand and close restore 
     .click();
   await expect(page.locator("html")).not.toHaveClass(/careos-reading-space/);
   await dialog
-    .getByRole("button", { name: "Close CareOS", exact: true })
+    .getByRole("button", { name: "Close North Star", exact: true })
     .click();
   await expect(page.locator("html")).not.toHaveClass(/careos-reading-space/);
   expect(state.inputs).toEqual([]);

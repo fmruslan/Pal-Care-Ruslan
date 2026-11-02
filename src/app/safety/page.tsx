@@ -45,7 +45,7 @@ export default async function SafetyPage({
         </p>
       )}
       <PageHeading
-        eyebrow="CareOS · Recall Guardian"
+        eyebrow="Pal Care · Recall Guardian"
         title="Safety starts with evidence."
         description="Official notices. Exact product identifiers. Clear uncertainty—never a blanket promise that a product is safe."
       />

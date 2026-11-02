@@ -58,7 +58,7 @@ export async function executeCustomerAgent(
   });
   const runner: AgAiAgentRunner = {
     id: "personal-careos",
-    name: "CareOS · Personal Insights",
+    name: "North Star · Personal Insights",
     tools: ({ studio }) => [
       studio.viewSchema(),
       studio.viewPage(),

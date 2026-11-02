@@ -60,6 +60,8 @@ for (const width of widths) {
     await page.setViewportSize({ width, height: 900 });
     await page.emulateMedia({ reducedMotion: "reduce" });
     const unexpected: string[] = [];
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
     await page.route("**/*", async (route) => {
       const request = route.request();
       const url = new URL(request.url());
@@ -87,6 +89,12 @@ for (const width of widths) {
       name: "Unified purchase activity",
     });
     await expect(activity).toBeVisible();
+    // SSR content can be visible before React hydrates. Mutating it then creates
+    // a test-induced #418 hydration failure, not a legitimate layout stress.
+    // This is a real interactive client-ready control, not a sleep/longer timeout.
+    await expect(
+      page.getByRole("combobox", { name: "Appearance", exact: true }),
+    ).toBeEnabled();
     await activity
       .locator("p.break-words")
       .first()
@@ -107,16 +115,19 @@ for (const width of widths) {
     for (const link of await nav.getByRole("link").all())
       await reachable(link, width);
     const launcher = page.getByRole("button", {
-      name: "Ask CareOS",
+      name: "Ask North Star",
       exact: true,
     });
     await reachable(launcher, width);
     await launcher.focus();
     await expect(launcher).toBeFocused();
     await launcher.press("Enter");
-    const dialog = page.getByRole("dialog", { name: "CareOS", exact: true });
+    const dialog = page.getByRole("dialog", {
+      name: "North Star",
+      exact: true,
+    });
     await expect(dialog).toBeVisible();
-    const composer = dialog.getByLabel("Ask about your purchase", {
+    const composer = dialog.getByLabel("Ask about your purchases", {
       exact: true,
     });
     await expect(composer).toBeVisible();
@@ -143,5 +154,9 @@ for (const width of widths) {
     ).violations;
     expect(violations.map(({ id, impact }) => ({ id, impact }))).toEqual([]);
     expect(unexpected).toEqual([]);
+    expect(
+      errors,
+      "No application errors, including test-induced hydration mismatches",
+    ).toEqual([]);
   });
 }

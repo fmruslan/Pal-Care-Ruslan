@@ -106,6 +106,40 @@ describe("CareOS browser recovery hints", () => {
       }),
     ).toBe("example:insignia");
   });
+  it("restores additive purchase dates while keeping historical undated envelopes and request IDs unchanged", () => {
+    const context = {
+      twinId: snapshot.conversationId,
+      name: "Everyday headphones",
+      model: "F-01",
+      origin: "sample",
+    };
+    const original = {
+      ...snapshot,
+      input: { ...snapshot.input, twinId: context.twinId },
+      context,
+    };
+    const dated = {
+      ...original,
+      context: { ...context, purchasedOn: "2026-10-18" },
+    };
+    expect(readPending(JSON.stringify(original), 2000)?.context).toEqual(
+      context,
+    );
+    const restored = readPending(JSON.stringify(dated), 2000);
+    expect(restored?.context).toEqual(dated.context);
+    expect(restored?.input).toEqual(original.input);
+    expect(restored?.status).toBe("uncertain");
+    expect(contextIdentity(restored?.context)).toBe(context.twinId);
+    expect(
+      readPending(
+        JSON.stringify({
+          ...dated,
+          context: { ...dated.context, purchasedOn: "2026-02-29" },
+        }),
+        2000,
+      ),
+    ).toBeNull();
+  });
   it("distinguishes conflicting and unknown requests without echoing arbitrary errors", () => {
     expect(new CareHttpError(409, "careos_request_unknown").message).toContain(
       "no confirmed result",

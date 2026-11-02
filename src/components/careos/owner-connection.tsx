@@ -111,7 +111,7 @@ export function OwnerConnection({
                     )
                   }
                 />
-                {scope === "customer" ? "Customer CareOS" : "AG Studio"}
+                {scope === "customer" ? "North Star chat" : "AG Studio"}
               </label>
             ))}
           </fieldset>
@@ -129,7 +129,7 @@ export function OwnerConnection({
             <strong>
               {pairing.scopes
                 .map((s) =>
-                  s === "customer" ? "Customer CareOS" : "AG Studio",
+                  s === "customer" ? "North Star chat" : "AG Studio",
                 )
                 .join(" + ")}
             </strong>

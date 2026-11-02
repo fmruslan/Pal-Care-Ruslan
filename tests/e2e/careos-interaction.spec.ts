@@ -112,12 +112,18 @@ async function open(page: Page) {
   await page.locator(".careos-launcher").click();
   const dialog = page.getByRole("dialog");
   await expect(
-    dialog.getByRole("button", { name: "Find receipt", exact: true }),
-  ).toBeEnabled();
+    dialog.getByRole("textbox", {
+      name: "Ask about your purchases",
+      exact: true,
+    }),
+  ).toBeEditable();
+  await expect(
+    dialog.getByText("Working… your next draft is kept.", { exact: true }),
+  ).toHaveCount(0);
   return {
     dialog,
-    composer: dialog.getByLabel("Ask about your purchase"),
-    transcript: dialog.getByRole("region", { name: "CareOS conversation" }),
+    composer: dialog.getByLabel("Ask about your purchases", { exact: true }),
+    transcript: dialog.getByRole("region", { name: "North Star conversation" }),
   };
 }
 
@@ -150,7 +156,7 @@ test("legacy unsent hello never traps Send or suggestions and can be edited with
   await page.reload();
   await page.locator(".careos-launcher").click();
   const dialog = page.getByRole("dialog"),
-    composer = dialog.getByLabel("Ask about your purchase");
+    composer = dialog.getByLabel("Ask about your purchases", { exact: true });
   await expect(dialog.locator("[data-unsent-question]")).toContainText("hello");
   await expect(dialog.locator("[data-pending-question]")).toHaveCount(0);
   await expect(
@@ -159,11 +165,9 @@ test("legacy unsent hello never traps Send or suggestions and can be edited with
   expect(state.inputs).toHaveLength(0);
   await composer.fill("Keep this newer draft");
   await expect(
-    dialog.getByRole("button", { name: "Send to CareOS" }),
+    dialog.getByRole("button", { name: "Send to North Star" }),
   ).toBeEnabled();
-  await expect(
-    dialog.getByRole("button", { name: "Find receipt", exact: true }),
-  ).toBeEnabled();
+  await expect(composer).toBeEditable();
   await expect(
     dialog.getByRole("button", { name: "Edit unsent question" }),
   ).toBeDisabled();
@@ -172,7 +176,7 @@ test("legacy unsent hello never traps Send or suggestions and can be edited with
   await dialog.getByRole("button", { name: "Edit unsent question" }).click();
   await expect(composer).toHaveValue("hello");
   state.hold.release();
-  await dialog.getByRole("button", { name: "Send to CareOS" }).click();
+  await dialog.getByRole("button", { name: "Send to North Star" }).click();
   await expect(dialog.locator("[data-pending-question]")).toHaveCount(0);
   await expect.poll(() => state.inputs.length).toBe(1);
   expect(state.inputs[0].requestId).not.toBe(originalId);
@@ -194,7 +198,7 @@ test("a rejected conversation bootstrap keeps the unsent question editable and p
   });
   const { dialog, composer } = await open(page);
   await composer.fill("hello");
-  await dialog.getByRole("button", { name: "Send to CareOS" }).click();
+  await dialog.getByRole("button", { name: "Send to North Star" }).click();
   await expect(dialog.locator("[data-unsent-question]")).toContainText("hello");
   await expect(dialog.locator("[data-pending-question]")).toHaveCount(0);
   await expect(dialog.getByRole("alert")).toContainText("verify this browser");
@@ -203,9 +207,9 @@ test("a rejected conversation bootstrap keeps the unsent question editable and p
   await composer.fill("Show my receipt");
   state.hold.release();
   await expect(
-    dialog.getByRole("button", { name: "Send to CareOS" }),
+    dialog.getByRole("button", { name: "Send to North Star" }),
   ).toBeEnabled();
-  await dialog.getByRole("button", { name: "Send to CareOS" }).click();
+  await dialog.getByRole("button", { name: "Send to North Star" }).click();
   await expect(
     dialog.getByText("Answer begins here.", { exact: false }),
   ).toBeVisible();
@@ -246,9 +250,11 @@ test("an expired conversation hint does not strand a question that never reached
   await page.locator(".careos-launcher").click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.locator("[data-unsent-question]")).toContainText("hello");
-  await dialog.getByLabel("Ask about your purchase").fill("A new question");
+  await dialog
+    .getByLabel("Ask about your purchases", { exact: true })
+    .fill("A new question");
   await expect(
-    dialog.getByRole("button", { name: "Send to CareOS" }),
+    dialog.getByRole("button", { name: "Send to North Star" }),
   ).toBeEnabled();
   expect(state.inputs).toHaveLength(0);
   expect(
@@ -295,7 +301,7 @@ test("question renders before a held response; Enter, newline, IME and repeat gu
   await composer.press("Enter");
   await composer.fill("A draft for later");
   await expect(
-    dialog.getByRole("button", { name: "Send to CareOS" }),
+    dialog.getByRole("button", { name: "Send to North Star" }),
   ).toBeDisabled();
   expect(state.inputs).toHaveLength(1);
   state.hold.release();
@@ -442,7 +448,7 @@ test("an uncertain request survives reload with its identity, and recovery only 
   await expect(dialog.locator("[data-pending-question]")).toHaveCount(0);
   await expect(dialog.locator("[data-user-message]")).toHaveCount(1);
   await expect(
-    dialog.getByRole("region", { name: "CareOS conversation" }),
+    dialog.getByRole("region", { name: "North Star conversation" }),
   ).toBeFocused();
   expect(state.inputs).toEqual([original]);
 });
@@ -487,17 +493,34 @@ test("clear and submission are guarded while saved history is restoring", async 
   await page.goto(forma);
   await page.locator(".careos-launcher").click();
   const dialog = page.getByRole("dialog");
+  await dialog.locator('summary[aria-label="North Star options"]').click();
   await expect(
-    dialog.getByRole("button", { name: "Clear", exact: true }),
+    dialog.getByRole("button", {
+      name: "Clear conversation history",
+      exact: true,
+    }),
   ).toBeDisabled();
+  const composer = dialog.getByLabel("Ask about your purchases", {
+    exact: true,
+  });
+  await composer.fill("Find receipt");
   await expect(
-    dialog.getByRole("button", { name: "Find receipt", exact: true }),
+    dialog.getByRole("button", { name: "Send to North Star", exact: true }),
   ).toBeDisabled();
+  expect(state.inputs).toHaveLength(0);
   restoring.release();
   await expect(
-    dialog.getByRole("button", { name: "Clear", exact: true }),
+    dialog.getByRole("button", {
+      name: "Clear conversation history",
+      exact: true,
+    }),
   ).toBeEnabled();
-  await dialog.getByRole("button", { name: "Clear", exact: true }).click();
+  await expect(
+    dialog.getByRole("button", { name: "Send to North Star", exact: true }),
+  ).toBeEnabled();
+  await dialog
+    .getByRole("button", { name: "Clear conversation history", exact: true })
+    .click();
   await expect(dialog.locator("article")).toHaveCount(0);
   expect(state.inputs).toHaveLength(0);
 });
@@ -553,7 +576,10 @@ test("denied browser storage keeps the in-memory send and clear path usable", as
   await composer.fill("A question without storage");
   await composer.press("Enter");
   await expect(dialog.getByText(/Answer begins here/)).toBeVisible();
-  await dialog.getByRole("button", { name: "Clear", exact: true }).click();
+  await dialog.locator('summary[aria-label="North Star options"]').click();
+  await dialog
+    .getByRole("button", { name: "Clear conversation history", exact: true })
+    .click();
   await expect(dialog.locator("article")).toHaveCount(0);
   expect(state.inputs).toHaveLength(1);
 });

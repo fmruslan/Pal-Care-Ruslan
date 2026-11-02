@@ -28,7 +28,7 @@ test("synthetic test-DB flow: proactive opportunity → protected approval → i
     if (info.project.name.startsWith("mobile"))
       await expect(
         page.getByRole("button", {
-          name: "Ask about this adjustment",
+          name: "Ask North Star about this adjustment",
           exact: true,
         }),
       ).toHaveCount(0);

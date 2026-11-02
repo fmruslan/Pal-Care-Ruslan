@@ -230,6 +230,16 @@
     padding: 12px 16px;
   }
   @media (max-width: 360px) {
+    .careos-context {
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+    .careos-context > span {
+      flex: 1 1 9rem;
+    }
+    .careos-context > div {
+      margin-left: auto;
+    }
     .careos-header {
       gap: 4px;
     }
@@ -256,7 +266,7 @@
       border-radius: 24px;
     }
     .careos-expanded {
-      width: min(640px, calc(100vw - 2rem));
+      width: min(960px, calc(100vw - 3rem));
     }
   }
   .hero-wash {
@@ -316,6 +326,17 @@
 }
 
 /* These scoped layout overrides intentionally outrank the existing flex/mx-auto utilities. */
+.careos-assistant,
+.careos-context-picker {
+  --ring: var(--intelligence-foreground);
+}
+
+.careos-context-picker[data-careos-keyboard] {
+  top: auto;
+  bottom: calc(var(--careos-keyboard-bottom, 0px) + 1rem);
+  max-height: calc(var(--careos-visible-height, 85dvh) - 2rem);
+  translate: -50% 0;
+}
 .careos-assistant[data-careos-keyboard] .careos-quick-actions {
   display: none;
 }

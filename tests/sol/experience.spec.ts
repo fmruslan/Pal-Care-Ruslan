@@ -78,11 +78,17 @@ test("injected Sol protocol: separate private scopes, actual Studio tools, groun
   );
   await page.goto(`/vault/${pi}`);
   await page
-    .getByRole("button", { name: "Ask about this product", exact: true })
+    .getByRole("button", {
+      name: "Ask North Star about this purchase",
+      exact: true,
+    })
     .click();
   const dialog = page.getByRole("dialog");
   await dialog
-    .getByRole("button", { name: "Product care", exact: true })
+    .getByLabel("Ask about your purchases", { exact: true })
+    .fill("Product care");
+  await dialog
+    .getByRole("button", { name: "Send to North Star", exact: true })
     .click();
   await expect(
     dialog.getByText("Live AI · check sources", { exact: true }),
@@ -93,7 +99,9 @@ test("injected Sol protocol: separate private scopes, actual Studio tools, groun
     }),
   ).toBeVisible();
   await page.reload();
-  await page.getByRole("button", { name: "Ask CareOS", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Ask North Star", exact: true })
+    .click();
   await expect(
     page.getByRole("dialog").getByText(supportedInstruction, { exact: true }),
   ).toBeVisible();

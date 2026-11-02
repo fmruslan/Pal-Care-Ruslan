@@ -13,7 +13,7 @@ export default async function GuardianPage() {
   return (
     <Shell active="/vault" source={data.source}>
       <PageHeading
-        eyebrow="CareOS · Proactive ownership care"
+        eyebrow="Pal Care · Proactive ownership care"
         title="Your value, looked after."
         description="Eligible merchant price adjustments, discovered from saved purchase facts—not a customer complaint or a refund chatbot."
       />

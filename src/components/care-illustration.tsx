@@ -1,4 +1,5 @@
-import { FileText, Layers2, Sparkles, ArrowUpRight } from "lucide-react";
+import { FileText, Layers2, ArrowUpRight } from "lucide-react";
+import { AssistantName } from "./assistant-name";
 import { ProductArt } from "./product-art";
 import { Badge } from "./ui/badge";
 
@@ -42,8 +43,7 @@ export function CareIllustration() {
       </div>
       <div className="absolute -right-1 bottom-3 rotate-3 rounded-2xl border bg-card px-4 py-3 shadow-lift sm:right-0">
         <span className="flex items-center gap-2 text-sm font-semibold text-intelligence-foreground">
-          <Sparkles className="size-4" />
-          CareOS
+          <AssistantName />
         </span>
         <p className="mt-1 text-xs text-muted-foreground">
           Intelligence, thoughtfully planned.

@@ -12,27 +12,40 @@ test("product switching, refresh and clear preserve useful context without mixin
   await page.goto(forma);
   await launcher(page).click();
   const dialog = page.getByRole("dialog");
-  await dialog.getByRole("button", { name: "Find receipt" }).click();
+  await dialog
+    .getByLabel("Ask about your purchases", { exact: true })
+    .fill("Find receipt");
+  await dialog
+    .getByRole("button", { name: "Send to North Star", exact: true })
+    .click();
   await expect(
     dialog.getByRole("link", { name: "Open receipt", exact: true }),
   ).toBeVisible();
   await page.keyboard.press("Escape");
   await page.goto(raspberry);
-  await launcher(page).click();
+  // Explicit purchase actions replace a prior explicit selection; page defaults
+  // alone must not overwrite the context retained by the persistent assistant.
+  await page
+    .getByRole("button", {
+      name: "Ask North Star about this purchase",
+      exact: true,
+    })
+    .click();
   await dialog
-    .getByRole("button", { name: "Product care", exact: true })
+    .getByLabel("Ask about your purchases", { exact: true })
+    .fill("Product care");
+  await dialog
+    .getByRole("button", { name: "Send to North Star", exact: true })
     .click();
   await expect(
     dialog.getByText(
       /Safe shutdown for Raspberry Pi 5 running Raspberry Pi OS/,
     ),
   ).toBeVisible();
-  await expect(
-    dialog.getByText("Everyday headphones · F-01 · Sample", { exact: true }),
-  ).toBeVisible();
-  await expect(
-    dialog.getByText("Raspberry Pi 5 · 5 · Sample", { exact: true }),
-  ).toBeVisible();
+  await expect(dialog.locator("[data-answer-scope]")).toHaveText([
+    "Question scope: Everyday headphones · F-01 · Oct 18, 2026 · Sample · PC-000201",
+    "Question scope: Raspberry Pi 5 · 5 · Oct 7, 2026 · Sample · PC-000204",
+  ]);
   await page.reload();
   await launcher(page).click();
   await expect(
@@ -40,11 +53,19 @@ test("product switching, refresh and clear preserve useful context without mixin
       /Safe shutdown for Raspberry Pi 5 running Raspberry Pi OS/,
     ),
   ).toBeVisible();
-  await dialog.getByRole("button", { name: "Find receipt" }).click();
+  await dialog
+    .getByLabel("Ask about your purchases", { exact: true })
+    .fill("Find receipt");
+  await dialog
+    .getByRole("button", { name: "Send to North Star", exact: true })
+    .click();
   await expect(
     dialog.getByText("No receipt is attached to this purchase."),
   ).toBeVisible();
-  await dialog.getByRole("button", { name: "Clear", exact: true }).click();
+  await dialog.locator('summary[aria-label="North Star options"]').click();
+  await dialog
+    .getByRole("button", { name: "Clear conversation history", exact: true })
+    .click();
   await expect(
     dialog.getByText(
       /Safe shutdown for Raspberry Pi 5 running Raspberry Pi OS/,
@@ -87,9 +108,9 @@ test("assistant reflows, expands and supports modal keyboard focus without payme
     dialog.getByRole("button", { name: "Compact assistant" }),
   ).toBeVisible();
   await dialog
-    .getByLabel("Ask about your purchase")
+    .getByLabel("Ask about your purchases", { exact: true })
     .fill("Can I get a refund?");
-  await dialog.getByRole("button", { name: "Send to CareOS" }).click();
+  await dialog.getByRole("button", { name: "Send to North Star" }).click();
   await expect(dialog.getByText(/I cannot make payments/)).toBeVisible();
   expect(
     await page.evaluate(
@@ -228,7 +249,11 @@ test("a delayed answer retains its original product after client-side navigation
   await launcher(page).click();
   await page
     .getByRole("dialog")
-    .getByRole("button", { name: "Find receipt" })
+    .getByLabel("Ask about your purchases", { exact: true })
+    .fill("Find receipt");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Send to North Star", exact: true })
     .click();
   await arrived;
   await page.keyboard.press("Escape");
@@ -243,7 +268,9 @@ test("a delayed answer retains its original product after client-side navigation
     dialog.getByText("Raspberry Pi 5 · 5", { exact: true }),
   ).toBeVisible();
   await expect(
-    dialog.getByText("Everyday headphones · F-01 · Sample", { exact: true }),
+    dialog
+      .locator("[data-answer-scope]")
+      .filter({ hasText: "Everyday headphones · F-01 · Sample" }),
   ).toBeVisible();
   await expect(
     dialog.getByText("Receipt result for the original headphones."),

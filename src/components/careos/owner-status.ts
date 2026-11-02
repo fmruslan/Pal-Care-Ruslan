@@ -40,7 +40,7 @@ export function ownerSendState(raw: unknown): OwnerSendState {
 }
 export const ownerSendMessage: Record<OwnerSendState, string> = {
   checking: "Checking this browser’s AI access…",
-  ready: "This browser is remembered. CareOS is ready.",
+  ready: "This browser is remembered. North Star is ready.",
   signin:
     "This browser is not verified yet. Open AI access to finish remembering this browser; your draft is kept.",
   disabled:

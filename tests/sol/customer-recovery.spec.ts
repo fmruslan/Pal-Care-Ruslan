@@ -36,16 +36,16 @@ test("a lost customer plan recovers by GET and requires explicit SDK application
       timeout: 20000,
     });
     await page
-      .getByRole("button", { name: "Explore with CareOS", exact: true })
+      .getByRole("button", { name: "Explore with North Star", exact: true })
       .click();
     return page.getByRole("dialog");
   }
   let dialog = await load();
   await dialog
-    .getByLabel("Ask about your purchase")
+    .getByLabel("Ask about your purchases", { exact: true })
     .fill("Which purchases have care instructions?");
   await dialog
-    .getByRole("button", { name: "Send to CareOS", exact: true })
+    .getByRole("button", { name: "Send to North Star", exact: true })
     .click();
   try {
     await expect(

@@ -1,5 +1,7 @@
 # Technical architecture
 
+**North ☆ interaction foundation (1A, under review):** North Star is the customer-facing name of Pal Care's existing assistant, not a new product/service. One root coordinator presents existing care/customer-Insights results together while preserving their separate ownership, dispatch/recovery identities and protected histories. Browser product context is separate from per-answer scope; a bounded optional per-tab hint retains draft/context and UUID-only timeline/dismissal indexes, never trusted answer content. The searchable context picker uses a fixed-fictional-scope read, no model call. Existing API/storage/provider identifiers, schema and financial boundaries are unchanged. Library intelligence/provider-free conversational queries and expanded native analytics are later checkpoints. Private-preview replacement is not approved. [Plan](NORTH-STAR-PLAN.md) · [actual implementation/evidence](STATUS.md).
+
 ## Approach
 
 **Approved standing activation follow-up:** the existing private owner path supports the owner's exact 300-request/four-concurrent/30-per-minute/one-safe-retry limits. Protected credential refresh is serialized independently of concurrent inference; shared host-ledger reservations remain atomic. Actual runtime/provider activation is separately evidenced in STATUS/handoff. No schema, financial tool, paid transport or public deployment is added.

@@ -1,0 +1,54 @@
+diff --git a/dist/package/main.cjs.js b/dist/package/main.cjs.js
+index bf3e9f013bb09e158ee93b7373d040f6ba34bdfc..76f94080abc590b8bce837a1db3d33843cfbb604 100644
+--- a/dist/package/main.cjs.js
++++ b/dist/package/main.cjs.js
+@@ -90112,7 +90112,21 @@ var ValueWidget = class extends Component {
+     this.tooltip = this.createOptionalManagedBean(
+       registry.createDynamicBean("tooltipFeature", false, tooltipCtrl, this)
+     );
+-    this.addDestroyFunc((0, import_ag_stack92._observeResize)(this.beans, this.getGui(), this.updateContent.bind(this)));
++    // ResizeObserver delivery must not synchronously change measured layout.
++    // Coalesce native value-content writes outside that delivery cycle (WebKit).
++    const view = this.getGui().ownerDocument.defaultView;
++    let contentFrame;
++    this.addDestroyFunc((0, import_ag_stack92._observeResize)(this.beans, this.getGui(), () => {
++      if (contentFrame == null) {
++        contentFrame = view.requestAnimationFrame(() => {
++          contentFrame = void 0;
++          if (this.isAlive()) this.updateContent();
++        });
++      }
++    }));
++    this.addDestroyFunc(() => {
++      if (contentFrame != null) view.cancelAnimationFrame(contentFrame);
++    });
+   }
+   init(params) {
+     return this.refresh(params);
+diff --git a/dist/package/main.esm.mjs b/dist/package/main.esm.mjs
+index b0fcdbd1399d36bf440fd7ad5eb866d1f3f67b55..ea99e38de506ce25246dd98a197940dce0a6b4eb 100644
+--- a/dist/package/main.esm.mjs
++++ b/dist/package/main.esm.mjs
+@@ -90117,7 +90117,21 @@ var ValueWidget = class extends Component {
+     this.tooltip = this.createOptionalManagedBean(
+       registry.createDynamicBean("tooltipFeature", false, tooltipCtrl, this)
+     );
+-    this.addDestroyFunc(_observeResize5(this.beans, this.getGui(), this.updateContent.bind(this)));
++    // ResizeObserver delivery must not synchronously change measured layout.
++    // Coalesce native value-content writes outside that delivery cycle (WebKit).
++    const view = this.getGui().ownerDocument.defaultView;
++    let contentFrame;
++    this.addDestroyFunc(_observeResize5(this.beans, this.getGui(), () => {
++      if (contentFrame == null) {
++        contentFrame = view.requestAnimationFrame(() => {
++          contentFrame = void 0;
++          if (this.isAlive()) this.updateContent();
++        });
++      }
++    }));
++    this.addDestroyFunc(() => {
++      if (contentFrame != null) view.cancelAnimationFrame(contentFrame);
++    });
+   }
+   init(params) {
+     return this.refresh(params);

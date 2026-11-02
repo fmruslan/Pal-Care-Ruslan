@@ -45,7 +45,10 @@
       "sharp",
       "esbuild",
       "unrs-resolver"
-    ]
+    ],
+    "patchedDependencies": {
+      "ag-studio@3.0.0": "patches/ag-studio@3.0.0.patch"
+    }
   },
   "dependencies": {
     "@paypal/paypal-server-sdk": "2.5.0",

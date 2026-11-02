@@ -38,14 +38,15 @@ export default async function GuardianCasePage({
         ← Back to {item.productName}
       </Link>
       <PageHeading
-        eyebrow="CareOS · Price Guardian evidence"
+        eyebrow="Pal Care · Price Guardian evidence"
         title={guardianLabels[item.state]}
         description="The purchase, merchant promise, price observation, approval and provider outcome stay connected."
         action={
           <div className="hidden sm:block">
-            <AskCareOS context={contextOf(record)}>
-              Ask about this adjustment
-            </AskCareOS>
+            <AskCareOS
+              context={contextOf(record)}
+              label="Ask North Star about this adjustment"
+            />
           </div>
         }
       />

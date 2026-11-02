@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     template: "%s · Pal Care",
   },
   description:
-    "Your personal purchase care space. An independent PayPal AI Hackathon project powered by CareOS.",
+    "Your personal purchase care space. An independent PayPal AI Hackathon project.",
   robots: { index: false, follow: false },
 };
 

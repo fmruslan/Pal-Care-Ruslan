@@ -1,5 +1,15 @@
 # CareOS — Glance, Tap, Talk
 
+## North ☆ checkpoint 1A (current implementation under review)
+
+The customer-facing assistant is now **North ☆**, spoken **North Star**, within **Pal Care**. It is not a separate product and has no “Powered by” attribution. Technical `careos` identifiers and historical records below remain compatible and unchanged. [Approved update plan](NORTH-STAR-PLAN.md) and [STATUS](STATUS.md) distinguish implementation, isolated verification, real-provider evidence and owner acceptance.
+
+The compact shell has one transcript, a pinned composer and an overflow for AI administration/history deletion. Its searchable context sheet uses only the public fictional purchase-list read; direct context selection/removal never submits or navigates. A current purchase clarification can be answered with one dated button; Dismiss or typing a different question retires it without losing history. Persistent product context stays separate from per-answer scope. Page defaults cannot override an explicit selection/removal. Care and customer-Insights remain separate owned transports but share a visible customer timeline across route changes. Expansion/collapse only changes presentation.
+
+Optional validated per-tab presentation state (`palcare-careos-interaction-v1`, 24-hour maximum) retains a bounded draft and context, not credentials/trusted history. Existing pending/conversation keys are not renamed. The composer stays editable even when dispatch is unavailable; server leases/auth/accounting still gate sending. Insights Stop and saved-plan recovery retain their existing semantics. Full cancellation/follow-up topic management and native expanded analytics belong to later checkpoints.
+
+The four optional discovery prompts collapse when a conversation starts. Library lists/totals are upcoming; those shortcuts currently offer an honest notice/direct Insights link instead of pretending to answer or borrowing a product price. Supported conversational provider-free library questions remain 1B+. The private preview is not refreshed; 1A isolated tests/screenshots and separately authorized 60-call fixture evaluation are reported in STATUS, not presumed by this document.
+
 ## Current boundary
 
 CareOS is one persistent customer assistant plus factual briefings/actions, inline documents and scoped care sources. Default **fixture** remains labeled **Demo responses · no live AI**. Owner-only **subscription** mode now has actual Sol Medium conversation/Studio acceptance on the original 0015 database. It uses CareOS's own official ChatGPT authorization, never OpenCode/Codex credentials. [Current private operation](SUBSCRIPTION-DEVELOPMENT.md) · [actual quality evidence](evidence/SUBSCRIPTION-QUALITY.md). The API-key adapter remains prepared and separately gated under [API acceptance](AI-EVALUATION.md).

@@ -55,7 +55,213 @@ function sameModelData() {
   return { data, sandbox, receipt };
 }
 
+function receiptWithoutExternalWork(data: DemoData, turn: TurnInput) {
+  const external = vi.fn(async () => {
+    throw new Error(
+      "Saved receipt selection must not read a provider, dispatch a model or load unrelated evidence",
+    );
+  });
+  return {
+    external,
+    answer: resolveTurn({
+      data,
+      input: turn,
+      sources: [],
+      history: [],
+      mode: "responses",
+      model: {
+        classify: external,
+        explain: external,
+        selectEvidence: external,
+      },
+      call: external,
+      load: {
+        knowledge: external,
+        guardian: external,
+        recall: external,
+        activity: external,
+      },
+    }),
+  };
+}
+
+describe("qualified receipt requests outside Insights never substitute a sample receipt", () => {
+  it.each([
+    "Find my PayPal receipt.",
+    "Find my verified receipt.",
+    "Find my Sandbox receipt.",
+    "Show my PayPal invoice.",
+    "Show verified proof of payment.",
+  ])(
+    "offers only authorized Sandbox choices without changing the original selected sample: %s",
+    async (message) => {
+      const { data, sandbox } = sameModelData();
+      data.twins.unshift(
+        { ...sandbox, id: randomUUID(), customerId: randomUUID() },
+        { ...sandbox, id: randomUUID(), merchantId: randomUUID() },
+        { ...sandbox, id: randomUUID(), productId: randomUUID() },
+      );
+      const sample = demoData.twins[0];
+      const turn = Object.freeze(input(message, sample.id));
+      const before = structuredClone(turn);
+      const { answer: pending, external } = receiptWithoutExternalWork(
+        data,
+        turn,
+      );
+      const answer = await pending;
+      expect(answer.outcome).toBe("selection");
+      expect(answer.mode).toBe("deterministic");
+      expect(answer.context?.twinId).toBe(sample.id);
+      expect(answer.purchaseChoices).toEqual([
+        {
+          context: contextOf({ twin: sandbox, product: data.products[0] }),
+          purchasedOn: sandbox.purchasedOn,
+          provenance: "Verified Sandbox",
+        },
+      ]);
+      expect(answer.actions.map((action) => action.href)).toEqual([
+        `/vault/${sandbox.id}`,
+      ]);
+      expect(answer.sources).toEqual([]);
+      expect(answer.steps).toEqual([]);
+      expect(answer.text).toContain(
+        "won’t substitute a fictional sample receipt",
+      );
+      expect(turn).toEqual(before);
+      expect(external).not.toHaveBeenCalled();
+    },
+  );
+
+  it("offers Sandbox-only choices without a selected purchase and reports no matching verified record honestly", async () => {
+    const { data, sandbox } = sameModelData();
+    const { answer: pending, external } = receiptWithoutExternalWork(
+      data,
+      input("Find my PayPal receipt."),
+    );
+    const answer = await pending;
+    expect(answer.context).toBeNull();
+    expect(
+      answer.purchaseChoices?.map((choice) => choice.context.twinId),
+    ).toEqual([sandbox.id]);
+    expect(external).not.toHaveBeenCalled();
+    const missing = receiptWithoutExternalWork(
+      demoData,
+      input("Find my PayPal receipt.", demoData.twins[0].id),
+    );
+    const result = await missing.answer;
+    expect(result.outcome).toBe("selection");
+    expect(result.purchaseChoices).toEqual([]);
+    expect(result.sources).toEqual([]);
+    expect(
+      result.actions.some((action) => action.href.startsWith("/documents/")),
+    ).toBe(false);
+    expect(missing.external).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    "Find my PayPal receipt.",
+    "Find my verified receipt.",
+    "Find my Sandbox receipt.",
+  ])(
+    "answers the original request only after deliberate selection of its exact dated Sandbox purchase: %s",
+    async (message) => {
+      const { data, sandbox, receipt } = sameModelData();
+      const original = input(message, data.twins[0].id);
+      const first = receiptWithoutExternalWork(data, original);
+      const selection = await first.answer;
+      const saved = structuredClone(selection);
+      const followUp = {
+        ...original,
+        requestId: randomUUID(),
+        twinId: sandbox.id,
+        revision: original.revision + 1,
+      };
+      const next = receiptWithoutExternalWork(data, followUp);
+      const answer = await next.answer;
+      expect(answer.outcome).toBe("answered");
+      expect(answer.context?.twinId).toBe(sandbox.id);
+      expect(answer.context?.purchasedOn).toBe(sandbox.purchasedOn);
+      expect(answer.actions).toEqual([
+        { label: "Open receipt", href: `/documents/${receipt.id}` },
+      ]);
+      expect(answer.sources.map((source) => source.id)).toEqual([
+        sandbox.id,
+        receipt.id,
+      ]);
+      expect(answer.sources[1].label).toBe("Verified Sandbox receipt");
+      expect(followUp.requestId).not.toBe(original.requestId);
+      expect(followUp.message).toBe(original.message);
+      expect(selection).toEqual(saved);
+      expect(original.twinId).toBe(data.twins[0].id);
+      expect(first.external).not.toHaveBeenCalled();
+      expect(next.external).not.toHaveBeenCalled();
+    },
+  );
+
+  it("reauthorizes the original selected ID before considering qualified receipt choices", async () => {
+    const { data } = sameModelData();
+    const foreign = {
+      ...data.twins[0],
+      id: randomUUID(),
+      customerId: randomUUID(),
+    };
+    data.twins.push(foreign);
+    for (const twinId of [randomUUID(), "../../private", foreign.id]) {
+      const original = Object.freeze(input("Find my PayPal receipt.", twinId));
+      const { answer, external } = receiptWithoutExternalWork(data, original);
+      await expect(answer).rejects.toMatchObject({
+        code: "careos_purchase_not_found",
+        status: 404,
+      });
+      expect(original.twinId).toBe(twinId);
+      expect(external).not.toHaveBeenCalled();
+    }
+  });
+
+  it("keeps a generic selected-sample receipt deterministic and exact even when a same-model Sandbox purchase exists", async () => {
+    const { data } = sameModelData();
+    const original = input("Find my headphones receipt.", data.twins[0].id);
+    const { answer: pending, external } = receiptWithoutExternalWork(
+      data,
+      original,
+    );
+    const answer = await pending;
+    expect(answer.outcome).toBe("answered");
+    expect(answer.context?.twinId).toBe(data.twins[0].id);
+    expect(answer.purchaseChoices).toBeUndefined();
+    expect(answer.actions).toEqual([
+      { label: "Open receipt", href: `/documents/${data.documents[0].id}` },
+    ]);
+    expect(answer.sources[1].label).toBe("Fictional sample document");
+    expect(external).not.toHaveBeenCalled();
+  });
+});
+
 describe("CareOS server-derived purchase choices", () => {
+  it("composes requested product and receipt provenance before offering a dated choice", async () => {
+    const { data, sandbox } = sameModelData();
+    const missing = await ask(
+      data,
+      input("Find my PayPal kettle receipt", data.twins[0].id),
+    );
+    expect(missing.outcome).toBe("selection");
+    expect(missing.purchaseChoices).toEqual([]);
+    expect(missing.actions).toEqual([
+      { label: "Review saved purchases", href: "/vault" },
+    ]);
+    const matching = await ask(
+      data,
+      input("Find my PayPal headphones receipt", data.twins[1].id),
+    );
+    expect(
+      matching.purchaseChoices?.map((choice) => choice.context.twinId),
+    ).toEqual([sandbox.id]);
+    expect(
+      matching.purchaseChoices?.every(
+        (choice) => choice.provenance === "Verified Sandbox",
+      ),
+    ).toBe(true);
+  });
   it("keeps same-model purchases distinct by authorized context, original date and provenance", async () => {
     const { data, sandbox } = sameModelData();
     const answer = await ask(data, input("Find my headphones receipt"));

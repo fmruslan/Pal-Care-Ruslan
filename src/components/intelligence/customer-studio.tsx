@@ -47,6 +47,7 @@ import { Button } from "../ui/button";
 import { CustomerRecords } from "./customer-records";
 import { useInsightsControl } from "./customer-control";
 import { AskCareOS } from "../careos/provider";
+import { AssistantName } from "../assistant-name";
 import { executeCustomerAgent } from "./customer-agent";
 import { customerPlanApi } from "./customer-client";
 import { purchaseStudioTheme } from "./studio-theme";
@@ -887,7 +888,7 @@ export function CustomerStudio({
               : [],
         };
         setNotice(
-          "CareOS changed this view and checked the result. Purchase records are unchanged.",
+          "North Star changed this view and checked the result. Purchase records are unchanged.",
         );
         return answer;
       },
@@ -912,13 +913,15 @@ export function CustomerStudio({
         <div>
           <h2 className="text-lg font-semibold">Your interactive Insights</h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Ask CareOS to explore these records, or choose a view below.{" "}
+            Ask North Star to explore these records, or choose a view below.{" "}
             {live
               ? "Private live planning requires your Studio scope."
               : "Suggested questions use actual Studio tools with scripted planning · no live AI."}
           </p>
         </div>
-        <AskCareOS>Explore with CareOS</AskCareOS>
+        <AskCareOS>
+          Explore with <AssistantName />
+        </AskCareOS>
       </div>
       <div className="mb-4 flex flex-wrap gap-2" aria-label="Insight views">
         {insightPages.map((id) => (
@@ -1269,7 +1272,7 @@ export function CustomerStudio({
       {!!tools.length && (
         <details className="mt-4 text-sm">
           <summary className="min-h-11 cursor-pointer py-3">
-            How CareOS changed this view
+            How North Star changed this view
           </summary>
           <p data-testid="customer-studio-tools">
             Executed: {tools.join(" → ")}. Presentation state read back and

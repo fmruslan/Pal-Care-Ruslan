@@ -52,7 +52,7 @@ export function buildBriefing(
       detail:
         c.state === "completed"
           ? "The refund was independently verified. Your original receipt is unchanged."
-          : `CareOS found the opportunity automatically. ${c.state === "awaiting_approval" ? "Awaiting merchant approval; you don’t need to submit a claim." : c.state === "pending" ? "PayPal reports pending, not completed." : c.state === "unknown" || c.state === "review" ? "The outcome needs review. Further refunds are blocked." : "Approval or submission is recorded, not a completed refund."}`,
+          : `Pal Care found the opportunity automatically. ${c.state === "awaiting_approval" ? "Awaiting merchant approval; you don’t need to submit a claim." : c.state === "pending" ? "PayPal reports pending, not completed." : c.state === "unknown" || c.state === "review" ? "The outcome needs review. Further refunds are blocked." : "Approval or submission is recorded, not a completed refund."}`,
       provenance: `${c.priceOrigin === "controlled_demo" ? "Controlled demo price" : "Recorded merchant price"} · ${c.policyVersion}`,
       sourceHref: `/guardian/${c.id}`,
       action: { label: "View price adjustment", href: `/guardian/${c.id}` },

@@ -1,7 +1,8 @@
 "use client";
 import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight, Sparkles, X } from "lucide-react";
+import { ArrowRight, ArrowUpRight, X } from "lucide-react";
+import { AssistantName } from "../assistant-name";
 import type { BriefingItem } from "@/lib/careos/briefing";
 import { Button } from "../ui/button";
 
@@ -53,10 +54,9 @@ export function CareBriefing({ items }: { items: BriefingItem[] }) {
       className="intelligence-wash mb-5 rounded-2xl border p-4 sm:p-5"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="flex items-center gap-2 text-sm font-semibold text-intelligence-foreground">
-            <Sparkles className="size-4" aria-hidden="true" />
-            CareOS · Your purchase companion
+        <div className="min-w-0 max-w-full">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-intelligence-foreground">
+            <AssistantName /> <span>· Your purchase companion</span>
           </p>
           <h2
             id="careos-briefing"

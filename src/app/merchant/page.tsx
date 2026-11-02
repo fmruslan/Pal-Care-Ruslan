@@ -65,7 +65,7 @@ export default async function Merchant() {
         className="mb-7 rounded-3xl border bg-card p-5 sm:p-7"
       >
         <h2 id="guardian-analytics" className="section-title">
-          CareOS Price Intelligence
+          Purchase price intelligence
         </h2>
         <p className="mt-3 text-sm text-muted-foreground">
           Read-only, all recorded Guardian cases. No sample scenarios are
@@ -102,7 +102,7 @@ export default async function Merchant() {
             href="/merchant/intelligence"
             className="inline-flex min-h-11 items-center text-sm font-semibold text-primary"
           >
-            Open CareOS Intelligence →
+            Open merchant intelligence →
           </Link>
           <Link
             href="/guardian"
@@ -206,7 +206,7 @@ export default async function Merchant() {
       <div className="mt-8 grid items-start gap-7 xl:grid-cols-[1.3fr_1fr]">
         <section aria-labelledby="events-heading">
           <h2 id="events-heading" className="section-title mb-5">
-            CareOS event examples
+            Purchase event examples
           </h2>
           <Events events={data.events} />
         </section>

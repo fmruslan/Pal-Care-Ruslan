@@ -11,12 +11,22 @@ test("CareOS finds the scoped receipt and stays available during navigation", as
       financialRequests++;
   });
   await page.goto(twin);
-  await page.getByRole("button", { name: "Ask about this product" }).click();
+  await page
+    .getByRole("button", {
+      name: "Ask North Star about this purchase",
+      exact: true,
+    })
+    .click();
   const assistant = page.getByRole("dialog");
   await expect(
     assistant.getByText("Everyday headphones · F-01", { exact: true }),
   ).toBeVisible();
-  await assistant.getByRole("button", { name: "Find receipt" }).click();
+  await assistant
+    .getByRole("textbox", { name: "Ask about your purchases", exact: true })
+    .fill("Find receipt");
+  await assistant
+    .getByRole("button", { name: "Send to North Star", exact: true })
+    .click();
   await expect(
     assistant.getByText("From saved records · no model call"),
   ).toBeVisible();
@@ -30,7 +40,9 @@ test("CareOS finds the scoped receipt and stays available during navigation", as
     page.getByRole("article", { name: "Document contents" }),
   ).toContainText("SAMPLE DATA ONLY");
   if (!(await assistant.isVisible()))
-    await page.getByRole("button", { name: "Ask CareOS", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Ask North Star", exact: true })
+      .click();
   await expect(
     assistant.getByRole("link", { name: "Open receipt", exact: true }),
   ).toBeVisible();
@@ -47,7 +59,7 @@ test("CareOS finds the scoped receipt and stays available during navigation", as
   await page.keyboard.press("Escape");
   await expect(assistant).not.toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Ask CareOS", exact: true }),
+    page.getByRole("button", { name: "Ask North Star", exact: true }),
   ).toBeFocused();
   expect(financialRequests).toBe(0);
 });

@@ -30,13 +30,15 @@ export const turnSchema = z
   );
 export type TurnInput = z.infer<typeof turnSchema>;
 
-export type CareContext = {
-  twinId: string | null;
-  example?: "insignia";
-  name: string;
-  model: string;
-  origin: string;
-};
+export const careContextSchema = z.strictObject({
+  twinId: z.uuid().nullable(),
+  example: z.literal("insignia").optional(),
+  name: z.string().min(1).max(200),
+  model: z.string().max(200),
+  origin: z.string().max(40),
+  purchasedOn: z.iso.date().optional(),
+});
+export type CareContext = z.infer<typeof careContextSchema>;
 export type PurchaseChoice = {
   context: CareContext;
   purchasedOn: string;
@@ -51,6 +53,8 @@ export type Evidence = {
   excerpt?: string;
 };
 export type CareAnswer = {
+  /** Effective scope of this answer, never the persistent browser product context. */
+  questionScope?: "library" | "purchase" | "general";
   resolution?: import("./resolution").CareResolution;
   presentation?: import("../intelligence/commands").DashboardPlan;
   customerPresentation?: import("../intelligence/customer-commands").CustomerPlan;
@@ -88,7 +92,7 @@ export class CareError extends Error {
 }
 
 export function contextOf(record: {
-  twin: { id: string; origin: string };
+  twin: { id: string; origin: string; purchasedOn?: string };
   product: { name: string; model: string };
 }): CareContext {
   return {
@@ -96,5 +100,8 @@ export function contextOf(record: {
     name: record.product.name,
     model: record.product.model,
     origin: record.twin.origin,
+    ...(record.twin.purchasedOn
+      ? { purchasedOn: record.twin.purchasedOn }
+      : {}),
   };
 }

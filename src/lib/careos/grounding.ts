@@ -8,20 +8,31 @@ export function groundedAnswer(
   passages: KnowledgeSource[],
 ): CareAnswer {
   const value = explanationSchema.parse(raw);
-  if (value.outcome === "insufficient")
+  if (value.outcome === "insufficient") {
+    const hasGuide = passages.some((source) => source.status === "approved");
+    const twinId = base.context?.twinId;
     return {
       ...base,
       mode: "live",
       outcome: "missing",
-      text: "The available documentation does not support an answer to that question. You can inspect the original guide.",
+      text: hasGuide
+        ? "The available documentation does not support an answer to that question. You can inspect the original guide."
+        : "No matching product-care guide is available in the supplied sources. I won’t invent instructions; review this purchase’s saved documents instead.",
       steps: [],
-      actions: [
-        {
-          label: "Review product-care sources",
-          href: `/vault/${base.context!.twinId}/care`,
-        },
-      ],
+      actions: twinId
+        ? [
+            {
+              label: hasGuide
+                ? "Review product-care sources"
+                : "Review saved documents",
+              href: hasGuide
+                ? `/vault/${twinId}/care`
+                : `/vault/${twinId}#documents-heading`,
+            },
+          ]
+        : [],
     };
+  }
   if (!value.steps.length) throw new CareError("careos_evidence_missing");
   const used = new Map<string, KnowledgeSource>();
   const excerpts = new Set<string>();
@@ -52,11 +63,18 @@ export function groundedAnswer(
       throw new CareError("careos_answer_out_of_scope");
     excerpts.add(excerpt);
   }
+  const alternatives =
+    [...excerpts].some((text) =>
+      text.includes("To open the Shutdown Options window"),
+    ) &&
+    [...excerpts].some((text) =>
+      text.includes("Double-press the power button"),
+    );
   return {
     ...base,
     mode: "live",
     outcome: "answered",
-    text: `${base.context!.name} · ${[...used.values()][0].section}. Follow the model and software conditions in the original guide.`,
+    text: `${base.context!.name} · ${[...used.values()][0].section}. ${alternatives ? "These are alternative shutdown methods; choose one. " : ""}Follow the model and software conditions in the original guide.`,
     steps: [...excerpts],
     sources: [...used.values()].map((source) => ({
       id: source.id,

@@ -2,6 +2,49 @@ import { z } from "zod";
 import { customerPlanSchema } from "@/lib/intelligence/customer-commands";
 
 export const insightPendingKey = "palcare-insights-pending-v1";
+export const insightHistoryKey = "palcare-insights-history-v1";
+const displayEnvelope = z.strictObject({
+  scope: z.literal("customer-studio"),
+  message: z.string().min(1).max(500),
+});
+/** Decode original server-owned message envelopes for display only; never rewrite fingerprints. */
+export function customerQuestionText(message: string) {
+  if (!message.trimStart().startsWith("{"))
+    return message.length <= 500
+      ? message
+      : "Saved Insights question (display text unavailable).";
+  try {
+    return displayEnvelope.parse(JSON.parse(message)).message;
+  } catch {
+    return "Saved Insights question (display text unavailable).";
+  }
+}
+const historySchema = z
+  .array(
+    z.strictObject({
+      conversationId: z.uuid(),
+      requestId: z.uuid(),
+      createdAt: z.number().int().positive(),
+    }),
+  )
+  .max(40);
+export type InsightHistoryEntry = z.infer<typeof historySchema>[number];
+/** IDs only; content must be restored through the original protected owned GET. */
+export function readInsightHistory(
+  raw: string | null,
+  now = Date.now(),
+): InsightHistoryEntry[] {
+  if (!raw || raw.length > 8192) return [];
+  try {
+    return historySchema
+      .parse(JSON.parse(raw))
+      .filter(
+        (entry) => entry.createdAt <= now && now - entry.createdAt < 86400000,
+      );
+  } catch {
+    return [];
+  }
+}
 const schema = z.strictObject({
   requestId: z.uuid(),
   message: z.string().min(1).max(500),

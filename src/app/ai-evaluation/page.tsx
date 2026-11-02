@@ -17,7 +17,7 @@ export default async function EvaluationPage() {
         id="main-content"
         className="mx-auto max-w-2xl space-y-5 p-5 sm:p-8"
       >
-        <h1 className="text-2xl font-semibold">CareOS AI access</h1>
+        <h1 className="text-2xl font-semibold">Pal Care · AI access</h1>
         <OwnerSettings />
       </main>
     );
@@ -42,7 +42,7 @@ export default async function EvaluationPage() {
       : undefined;
   return (
     <main id="main-content" className="mx-auto max-w-2xl p-5 sm:p-8">
-      <h1 className="text-2xl font-semibold">Private CareOS evaluation</h1>
+      <h1 className="text-2xl font-semibold">Private Pal Care AI evaluation</h1>
       <p className="my-4 text-sm text-muted-foreground">
         {httpsTesting
           ? "Review testing access and prepare an owner approval request. No billing, financial action or automatic renewal."

@@ -179,7 +179,7 @@ test("one unlock survives refresh, browser reconnect and server restart; Custome
   expect(await page.evaluate(() => document.cookie)).not.toContain(customer);
   await page.reload();
   await expect(
-    page.getByRole("link", { name: "Open Customer CareOS" }),
+    page.getByRole("link", { name: "Open North Star" }),
   ).toBeVisible();
   holdAccessCheck = true;
   await page.getByRole("button", { name: "Check access", exact: true }).click();
@@ -201,7 +201,7 @@ test("one unlock survives refresh, browser reconnect and server restart; Custome
   await context.setOffline(false);
   await page.getByRole("button", { name: "Check access", exact: true }).click();
   await expect(
-    page.getByRole("link", { name: "Open Customer CareOS" }),
+    page.getByRole("link", { name: "Open North Star" }),
   ).toBeVisible();
   await page
     .getByText("Advanced: private scope token", { exact: true })
@@ -236,7 +236,7 @@ test("one unlock survives refresh, browser reconnect and server restart; Custome
     const reconnected = await reconnect.newPage();
     await reconnected.goto(origin + "/ai-evaluation");
     await expect(
-      reconnected.getByRole("link", { name: "Open Customer CareOS" }),
+      reconnected.getByRole("link", { name: "Open North Star" }),
     ).toBeVisible();
     await expect(
       reconnected.getByRole("link", { name: "Open AG Studio" }),
@@ -268,7 +268,7 @@ test("expiry denies even retained tokens; only an operator-renewed server window
   await start(new Date(Date.now() + 8000).toISOString());
   await page.goto("/ai-evaluation");
   await expect(
-    page.getByRole("link", { name: "Open Customer CareOS" }),
+    page.getByRole("link", { name: "Open North Star" }),
   ).toBeVisible();
   await expect(
     page.getByRole("alert").filter({ hasText: "testing window has expired" }),
@@ -291,7 +291,7 @@ test("expiry denies even retained tokens; only an operator-renewed server window
   await start(); // Explicit operator configuration in this isolated fixture only.
   await page.getByRole("button", { name: "Check access", exact: true }).click();
   await expect(
-    page.getByRole("link", { name: "Open Customer CareOS" }),
+    page.getByRole("link", { name: "Open North Star" }),
   ).toBeVisible();
 });
 
@@ -317,9 +317,9 @@ test("browser-deleted expired cookies are not recreated by a renewed window or s
     .getByText("Advanced: private scope token", { exact: true })
     .click();
   await expect(page.getByLabel("Private scope token")).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "Open Customer CareOS" }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Open North Star" })).toHaveCount(
+    0,
+  );
   const status = await context.request.get(origin + "/api/ai/evaluation");
   expect(status.headers()["set-cookie"]).toBeUndefined();
   expect(await context.cookies()).toEqual([]);
@@ -330,9 +330,9 @@ test("anonymous and wrong-origin requests cannot authorize; a fresh browser need
   context,
 }) => {
   await page.goto("/ai-evaluation");
-  await expect(
-    page.getByRole("link", { name: "Open Customer CareOS" }),
-  ).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Open North Star" })).toHaveCount(
+    0,
+  );
   expect(
     await (await context.request.get(origin + "/api/ai/evaluation")).json(),
   ).toMatchObject({ scopes: { customer: false, studio: false } });
@@ -477,7 +477,7 @@ test("owner uses a browser-bound request and real host CLI, not pasted private t
     await page
       .getByRole("button", { name: "Finish owner connection", exact: true })
       .click();
-    for (const name of ["Open Customer CareOS", "Open AG Studio"])
+    for (const name of ["Open North Star", "Open AG Studio"])
       await expect(page.getByRole("link", { name, exact: true })).toBeVisible();
     const saved = await context.storageState();
     expect(saved.cookies.map((c) => c.name).sort()).toEqual([
@@ -499,7 +499,7 @@ test("owner uses a browser-bound request and real host CLI, not pasted private t
     await stop();
     await start(deadline);
     await page.reload();
-    for (const name of ["Open Customer CareOS", "Open AG Studio"])
+    for (const name of ["Open North Star", "Open AG Studio"])
       await expect(page.getByRole("link", { name, exact: true })).toBeVisible();
     expect(await context.cookies()).toEqual(saved.cookies);
     await page.screenshot({
@@ -537,7 +537,7 @@ test("owner approval cannot silently widen Customer-only to Studio", async ({
     .getByRole("button", { name: "Finish owner connection", exact: true })
     .click();
   await expect(
-    page.getByRole("link", { name: "Open Customer CareOS", exact: true }),
+    page.getByRole("link", { name: "Open North Star", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Open AG Studio", exact: true }),

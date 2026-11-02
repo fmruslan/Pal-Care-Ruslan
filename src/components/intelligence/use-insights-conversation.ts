@@ -14,6 +14,10 @@ import {
   customerPlanApi,
   canForgetCustomerConversation,
   type InsightPending,
+  insightHistoryKey,
+  readInsightHistory,
+  type InsightHistoryEntry,
+  customerQuestionText,
 } from "./customer-client";
 
 export type InsightsRun = (
@@ -44,13 +48,47 @@ export function useInsightsConversation(
   const controller = useRef<AbortController | null>(null);
   const hint = useRef<InsightPending | null>(null);
   const lastConversation = useRef<string | null>(null);
+  const history = useRef<InsightHistoryEntry[]>([]);
+  const historyLoaded = useRef(false);
+  const historyRestored = useRef(false);
   const [turns, setTurns] = useState<CareTurn[]>([]);
   const [pending, setPending] = useState<PendingQuestion | null>(null);
   const [phase, setPhase] = useState<
-    "idle" | "sending" | "checking" | "clearing"
+    "idle" | "restoring" | "sending" | "checking" | "clearing"
   >("idle");
   const [error, setError] = useState("");
   const [recoverable, setRecoverable] = useState<string | null>(null);
+  function loadHistory() {
+    if (historyLoaded.current) return;
+    historyLoaded.current = true;
+    try {
+      history.current = readInsightHistory(
+        sessionStorage.getItem(insightHistoryKey),
+      );
+    } catch {
+      /* Optional ID-only index. */
+    }
+  }
+  function remember(value: InsightPending) {
+    if (!value.conversationId) return;
+    loadHistory();
+    history.current = [
+      ...history.current.filter((entry) => entry.requestId !== value.requestId),
+      {
+        conversationId: value.conversationId,
+        requestId: value.requestId,
+        createdAt: value.createdAt,
+      },
+    ].slice(-40);
+    try {
+      sessionStorage.setItem(
+        insightHistoryKey,
+        JSON.stringify(history.current),
+      );
+    } catch {
+      /* In-memory timeline remains usable. */
+    }
+  }
   function save(value: InsightPending | null) {
     hint.current = value;
     try {
@@ -78,7 +116,7 @@ export function useInsightsConversation(
       status,
     };
   }
-  function restore() {
+  async function restore() {
     if (controller.current) return;
     try {
       const value = readInsightPending(
@@ -90,6 +128,96 @@ export function useInsightsConversation(
       }
     } catch {
       /* Optional. */
+    }
+    loadHistory();
+    if (historyRestored.current || !history.current.length) return;
+    historyRestored.current = true;
+    const abort = new AbortController();
+    controller.current = abort;
+    setPhase("restoring");
+    const restoreSignal = AbortSignal.any([
+      abort.signal,
+      AbortSignal.timeout(10000),
+    ]);
+    try {
+      const restored: CareTurn[] = [];
+      let partial = false;
+      for (const id of new Set(
+        history.current.map((entry) => entry.conversationId),
+      )) {
+        if (restoreSignal.aborted) {
+          partial = true;
+          break;
+        }
+        let saved: Conversation;
+        try {
+          saved = await customerPlanApi<Conversation>(
+            "GET",
+            undefined,
+            id,
+            restoreSignal,
+          );
+        } catch {
+          partial = true;
+          continue;
+        }
+        for (const entry of history.current.filter(
+          (value) => value.conversationId === id,
+        )) {
+          const turn = saved.turns.find(
+            (value) => value.requestId === entry.requestId,
+          );
+          if (!turn) {
+            partial = true;
+            continue;
+          }
+          let plan: CustomerPlan | undefined;
+          let invalid = false;
+          try {
+            if (turn.answer.outcome !== "unavailable")
+              plan = validateCustomerPlan(turn.answer.customerPresentation);
+          } catch {
+            invalid = true;
+            partial = true;
+          }
+          restored.push({
+            requestId: turn.requestId,
+            message: customerQuestionText(turn.message),
+            answer: {
+              ...unavailableAnswer(
+                plan
+                  ? "Saved Insights plan. Its earlier browser execution has not been re-verified after reload. Open Insights to inspect the current view; nothing was applied automatically."
+                  : invalid
+                    ? "This saved Insights plan could not be validated. Its original request has not been resent or applied."
+                    : "This saved Insights request could not finish. Its usage remains accounted for; nothing was resent.",
+              ),
+              ...(plan
+                ? { outcome: "answered", customerPresentation: plan }
+                : {}),
+            },
+          });
+        }
+        lastConversation.current = id;
+      }
+      setTurns((prior) => [
+        ...new Map(
+          [...restored, ...prior].map((turn) => [turn.requestId, turn]),
+        ).values(),
+      ]);
+      if (partial) {
+        historyRestored.current = false;
+        setError(
+          "Some saved Insights history is unavailable. Available entries were restored; no request was resent or applied.",
+        );
+      }
+    } catch {
+      historyRestored.current = false;
+      setError(
+        "Saved Insights history could not be restored. Your original request has not been resent or applied.",
+      );
+    } finally {
+      controller.current = null;
+      setPhase("idle");
     }
   }
   async function run(value: InsightPending, recovered = false) {
@@ -126,6 +254,7 @@ export function useInsightsConversation(
         ...prior.filter((p) => p.requestId !== value.requestId),
         { requestId: value.requestId, message: value.message, answer },
       ]);
+      remember(hint.current ?? value);
       save(null);
       setPending(null);
     } catch {
@@ -141,8 +270,8 @@ export function useInsightsConversation(
     }
     return true;
   }
-  async function send(message: string) {
-    restore();
+  async function send(message: string, requestId = crypto.randomUUID()) {
+    await restore();
     if (
       hint.current ||
       controller.current ||
@@ -157,7 +286,7 @@ export function useInsightsConversation(
       return false;
     }
     return run({
-      requestId: crypto.randomUUID(),
+      requestId,
       conversationId: null,
       message: message.trim(),
       createdAt: Date.now(),
@@ -199,6 +328,7 @@ export function useInsightsConversation(
               ),
             },
           ]);
+          remember(saved);
           save(null);
           setPending(null);
           return;
@@ -244,8 +374,24 @@ export function useInsightsConversation(
     setPhase("clearing");
     setError("");
     try {
-      const id = hint.current?.conversationId ?? lastConversation.current;
-      if (id) {
+      loadHistory();
+      // Access may have prevented open()/restore(). A pending-only first request
+      // is not necessarily in the completed ID index, and must not be forgotten.
+      const restored = readInsightPending(
+        sessionStorage.getItem(insightPendingKey),
+      );
+      if (!hint.current && restored) {
+        hint.current = restored;
+        setPending(asPending(restored, "uncertain"));
+      }
+      const ids = new Set(
+        [
+          ...history.current.map((entry) => entry.conversationId),
+          hint.current?.conversationId,
+          lastConversation.current,
+        ].filter((id): id is string => !!id),
+      );
+      for (const id of ids) {
         try {
           await customerPlanApi("DELETE", undefined, id, abort.signal);
         } catch (error) {
@@ -260,6 +406,13 @@ export function useInsightsConversation(
       setPending(null);
       setRecoverable(null);
       lastConversation.current = null;
+      history.current = [];
+      historyRestored.current = true;
+      try {
+        sessionStorage.removeItem(insightHistoryKey);
+      } catch {
+        /* Optional. */
+      }
       reset.current?.();
     } catch {
       setError(

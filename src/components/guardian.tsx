@@ -26,7 +26,7 @@ export function GuardianCard({ item }: { item: GuardianView }) {
     >
       <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-intelligence-foreground">
         <CircleDollarSign className="size-4" aria-hidden="true" />
-        CareOS · Price Guardian
+        Pal Care · Price Guardian
       </p>
       <h2 className="text-xl font-semibold">
         {item.state === "completed"
@@ -79,11 +79,11 @@ export function GuardianIllustration() {
           ))}
         </dl>
         <p className="mt-5 text-sm leading-7 text-muted-foreground">
-          CareOS would discover the qualifying change, prepare the calculation,
-          and send it for merchant approval. This example is fictional, is not
-          attached to an existing purchase, and is not a completed refund or an
-          existing PayPal benefit. The original demo-v1 purchases remain
-          uncovered.
+          Pal Care would discover the qualifying change, prepare the
+          calculation, and send it for merchant approval. This example is
+          fictional, is not attached to an existing purchase, and is not a
+          completed refund or an existing PayPal benefit. The original demo-v1
+          purchases remain uncovered.
         </p>
       </div>
     </details>

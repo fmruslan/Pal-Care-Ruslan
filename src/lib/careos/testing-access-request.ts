@@ -16,7 +16,7 @@ export const testingRequestSchema = z.strictObject({
 export function testingAccessRequest(input: unknown) {
   const { hours, scopes } = testingRequestSchema.parse(input);
   return [
-    "Please prepare the following CareOS testing access for my explicit approval in this owner OpenCode conversation. This copied request is a proposal, not authorization.",
+    "Please prepare the following North Star testing access for my explicit approval in this owner OpenCode conversation. This copied request is a proposal, not authorization.",
     `Origin: ${privateHttpsOrigin}`,
     `Requested duration: ${hours} hour${hours === 1 ? "" : "s"} from approved activation; show the exact UTC expiry before activation.`,
     `Requested scopes: ${[...scopes].sort().join(" + ")} (my browser only, after secure owner pairing).`,

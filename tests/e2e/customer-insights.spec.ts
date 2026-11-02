@@ -253,19 +253,17 @@ async function showSources(page: Page) {
   return summary;
 }
 
-async function ask(page: Page, message: string, suggested = false) {
-  await page.getByRole("button", { name: "Ask CareOS", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "CareOS", exact: true });
-  await expect(dialog).toContainText("Your purchases · Personal Insights");
-  if (suggested)
-    await dialog.getByRole("button", { name: message, exact: true }).click();
-  else {
-    const composer = dialog.getByLabel("Ask about your purchase", {
-      exact: true,
-    });
-    await composer.fill(message);
-    await composer.press("Enter");
-  }
+async function ask(page: Page, message: string) {
+  await page
+    .getByRole("button", { name: "Ask North Star", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
+  await expect(dialog).toContainText("Personal Insights · presentation only");
+  const composer = dialog.getByLabel("Ask about your purchases", {
+    exact: true,
+  });
+  await composer.fill(message);
+  await composer.press("Enter");
   await expect(dialog.locator("[data-user-message]").last()).toHaveText(
     message,
   );
@@ -279,9 +277,11 @@ async function ask(page: Page, message: string, suggested = false) {
 }
 
 async function closeAssistant(page: Page) {
-  await page.getByRole("button", { name: "Close CareOS", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Close North Star", exact: true })
+    .click();
   await expect(
-    page.getByRole("dialog", { name: "CareOS", exact: true }),
+    page.getByRole("dialog", { name: "North Star", exact: true }),
   ).not.toBeVisible();
 }
 
@@ -289,7 +289,7 @@ async function inspectTools(page: Page) {
   const tools = page.getByTestId("customer-studio-tools");
   if (!(await tools.isVisible()))
     await page
-      .getByText("How CareOS changed this view", { exact: true })
+      .getByText("How North Star changed this view", { exact: true })
       .click();
   await expect(tools).toBeVisible();
   await expect(tools).toContainText("view_schema → view_page");
@@ -573,13 +573,13 @@ test("Insights source records retain the exact Twin, receipt and reference-care 
   ).toEqual(vaultRecords);
 });
 
-test("one CareOS host executes real Studio tools for suggested categories, documents, care, attention, adjustments and reset", async ({
+test("one North Star host executes real Studio tools for categories, documents, care, attention, adjustments and reset", async ({
   page,
 }) => {
   test.setTimeout(90_000);
   const records = await openWorkspace(page);
   await expect(page.locator(".careos-launcher")).toHaveCount(1);
-  let turn = await ask(page, "Show my purchases by category", true);
+  let turn = await ask(page, "Show my purchases by category");
   await expect(turn.answer).toContainText("dashboard state was checked");
   await closeAssistant(page);
   await inspectTools(page);
@@ -966,16 +966,16 @@ test("native Insights and the unified assistant support keyboard, reduced motion
     ).violations,
   ).toEqual([]);
   const launcher = page.getByRole("button", {
-    name: "Ask CareOS",
+    name: "Ask North Star",
     exact: true,
   });
   await launcher.focus();
   await launcher.press("Enter");
-  const dialog = page.getByRole("dialog", { name: "CareOS", exact: true });
+  const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
   await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText("Your purchases · Personal Insights");
+  await expect(dialog).toContainText("Personal Insights · presentation only");
   await expect(
-    dialog.getByLabel("Ask about your purchase", { exact: true }),
+    dialog.getByLabel("Ask about your purchases", { exact: true }),
   ).toBeVisible();
   await expect(page.locator('[role="dialog"]')).toHaveCount(1);
   expect(

@@ -13,6 +13,7 @@ import {
 } from "./contracts";
 import { adjustmentResolution } from "./resolution";
 import { IDENTITY_TEXT, IDENTITY_CAPABILITIES } from "./role";
+import { verifiedReceiptRequest } from "./interaction-limits";
 
 // Read tools have no commerce runtime dependency and no visitor identity arguments.
 export function isProhibited(message: string) {
@@ -46,7 +47,7 @@ export function interpret(message: string): Intent {
   const text = message.toLowerCase();
   if (isProhibited(text)) return "unsupported";
   if (
-    /what (is|are) (pal\s?care|careos)|what does (careos|pal\s?care) do|tell me about (careos|pal\s?care)|who are you|what can you (do|help)|are you (paypal|an official)|how does (pal\s?care|careos) work/.test(
+    /what (is|are) (pal\s?care|careos|north(?:\s+star)?)|what does (careos|north(?:\s+star)?|pal\s?care) do|tell me about (careos|north(?:\s+star)?|pal\s?care)|who are you|what can you (do|help)|are you (paypal|an official)|how does (pal\s?care|careos|north(?:\s+star)?) work/.test(
       text,
     )
   )
@@ -92,7 +93,10 @@ export function purchaseSelection(
   const choices = data.twins
     .flatMap((twin): PurchaseChoice[] => {
       const record = findTwin(data, twin.id);
-      return record && matches(record)
+      return record &&
+        matches(record) &&
+        (!verifiedReceiptRequest(input.message) ||
+          record.twin.origin === "sandbox")
         ? [
             {
               context: contextOf(record),
@@ -165,6 +169,12 @@ export function deterministicAnswer(
   if (!record) return purchaseSelection(data, input);
   const { twin, documents, product } = record;
   const twinHref = `/vault/${twin.id}`;
+  if (verifiedReceiptRequest(input.message) && twin.origin !== "sandbox")
+    return purchaseSelection(
+      data,
+      input,
+      (candidate) => candidate.product.id === product.id,
+    );
   answer.sources = [
     {
       id: twin.id,

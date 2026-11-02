@@ -34,7 +34,7 @@ export function dashboardHarness(
   });
   const agent: AgAiAgentRunner = {
     id: plan ? "care-sol" : "care-scripted",
-    name: plan ? "CareOS · Sol Medium" : "CareOS · scripted demo",
+    name: plan ? "North Star · Sol Medium" : "North Star · scripted demo",
     description: plan
       ? "Sol interprets requests; validated Studio tools change browser presentation only."
       : "Deterministic demonstration with real Studio tools, not live AI.",

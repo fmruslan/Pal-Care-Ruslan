@@ -30,13 +30,16 @@ test("customer journey preserves purchase identity through CareOS, recall, repla
   await expect(activity).not.toContainText("Kettle · sample receipt");
   await expect(activity).not.toContainText("Raspberry Pi");
   await page
-    .getByRole("button", { name: "Ask about this product", exact: true })
+    .getByRole("button", {
+      name: "Ask North Star about this purchase",
+      exact: true,
+    })
     .click();
   await page
-    .getByLabel("Ask about your purchase", { exact: true })
+    .getByLabel("Ask about your purchases", { exact: true })
     .fill("Is this recalled?");
   await page
-    .getByRole("button", { name: "Send to CareOS", exact: true })
+    .getByRole("button", { name: "Send to North Star", exact: true })
     .click();
   await page
     .getByRole("link", {
@@ -46,10 +49,13 @@ test("customer journey preserves purchase identity through CareOS, recall, repla
     .click();
   await expect(page).toHaveURL(new RegExp(`/safety\\?twinId=${twin}`));
   await expect(
-    page.getByRole("button", { name: "Ask CareOS", exact: true }),
+    page.getByRole("button", { name: "Ask North Star", exact: true }),
   ).toBeVisible();
   // Desktop keeps its dock open across navigation; close it to use the page beneath.
-  const close = page.getByRole("button", { name: "Close CareOS", exact: true });
+  const close = page.getByRole("button", {
+    name: "Close North Star",
+    exact: true,
+  });
   if (await close.isVisible()) await close.click();
   await page
     .getByRole("link", {
@@ -64,7 +70,7 @@ test("customer journey preserves purchase identity through CareOS, recall, repla
       .locator('[aria-current="page"]'),
   ).toHaveText("Headphones");
   await expect(
-    page.getByRole("button", { name: "Ask CareOS", exact: true }),
+    page.getByRole("button", { name: "Ask North Star", exact: true }),
   ).toBeVisible();
   await page
     .getByRole("link", { name: "Return to source product →", exact: true })
@@ -97,18 +103,20 @@ test("air-fryer reference handoff stays labeled, retains CareOS and never invent
       .locator('[aria-current="page"]'),
   ).toHaveText("Air fryers");
   await page.reload();
-  await page.getByRole("button", { name: "Ask CareOS", exact: true }).click();
-  await expect(
-    page.getByRole("dialog", { name: "CareOS", exact: true }),
-  ).toContainText("NS-AF34D2");
   await page
-    .getByLabel("Ask about your purchase", { exact: true })
-    .fill("Find receipt");
-  await page
-    .getByRole("button", { name: "Send to CareOS", exact: true })
+    .getByRole("button", { name: "Ask North Star", exact: true })
     .click();
   await expect(
-    page.getByRole("dialog", { name: "CareOS", exact: true }),
+    page.getByRole("dialog", { name: "North Star", exact: true }),
+  ).toContainText("NS-AF34D2");
+  await page
+    .getByLabel("Ask about your purchases", { exact: true })
+    .fill("Find receipt");
+  await page
+    .getByRole("button", { name: "Send to North Star", exact: true })
+    .click();
+  await expect(
+    page.getByRole("dialog", { name: "North Star", exact: true }),
   ).toContainText("no Purchase Twin, PayPal payment or saved receipt");
   await test.info().attach("air-fryer-context", {
     body: await page.screenshot({ fullPage: true }),

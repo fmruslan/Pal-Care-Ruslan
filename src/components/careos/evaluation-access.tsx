@@ -99,7 +99,7 @@ export function EvaluationAccess({
       {access?.window === "active" && (
         <ul className="space-y-2">
           <li>
-            Customer CareOS:{" "}
+            North Star chat:{" "}
             <strong>
               {access.scopes.customer
                 ? "Authorized in this browser"
@@ -110,7 +110,7 @@ export function EvaluationAccess({
                 {" "}
                 ·{" "}
                 <Link className="text-primary underline" href="/dashboard">
-                  Open Customer CareOS
+                  Open North Star
                 </Link>
               </>
             )}
@@ -197,7 +197,7 @@ export function EvaluationAccess({
                     setStatus("");
                   }}
                 >
-                  <option value="customer">Customer CareOS</option>
+                  <option value="customer">North Star chat</option>
                   <option value="studio">AG Studio</option>
                 </select>
               </label>

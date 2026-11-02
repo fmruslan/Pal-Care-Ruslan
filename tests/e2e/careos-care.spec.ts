@@ -13,8 +13,16 @@ test("official care evidence remains distinct from sample ownership and missing 
     "href",
     "https://www.raspberrypi.com/documentation/computers/getting-started.html#shutdown",
   );
-  await page.getByRole("button", { name: "Ask about product care" }).click();
-  await page.getByRole("button", { name: "Product care", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Ask North Star about product care" })
+    .click();
+  await page
+    .getByRole("dialog", { name: "North Star", exact: true })
+    .getByRole("textbox", { name: "Ask about your purchases", exact: true })
+    .fill("Product care");
+  await page
+    .getByRole("button", { name: "Send to North Star", exact: true })
+    .click();
   await expect(
     page.getByRole("dialog").getByText("Demo response · no live AI"),
   ).toBeVisible();

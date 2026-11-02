@@ -1,0 +1,62 @@
+{
+  "at": "2026-11-02T21:04:51.358Z",
+  "observations": [
+    {
+      "profile": "desktop-light",
+      "actualApplication": "isolated fixture production build",
+      "modelCalls": 0,
+      "financialAttempts": 0,
+      "prohibited": [],
+      "errors": [],
+      "requests": [
+        "POST /api/careos/conversations",
+        "GET /api/careos/context",
+        "POST /api/careos/conversations/b37722f8-f44f-4c34-94d0-3f542725e117/turns"
+      ],
+      "expansionRequests": 0
+    },
+    {
+      "profile": "desktop-dark",
+      "actualApplication": "isolated fixture production build",
+      "modelCalls": 0,
+      "financialAttempts": 0,
+      "prohibited": [],
+      "errors": [],
+      "requests": [
+        "POST /api/careos/conversations",
+        "GET /api/careos/context",
+        "POST /api/careos/conversations/a3092d74-5ea8-4aed-89a5-e748042b759b/turns"
+      ],
+      "expansionRequests": 0
+    },
+    {
+      "profile": "mobile-light",
+      "actualApplication": "isolated fixture production build",
+      "modelCalls": 0,
+      "financialAttempts": 0,
+      "prohibited": [],
+      "errors": [],
+      "requests": [
+        "POST /api/careos/conversations",
+        "GET /api/careos/context",
+        "POST /api/careos/conversations/3ce04a34-95f3-4824-9398-60271a71a11e/turns"
+      ],
+      "expansionRequests": 0
+    },
+    {
+      "profile": "mobile-dark",
+      "actualApplication": "isolated fixture production build",
+      "modelCalls": 0,
+      "financialAttempts": 0,
+      "prohibited": [],
+      "errors": [],
+      "requests": [
+        "POST /api/careos/conversations",
+        "GET /api/careos/context",
+        "POST /api/careos/conversations/e00e8274-1b84-4b08-ad09-a05db12aa8ae/turns"
+      ],
+      "expansionRequests": 0
+    }
+  ],
+  "limits": "Fictional fixtures, no provider. Emulation is not real-device or owner acceptance. Expanded native analytics is later work."
+}

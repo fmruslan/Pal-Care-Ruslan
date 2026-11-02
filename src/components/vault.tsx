@@ -122,16 +122,15 @@ export function TwinList({
               </p>
               <div className="mt-auto pt-4">
                 <AskCareOS
-                  label={`Ask CareOS about ${record.product.name}`}
+                  label={`Ask North Star about ${record.product.name}`}
                   context={{
                     twinId: twin.id,
                     name: record.product.name,
                     model: record.product.model,
                     origin: twin.origin,
+                    purchasedOn: twin.purchasedOn,
                   }}
-                >
-                  Ask CareOS
-                </AskCareOS>
+                />
               </div>
             </div>
           </Card>

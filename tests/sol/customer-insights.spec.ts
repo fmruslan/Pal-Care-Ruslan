@@ -74,25 +74,27 @@ test("injected customer planning uses Studio capability, actual SDK state, stric
     timeout: 20000,
   });
   await page
-    .getByRole("button", { name: "Explore with CareOS", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   const assistant = page.getByRole("dialog");
   await assistant
-    .getByLabel("Ask about your purchase")
+    .getByLabel("Ask about your purchases", { exact: true })
     .fill("Which purchases have care instructions?");
   await assistant
-    .getByRole("button", { name: "Send to CareOS", exact: true })
+    .getByRole("button", { name: "Send to North Star", exact: true })
     .click();
   await expect(
     assistant.getByText(/1 saved purchase in your updated view/),
   ).toBeVisible({ timeout: 20000 });
   await assistant
-    .getByRole("button", { name: "Close CareOS", exact: true })
+    .getByRole("button", { name: "Close North Star", exact: true })
     .click();
   await expect(
     page.getByRole("button", { name: "Documents & Care", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
-  await page.getByText("How CareOS changed this view", { exact: true }).click();
+  await page
+    .getByText("How North Star changed this view", { exact: true })
+    .click();
   await expect(page.getByTestId("customer-studio-tools")).toContainText(
     "view_schema",
   );

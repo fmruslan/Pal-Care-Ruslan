@@ -35,7 +35,7 @@ export async function POST(
         mode: "deterministic",
         context: null,
         revision: input.revision,
-        text: "CareOS couldn’t retrieve an answer. Your saved purchases and documents are unchanged. Please try again later.",
+        text: "North Star couldn’t retrieve an answer. Your saved purchases and documents are unchanged. Please try again later.",
         steps: [],
         sources: [],
         actions: [],

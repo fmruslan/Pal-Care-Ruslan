@@ -29,7 +29,7 @@ const originalQuestion =
 const selectionText =
   "Synthetic purchase-choice result for UI testing only. Choose a saved purchase.";
 const inactiveNote =
-  "This earlier choice is inactive. Ask a new question to continue.";
+  "Purchase choice closed. You can ask something else or change context above.";
 const choices: PurchaseChoice[] = [
   { context: sample, purchasedOn: "2026-10-18", provenance: "Sample" },
   {
@@ -79,6 +79,9 @@ async function transport(page: Page) {
     inputs: [] as TurnInput[],
     secondReceived: gate(),
     secondReply: gate(),
+    loseSecond: false,
+    secondResult: null as CareTurn | null,
+    reads: 0,
     summary: false,
   };
   await page.addInitScript((id) => {
@@ -127,9 +130,17 @@ async function transport(page: Page) {
           ...(selecting ? { purchaseChoices: choices } : {}),
         },
       };
+      if (state.inputs.length === 2) {
+        state.secondResult = result;
+        if (state.loseSecond) {
+          await route.abort("failed");
+          return;
+        }
+      }
       saved.turns.push(result);
       await route.fulfill({ json: result });
     } else {
+      if (request.method() === "GET") state.reads++;
       await route.fulfill({
         status: request.method() === "POST" ? 201 : 200,
         json: saved,
@@ -142,29 +153,30 @@ async function transport(page: Page) {
 async function open(page: Page) {
   await page.goto(speakerHref);
   await page.locator(".careos-launcher").click();
-  const dialog = page.getByRole("dialog");
+  const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
   await expect(
     dialog.getByText(
       "Legacy speaker answer without purchase choices. Injected UI proof only.",
       { exact: true },
     ),
   ).toBeVisible();
-  await expect(
-    dialog.getByRole("button", { name: "Find receipt", exact: true }),
-  ).toBeEnabled();
-  return { dialog, composer: dialog.getByLabel("Ask about your purchase") };
+  const composer = dialog.getByLabel("Ask about your purchases", {
+    exact: true,
+  });
+  await expect(composer).toBeEditable();
+  return { dialog, composer };
 }
 
 // Catch accidental browser-local date conversion (the stored dates are UTC).
 test.use({ timezoneId: "America/Los_Angeles" });
 
-test("explicit purchase choice creates one new scoped follow-up and leaves the historical selector inert (injected UI transport)", async ({
+test("one direct dated choice creates exactly one scoped follow-up without navigation; history has no dead controls (injected UI transport)", async ({
   page,
 }) => {
   const state = await transport(page);
   const { dialog, composer } = await open(page);
   await expect(
-    dialog.getByRole("group", { name: "Choose a purchase" }),
+    dialog.getByRole("region", { name: "Choose a purchase" }),
   ).toHaveCount(0);
   await expect(page).toHaveURL(speakerHref);
   expect(state.inputs).toHaveLength(0);
@@ -173,28 +185,22 @@ test("explicit purchase choice creates one new scoped follow-up and leaves the h
   const selection = dialog
     .locator("article")
     .filter({ hasText: selectionText });
-  const group = selection.getByRole("group", { name: "Choose a purchase" });
+  const group = selection.getByRole("region", { name: "Choose a purchase" });
   await expect(group).toBeVisible();
-  const radios = group.getByRole("radio");
-  await expect(radios).toHaveCount(2);
-  await expect(radios.nth(0)).not.toBeChecked();
-  await expect(radios.nth(1)).not.toBeChecked();
-  const sampleRadio = group.getByRole("radio", {
+  await expect(group.getByRole("radio")).toHaveCount(0);
+  await expect(group.getByRole("button")).toHaveCount(3);
+  const sampleChoice = group.getByRole("button", {
     name: "Everyday headphones · F-01 Oct 18, 2026 · Sample · PC-000201",
     exact: true,
   });
-  await expect(sampleRadio).toBeVisible();
+  await expect(sampleChoice).toBeVisible();
   await expect(
-    group.getByRole("radio", {
+    group.getByRole("button", {
       name: "Everyday headphones · F-01 Oct 22, 2026 · Verified Sandbox · PC-009201",
       exact: true,
     }),
   ).toBeVisible();
-  const proceed = group.getByRole("button", {
-    name: "Use this purchase and continue",
-    exact: true,
-  });
-  await expect(proceed).toBeDisabled();
+  await expect(group.getByRole("button", { name: /continue/i })).toHaveCount(0);
   await expect(selection.getByRole("link")).toHaveCount(0);
   await expect(selection.getByRole("status")).toHaveCount(0);
   await expect(dialog.locator("strong")).toHaveText(
@@ -207,17 +213,8 @@ test("explicit purchase choice creates one new scoped follow-up and leaves the h
     path: test.info().outputPath("purchase-choices.png"),
   });
 
-  await sampleRadio.focus();
-  await sampleRadio.press("Space");
-  await expect(sampleRadio).toBeChecked();
-  await expect(proceed).toBeEnabled();
-  await expect(page).toHaveURL(speakerHref);
-  await expect(dialog.locator("strong")).toHaveText(
-    "Everywhere speaker · F-03",
-  );
-  expect(state.inputs).toHaveLength(1);
-  await proceed.focus();
-  await proceed.press("Enter");
+  await sampleChoice.focus();
+  await sampleChoice.press("Enter");
   await state.secondReceived.promise;
   const [original, followUp] = state.inputs;
   expect(followUp.requestId).not.toBe(original.requestId);
@@ -226,9 +223,8 @@ test("explicit purchase choice creates one new scoped follow-up and leaves the h
   expect(followUp.message).toBe(originalQuestion);
   expect(followUp.message).toBe(original.message);
   expect(followUp.revision).toBeGreaterThan(original.revision);
-  await expect(radios.nth(0)).toBeDisabled();
-  await expect(radios.nth(1)).toBeDisabled();
-  await expect(proceed).toBeDisabled();
+  await expect(group).toHaveCount(0);
+  await expect(selection.getByRole("button")).toHaveCount(0);
   await expect(
     selection.getByText(inactiveNote, { exact: true }),
   ).toBeVisible();
@@ -247,15 +243,11 @@ test("explicit purchase choice creates one new scoped follow-up and leaves the h
   await expect(
     dialog.getByRole("link", { name: "Open receipt", exact: true }),
   ).toHaveCount(1);
-  await expect(page).toHaveURL(sampleHref);
+  await expect(page).toHaveURL(speakerHref);
   await expect(dialog.locator("strong")).toHaveText(
     "Everyday headphones · F-01",
   );
-  await expect(proceed).toBeDisabled();
-  await expect(radios.nth(0)).toBeDisabled();
-  await selection
-    .locator("form")
-    .evaluate((form: HTMLFormElement) => form.requestSubmit());
+  await expect(selection.getByRole("button")).toHaveCount(0);
   expect(state.inputs).toHaveLength(2);
 
   await page.reload();
@@ -263,15 +255,17 @@ test("explicit purchase choice creates one new scoped follow-up and leaves the h
   await expect(
     dialog.getByRole("link", { name: "Open receipt", exact: true }),
   ).toHaveAttribute("href", receiptHref);
-  const restored = dialog.getByRole("group", { name: "Choose a purchase" });
-  await expect(restored.getByRole("radio").nth(0)).toBeDisabled();
-  await expect(restored.getByRole("radio").nth(1)).toBeDisabled();
   await expect(
-    restored.getByRole("button", {
-      name: "Use this purchase and continue",
-      exact: true,
-    }),
-  ).toBeDisabled();
+    dialog.getByRole("region", { name: "Choose a purchase" }),
+  ).toHaveCount(0);
+  await expect(
+    selection.getByText(inactiveNote, { exact: true }),
+  ).toBeVisible();
+  await expect(selection.getByRole("button")).toHaveCount(0);
+  await expect(dialog.locator("strong")).toHaveText(
+    "Everyday headphones · F-01",
+  );
+  await expect(page).toHaveURL(speakerHref);
   expect(state.inputs).toHaveLength(2);
 });
 
@@ -286,22 +280,19 @@ test("a new question retires old choices; summaries expose one primary action an
   const selection = dialog
     .locator("article")
     .filter({ hasText: selectionText });
-  const group = selection.getByRole("group", { name: "Choose a purchase" });
-  await expect(group.getByRole("radio")).toHaveCount(2);
-  await group.getByRole("radio").nth(0).check();
+  const group = selection.getByRole("region", { name: "Choose a purchase" });
+  await expect(group.getByRole("button")).toHaveCount(3);
   await composer.fill("Summarize the speaker instead.");
+  await expect(group).toHaveCount(0);
+  await expect(
+    selection.getByText(inactiveNote, { exact: true }),
+  ).toBeVisible();
+  expect(state.inputs).toHaveLength(1);
   await composer.press("Enter");
   await state.secondReceived.promise;
   expect(state.inputs[1].twinId).toBe(speaker.twinId);
   await expect(page).toHaveURL(speakerHref);
-  await expect(group.getByRole("radio").nth(0)).toBeDisabled();
-  await expect(group.getByRole("radio").nth(1)).toBeDisabled();
-  await expect(
-    group.getByRole("button", {
-      name: "Use this purchase and continue",
-      exact: true,
-    }),
-  ).toBeDisabled();
+  await expect(selection.getByRole("button")).toHaveCount(0);
   state.secondReply.release();
 
   const summary = dialog.locator("article").filter({
@@ -324,6 +315,83 @@ test("a new question retires old choices; summaries expose one primary action an
   await expect(
     selection.getByText(inactiveNote, { exact: true }),
   ).toBeVisible();
-  await expect(group.getByRole("radio").nth(0)).toBeDisabled();
+  await expect(selection.getByRole("button")).toHaveCount(0);
   expect(state.inputs).toHaveLength(2);
+});
+
+test("dismiss a clarification without changing history, context or the next draft (injected UI transport)", async ({
+  page,
+}) => {
+  const state = await transport(page);
+  const { dialog, composer } = await open(page);
+  await composer.fill(originalQuestion);
+  await composer.press("Enter");
+  const choice = dialog.getByRole("region", { name: "Choose a purchase" });
+  await expect(choice).toBeVisible();
+  await choice.getByRole("button", { name: "Dismiss", exact: true }).click();
+  await expect(choice).toHaveCount(0);
+  await expect(composer).toBeFocused();
+  await composer.fill("Keep this different question unsent");
+  await expect(composer).toHaveValue("Keep this different question unsent");
+  await expect(dialog.getByText(inactiveNote, { exact: true })).toBeVisible();
+  await expect(dialog.locator("[data-user-message]")).toHaveText([
+    "Earlier speaker question",
+    originalQuestion,
+  ]);
+  await expect(dialog.locator("strong")).toHaveText(
+    "Everywhere speaker · F-03",
+  );
+  await expect(page).toHaveURL(speakerHref);
+  expect(state.inputs).toHaveLength(1);
+  expect(state.saved.turns).toHaveLength(2);
+});
+
+test("a lost direct-choice answer keeps its new identity across reload and recovers only by read (injected UI transport)", async ({
+  page,
+}) => {
+  const state = await transport(page);
+  state.loseSecond = true;
+  const { dialog, composer } = await open(page);
+  await composer.fill(originalQuestion);
+  await composer.press("Enter");
+  await dialog
+    .getByRole("region", { name: "Choose a purchase" })
+    .getByRole("button", {
+      name: "Everyday headphones · F-01 Oct 18, 2026 · Sample · PC-000201",
+      exact: true,
+    })
+    .click();
+  await state.secondReceived.promise;
+  const [original, chosen] = state.inputs;
+  expect(chosen.requestId).not.toBe(original.requestId);
+  expect(chosen.message).toBe(original.message);
+  expect(chosen.twinId).toBe(sample.twinId);
+  state.secondReply.release();
+  await expect(
+    dialog.getByRole("button", { name: "Check for saved answer", exact: true }),
+  ).toBeEnabled();
+  await composer.fill("A draft while the answer is uncertain");
+  await page.reload();
+  await page.locator(".careos-launcher").click();
+  await expect(dialog.locator("[data-pending-question]")).toHaveAttribute(
+    "data-request-id",
+    chosen.requestId,
+  );
+  await expect(composer).toHaveValue("A draft while the answer is uncertain");
+  await expect(
+    dialog.getByRole("region", { name: "Choose a purchase" }),
+  ).toHaveCount(0);
+  expect(state.secondResult).not.toBeNull();
+  state.saved.turns.push(state.secondResult!);
+  const reads = state.reads;
+  await dialog
+    .getByRole("button", { name: "Check for saved answer", exact: true })
+    .click();
+  await expect(dialog.locator("[data-pending-question]")).toHaveCount(0);
+  await expect(
+    dialog.getByRole("link", { name: "Open receipt", exact: true }),
+  ).toHaveAttribute("href", receiptHref);
+  expect(state.reads).toBeGreaterThan(reads);
+  expect(state.inputs).toEqual([original, chosen]);
+  await expect(page).toHaveURL(speakerHref);
 });
