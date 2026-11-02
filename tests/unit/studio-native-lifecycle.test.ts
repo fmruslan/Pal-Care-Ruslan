@@ -81,13 +81,12 @@ describe("pinned native Studio lifecycle regressions", () => {
     };
     const success = vi.fn(),
       fail = vi.fn();
-    const request = core
-      .createServerSideDatasource()
-      .getRows({
-        request: { startRow: 0, endRow: 100, sortModel: [] },
-        success,
-        fail,
-      });
+    const datasource = core.createServerSideDatasource();
+    const request = datasource.getRows({
+      request: { startRow: 0, endRow: 100, sortModel: [] },
+      success,
+      fail,
+    });
     await vi.advanceTimersByTimeAsync(1);
     expect(getData).toHaveBeenCalledOnce();
     core.destroy();
