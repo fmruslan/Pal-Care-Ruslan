@@ -113,7 +113,7 @@ Pal Care is an independent hackathon concept and **not an official PayPal produc
 | Testing | Vitest, Playwright, Postman; GitHub Actions CI |
 | Development | OpenCode on a Tailscale-connected remote server; Mac client |
 
-AG Studio stays pinned to **3.0.0**. `pnpm install --frozen-lockfile` applies the small tracked [native value-widget resize patch](patches/ag-studio@3.0.0.patch), deferring ResizeObserver-triggered layout writes and cancelling them on destruction. Native widgets, vendor notices and licensing requirements remain unchanged. [1A follow-up evidence and limitations](docs/evidence/NORTH-1A-FOLLOWUP.md).
+AG Studio stays pinned to **3.0.0**. `pnpm install --frozen-lockfile` applies the tracked [native lifecycle patch](patches/ag-studio@3.0.0.patch): defer resize-triggered value layout writes, and guard/cancel native grid polls across initialization/destruction. Native widgets, vendor notices and licensing requirements remain unchanged. [1A follow-up evidence and limitations](docs/evidence/NORTH-1A-FOLLOWUP.md).
 
 Using a ChatGPT subscription in OpenCode for development does **not** automatically provide deployed model API credits. Production credentials remain server-side.
 

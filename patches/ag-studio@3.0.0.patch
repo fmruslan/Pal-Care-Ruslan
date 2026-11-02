@@ -1,8 +1,37 @@
 diff --git a/dist/package/main.cjs.js b/dist/package/main.cjs.js
-index bf3e9f013bb09e158ee93b7373d040f6ba34bdfc..76f94080abc590b8bce837a1db3d33843cfbb604 100644
+index bf3e9f013bb09e158ee93b7373d040f6ba34bdfc..57f570130ad87983b009bbcd8fe2e9601d4e360b 100644
 --- a/dist/package/main.cjs.js
 +++ b/dist/package/main.cjs.js
-@@ -90112,7 +90112,21 @@ var ValueWidget = class extends Component {
+@@ -56941,7 +56941,7 @@ var GridWidgetCore = class {
+    * just this instant asked for is not yet guaranteed to appear in its own block-state tracking.
+    */
+   isBlockStillWanted(startRow, generation) {
+-    if (generation !== this.refreshGeneration) {
++    if (!this.isAlive() || !this.api || generation !== this.refreshGeneration) {
+       return false;
+     }
+     const blockNumber = Math.floor(startRow / this.blockSize);
+@@ -57175,6 +57175,11 @@ var GridWidgetCore = class {
+           const wantsGrandTotal = rowsParams.needsGrandTotal || generation !== this.grandTotalReportedFor && hasGrandTotal(widgetApi, params.format, fields);
+           let everObservedWanted = false;
+           pollTimer = setInterval(() => {
++            if (!this.isAlive()) {
++              clearInterval(pollTimer);
++              controller.abort("destroyed");
++              return;
++            }
+             if (this.isBlockStillWanted(startRow, generation)) {
+               everObservedWanted = true;
+             } else if (everObservedWanted) {
+@@ -57253,6 +57258,7 @@ var GridWidgetCore = class {
+             this.onLayoutChanged();
+           }
+         } catch (err) {
++          if (!this.isAlive()) return;
+           if (controller.signal.aborted) {
+             if (Debug.check("widget:grid:ssrm")) {
+               Logger.log("widget:grid:ssrm getRows: request aborted after eviction detected mid-fetch", {
+@@ -90112,7 +90118,21 @@ var ValueWidget = class extends Component {
      this.tooltip = this.createOptionalManagedBean(
        registry.createDynamicBean("tooltipFeature", false, tooltipCtrl, this)
      );
@@ -26,10 +55,39 @@ index bf3e9f013bb09e158ee93b7373d040f6ba34bdfc..76f94080abc590b8bce837a1db3d3384
    init(params) {
      return this.refresh(params);
 diff --git a/dist/package/main.esm.mjs b/dist/package/main.esm.mjs
-index b0fcdbd1399d36bf440fd7ad5eb866d1f3f67b55..ea99e38de506ce25246dd98a197940dce0a6b4eb 100644
+index b0fcdbd1399d36bf440fd7ad5eb866d1f3f67b55..618aead737086c6161188cab99f7db68f3cb1460 100644
 --- a/dist/package/main.esm.mjs
 +++ b/dist/package/main.esm.mjs
-@@ -90117,7 +90117,21 @@ var ValueWidget = class extends Component {
+@@ -56897,7 +56897,7 @@ var GridWidgetCore = class {
+    * just this instant asked for is not yet guaranteed to appear in its own block-state tracking.
+    */
+   isBlockStillWanted(startRow, generation) {
+-    if (generation !== this.refreshGeneration) {
++    if (!this.isAlive() || !this.api || generation !== this.refreshGeneration) {
+       return false;
+     }
+     const blockNumber = Math.floor(startRow / this.blockSize);
+@@ -57131,6 +57131,11 @@ var GridWidgetCore = class {
+           const wantsGrandTotal = rowsParams.needsGrandTotal || generation !== this.grandTotalReportedFor && hasGrandTotal(widgetApi, params.format, fields);
+           let everObservedWanted = false;
+           pollTimer = setInterval(() => {
++            if (!this.isAlive()) {
++              clearInterval(pollTimer);
++              controller.abort("destroyed");
++              return;
++            }
+             if (this.isBlockStillWanted(startRow, generation)) {
+               everObservedWanted = true;
+             } else if (everObservedWanted) {
+@@ -57209,6 +57214,7 @@ var GridWidgetCore = class {
+             this.onLayoutChanged();
+           }
+         } catch (err) {
++          if (!this.isAlive()) return;
+           if (controller.signal.aborted) {
+             if (Debug.check("widget:grid:ssrm")) {
+               Logger.log("widget:grid:ssrm getRows: request aborted after eviction detected mid-fetch", {
+@@ -90117,7 +90123,21 @@ var ValueWidget = class extends Component {
      this.tooltip = this.createOptionalManagedBean(
        registry.createDynamicBean("tooltipFeature", false, tooltipCtrl, this)
      );

@@ -6,7 +6,7 @@ settings:
 
 patchedDependencies:
   ag-studio@3.0.0:
-    hash: 7adaea6bc8fd2a52f02467d458a482ad6e2cbf90df8ff29f69e7c7b51b68b2ce
+    hash: d0dafa031bcbe2f53f5969ad4917ba9a29a982dc85df455d6b66f0e036650b3a
     path: patches/ag-studio@3.0.0.patch
 
 importers:
@@ -24,7 +24,7 @@ importers:
         version: 1.5.0(@types/react@19.3.0)(react@19.3.1)
       ag-studio:
         specifier: 3.0.0
-        version: 3.0.0(patch_hash=7adaea6bc8fd2a52f02467d458a482ad6e2cbf90df8ff29f69e7c7b51b68b2ce)
+        version: 3.0.0(patch_hash=d0dafa031bcbe2f53f5969ad4917ba9a29a982dc85df455d6b66f0e036650b3a)
       ag-studio-react:
         specifier: 3.0.0
         version: 3.0.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -4785,11 +4785,11 @@ snapshots:
       ag-grid-enterprise: 36.2.0
       ag-grid-react: 36.2.0(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       ag-stack: 36.2.0
-      ag-studio: 3.0.0(patch_hash=7adaea6bc8fd2a52f02467d458a482ad6e2cbf90df8ff29f69e7c7b51b68b2ce)
+      ag-studio: 3.0.0(patch_hash=d0dafa031bcbe2f53f5969ad4917ba9a29a982dc85df455d6b66f0e036650b3a)
       react: 19.3.1
       react-dom: 19.3.1(react@19.3.1)
 
-  ag-studio@3.0.0(patch_hash=7adaea6bc8fd2a52f02467d458a482ad6e2cbf90df8ff29f69e7c7b51b68b2ce):
+  ag-studio@3.0.0(patch_hash=d0dafa031bcbe2f53f5969ad4917ba9a29a982dc85df455d6b66f0e036650b3a):
     dependencies:
       ag-charts-enterprise: 14.2.0
       ag-grid-enterprise: 36.2.0
