@@ -1,6 +1,6 @@
 # North ☆ 1A — consolidated owner review
 
-**1A is implemented and automated browser/recovery verification passes; acceptance remains incomplete.** The requested additional 50 genuine completions stopped at **17 completed + one unknown attempt**. Owner/real-device review and exact-commit CI remain separate gates. **The working private preview is unchanged; 1B is not authorized.** [Implementation truth](../STATUS.md) · [detailed findings/accounting](NORTH-1A-FOLLOWUP.md) · [initial packet and retained failure history](NORTH-1A-REVIEW-INITIAL.md).
+**1A is implemented; exact-commit CI and automated browser/recovery verification pass. Acceptance remains incomplete.** The requested additional 50 genuine completions stopped at **17 completed + one unknown attempt**. Owner/real-device review remain separate gates. **The working private preview is unchanged; 1B is not authorized.** [Implementation truth](../STATUS.md) · [detailed findings/accounting](NORTH-1A-FOLLOWUP.md) · [initial packet and retained failure history](NORTH-1A-REVIEW-INITIAL.md).
 
 ## Implemented
 
@@ -57,9 +57,13 @@ These runs overlap in coverage; counts are not a claimed number of unique scenar
 
 ### Exact-commit CI
 
+Complete review/CI revision **`87bd6a622afc27f5b0d53590ece5578777040b08`**, [run 41540894858](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/41540894858): **SUCCESS**, both `foundation` and `native-acceptance`, every stage completed. Foundation finished **2026-11-02T23:21:46Z** (29m07s); native acceptance finished **23:07:38Z** (15m). **Zero retries/flaky/skipped cases observed.**
+
+CI passed lint/format/typecheck/**1,109 units / 58 files**, deterministic/offline review, **113 integration tests in each independent database**, builds, **two failure/cleanup / 660 fixture / 660 database / six Guardian / 33 access / 108 Firefox-WebKit / 14 injected-protocol recovery** checks. Test coverage overlaps; the duplicate integration setup is not a new scenario set. This proves exact-commit automated acceptance, not live-model/financial or real-device acceptance. The final screenshots and CI guards are included in this SHA. Later **outcome-only documentation changes** do not change runtime, tests, workflow or screenshot pixels and are not represented as this exact tested commit.
+
 Implementation/reference commit **`5b640b54cd3cfccdcc970bd9ce2cd4164b654bb0`**, [run 41535096613](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/41535096613): **cancelled at the existing 35-minute job limit**, not green. All prerequisites, **33 access / 660 fixture / 660 database / six Guardian** checks passed; compatibility logged **82** completions before interruption, with no assertion failure/retry recorded. The injected-protocol stage was **skipped**. Local full compatibility/recovery passes are not substituted for those missing CI results.
 
-The complete access/compatibility/injected-protocol suites now occupy a second **unconditional mandatory job**, with its own disposable PostgreSQL service/frozen build. Both jobs retain **35-minute limits** and all existing tests, browser deadlines, retries and provider-off flags. Two configuration regressions guard against accidental coverage/isolation weakening; static command comparison confirms no original commands were removed. Local lint/typecheck/1,109 units/build/format and YAML/Prettier checks pass. A new exact-commit workflow must pass **both jobs**; its result is pending. Runtime hash remains `93f8de2b…`; this later delta is CI/tests/reports/screenshots, not a preview refresh or product change.
+The complete access/compatibility/injected-protocol suites occupy a second **unconditional mandatory job**, with its own disposable PostgreSQL service/frozen build. Both jobs retain **35-minute limits** and all existing tests, browser deadlines, retries and provider-off flags. Two configuration regressions guard against accidental coverage/isolation weakening; static command comparison confirms no original commands were removed. Local lint/typecheck/1,109 units/build/format and YAML/Prettier checks pass; the complete two-job exact-commit workflow now passes independently. Runtime hash remains `93f8de2b…`; this delta is CI/tests/reports/screenshots, not a preview refresh or product change.
 
 Retained earlier CI outcomes:
 
@@ -75,11 +79,12 @@ Retained earlier CI outcomes:
 - Known new usage: **12,666 input + 432 output = 13,098 tokens**; cumulative known batch usage **133,267 input + 5,286 output = 138,553 tokens**, including 90 reasoning tokens in output. Caches zero. Unknown-attempt usage and subscription dollar cost unavailable, never zero/refunded estimates.
 - Final read-only preservation at **2026-11-02T22:45:14Z**: **18/18 protected baseline files/original ledgers unchanged**, original policy/event prefix/browser states retained, new stopped ledger hash unchanged. Standing accounting **181/300 reserved, 119 unreserved, one unknown**; unreserved allowance does not override the stop.
 - Primary/isolated runtime and native patch match exactly; no verification runner remains active. Original preview PID **2510002**, cwd and protected build/ID remain unchanged. No application/financial DB suite was pointed at the working preview. Private evidence: `evidence/north-1a-final-preservation-and-source.json`.
+- **Post-CI recheck at 2026-11-02T23:22:52Z** reconfirms all 18 immutable hashes, original policy/history/browser states, runtime hash, stopped ledger and preview PID. Standing accounting remains 181 reserved / one unknown. Evidence: `evidence/post-ci-final-preservation.json`; successful CI artifacts are archived under `evidence/ci-87bd6a6-artifacts`.
 
 ## Incomplete
 
 - The requested **50 genuine completions**; the stopped ledger must not be extended/replayed or replaced.
-- Exact-commit CI conclusion, independent owner acceptance and real-device keyboard/IME observations.
+- Independent owner acceptance and real-device keyboard/IME observations; exact-commit CI is now verified separately above.
 - 1B library/date retrieval, conversational totals/trends, formatting-only reuse/provider-free conversation and expanded native analytics remain later capabilities—not shipped by the rename or these tests.
 - The current private preview still serves its earlier build; this packet does not establish refreshed-private-app acceptance or live-provider recovery.
 
@@ -89,4 +94,4 @@ The **unknown provider completion** blocks further live evaluation under this ta
 
 ## Next
 
-Record the exact CI conclusion, then obtain the owner's **1A review decision** on this packet and the incomplete live-evaluation gate. Keep the preview and 1B unchanged until separately authorized; do not invent a replacement batch or engineering deadline. Conservative submission cutoff remains **November 12, 2026 at 12:00 PM PST**, with judge access through **December 15, 2026**, subject to actual authorization/license expiry.
+Obtain the owner's **1A review decision** on this packet and the incomplete live-evaluation gate. Keep the preview and 1B unchanged until separately authorized; do not invent a replacement batch or engineering deadline. Conservative submission cutoff remains **November 12, 2026 at 12:00 PM PST**, with judge access through **December 15, 2026**, subject to actual authorization/license expiry.
