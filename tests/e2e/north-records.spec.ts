@@ -721,7 +721,12 @@ test("formatting plus receipt refinement changes the actual linked list, while a
   await expect(
     unsupported.article.locator("[data-records-result]"),
   ).toHaveCount(0);
-  await expect(unsupported.article).toContainText("No qualifier was ignored");
+  await expect(unsupported.article).toContainText(
+    "no unknown condition was silently removed",
+  );
+  await expect(unsupported.article).toContainText(
+    "limited saved-record fallback couldn't interpret",
+  );
 });
 
 test("document and priced predicates produce an actual table with exact document links, without granting model access", async ({
