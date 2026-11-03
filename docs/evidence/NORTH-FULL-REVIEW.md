@@ -1,6 +1,6 @@
 # North ☆ saved-purchase journey — review packet
 
-**Implementation review, not full-makeover acceptance.** The working private preview is deliberately unchanged. The new genuine campaign remains **0/200**. [Implementation truth](../STATUS.md) · [retained failures and verification windows](NORTH-FULL-IMPLEMENTATION.md) · [genuine evaluation/accounting](NORTH-FULL-EVALUATION.md).
+**Implementation review, not full-makeover acceptance.** The working private preview is deliberately unchanged. The new genuine campaign reached **3/200 evaluated, two strict passes / one material failure**, then stopped. [Individual live outcomes/cleanup](NORTH-FULL-LIVE-INITIAL.md) · [implementation truth](../STATUS.md) · [retained failures](NORTH-FULL-IMPLEMENTATION.md) · [accounting](NORTH-FULL-EVALUATION.md).
 
 ## Experience to review
 
@@ -23,9 +23,9 @@ The fixed fixture's Electronics records total **$218.00**; Kitchen totals **$89.
 | Domain and dedicated-database tests | Query arithmetic, evidence separation, ownership, bounded scope, snapshot reuse and regression rules; no genuine provider evaluation. |
 | Actual isolated application | Real rendered records, links, native SDK execution/read-back, visible series and persisted conversation behavior over labeled fixtures/test data. |
 | Injected browser harness | Confirms that incorrect money/links/DOM or missing terminal proof fail evaluation. A mocked `live` badge never qualifies as genuine. |
-| Genuine provider campaign | **0/200**; new test-browser/runtime access and sufficient installed capacity remain unresolved. Historical 177 completions and the retained unknown are excluded. |
+| Genuine provider campaign | **3/200 evaluated / two strict passes / one material failure**; the bounded first run stopped and its new browser was revoked. Historical 177 completions and the retained unknown are excluded. |
 | Private preview / owner / real device | No makeover preview replacement, independent owner acceptance or real keyboard/IME/device certification is claimed. |
-| Exact-commit CI | Pending for the new implementation; the earlier green 1A SHA does not verify this source. |
+| Exact-commit CI | **`868e2ea…`, run 41581325581: green**, including one database-browser flaky pass on retry. It verifies the baseline implementation, not the subsequent semantic-scope correction. |
 
 ## Current verification identity
 
@@ -52,8 +52,10 @@ The first extended browser scenario exceeded the six-turn/minute guard; its **42
 
 ## Handoff
 
+**Subsequent correction verification:** source `b441e54a…` passes lint/types/**1,265 units**/build/format and **90 fixture / 30 database-browser / 22 compatibility / five repeated care-readiness** checks, with separately recorded **114 PostgreSQL / 14 recovery** passes. The original screenshots retain their original source identity; they are not recaptured or relabeled as new genuine proof. New exact-commit CI/genuine correction retest remain open. [Detailed results](NORTH-FULL-LIVE-INITIAL.md).
+
 - **Implemented:** saved-record conversations, deterministic analysis/formatting, protected semantic proposals, native chart handoff and care continuity with bounded recovery.
-- **Verified:** scoped isolated tests and actual four-profile application/screenshots above; latest targeted browser and new exact-commit CI results remain pending.
+- **Verified:** scoped isolated tests, four-profile application/screenshots, exact baseline CI with disclosed retry, and three genuine evaluated cases/two strict passes. Later scope correction still needs integrated/genuine verification.
 - **Incomplete:** complete makeover acceptance, remaining genuine-case manifests, 200 individual genuine evaluations, independent owner and real-device review.
-- **Blocked:** existing **119 remaining slots** cannot yield 200 one-call cases. Bounded runtime/browser setup is now approved after verification/CI, but is not activated; no extra allowance, paid credits, replay or reset is granted.
+- **Blocked:** **116 remaining slots** cannot yield the remaining **197 cases** even at one call each; minimum gap 81. The first one-shot operation is stopped/new browser revoked; no extra allowance, new pairing, paid credits, replay or reset is granted.
 - **Next:** complete final-source verification and publish the exact implementation commit/CI evidence, then resolve the precise live-access boundary without replacing the working preview or weakening original safeguards.

@@ -29,6 +29,30 @@ const followup =
 const shortFollowup =
   /^(?:the total|totals?|sum|as (?:bullets|a table)|in a (?:table|list)|table|(?:last|this) month)(?: please)?[?.!]?$/;
 
+/** One scope rule for deterministic resolution and protected interpretation.
+ * Previous selection is context only when the customer refers back to it; a
+ * fresh library question must not expose stale filters for the model to inherit.
+ * This chooses context, not authorization or the model's proposed predicates. */
+export function recordsQueryContinuation(message: string) {
+  const s = normalize(message).replace(/[?.!]+$/g, "");
+  if (
+    /\b(?:all|entire|whole) (?:(?:my|the|fictional|saved|sample|verified|sandbox|recorded) )*(?:purchases|library|purchase history)\b/.test(
+      s,
+    )
+  )
+    return false;
+  return (
+    followup.test(s) ||
+    shortFollowup.test(s) ||
+    /\b(?:those|these) (?:purchases|records|items|products|results)\b|\b(?:that|this) (?:analysis|selection|result|breakdown|comparison)\b|\b(?:from|of|within|among|for) (?:those|these|them)\b/.test(
+      s,
+    ) ||
+    /^(?:put|make|format|list|show|turn|return).{0,50}\b(?:those|that|results|them)\b.{0,40}\b(?:list|bullet|table|card)s?\b/.test(
+      s,
+    )
+  );
+}
+
 /** Pure admission hint only. The server re-resolves every field against owned history. */
 export function recordsCandidate(message: string, previous?: RecordsQuery) {
   const s = normalize(message);
@@ -51,6 +75,7 @@ export function recordsCandidate(message: string, previous?: RecordsQuery) {
   return (
     followup.test(s) ||
     (!!previous && shortFollowup.test(s)) ||
+    (recordsQueryContinuation(s) && !shortFollowup.test(s)) ||
     /\b(?:purchases|spending|spent|bought|documents)\b/.test(s) ||
     /\bwhich (?:purchases|products)\b|\bcompare (?:last|this) month\b|\b(?:all|saved|my|recorded)\b.{0,35}\b(?:purchases|receipts|totals|spending|library)\b|\b(?:what did i buy|what have i bought|how much (?:did|have) i spen[dt]|spending patterns|purchase totals|purchase value)\b|\b(?:find|list|show|search)\b.{0,50}\b(?:purchases|receipts|headphones|kettle|speaker|raspberry|pi 5)\b/.test(
       s,
@@ -154,15 +179,7 @@ export function resolveRecordsQuery(
       clarification:
         "That modifier is not supported by the saved-record parser yet. Use a category, receipt filter, provenance, or an exact date range; no filter was silently dropped.",
     };
-  const formatOnly =
-    /^(?:put|make|format|list|show|turn|return).{0,50}\b(?:those|that|results|them)\b.{0,40}\b(?:list|bullet|table|card)s?\b/.test(
-      s,
-    ) || /^list those/.test(s);
-  const inherited =
-    followup.test(s) ||
-    (!!previous && shortFollowup.test(s)) ||
-    formatOnly ||
-    /\b(?:for those|of those|that analysis|those purchases)\b/.test(s);
+  const inherited = recordsQueryContinuation(s);
   if (inherited && !previous)
     return {
       clarification:

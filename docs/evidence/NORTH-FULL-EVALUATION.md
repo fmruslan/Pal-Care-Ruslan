@@ -1,10 +1,10 @@
 # North ☆ full makeover — new genuine campaign
 
-**Campaign `north-full-makeover-200-v1`: 0/200 genuine evaluated completions.** The owner approved a fresh 200-case objective and continuous full implementation. This counter starts at zero and excludes every earlier evaluation. **No provider allowance, usage ledger, session, policy or unknown reservation is reset.**
+**Campaign `north-full-makeover-200-v1`: 3/200 genuine evaluated completions — two strict passes, one material failure.** The first bounded operation stopped on initial purchase-search 03; 33 of its 36 frozen cases were never dispatched. [Individual inputs, outcomes, usage, retained proof and cleanup](NORTH-FULL-LIVE-INITIAL.md). This campaign excludes every earlier evaluation. **No provider allowance, usage ledger, policy or unknown reservation is reset.** The new test session is revoked; no continuation/replay is active.
 
 | Primary category | Initial | Regression | Final | Required | Completed |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| Purchase searches | 18 | 9 | 3 | 30 | 0 |
+| Purchase searches | 18 | 9 | 3 | 30 | 3 |
 | Spending/analytics | 18 | 9 | 3 | 30 | 0 |
 | Memory/follow-ups | 18 | 9 | 3 | 30 | 0 |
 | Grounded care | 15 | 8 | 2 | 25 | 0 |
@@ -12,11 +12,13 @@
 | Lists/documents/charts/formats | 15 | 7 | 3 | 25 | 0 |
 | Complex multi-step | 12 | 6 | 2 | 20 | 0 |
 | Recovery/edges | 9 | 4 | 2 | 15 | 0 |
-| **Total** | **120** | **60** | **20** | **200** | **0** |
+| **Total** | **120** | **60** | **20** | **200** | **3** |
 
 The slot registry is `tests/fixtures/north-full-campaign.ts`. It contains unique category/wave IDs, **not model responses, test inputs or passed results**. Freeze meaningful inputs/oracles before dispatch, after the corresponding integrated feature works. Unit/browser/integration/injected tests never increment this counter. Retests are new linked cases within the same 200, not rewritten prior results. A genuine response may fail correctness; provider failure/unknown attempts do not count as completions but still consume their actual reservations.
 
-`tests/fixtures/north-full-records-drafts.ts` now prepares **36 initial search/analytics inputs with literal record-ID/minor-unit/exclusion oracles**, all explicitly scoped to fictional Sample data. They are **drafts, not frozen/dispatched/completed**; their captured reference date is `2026-11-03`. Oracle self-checks validate expected data without consuming model capacity, and distinguish these semantic inputs from already-resolved deterministic shortcuts. Other categories and live browser/ledger automation remain incomplete.
+`tests/fixtures/north-full-records-drafts.ts` prepares **36 initial search/analytics inputs with literal record-ID/minor-unit/exclusion oracles**, all explicitly scoped to fictional Sample data. The exact runtime copy was frozen on `2026-11-03`; **three dispatched/evaluated, 33 never dispatched**. Source draft labels are preparation metadata, not mutable progress counters. Oracle self-checks and injected tests never count as genuine. Other category inputs and safe continuation automation remain incomplete.
+
+**Latest actual accounting (2026-11-03T05:38:19.207Z): 184/300 reserved, 116 remaining, one retained original unknown, zero unsettled**, no provider block/revocation. The remaining campaign is **197 cases**, leaving a minimum **81-slot** gap at one call each; retries/multi-call work may need more. The original 300-request policy/event prefix and every preexisting browser state are unchanged. Three attempts completed, known usage **2,378 total tokens**, zero new unknowns. Do not use the historical 119-slot snapshot below as current capacity.
 
 ## Existing-account preservation and preflight
 
@@ -28,14 +30,14 @@ Latest read-only reconciliation **2026-11-03T01:09:42.117372Z** still shows **18
 
 Read-only accounting at **2026-11-03T02:30:36.727Z** again confirms **181 reserved / 119 remaining / one unknown / zero active unsettled**, with no recorded policy revocation/provider block. Browser proof and provider entitlement were **not checked** by this command; it grants/renews nothing. The minimum 81-slot gap remains.
 
-The conditional records runner is prepared but **not activated or executed**. It requires exact clean source/build, an independently approved fixed-loopback runtime and already-authorized test-browser profile; it cannot start a server, pair/renew a browser or grant usage. Exclusive manifest/journal creation prevents accidental replay of a partial run. Application request UUID/conversation/envelope are journaled before forwarding; failures retain active-case identity. Requests are paced against existing six/minute, 30/hour and 40/conversation guards, not evaded through cookie rotation. Independent scoring checks per-record prices, literal totals/IDs, real DOM/links/provenance and host reservation/terminal correlation; injected harness tests deliberately remain ineligible for genuine progress. Final-source runner/browser verification is still required.
+The conditional records runner was activated once after exact-source CI and **stopped on a material failure**, as detailed above. Its exclusive manifest/journal prevent replay of this partial run. Application request UUID/conversation/envelope were journaled before forwarding; the failed case's identity remains retained. Existing six/minute, 30/hour and 40/conversation guards were not evaded through cookie rotation. Independent scoring checked prices, literal totals/IDs, actual DOM/links/provenance and terminal correlation; injected harness tests remain ineligible for genuine progress. There is no safe continuation command yet.
 
 ## Current progress
 
-**New access approval, not activation:** the owner explicitly authorizes the proposed temporary **127.0.0.1:3193** runtime and one dedicated Customer/personal-Insights browser pairing, **at most two hours**, after final verification/exact-commit CI. The first 36 cases have a **72-attempt ceiling within existing capacity**. No new allowance, credits, renewal, original-session change or old-unknown replay is approved. Runtime/profile/stop-control activation and the first genuine dispatch remain undone; progress stays **0/200**. [Exact boundary](../NORTH-LIVE-CAMPAIGN-PREFLIGHT.md).
+The exact first-operation approval covered **127.0.0.1:3193**, one temporary Customer/personal-Insights pairing and 36 cases/72 attempts within existing capacity. It was exercised for **three attempts**, then its new session was revoked/listener stopped. The 69 unused attempt-ceiling positions are **not** new allowance or permission to replay/reapprove/restart. [Original approval and consumed boundary](../NORTH-LIVE-CAMPAIGN-PREFLIGHT.md).
 
-- **Implemented:** fresh 200-slot category/wave manifest and provider-free query/result work; no live campaign dispatch.
-- **Verified:** manifest uniqueness, exact 120/60/20 and category totals in automated unit tests. These are registry tests, not genuine inference.
-- **Incomplete:** case inputs/oracles, authenticated end-to-end model path/preflight, all 200 responses/evaluations and final semantic/UI/SDK review.
-- **Blocked:** current installed capacity cannot satisfy 200 cases; genuinely authorized isolated live integration remains a separate activation boundary. Neither prevents deterministic/application engineering.
-- **Next:** complete integrated feature paths and automation, freeze cases, check real authority/accounting, then execute only permitted new campaign calls. Preserve every old attempt and new failure/unknown.
+- **Implemented:** 200-slot registry, records/native/care journey, first bounded live path and offline scope correction.
+- **Verified:** three genuine evaluated cases/two strict passes, original-state preservation and cleanup; isolated/CI evidence is separately scoped in the report.
+- **Incomplete:** genuine correction retest, remaining 197 cases/category inputs, safe append-only continuation and final owner/device acceptance.
+- **Blocked:** first one-shot operation stopped and new browser revoked; at least 81 additional slots needed for the remaining campaign. No supplement/new pairing/replay is authorized.
+- **Next:** verify the correction offline, establish the meaningful remaining request bound and safe continuation, then request the exact needed access/capacity decision. Preserve the failed case and every prior unknown.

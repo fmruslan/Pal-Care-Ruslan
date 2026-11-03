@@ -692,7 +692,15 @@ test("care follow-up stays with the exact product; explicit analysis and short f
   await library.article
     .getByRole("link", { name: "Raspberry Pi 5 · 5", exact: true })
     .click();
+  await expect(page).toHaveURL(
+    /\/vault\/00000000-0000-4000-8000-000000000204$/,
+  );
   if (!(await dialog.isVisible())) dialog = await open(page);
+  // A link click resolves before Next's route/context effects necessarily do.
+  // Assert the actual handoff before submitting; retain the exact reply checks.
+  await expect(dialog.locator(".careos-context")).toContainText(
+    "Raspberry Pi 5",
+  );
   for (const message of [
     "How do I shut down my Pi?",
     "And can I disconnect power now?",

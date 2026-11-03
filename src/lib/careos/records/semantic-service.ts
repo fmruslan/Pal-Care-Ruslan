@@ -6,7 +6,11 @@ import {
   querySavedRecords,
   recordsAnswer,
 } from "./service";
-import { recordsRequestAllowed, resolveRecordsQuery } from "./query";
+import {
+  recordsQueryContinuation,
+  recordsRequestAllowed,
+  resolveRecordsQuery,
+} from "./query";
 import {
   interpretedRecordsQuery,
   recordsInterpretationSchema,
@@ -26,6 +30,7 @@ export async function answerSemanticRecordsTurn(options: {
   const now = (options.now ?? (() => new Date()))();
   const referenceDate = now.toISOString().slice(0, 10);
   const previous = previousRecordsResult(options.history);
+  const continuation = recordsQueryContinuation(options.input.message);
   const deterministic = resolveRecordsQuery(
     options.input.message,
     referenceDate,
@@ -33,6 +38,7 @@ export async function answerSemanticRecordsTurn(options: {
   );
   if (
     (deterministic && "query" in deterministic) ||
+    (continuation && !previous) ||
     /^(?:new topic|start a new topic)[.!]?$/i.test(options.input.message.trim())
   )
     return answerRecordsTurn(options);
@@ -73,7 +79,8 @@ export async function answerSemanticRecordsTurn(options: {
       question: options.input.message,
       referenceDate,
       timezone: "UTC",
-      previousQuery: previous?.query ?? null,
+      contextScope: continuation ? "followup" : "fresh",
+      previousQuery: continuation ? (previous?.query ?? null) : null,
       categories: ["Audio", "Computing", "Kitchen"],
       catalogueHints: catalogue.slice(0, 12),
       catalogueHintsComplete:

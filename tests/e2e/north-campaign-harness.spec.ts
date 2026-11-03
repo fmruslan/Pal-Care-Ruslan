@@ -13,7 +13,8 @@ import {
   querySavedRecords,
   recordsAnswer,
 } from "../../src/lib/careos/records/service";
-import { turnSchema } from "../../src/lib/careos/contracts";
+import { turnSchema, type CareTurn } from "../../src/lib/careos/contracts";
+import { answerSemanticRecordsTurn } from "../../src/lib/careos/records/semantic-service";
 import { randomUUID } from "node:crypto";
 
 // Harness self-checks only. Transport/model proposals are injected, no owner or
@@ -30,6 +31,113 @@ const noProof: NorthRecordsProof = {
   newProviderBlock: false,
 };
 test.describe.configure({ timeout: 60000 });
+
+test("injected semantic orchestration renders a fresh missing-receipt search without stale Kitchen context and retains natural subsets", async ({
+  page,
+  context,
+}, info) => {
+  const guard = await guardRecordsCampaign(context, info.project.use.baseURL!);
+  const history: CareTurn[] = [];
+  const contexts: { contextScope: string; previousQuery: unknown }[] = [];
+  const searches = [northFullRecordsDrafts[1], northFullRecordsDrafts[2]];
+  const subset = {
+    ...northFullRecordsDrafts[2],
+    message: "Within those purchases, retain only the audio category please.",
+    expectedQuery: {
+      ...northFullRecordsDrafts[2].expectedQuery,
+      categories: ["Audio" as const],
+    },
+    expectedIds: ["00000000-0000-4000-8000-000000000203"],
+    expectedRecordValues: { "00000000-0000-4000-8000-000000000203": 6900 },
+    expectedExcluded: 0,
+  };
+  const scenarios = [...searches, subset];
+  await page.route(
+    "**/api/careos/records/conversations/*/turns",
+    async (route) => {
+      const input = turnSchema.parse(route.request().postDataJSON());
+      const c = scenarios.find((c) => c.message === input.message)!;
+      expect(c).toBeDefined();
+      const answer = await answerSemanticRecordsTurn({
+        input,
+        history,
+        load: async () => demoData,
+        now: () => new Date("2026-11-03T12:00:00Z"),
+        interpret: async (raw) => {
+          const payload = JSON.parse(raw);
+          contexts.push({
+            contextScope: payload.contextScope,
+            previousQuery: payload.previousQuery,
+          });
+          const {
+            version: _v,
+            referenceDate: _r,
+            timezone: _t,
+            ...fields
+          } = c.expectedQuery;
+          void _v;
+          void _r;
+          void _t;
+          // Mimic the observed stale-filter error when old context is exposed on
+          // the fresh question. The corrected server omits it, not the scorer.
+          return {
+            outcome: "query",
+            ...fields,
+            categories:
+              c === searches[1]
+                ? (payload.previousQuery?.categories ?? [])
+                : fields.categories,
+          };
+        },
+      });
+      const turn: CareTurn = {
+        requestId: input.requestId,
+        message: input.message,
+        answer,
+      };
+      history.push(turn);
+      await route.fulfill({ status: 200, json: turn });
+    },
+  );
+  await page.goto("/dashboard");
+  for (const c of scenarios) {
+    const result = await exerciseRecordsScenario(page, c, "turns");
+    const score = assessRecordsCase(
+      c,
+      result.turn,
+      {
+        ...result.observation,
+        applicationErrors: [],
+        forbiddenRequests: guard.forbiddenRequests,
+      },
+      noProof,
+    );
+    expect(score.genuineEvidence).toBe(false);
+    expect(
+      score.checks
+        .filter((c) => c.dimension !== "provider")
+        .every((c) => c.pass),
+    ).toBe(true);
+  }
+  expect(contexts.slice(0, 2)).toEqual([
+    { contextScope: "fresh", previousQuery: null },
+    { contextScope: "fresh", previousQuery: null },
+  ]);
+  expect(contexts[2]).toMatchObject({
+    contextScope: "followup",
+    previousQuery: { categories: [], origin: "sample", receipt: "missing" },
+  });
+  expect(history).toHaveLength(3);
+  expect(history[0].answer.recordsResult?.records.map((r) => r.id)).toEqual([
+    "00000000-0000-4000-8000-000000000202",
+  ]);
+  await expect(
+    page.locator(
+      `[data-request-id="${history[0].requestId}"] [data-records-result]`,
+    ),
+  ).toBeAttached();
+  await guard.dispose();
+});
 
 test("campaign guard records identity before forwarding and fails closed when journaling rejects dispatch", async ({
   page,

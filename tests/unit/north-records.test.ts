@@ -16,6 +16,7 @@ import {
   previousPeriod,
   recordsCandidate,
   recordsTaskCandidate,
+  recordsQueryContinuation,
   resolveRecordsQuery,
   shiftMonth,
 } from "../../src/lib/careos/records/query";
@@ -42,6 +43,33 @@ const input = (message: string) => ({
 const now = () => new Date(`${day}T12:00:00Z`);
 
 describe("North saved-record query foundation — provider-free, no financial writes", () => {
+  it.each([
+    "Which sample purchases lack a receipt attachment rather than a care card?",
+    "Retrieve my sample kitchen purchases with a saved receipt attached.",
+    "Across all fictional saved purchases, give the combined recorded amount.",
+    "And show all my sample purchases",
+  ])("fresh scope never inherits the prior selection: %s", (message) => {
+    expect(recordsQueryContinuation(message)).toBe(false);
+  });
+  it.each([
+    "Within those purchases, keep only items with a receipt.",
+    "Which of those purchases have receipt evidence?",
+    "From these results, retain the Audio category.",
+    "For that analysis, keep only the priced items.",
+    "Put them in a table",
+    "Only electronics",
+    "Total?",
+    "Last month?",
+  ])("explicit follow-ups retain applicable owned context: %s", (message) => {
+    expect(recordsQueryContinuation(message)).toBe(true);
+    expect(recordsCandidate(message, base())).toBe(true);
+  });
+  it("an explicit all-library task clears prior filters even after a follow-up prefix", () => {
+    const prior = resolved(
+      "Show my sample Kitchen purchases with receipts in a table from 2026-10-01 to 2026-10-31",
+    );
+    expect(resolved("And show all my purchases", prior)).toEqual(base());
+  });
   it("plain totals after a comparison reuse owned records without retaining an unrequested comparison", async () => {
     const answer = recordsAnswer(
       querySavedRecords(
