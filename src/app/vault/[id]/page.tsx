@@ -37,13 +37,21 @@ import { GuardianTimeline } from "@/components/guardian-timeline";
 import { getSafety, getTwinRecallHistory } from "@/lib/safety/runtime";
 import { assess } from "@/lib/safety/service";
 import { SafetyCard } from "@/components/safety-card";
+import {
+  libraryReturn,
+  withLibraryReturn,
+  type LibraryParams,
+} from "@/lib/library-navigation";
 
 export const metadata = { title: "Purchase Twin" };
 export default async function TwinPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<LibraryParams>;
 }) {
+  const from = libraryReturn((await searchParams)?.from);
   const { id } = await params;
   if (!recordIdSchema.safeParse(id).success) notFound();
   const data = await getDemoData(id);
@@ -70,18 +78,19 @@ export default async function TwinPage({
     <Shell active="/vault" source={data.source}>
       <CareContextRegistration context={contextOf(record)} />
       <Link
-        href="/vault"
+        href={from}
         className="mb-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
-        Back to purchase vault
+        Back to Home
       </Link>
       <article
+        id="overview"
         aria-label="Purchase Twin passport"
         className="passport-frame shadow-card"
       >
         <div className="overflow-hidden rounded-[27px] bg-card">
-          <header className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 sm:px-7">
+          <header className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3 sm:px-7">
             <span className="inline-flex items-center gap-2 text-sm font-semibold">
               <Layers2 className="size-5 text-primary" aria-hidden="true" />
               Purchase Twin
@@ -91,29 +100,59 @@ export default async function TwinPage({
             </span>
             <PurchaseBadge origin={twin.origin} />
           </header>
-          <div className="grid gap-6 p-5 sm:p-7 lg:grid-cols-[.95fr_1.05fr]">
-            <div className="min-w-0 pt-2 lg:col-start-2 lg:row-start-1">
+          <div className="grid items-center gap-5 p-5 sm:p-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+            <div className="min-w-0 lg:col-start-2 lg:row-start-1">
               <p className="section-label">
                 {product.brand} · {product.model}
               </p>
-              <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl xl:text-5xl">
+              <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl xl:text-4xl">
                 {product.name}
               </h1>
-              <p className="mt-4 text-base leading-7 text-muted-foreground">
-                Not just what you bought. The details, documents, and little
-                moments that belong with it.
+              <div className="float-right ml-3 size-18 lg:hidden">
+                <ProductArt kind={product.illustration} size="thumbnail" />
+              </div>
+              <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                <time dateTime={twin.purchasedOn}>
+                  {displayDate(twin.purchasedOn)}
+                </time>
+                <span className="font-semibold tabular-nums text-foreground">
+                  {reference
+                    ? "Reference sample · amount unavailable"
+                    : `${verified ? "Sandbox" : "Sample"} amount ${money(twin.purchasePriceMinor)}`}
+                </span>
               </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {documents
+                  .filter((d) => d.kind === "receipt")
+                  .map((d) => (
+                    <Button asChild key={d.id}>
+                      <Link
+                        href={withLibraryReturn(`/documents/${d.id}`, from)}
+                      >
+                        <FileText aria-hidden="true" />
+                        View receipt
+                      </Link>
+                    </Button>
+                  ))}
+                <AskCareOS context={contextOf(record)} />
+                <Button asChild variant="outline">
+                  <Link href={withLibraryReturn(`/vault/${id}/care`, from)}>
+                    <BookOpen aria-hidden="true" />
+                    Product care
+                  </Link>
+                </Button>
+              </div>
             </div>
-            <div className="relative min-w-0 lg:col-start-1 lg:row-start-1 lg:row-span-2">
-              <ProductArt kind={product.illustration} large />
-              <span className="absolute right-4 bottom-4 rounded-full border bg-card px-3 py-1.5 text-xs font-medium text-intelligence-foreground">
+            <div className="relative hidden min-w-0 lg:col-start-1 lg:row-start-1 lg:block">
+              <ProductArt kind={product.illustration} size="compact" />
+              <span className="mt-2 block text-xs font-medium text-intelligence-foreground">
                 {careSources.length
                   ? "Source-backed care available"
                   : "Pal Care · Purchase assistance"}
               </span>
             </div>
-            <div className="min-w-0 lg:col-start-2">
-              <dl className="grid grid-cols-2 gap-x-5 gap-y-6 border-t pt-6">
+            <div className="min-w-0 lg:col-span-2">
+              <dl className="grid grid-cols-2 gap-x-5 gap-y-4 border-t pt-4 sm:grid-cols-4">
                 {[
                   [
                     verified ? "Sandbox purchase" : "Sample purchase",
@@ -144,29 +183,10 @@ export default async function TwinPage({
                   </div>
                 ))}
               </dl>
-              <div className="mt-6 rounded-2xl bg-secondary p-4 text-sm leading-7 text-secondary-foreground">
+              <div className="mt-4 rounded-xl bg-secondary px-4 py-3 text-sm leading-6 text-secondary-foreground">
                 {verified
                   ? "A completed PayPal Sandbox capture was retrieved and validated on the server. The product and customer are fictional; no real money was used."
                   : "This is a sample Purchase Twin, not a verified PayPal purchase."}
-              </div>
-              <div className="mt-5 flex flex-wrap gap-3">
-                {documents
-                  .filter((d) => d.kind === "receipt")
-                  .map((d) => (
-                    <Button asChild key={d.id}>
-                      <Link href={`/documents/${d.id}`}>
-                        <FileText aria-hidden="true" />
-                        View receipt
-                      </Link>
-                    </Button>
-                  ))}
-                <AskCareOS context={contextOf(record)} />
-                <Button asChild variant="outline">
-                  <Link href={`/vault/${id}/care`}>
-                    <BookOpen aria-hidden="true" />
-                    Product care
-                  </Link>
-                </Button>
               </div>
             </div>
           </div>
@@ -183,6 +203,24 @@ export default async function TwinPage({
           </div>
         </div>
       </article>
+      <nav
+        aria-label="Purchase sections"
+        className="my-5 flex flex-wrap gap-2 border-b pb-2 text-sm font-semibold text-primary"
+      >
+        {[
+          ["#overview", "Overview"],
+          ["#documents", `Documents (${documents.length})`],
+          ["#care-history", "Care & History"],
+        ].map(([href, label]) => (
+          <a
+            key={href}
+            href={href}
+            className="inline-flex min-h-11 items-center rounded-xl px-3 hover:bg-secondary"
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
       {adjustment && (
         <section className="mt-7" aria-label="Price Guardian adjustment">
           <GuardianCard item={adjustment} />
@@ -190,19 +228,23 @@ export default async function TwinPage({
       )}
       <div className="mt-8 grid grid-cols-1 items-start gap-7 xl:grid-cols-[1.4fr_1fr]">
         <div className="min-w-0">
-          <section aria-labelledby="documents-heading">
+          <section id="documents" aria-labelledby="documents-heading">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <h2 id="documents-heading" className="section-title">
-                The paperwork
+                Documents
               </h2>
               <Badge tone="blue">
                 <FileText className="size-3.5" aria-hidden="true" />
                 Source labeled
               </Badge>
             </div>
-            <DocumentList documents={documents} />
+            <DocumentList documents={documents} from={from} />
           </section>
-          <section aria-labelledby="history-heading" className="mt-8">
+          <section
+            id="care-history"
+            aria-labelledby="history-heading"
+            className="mt-8"
+          >
             <h2 id="history-heading" className="section-title mb-5">
               Care history
             </h2>
@@ -216,10 +258,13 @@ export default async function TwinPage({
             {adjustment && <GuardianTimeline item={adjustment} />}
           </section>
           {verified && (
-            <section className="mt-8" aria-labelledby="evidence-heading">
-              <h2 id="evidence-heading" className="section-title mb-5">
+            <details className="mt-8 rounded-2xl border bg-card p-5">
+              <summary
+                id="evidence-heading"
+                className="min-h-11 cursor-pointer text-base font-semibold"
+              >
                 Sandbox payment evidence
-              </h2>
+              </summary>
               <Card>
                 <dl className="space-y-4 break-all text-sm">
                   {[
@@ -234,7 +279,7 @@ export default async function TwinPage({
                   ))}
                 </dl>
               </Card>
-            </section>
+            </details>
           )}
         </div>
         <div className="space-y-5">
@@ -263,7 +308,7 @@ export default async function TwinPage({
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               <Button asChild variant="outline">
-                <Link href={`/vault/${id}/care`}>
+                <Link href={withLibraryReturn(`/vault/${id}/care`, from)}>
                   Explore available guidance
                 </Link>
               </Button>

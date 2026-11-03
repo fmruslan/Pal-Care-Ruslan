@@ -5,7 +5,7 @@ const themeKey = "palcare-appearance";
 const twin = "/vault/00000000-0000-4000-8000-000000000201";
 const dataSource = process.env.E2E_DATA_SOURCE ?? "fixtures";
 
-test("purchase-card CareOS uses the existing assistant, keeps drafts across appearance changes and sends no model turn", async ({
+test("purchase details use the existing assistant, keep drafts across appearance changes and send no model turn", async ({
   page,
 }) => {
   const turns: string[] = [],
@@ -24,8 +24,11 @@ test("purchase-card CareOS uses the existing assistant, keeps drafts across appe
   await page.goto("/dashboard");
   await expect(page.locator("[data-purchase-card]")).toHaveCount(4);
   await page
+    .getByRole("link", { name: /^View details for Everyday headphones,/ })
+    .click();
+  await page
     .getByRole("button", {
-      name: "Ask North Star about Everyday headphones",
+      name: "Ask North Star about this purchase",
       exact: true,
     })
     .click();
@@ -43,10 +46,6 @@ test("purchase-card CareOS uses the existing assistant, keeps drafts across appe
   await page.locator(".careos-launcher").click();
   await expect(composer).toHaveValue("Keep my unsent care question");
   await expect(composer).toHaveCSS("background-color", "rgb(29, 38, 48)");
-  await expect(page.locator("aside").first()).toHaveCSS(
-    "background-color",
-    "rgb(39, 51, 62)",
-  );
   await expect(page.locator("header").first()).toHaveCSS(
     "background-color",
     "rgb(39, 51, 62)",
@@ -178,7 +177,9 @@ test("blocked local storage falls back to System without breaking the app", asyn
   await expect(page.getByRole("combobox", { name: "Appearance" })).toHaveValue(
     "system",
   );
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Alex");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Your purchases, together.",
+  );
 });
 
 test("theme changes preserve checkout state and never create extra financial POSTs (mock UI transport)", async ({
@@ -261,14 +262,12 @@ test("keyboard theme selection, reduced motion and mobile navigation remain acce
     ),
   ).toBe(true);
   if (!info.project.name.startsWith("desktop")) {
-    const nav = page.getByRole("navigation", { name: "Mobile navigation" });
+    const nav = page.getByRole("navigation", {
+      name: "Main navigation",
+      exact: true,
+    });
     await expect(nav).toBeVisible();
-    await expect(nav.getByRole("link")).toHaveText([
-      "Home",
-      "Purchases",
-      "Insights",
-      "Documents",
-    ]);
+    await expect(nav.getByRole("link")).toHaveText(["Home", "Insights"]);
     for (const link of await nav.getByRole("link").all()) {
       const box = await link.boundingBox();
       expect(box!.height).toBeGreaterThanOrEqual(44);
@@ -277,8 +276,11 @@ test("keyboard theme selection, reduced motion and mobile navigation remain acce
     await nav.getByRole("link", { name: "Insights", exact: true }).click();
     await expect(page).toHaveURL(/\/insights$/);
     await expect(nav.locator('[aria-current="page"]')).toHaveText("Insights");
-    await nav.getByRole("link", { name: "Documents", exact: true }).click();
-    await expect(page).toHaveURL(/\/documents$/);
+    await nav.getByRole("link", { name: "Home", exact: true }).click();
+    await page
+      .getByRole("link", { name: "All documents", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/dashboard\?view=documents$/);
   }
   expect(
     await page.evaluate(

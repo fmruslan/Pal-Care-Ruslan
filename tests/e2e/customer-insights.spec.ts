@@ -11,8 +11,8 @@ import type { GuardianOverview } from "../../src/lib/price-guardian/contracts";
 // These are real local SDK/browser checks with scripted planning, not model or
 // PayPal acceptance. The existing config supplies fixtures or a dedicated test DB.
 const dataSource = process.env.E2E_DATA_SOURCE ?? "fixtures";
-const primaryLabels = ["Home", "Purchases", "Insights", "Documents"];
-const primaryPaths = ["/dashboard", "/vault", "/insights", "/documents"];
+const primaryLabels = ["Home", "Insights"];
+const primaryPaths = ["/dashboard", "/insights"];
 const headphoneId = "00000000-0000-4000-8000-000000000201";
 const piId = "00000000-0000-4000-8000-000000000204";
 
@@ -302,17 +302,15 @@ const usd = (minor: number) =>
     minor / 100,
   );
 
-test("customer navigation keeps four coherent destinations and secondary exploration", async ({
+test("customer navigation keeps two visible destinations and secondary exploration", async ({
   page,
 }) => {
   await page.goto("/dashboard");
   // Select by the known CSS breakpoint, not a non-waiting visibility snapshot
   // while the server-streamed shell may still be arriving.
   const navigation = page.getByRole("navigation", {
-    name:
-      page.viewportSize()!.width < 1024
-        ? "Mobile navigation"
-        : "Main navigation",
+    name: "Main navigation",
+    exact: true,
   });
   await expect(navigation).toBeVisible();
   for (let index = 0; index < primaryLabels.length; index++) {
@@ -551,11 +549,7 @@ test("Insights source records retain the exact Twin, receipt and reference-care 
             origin: card.textContent?.includes("Verified sandbox")
               ? "sandbox"
               : "sample",
-            category: card
-              .querySelector("p")!
-              .textContent!.split("/")
-              .at(-1)!
-              .trim(),
+            category: card.getAttribute("data-category")!,
             name: card.querySelector("h2")!.textContent!.trim(),
           };
         })

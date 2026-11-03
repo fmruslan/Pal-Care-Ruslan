@@ -63,7 +63,7 @@ for (const width of [375, 430, 1440]) {
       await route.continue();
     });
     const nav = page.getByRole("navigation", {
-      name: width < 1024 ? "Mobile navigation" : "Main navigation",
+      name: "Main navigation",
       exact: true,
     });
     const launcher = page.getByRole("button", {
@@ -89,10 +89,12 @@ for (const width of [375, 430, 1440]) {
       await expect(page).toHaveURL(/\/insights$/);
       await importRequested;
       expect(held).toBe(true);
-      await nav
-        .getByRole("link", { name: "Documents", exact: true })
+      await nav.getByRole("link", { name: "Home", exact: true }).press("Enter");
+      await expect(page).toHaveURL(/\/dashboard$/);
+      await page
+        .getByRole("link", { name: "All documents", exact: true })
         .press("Enter");
-      await expect(page).toHaveURL(/\/documents$/);
+      await expect(page).toHaveURL(/\/dashboard\?view=documents$/);
       releaseImport();
       await launcher.click();
       await expect(
@@ -106,10 +108,12 @@ for (const width of [375, 430, 1440]) {
         page.getByRole("button", { name: "My Purchases", exact: true }),
       ).toBeEnabled({ timeout: 20000 });
       await expect(page.getByTestId("insight-documents-care")).toBeVisible();
-      await nav
-        .getByRole("link", { name: "Documents", exact: true })
+      await nav.getByRole("link", { name: "Home", exact: true }).press("Enter");
+      await expect(page).toHaveURL(/\/dashboard$/);
+      await page
+        .getByRole("link", { name: "All documents", exact: true })
         .press("Enter");
-      await expect(page).toHaveURL(/\/documents$/);
+      await expect(page).toHaveURL(/\/dashboard\?view=documents$/);
       expect(errors).toEqual([]);
       expect(prohibited).toEqual([]);
     } finally {

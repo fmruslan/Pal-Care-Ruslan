@@ -241,7 +241,7 @@ test("comparison plus table retrieves prior-period evidence; a plain total keeps
 
 test("leaving before a chart response keeps the late saved answer without reopening Insights or replaying its action", async ({
   page,
-}, info) => {
+}) => {
   let signalHeld!: () => void;
   const held = new Promise<void>((resolve) => {
     signalHeld = resolve;
@@ -284,20 +284,19 @@ test("leaving before a chart response keeps the late saved answer without reopen
     await page.keyboard.press("Escape");
     await expect(dialog).not.toBeVisible();
     const nav = page.getByRole("navigation", {
-      name:
-        (info.project.use.viewport?.width ?? 1440) < 1024
-          ? "Mobile navigation"
-          : "Main navigation",
+      name: "Main navigation",
       exact: true,
     });
-    await nav
-      .getByRole("link", { name: "Documents", exact: true })
+    await nav.getByRole("link", { name: "Home", exact: true }).press("Enter");
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await page
+      .getByRole("link", { name: "All documents", exact: true })
       .press("Enter");
-    await expect(page).toHaveURL(/\/documents$/);
+    await expect(page).toHaveURL(/\/dashboard\?view=documents$/);
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: "Your paperwork, together.",
+        name: "Your purchases, together.",
         exact: true,
       }),
     ).toBeVisible();
@@ -325,7 +324,7 @@ test("leaving before a chart response keeps the late saved answer without reopen
           requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
         ),
     );
-    await expect(page).toHaveURL(/\/documents$/);
+    await expect(page).toHaveURL(/\/dashboard\?view=documents$/);
     await expect(article.getByRole("status")).toContainText(
       "not yet confirmed",
     );

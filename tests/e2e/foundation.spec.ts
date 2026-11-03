@@ -12,30 +12,47 @@ test("public landing page opens customer demo without registration", async ({
     .getByRole("link", { name: "Explore Pal Care", exact: true })
     .click();
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Alex");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Your purchases, together.",
+  );
   await expect(page.getByRole("note")).toContainText("Fictional customer");
 });
 
 test("vault search, filter and empty state work", async ({ page }) => {
   await page.goto("/vault");
-  await page.getByLabel("Search purchases").fill("headphones");
+  // A streamed Next response can briefly contain an inaccessible staging copy.
+  // Target the actual accessible control, then require one hydrated DOM form.
+  const search = page.getByRole("searchbox", {
+    name: "Search products and documents",
+    exact: true,
+  });
+  await expect(search).toHaveCount(1);
+  await expect(
+    page.getByRole("combobox", { name: "Appearance", exact: true }),
+  ).toBeEnabled();
+  await expect(page.locator('input[id="library-search"]')).toHaveCount(1);
+  await search.fill("headphones");
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("1 purchase");
   await expect(
     page.getByRole("heading", { name: "Everyday headphones", exact: true }),
   ).toBeVisible();
-  await page.getByLabel("Search purchases").fill("not-in-catalog");
+  await search.fill("not-in-catalog");
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(
     page.getByRole("heading", {
-      name: "A little space for everything you love.",
+      name: "No matching purchases",
     }),
   ).toBeVisible();
-  await page.getByRole("link", { name: "Show all purchases" }).click();
-  await expect(page).toHaveURL(/\/vault$/);
-  await expect(page.getByLabel("Search purchases")).toHaveValue("");
-  await expect(page.getByLabel("Category", { exact: true })).toHaveValue("all");
-  await page.getByLabel("Category", { exact: true }).selectOption("Kitchen");
+  await page.getByRole("link", { name: "Show all purchases" }).first().click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(search).toHaveValue("");
+  await expect(
+    page.getByRole("combobox", { name: "Category", exact: true }),
+  ).toHaveValue("all");
+  await page
+    .getByRole("combobox", { name: "Category", exact: true })
+    .selectOption("Kitchen");
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("1 purchase");
   await expect(

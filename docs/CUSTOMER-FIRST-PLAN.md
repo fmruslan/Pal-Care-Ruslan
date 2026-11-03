@@ -1,5 +1,7 @@
 # Customer-first capability plan
 
+**Owner-approved navigation refinement, 2026-11-03:** [ADR 0012](adr/0012-home-library-navigation.md) and the [Home library redesign](HOME-LIBRARY-UX-PLAN.md) replace the four-destination/sidebar requirement with **Home / Insights**. Full implementation, relevant verification, commit/push, exact-commit CI, rollback-protected automatic private 8444 deployment and HTTPS smoke checks are authorized without another routine approval. The separate 200-case campaign remains independently incomplete, not a prerequisite for this navigation slice; focused North continuity/function verification is required. This does not waive the A–E capability sequence, evidence requirements or financial/provider/public boundaries. STATUS records implementation and deployment truth.
+
 ## Purpose and decision rule
 
 **Pal Care makes a saved purchase useful after checkout.** The customer should understand their own purchases, find the right receipt, explore available documents/care and see recorded price-adjustment outcomes without managing an administrative workflow. **Customer Intelligence is the primary analytics experience; merchant investigation is not this plan's objective.**
@@ -67,15 +69,15 @@ These are acceptance requirements, **not claims that the in-progress code alread
 
 **Outcome:** the customer understands their purchase and can complete a useful task without fighting navigation, crowded dashboards or a fragile assistant.
 
-- Make **Home (`/dashboard`) / Purchases (`/vault`) / Insights (`/insights`) / Documents (`/documents`)** the coherent customer navigation on desktop and mobile. Demo shop, Guardian, safety and replacements remain contextual/secondary destinations; do not make merchant investigation the customer's analytics entry point.
-- Apply the owner-approved Blue / Saffron / Deep Purple identity and shared semantic System/Light/Dark design across Home, Purchases/Twins, Insights, Documents, care, safety/replacements and checkout states. [ADR 0010](adr/0010-blue-saffron-purple.md) supersedes the former Blue/Lavender color assignment; preserve the working architecture and acceptance gates. Follow [DESIGN](DESIGN.md).
+- Make **Home (`/dashboard`) / Insights (`/insights`)** the coherent visible customer header navigation on desktop and mobile. Home combines purchase browsing, provider-free product/document metadata search and All documents (`/dashboard?view=documents`). Preserve dated detail/document links and compatibility list redirects. Demo shop, Guardian, safety and replacements remain contextual/secondary destinations; do not make merchant investigation the customer's analytics entry point.
+- Apply the owner-approved Bronze / Violet / Slate identity and shared semantic System/Light/Dark design across Home, Purchases/Twins, Insights, Documents, care, safety/replacements and checkout states. [ADR 0011](adr/0011-bronze-violet-identity.md) supersedes ADR 0010's color assignment; preserve the working architecture and acceptance gates. Follow [DESIGN](DESIGN.md).
 - Give the Purchase Twin, relevant facts and the next useful action a clear hierarchy. Keep one persistent customer assistant, readable long answers, visible submitted questions, explicit purchase confirmation and accessible source/detail disclosure.
 - Verify keyboard/focus, touch targets, responsive reading space, text enlargement, reduced motion, contrast, mobile keyboard/IME and failure/recovery states. Appearance remains browser-local, never authorization or a reason to remount checkout.
 - Include owner feedback before declaring the customer UX accepted or frozen. A screenshot, generated mockup or agent preference is not customer approval.
 
 **Acceptance gate C**
 
-- [ ] Home → Purchases/Twin → Insights → matching receipt/document/care and back feels like one product, with the same four primary destinations, context/provenance/status wording and persistent CareOS. No dead ends, hidden essential content or unnecessary chat dependency.
+- [ ] Home → dated Purchase Twin → matching receipt/document/care → Insights and back feels like one product, with the same two primary header destinations, context/provenance/status wording and persistent North. Unified search and All documents support document-first retrieval without chat. No dead ends, hidden essential content or unnecessary chat dependency.
 - [ ] Light/dark/System, keyboard, mobile/narrow layouts, long-answer reading, pending/error/empty states and enlarged text pass functional and visual review. Direct presentation changes issue no financial or automatic model requests; explicit authorized CareOS analytics prompts remain permitted.
 - [ ] Owner review and remaining human/real-device observations are recorded explicitly. Cross-engine mobile emulation and injected keyboard geometry are not real-device certification.
 

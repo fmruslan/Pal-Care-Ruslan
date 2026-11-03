@@ -1,5 +1,7 @@
 # Product vision and scope
 
+**Current owner-approved navigation:** **Home / Insights**, with the unified saved-purchase/document library on Home and complete dated Purchase Twins underneath. This supersedes older four-link navigation descriptions below; [ADR 0012](adr/0012-home-library-navigation.md) and the [approved redesign](HOME-LIBRARY-UX-PLAN.md) define the scope. Implementation, actual deployment and owner acceptance remain separately recorded in [STATUS](STATUS.md).
+
 **Complete North makeover approved; implementation/acceptance ongoing:** Pal Care remains the product. Its assistant is **North ☆**, pronounced **North Star**, with violet accents and no assistant attribution branding. The approved continuous project unifies saved-purchase search, computed personal analytics, native Insights, follow-ups and grounded product care while preserving product context and financial safeguards. Isolated saved-record/native evidence does not establish live semantic quality, the required new **200 genuine evaluated cases**, owner/real-device acceptance or installation on the working preview. [Approved complete plan](NORTH-FULL-MAKEOVER-PLAN.md) · [implementation truth](STATUS.md). Historical CareOS descriptions below retain their original scope.
 
 ## North star

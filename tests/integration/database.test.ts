@@ -11,6 +11,8 @@ import {
   MERCHANT_ID,
 } from "../../src/lib/demo/fixtures";
 import "../../scripts/environment";
+import { homeLibrary } from "../../src/lib/demo/library";
+import { parseLibraryQuery } from "../../src/lib/library-navigation";
 
 // An explicit TEST_DATABASE_URL prevents accidental integration writes to a deployed DB.
 const url = process.env.TEST_DATABASE_URL;
@@ -39,6 +41,29 @@ test("migrations and sample seed can run twice without duplicate records", async
   assert.equal(data.documents.length, 4);
   assert.equal(data.events.length, 4);
   assert.deepEqual(data.products, demoData.products);
+});
+
+test("Home searches actual dedicated-PostgreSQL saved purchases and documents together without writes", async () => {
+  const before = await readDemoData(db, { library: true });
+  const receipt = homeLibrary(
+    before,
+    parseLibraryQuery({ q: "kettle receipt" }),
+  );
+  assert.deepEqual(
+    receipt.documents.map((d) => d.document.id),
+    [demoData.documents.find((d) => d.title.includes("Kettle"))!.id],
+  );
+  assert.equal(
+    receipt.documents[0].purchase.id,
+    receipt.documents[0].document.twinId,
+  );
+  assert.equal(receipt.documents[0].document.origin, "sample");
+  assert.equal(
+    homeLibrary(before, parseLibraryQuery({ q: "manufacturer manual" }))
+      .documentCount,
+    0,
+  );
+  assert.deepEqual(await readDemoData(db, { library: true }), before);
 });
 
 test("runtime connection rejects writes at the PostgreSQL session boundary", async () => {

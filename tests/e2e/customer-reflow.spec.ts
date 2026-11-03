@@ -5,9 +5,7 @@ import AxeBuilder from "@axe-core/playwright";
 // No synthetic verified purchase or provider record is inserted into any DB.
 const widths = [320, 375, 390, 430, 834, 1440];
 const destinations = [
-  ["Purchases", "/vault"],
   ["Insights", "/insights"],
-  ["Documents", "/documents"],
   ["Home", "/dashboard"],
 ] as const;
 
@@ -108,7 +106,7 @@ for (const width of widths) {
       animations: "disabled",
     });
     const nav = page.getByRole("navigation", {
-      name: width < 1024 ? "Mobile navigation" : "Main navigation",
+      name: "Main navigation",
       exact: true,
     });
     await page.evaluate(() => scrollTo(0, 0));

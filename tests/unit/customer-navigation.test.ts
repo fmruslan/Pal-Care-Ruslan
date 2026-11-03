@@ -43,18 +43,16 @@ function renderShell(active = "/dashboard", merchant = false) {
 }
 
 describe("customer navigation contract", () => {
-  it("has exactly Home, Purchases, Insights and Documents in that order", () => {
+  it("has exactly Home and Insights in that order", () => {
     expect(customerNavigation).toEqual([
       { href: "/dashboard", label: "Home" },
-      { href: "/vault", label: "Purchases" },
       { href: "/insights", label: "Insights" },
-      { href: "/documents", label: "Documents" },
     ]);
   });
 
   it("renders the same destinations and selected page on desktop and mobile", () => {
     const markup = renderShell("/insights");
-    for (const region of ["Main navigation", "Mobile navigation"]) {
+    for (const region of ["Main navigation"]) {
       const links = navigationLinks(markup, region);
       expect(links.map(({ href, label }) => ({ href, label }))).toEqual(
         customerNavigation,
@@ -67,17 +65,17 @@ describe("customer navigation contract", () => {
 
   it("keeps nested pages in their section without matching unrelated prefixes", () => {
     for (const path of ["/vault/purchase-id", "/vault/purchase-id/care"])
-      expect(customerSection(path)?.href).toBe("/vault");
-    expect(customerSection("/documents/document-id")?.href).toBe("/documents");
+      expect(customerSection(path)?.href).toBe("/dashboard");
+    expect(customerSection("/documents/document-id")?.href).toBe("/dashboard");
     expect(customerSection("/insights/detail")?.href).toBe("/insights");
     for (const path of ["/vaulted", "/insights-extra", "/shop", "/merchant"])
       expect(customerSection(path)).toBeUndefined();
-    for (const region of ["Main navigation", "Mobile navigation"])
+    for (const region of ["Main navigation"])
       expect(
         navigationLinks(renderShell("/documents/document-id"), region)
           .filter(({ current }) => current)
           .map(({ href }) => href),
-      ).toEqual(["/documents"]);
+      ).toEqual(["/dashboard"]);
   });
 
   it("keeps secondary destinations behind a native keyboard-accessible disclosure", () => {

@@ -195,13 +195,22 @@ async function navigate(page: Page, label: string, path: string) {
   });
   if (await close.isVisible()) await close.click();
   const navigation = page.getByRole("navigation", {
-    name:
-      page.viewportSize()!.width < 1024
-        ? "Mobile navigation"
-        : "Main navigation",
+    name: "Main navigation",
+    exact: true,
   });
-  await navigation.getByRole("link", { name: label, exact: true }).click();
-  await expect(page).toHaveURL(new RegExp(`${path}$`));
+  await navigation
+    .getByRole("link", {
+      name: label === "All documents" ? "Home" : label,
+      exact: true,
+    })
+    .click();
+  if (label === "All documents")
+    await page
+      .getByRole("link", { name: "All documents", exact: true })
+      .click();
+  await expect(page).toHaveURL(
+    (url) => `${url.pathname}${url.search}` === path,
+  );
 }
 
 test("new North conversation exposes exactly four optional, honest discovery shortcuts and no automatic question", async ({
@@ -457,11 +466,9 @@ test("explicitly choosing the identical implicit purchase persists across anothe
   await dialog
     .getByRole("button", { name: "Close North Star", exact: true })
     .click();
+  await page.getByRole("link", { name: "Back to Home", exact: true }).click();
   await page
-    .getByRole("link", { name: "Back to purchase vault", exact: true })
-    .click();
-  await page
-    .getByRole("link", { name: "View details for Raspberry Pi 5", exact: true })
+    .getByRole("link", { name: /^View details for Raspberry Pi 5,/ })
     .click();
   await openNorth(page);
   await expect(dialog.locator(".careos-context strong")).toHaveText(
@@ -589,8 +596,8 @@ test("one timeline and draft survive customer navigation, Insights and return, c
   const care = await sendCare(page, opened.dialog, "Find receipt");
   await opened.composer.fill("Keep this cross-page draft");
   for (const [label, path] of [
-    ["Purchases", "/vault"],
-    ["Documents", "/documents"],
+    ["Home", "/dashboard"],
+    ["All documents", "/dashboard?view=documents"],
     ["Insights", "/insights"],
   ]) {
     await navigate(page, label, path);

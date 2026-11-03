@@ -1,106 +1,19 @@
-import Link from "next/link";
-import { Search, Archive, ArrowRight } from "lucide-react";
-import { getDemoData } from "@/lib/demo/repository";
-import { findTwin } from "@/lib/demo/presentation";
-import { Shell } from "@/components/shell";
-import { TwinList } from "@/components/vault";
-import { PageHeading } from "@/components/page-heading";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { redirect, RedirectType } from "next/navigation";
+import {
+  libraryHref,
+  parseLibraryQuery,
+  type LibraryParams,
+} from "@/lib/library-navigation";
 
 export const metadata = { title: "Purchases" };
 export default async function Vault({
   searchParams,
 }: {
-  searchParams: Promise<{
-    q?: string | string[];
-    category?: string | string[];
-  }>;
+  searchParams: Promise<LibraryParams>;
 }) {
-  const data = await getDemoData();
-  const params = await searchParams;
-  const q = typeof params.q === "string" ? params.q.slice(0, 128) : "";
-  const category =
-    typeof params.category === "string" ? params.category : "all";
-  const categories = [
-    ...new Set(data.products.map((product) => product.category)),
-  ];
-  const ids = data.twins
-    .filter((twin) => {
-      const product = findTwin(data, twin.id)?.product;
-      return (
-        product &&
-        `${product.name} ${product.brand} ${product.model}`
-          .toLowerCase()
-          .includes(q.toLowerCase()) &&
-        (category === "all" || product.category === category)
-      );
-    })
-    .map((twin) => twin.id);
-  return (
-    <Shell active="/vault" source={data.source}>
-      <PageHeading
-        eyebrow="Your ownership library"
-        title="Purchases"
-        description="Your Purchase Twins, together. Open a purchase for its documents, care history, and available guidance. Samples and verified Sandbox purchases are always labeled separately."
-        action={
-          <Badge tone="blue">
-            <Archive className="size-3.5" aria-hidden="true" />
-            {data.twins.length} Purchase Twins
-          </Badge>
-        }
-      />
-      <form
-        key={JSON.stringify([q, category])}
-        action="/vault"
-        role="search"
-        className="mb-6 flex flex-col gap-3 rounded-2xl border bg-card p-4 sm:flex-row"
-      >
-        <label className="relative flex-1">
-          <span className="sr-only">Search purchases</span>
-          <Search
-            className="absolute top-4 left-4 size-4 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <Input
-            name="q"
-            placeholder="Find something you love…"
-            defaultValue={q}
-            className="bg-card pl-11"
-            maxLength={128}
-          />
-        </label>
-        <label>
-          <span className="sr-only">Category</span>
-          <select
-            aria-label="Category"
-            name="category"
-            defaultValue={categories.includes(category) ? category : "all"}
-            className="h-12 w-full rounded-xl border border-input bg-card px-4 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:w-44"
-          >
-            <option value="all">All categories</option>
-            {categories.map((value) => (
-              <option key={value}>{value}</option>
-            ))}
-          </select>
-        </label>
-        <Button type="submit">Search</Button>
-      </form>
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-        <p role="status" className="text-sm text-muted-foreground">
-          {ids.length} purchase{ids.length !== 1 && "s"}
-          {q && ` matching “${q}”`}
-        </p>
-        <Link
-          href="/insights"
-          className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-intelligence-foreground"
-        >
-          Explore purchase Insights
-          <ArrowRight className="size-4" aria-hidden="true" />
-        </Link>
-      </div>
-      <TwinList data={data} ids={ids} />
-    </Shell>
-  );
+  const query = parseLibraryQuery(await searchParams);
+  // Preserve malformed state for Home's explicit unsupported-filter message.
+  if (!query.valid)
+    redirect("/dashboard?source=unsupported", RedirectType.replace);
+  redirect(libraryHref(query), RedirectType.replace);
 }

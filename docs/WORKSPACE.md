@@ -35,6 +35,8 @@ Open **https://greatbison.tail9e8802.ts.net:8444/dashboard** while connected to 
 
 ### Routine approved preview refresh
 
+**Approved Home-library delivery exception (2026-11-03):** the owner authorizes a verified immutable rollback snapshot to serve the **same** existing 8444 → 3002 route through a task-scoped runtime-only service drop-in while the primary checkout is built/tested. This is application continuity, not an alternate development worktree, new browsing system, guard bypass or public exposure. The snapshot launcher verifies its source/assets and current restricted-role/evidence checks, using current authority/accounting. At final cutover remove only the task's drop-in and restore the unchanged primary launcher after clean exact-commit build/CI. Keep the snapshot for automatic application-only rollback on critical regression. [Scope and recovery procedure](evidence/HOME-LIBRARY-REDESIGN.md). Never mutate the serving snapshot or roll back data/credentials/accounting.
+
 1. Confirm primary `main`, remote, status and `pnpm workspace:check`. Preserve protected-file hashes/read-only data fingerprints and the complete recovery build outside Git.
 2. `systemctl --user stop palcare-preview.service` **before** typegen/build/application suites. Do not rebuild serving `.next` files. Do not stop/recreate the database.
 3. Make the requested reversible edits and run relevant tests, lint, format, typecheck and build. Commit locally on `main` when authorized. Build again after the final commit: startup requires clean tracked main, exact commit, source hash and build ID.

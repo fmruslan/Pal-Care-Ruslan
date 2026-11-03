@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { WorkspaceNavigationLink as Link } from "./intelligence/workspace-navigation-link";
 import Image from "next/image";
 
 export function Brand({ href = "/" }: { href?: string }) {

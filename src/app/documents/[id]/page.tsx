@@ -2,7 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Download } from "lucide-react";
 import { getDemoData } from "@/lib/demo/repository";
-import { findTwin, recordIdSchema } from "@/lib/demo/presentation";
+import { findTwin, recordIdSchema, displayDate } from "@/lib/demo/presentation";
+import {
+  libraryReturn,
+  withLibraryReturn,
+  type LibraryParams,
+} from "@/lib/library-navigation";
 import { contextOf } from "@/lib/careos/contracts";
 import {
   CareContextRegistration,
@@ -16,9 +21,12 @@ import { Button } from "@/components/ui/button";
 export const metadata = { title: "Purchase document" };
 export default async function DocumentPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<LibraryParams>;
 }) {
+  const from = libraryReturn((await searchParams)?.from);
   const { id } = await params;
   if (!recordIdSchema.safeParse(id).success) notFound();
   const data = await getDemoData(undefined, id);
@@ -29,7 +37,7 @@ export default async function DocumentPage({
     <Shell active="/documents" source={data.source}>
       <CareContextRegistration context={contextOf(record)} />
       <Link
-        href={`/vault/${record.twin.id}`}
+        href={withLibraryReturn(`/vault/${record.twin.id}`, from)}
         className="mb-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
@@ -38,7 +46,7 @@ export default async function DocumentPage({
       <PageHeading
         eyebrow="Your paperwork, close at hand"
         title={document.title}
-        description={`${record.product.brand} ${record.product.model} · Saved purchase document`}
+        description={`${record.product.brand} ${record.product.model} · ${displayDate(record.twin.purchasedOn)} · Saved purchase document`}
         action={
           <Badge tone={document.origin === "sandbox" ? "success" : "neutral"}>
             {document.origin === "sandbox"
@@ -47,12 +55,7 @@ export default async function DocumentPage({
           </Badge>
         }
       />
-      <article aria-label="Document contents" className="passport-frame">
-        <pre className="overflow-wrap-anywhere rounded-[27px] bg-card p-5 font-sans text-sm leading-8 whitespace-pre-wrap break-words sm:p-8">
-          {document.content}
-        </pre>
-      </article>
-      <div className="mt-6 flex flex-wrap gap-3">
+      <div className="mb-5 flex flex-wrap gap-3">
         <Button asChild variant="outline">
           <a href={`/api/documents/${id}/download`}>
             <Download aria-hidden="true" />
@@ -61,6 +64,14 @@ export default async function DocumentPage({
         </Button>
         <AskCareOS context={contextOf(record)} />
       </div>
+      <article
+        aria-label="Document contents"
+        className="passport-frame max-w-4xl"
+      >
+        <pre className="overflow-wrap-anywhere rounded-[27px] bg-card p-5 font-sans text-sm leading-8 whitespace-pre-wrap break-words sm:p-8">
+          {document.content}
+        </pre>
+      </article>
     </Shell>
   );
 }

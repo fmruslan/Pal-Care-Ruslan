@@ -3,7 +3,6 @@ import {
   ArrowRight,
   Archive,
   FileText,
-  Download,
   CalendarDays,
   Check,
 } from "lucide-react";
@@ -15,6 +14,7 @@ import { findTwin, money, displayDate } from "@/lib/demo/presentation";
 import { REFERENCE_PRODUCT } from "@/lib/careos/knowledge";
 import { ProductArt } from "./product-art";
 import { AskCareOS } from "./careos/provider";
+import { withLibraryReturn } from "@/lib/library-navigation";
 
 export function PurchaseBadge({ origin }: { origin: string }) {
   return (
@@ -140,7 +140,13 @@ export function TwinList({
   );
 }
 
-export function DocumentList({ documents }: { documents: CareDocument[] }) {
+export function DocumentList({
+  documents,
+  from = "/dashboard",
+}: {
+  documents: CareDocument[];
+  from?: string;
+}) {
   if (!documents.length)
     return (
       <Card className="py-12 text-center">
@@ -179,8 +185,8 @@ export function DocumentList({ documents }: { documents: CareDocument[] }) {
             </div>
           </div>
           <Button variant="outline" asChild size="sm">
-            <Link href={`/documents/${document.id}`}>
-              <Download aria-hidden="true" />
+            <Link href={withLibraryReturn(`/documents/${document.id}`, from)}>
+              <ArrowRight aria-hidden="true" />
               Open<span className="sr-only"> {document.title}</span>
             </Link>
           </Button>

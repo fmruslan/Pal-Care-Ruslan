@@ -1,5 +1,12 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
+## Home library presentation
+
+- `GET /dashboard` is the Home purchase library; `?view=documents` opens All documents. Bounded URL state: `q` (≤128 characters), `category` (known saved category), `source` (`all` / `sample` / `sandbox`, the **parent purchase's** source), `documents` (`all` / `present` / `missing`), `sort` (`newest` / `oldest` / `name`), `page` (1–1000). Repeated/invalid known values produce an unsupported-filter state, not a silently broadened result. Nonempty search displays both purchase and document result groups.
+- Search is read-only product name/brand/model/category plus document title/kind metadata; normalized tokens support `kettle receipt`. It does not invoke a conversation/model route, search untrusted document bodies or acquire missing documents. The restricted fixed-fictional saved-library read probes 1001 purchases, projects at most 1000, searches before paginating (12 per result group), and labels partial/invalid evidence. No new endpoint/schema/grant is introduced; database outages do not substitute fixtures.
+- `GET /vault` and `GET /documents` issue temporary compatibility redirects into Home with validated supported query state. Individual `/vault/:uuid`, `/vault/:uuid/care`, `/documents/:uuid` and `/api/documents/:uuid/download` remain. Optional `from` on detail pages is a bounded allowlisted Home URL with normalized library parameters; it is presentation state only, never arbitrary redirect/identity/permission.
+- Attached sample documents keep their own provenance even when the parent purchase is Verified Sandbox. Direct navigation/search/theme never sends an AI turn or financial request. Root North, native Insights, original source IDs/records and all existing authorization/accounting are unchanged. [ADR 0012](adr/0012-home-library-navigation.md) · [verification/deployment](STATUS.md).
+
 **Main promotion executed and actual HTTPS verified:** the owner-approved 8444 launcher selects the same conversational records `/interpret` implementation using an exact main-origin presentation flag. It does not reuse the 8445 flag or rewrite request origins. Original 8444 authentication, policy, cookies and shared accounting remain required; no access/financial/migration authority follows from this flag. Genuine interpreted turns and unauthorized-model 403 denial passed after replacement. [Execution evidence](evidence/NORTH-MAIN-PROMOTION.md).
 
 ## Authenticated conversational North review — actual 8445 acceptance

@@ -13,13 +13,21 @@ import { Shell } from "@/components/shell";
 import { PageHeading } from "@/components/page-heading";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  libraryReturn,
+  withLibraryReturn,
+  type LibraryParams,
+} from "@/lib/library-navigation";
 
 export const metadata = { title: "Product care" };
 export default async function CarePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<LibraryParams>;
 }) {
+  const from = libraryReturn((await searchParams)?.from);
   const { id } = await params;
   if (!recordIdSchema.safeParse(id).success) notFound();
   const data = await getDemoData(id);
@@ -36,7 +44,7 @@ export default async function CarePage({
     <Shell active="/vault" source={data.source}>
       <CareContextRegistration context={contextOf(record)} />
       <Link
-        href={`/vault/${id}`}
+        href={withLibraryReturn(`/vault/${id}`, from)}
         className="mb-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
