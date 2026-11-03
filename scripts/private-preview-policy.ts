@@ -46,6 +46,7 @@ export function privatePreviewEnvironment(
     APP_ORIGIN: privateHttpsOrigin,
     PALCARE_PERSISTENT_PREVIEW: "true",
     PALCARE_PRIVATE_HTTPS_PREVIEW: "true",
+    PALCARE_NORTH_MAIN_ENABLED: "true",
     DEMO_DATA_SOURCE: "database",
     DATABASE_URL: urls.reader,
     CAREOS_DATABASE_URL: urls.careos,

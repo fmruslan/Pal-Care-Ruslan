@@ -106,6 +106,108 @@ test("actual saved records → bullets → totals → category/date follow-up re
   expect(axe.violations).toEqual([]);
 });
 
+test("North opens library-first and what have I bought returns linked results without a purchase picker", async ({
+  page,
+}) => {
+  const prohibited: string[] = [];
+  await page.route("**/*", async (route) => {
+    const request = route.request(),
+      url = new URL(request.url());
+    // Fixture mode initializes an empty care conversation on open. That is
+    // storage bootstrap, not a care turn/model dispatch or product selection.
+    const careBootstrap =
+      url.pathname === "/api/careos/conversations" &&
+      request.method() === "POST" &&
+      JSON.stringify(request.postDataJSON()) === "{}";
+    if (
+      request.method() === "POST" &&
+      !careBootstrap &&
+      !/^\/api\/careos\/records\/conversations(?:\/[a-f0-9-]{36}\/turns)?$/.test(
+        url.pathname,
+      )
+    ) {
+      prohibited.push(`${request.method()} ${url.pathname}`);
+      return route.abort();
+    }
+    return route.continue();
+  });
+  await page.goto("/dashboard");
+  const dialog = await open(page);
+  await expect(
+    dialog.getByRole("heading", { name: "North Star", exact: true }),
+  ).toBeVisible();
+  await expect(dialog.locator(".careos-context strong")).toHaveText(
+    "All saved purchases",
+  );
+  await expect(dialog.locator(".careos-context")).toContainText(
+    "Choosing a product is optional.",
+  );
+  await expect(
+    page.getByText("Powered by CareOS", { exact: true }),
+  ).toHaveCount(0);
+  const result = await ask(page, "what have I bought");
+  expect(result.turn.answer.questionScope).toBe("library");
+  expect(result.turn.answer.mode).toBe("deterministic");
+  expect(result.turn.answer.outcome).not.toBe("selection");
+  expect(result.turn.answer.recordsResult?.records).toHaveLength(4);
+  await expect(
+    result.article.getByRole("link", { name: /^Everyday headphones/ }),
+  ).toHaveAttribute("href", "/vault/00000000-0000-4000-8000-000000000201");
+  await expect(
+    page.getByRole("dialog", { name: "Purchase context", exact: true }),
+  ).toHaveCount(0);
+  expect(prohibited).toEqual([]);
+});
+
+test("enlarged narrow-screen text keeps answer reading space and the composer within the panel", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/dashboard");
+  const dialog = await open(page);
+  await ask(page, "Show my sample purchases");
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "200%";
+  });
+  const input = dialog.getByRole("textbox", {
+    name: "Ask about your purchases",
+    exact: true,
+  });
+  await input.focus();
+  await expect(input).toBeFocused();
+  const geometry = await dialog.evaluate((el) => {
+    const transcript = el
+      .querySelector(".careos-transcript")!
+      .getBoundingClientRect();
+    const composer = el
+      .querySelector(".careos-composer")!
+      .getBoundingClientRect();
+    const header = el.querySelector(".careos-header")!.getBoundingClientRect();
+    return {
+      transcriptHeight: transcript.height,
+      composerBottom: composer.bottom,
+      headerTop: header.top,
+      viewport: innerHeight,
+      fontSize: parseFloat(
+        getComputedStyle(el.querySelector("textarea")!).fontSize,
+      ),
+    };
+  });
+  expect(geometry.fontSize).toBeGreaterThanOrEqual(32);
+  expect(geometry.transcriptHeight).toBeGreaterThanOrEqual(150);
+  expect(geometry.composerBottom).toBeLessThanOrEqual(geometry.viewport + 1);
+  expect(geometry.headerTop).toBeGreaterThanOrEqual(0);
+  await dialog
+    .getByRole("region", { name: "Persistent purchase context", exact: true })
+    .focus();
+  await expect(
+    dialog.getByRole("region", {
+      name: "Persistent purchase context",
+      exact: true,
+    }),
+  ).toBeFocused();
+});
+
 test("comparison plus table retrieves prior-period evidence; a plain total keeps the selection without a stale comparison panel", async ({
   page,
 }) => {

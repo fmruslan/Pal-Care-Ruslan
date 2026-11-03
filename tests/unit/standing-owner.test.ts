@@ -12,6 +12,7 @@ import { PilotFiles } from "../../src/lib/careos/subscription/files";
 import { standingStructured } from "../../src/lib/careos/subscription/standing";
 import { accessToken } from "../../src/lib/careos/subscription/auth";
 import { z } from "zod";
+import { northReviewOrigin } from "../../src/lib/private-preview-origin";
 
 const roots: string[] = [];
 async function setup(limit = 5) {
@@ -54,6 +55,45 @@ afterEach(async () => {
 });
 
 describe("remembered private owner and independent standing permission (no live provider)", () => {
+  it("an additive exact review-origin approval shares the original immutable policy and spent ledger", async () => {
+    const { owner, files, proof, policy } = await setup(2);
+    await owner.installPolicy(policy);
+    const review = { ...proof, origin: northReviewOrigin };
+    await expect(
+      owner.reserve(review, "customer", "denied", true),
+    ).rejects.toThrow("origin_not_approved");
+    await owner.reserve(proof, "customer", "original", true);
+    await owner.settle("original", "completed");
+    const before = (await files.read("owner-state.json")) as {
+      policy: unknown;
+      events: unknown[];
+    };
+    const approval = {
+      version: 1,
+      origin: northReviewOrigin,
+      policyId: policy.id,
+      policyHash: createHash("sha256")
+        .update(JSON.stringify(before.policy))
+        .digest("hex"),
+      approvedAt: policy.approvedAt,
+    };
+    await owner.installReviewOriginApproval(approval);
+    expect(await files.read("owner-state.json")).toEqual(before);
+    await owner.reserve(review, "customer", "review", true);
+    await owner.settle("review", "completed");
+    await expect(
+      owner.reserve(proof, "customer", "no-reset", true),
+    ).rejects.toThrow("quota_exhausted");
+    expect(
+      ((await files.read("owner-state.json")) as typeof before).policy,
+    ).toEqual(before.policy);
+    await expect(
+      owner.assertOriginApproval("https://other.example"),
+    ).rejects.toThrow("origin_not_approved");
+    await expect(owner.installReviewOriginApproval(approval)).rejects.toThrow(
+      "origin_not_approved",
+    );
+  });
   it("diagnoses missing, rejected, pending, expired and revoked proofs without exposing secrets or granting authority", async () => {
     const { owner, files, proof, advance } = await setup();
     const before = await files.read("owner-state.json");

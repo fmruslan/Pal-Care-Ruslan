@@ -1,11 +1,14 @@
-import { privateHttpsPresentation } from "../private-preview-origin";
+import {
+  privateHttpsPresentation,
+  northReviewPresentation,
+} from "../private-preview-origin";
 
 export function studioEvaluationAllowed(
   env: Record<string, string | undefined>,
   requestHost: string,
 ) {
   if (
-    privateHttpsPresentation(env) &&
+    (privateHttpsPresentation(env) || northReviewPresentation(env)) &&
     env.AG_STUDIO_PRIVATE_DEVELOPMENT_ENABLED === "true"
   )
     return requestHost === new URL(env.APP_ORIGIN!).host;

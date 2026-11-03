@@ -211,7 +211,7 @@ test("new North conversation exposes exactly four optional, honest discovery sho
   await page.goto("/dashboard");
   const { dialog, composer } = await openNorth(page);
   await expect(dialog.locator(".careos-context strong")).toHaveText(
-    "No purchase selected",
+    "All saved purchases",
   );
   const discovery = dialog.locator("[data-north-discovery]");
   await expect(discovery.getByRole("button")).toHaveText(suggestions);
@@ -413,7 +413,7 @@ test("cancel an accidental searchable context picker without messages, navigatio
   await expect(composer).toHaveValue("Keep this question while I look");
   await expect(dialog.locator("[data-user-message]")).toHaveText(turn.message);
   await expect(dialog.locator(".careos-context strong")).toHaveText(
-    "No purchase selected",
+    "All saved purchases",
   );
   await expect(page).toHaveURL(/\/dashboard$/);
   expect(log.mutations()).toEqual(before);
@@ -509,7 +509,7 @@ test("search and directly change/remove persistent purchase context without subm
     .getByRole("button", { name: "Remove purchase context", exact: true })
     .click();
   await expect(dialog.locator(".careos-context strong")).toHaveText(
-    "No purchase selected",
+    "All saved purchases",
   );
   await expect(composer).toHaveValue(
     "A draft that context controls cannot consume",

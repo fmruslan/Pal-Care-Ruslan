@@ -15,7 +15,12 @@ import { subscriptionSession } from "../../src/lib/careos/subscription/session";
 import { studioEvaluationAllowed } from "../../src/lib/intelligence/access";
 import type { PilotFiles } from "../../src/lib/careos/subscription/files";
 import { evaluationWindowExpired } from "../../src/lib/careos/window";
-import { privateHttpsOrigin } from "../../src/lib/private-preview-origin";
+import {
+  privateHttpsOrigin,
+  northMainLivePresentation,
+  northConversationalPresentation,
+  northReviewLivePresentation,
+} from "../../src/lib/private-preview-origin";
 import { parseCareConfig } from "../../src/lib/careos/config";
 import { assertOrigin } from "../../src/lib/careos/security";
 
@@ -54,6 +59,35 @@ const session = {
 };
 
 describe("persistent private website is not AI authorization", () => {
+  it("activates main conversational presentation only on exact 8444 without migrating grants or inheriting secrets", () => {
+    const before = JSON.stringify({ app, session });
+    const env = privatePreviewEnvironment(source, app, session);
+    expect(northMainLivePresentation(env)).toBe(true);
+    expect(northConversationalPresentation(env)).toBe(true);
+    expect(northReviewLivePresentation(env)).toBe(false);
+    expect(JSON.stringify({ app, session })).toBe(before);
+    expect(() =>
+      assertEvaluationAccess("customer", app.customer, env),
+    ).toThrow();
+    for (const change of [
+      { APP_ORIGIN: "https://greatbison.tail9e8802.ts.net:8445" },
+      { APP_ORIGIN: "https://evil.example" },
+      { PALCARE_NORTH_MAIN_ENABLED: "false" },
+      { PALCARE_PRIVATE_HTTPS_PREVIEW: "false" },
+      { CAREOS_STANDING_AI_ENABLED: "false" },
+      { CAREOS_SUBSCRIPTION_CREDITS_DISABLED: "false" },
+      { CAREOS_OWNER_MODE: "false" },
+      { CAREOS_PROVIDER: "responses" },
+      { CAREOS_EVALUATION_ENABLED: "true" },
+      { CAREOS_OWNER_PAIRING_ENABLED: "true" },
+    ])
+      expect(northConversationalPresentation({ ...env, ...change })).toBe(
+        false,
+      );
+    expect(env.PAYPAL_CHECKOUT_ENABLED).toBe("false");
+    expect(env).not.toHaveProperty("OPENAI_API_KEY");
+    expect(env).not.toHaveProperty("MIGRATION_DATABASE_URL");
+  });
   it("distinguishes an intentional supervisor stop from an unexpected child crash", () => {
     expect(previewExitCode(null, "SIGKILL", false)).toBe(1);
     expect(previewExitCode(null, "SIGTERM", true)).toBe(0);

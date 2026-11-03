@@ -9,11 +9,16 @@ import { MemoryStore, type ConversationStore } from "../store";
 import { PostgresStore } from "../postgres-store";
 import { CareError } from "../contracts";
 import { digest, validCapability } from "../security";
+import { northReviewPresentation } from "../../private-preview-origin";
 
-export const RECORDS_COOKIE = "palcare-records";
+const review = northReviewPresentation(process.env);
+export const RECORDS_COOKIE = review
+  ? "palcare-north-review-records"
+  : "palcare-records";
 // A namespaced owner is incompatible with care/Insights conversation authority,
 // even if a visitor copies a known conversation ID or cookie between endpoints.
-export const recordsOwner = (token: string) => digest(`records-v1:${token}`);
+export const recordsOwner = (token: string) =>
+  digest(`${review ? "records-north-review-v1" : "records-v1"}:${token}`);
 const shared = globalThis as unknown as {
   northRecordsMemory?: MemoryStore;
   northRecordsPostgres?: PostgresStore;

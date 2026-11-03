@@ -4,6 +4,11 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { CareOSProvider } from "@/components/careos/provider";
 import { InsightsControlProvider } from "@/components/intelligence/customer-control";
 import { parseCareConfig } from "@/lib/careos/config";
+import {
+  northReviewPresentation,
+  northReviewLivePresentation,
+  northConversationalPresentation,
+} from "@/lib/private-preview-origin";
 import "./globals.css";
 
 const inter = localFont({
@@ -58,16 +63,19 @@ export default function RootLayout({
             <CareOSProvider
               mode={mode}
               ownerAccess={ownerMode}
+              conversationalAI={northConversationalPresentation(process.env)}
               aiExpiresAt={
                 !ownerMode && liveMode && Number.isFinite(expires)
                   ? expires
                   : undefined
               }
               aiAccessDisabled={
-                liveMode &&
-                (ownerMode
-                  ? process.env.CAREOS_STANDING_AI_ENABLED !== "true"
-                  : process.env.CAREOS_EVALUATION_ENABLED !== "true")
+                (northReviewPresentation(process.env) &&
+                  !northReviewLivePresentation(process.env)) ||
+                (liveMode &&
+                  (ownerMode
+                    ? process.env.CAREOS_STANDING_AI_ENABLED !== "true"
+                    : process.env.CAREOS_EVALUATION_ENABLED !== "true"))
               }
             >
               {children}

@@ -44,7 +44,9 @@ type FileName =
   | "preservation.json"
   | "quality.json"
   | "owner-state.json"
-  | "standing-approval.json";
+  | "standing-approval.json"
+  | "north-review-origin-approval.json"
+  | "north-review-origin-request.json";
 
 // Protected host storage. No environment loader or database dependency.
 // A stale lock is deliberately NOT stolen: inspect an interrupted run first.

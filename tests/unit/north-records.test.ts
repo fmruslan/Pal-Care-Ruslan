@@ -43,6 +43,30 @@ const input = (message: string) => ({
 const now = () => new Date(`${day}T12:00:00Z`);
 
 describe("North saved-record query foundation — provider-free, no financial writes", () => {
+  it("what have I bought is a fresh library query, not a selected-purchase task", async () => {
+    const message = "what have I bought";
+    expect(recordsTaskCandidate(message, undefined, false)).toBe(true);
+    expect(
+      recordsTaskCandidate(
+        message,
+        resolved("Show my Kitchen purchases"),
+        true,
+      ),
+    ).toBe(true);
+    expect(resolved(message)).toEqual(base());
+    const load = vi.fn(async () => demoData);
+    const answer = await answerRecordsTurn({
+      input: { ...input(message), twinId: null },
+      history: [],
+      load,
+      now,
+    });
+    expect(answer.mode).toBe("deterministic");
+    expect(answer.questionScope).toBe("library");
+    expect(answer.outcome).not.toBe("selection");
+    expect(answer.recordsResult?.records).toHaveLength(4);
+    expect(answer.recordsResult?.totals[0].amountMinor).toBe(30700);
+  });
   it.each([
     "Which sample purchases lack a receipt attachment rather than a care card?",
     "Retrieve my sample kitchen purchases with a saved receipt attached.",

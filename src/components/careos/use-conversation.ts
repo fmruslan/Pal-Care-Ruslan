@@ -205,6 +205,7 @@ export function useConversation(channel: "care" | "records" = "care") {
     input: TurnInput,
     context: CareContext | null,
     target: "turns" | "interpret" = "turns",
+    onAnswered?: (turn: CareTurn) => void,
   ) {
     if (locked.current || pendingRef.current) return false;
     // Read an existing hint before admitting a new submission, even if the panel was never opened.
@@ -256,6 +257,7 @@ export function useConversation(channel: "care" | "records" = "care") {
           turn,
         ],
       });
+      onAnswered?.(turn);
     } catch (e) {
       if (dispatched) {
         // The route may have persisted a terminal unavailable result before returning an error.

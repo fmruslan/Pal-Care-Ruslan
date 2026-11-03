@@ -13,7 +13,13 @@ import {
   type RecordTotal,
   type SavedRecord,
 } from "./contracts";
-import { previousPeriod, resolveRecordsQuery } from "./query";
+import {
+  previousPeriod,
+  resolveRecordsQuery,
+  normalizeRecordsLanguage,
+  recordsRequestAllowed,
+} from "./query";
+import { emptyRecordsQuery } from "./contracts";
 
 const hash = (value: unknown) =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -60,6 +66,7 @@ export function querySavedRecords(
   data: DemoData & { source?: "fixtures" | "database" },
   query: RecordsQuery,
   observedAt = new Date().toISOString(),
+  comparisonOverride?: { from: string; to: string },
 ): RecordsResult {
   query = recordsQuerySchema.parse(query);
   const projected = customerDataset(
@@ -96,10 +103,20 @@ export function querySavedRecords(
     !projected.unavailable.some(
       (v) => v === "Purchase scope" || v === "Purchase evidence",
     );
+  if (comparisonOverride) {
+    recordsQuerySchema.parse({
+      ...query,
+      from: comparisonOverride.from,
+      to: comparisonOverride.to,
+    });
+    if (query.operation !== "compare")
+      throw new CareError("careos_records_invalid_comparison");
+  }
   const comparisonRange =
-    query.operation === "compare" && query.from && query.to
+    comparisonOverride ??
+    (query.operation === "compare" && query.from && query.to
       ? previousPeriod(query.from, query.to)
-      : null;
+      : null);
   const prior = comparisonRange
     ? matchingRecords(records, { ...query, ...comparisonRange })
     : null;
@@ -117,6 +134,7 @@ export function querySavedRecords(
       document: query.document,
       price: query.price,
       search: query.search,
+      ...(comparisonOverride ? { comparison: comparisonOverride } : {}),
     }),
     observedAt,
     query,
@@ -246,6 +264,16 @@ export async function answerRecordsTurn(options: {
 }): Promise<CareAnswer> {
   const now = (options.now ?? (() => new Date()))();
   if (
+    recordsRequestAllowed(options.input.message) &&
+    /\bwarrant(?:y|ies)\b/.test(normalizeRecordsLanguage(options.input.message))
+  ) {
+    const result = querySavedRecords(
+      await options.load(),
+      emptyRecordsQuery(now.toISOString().slice(0, 10)),
+    );
+    return warrantyRecordsAnswer(result, options.input.revision);
+  }
+  if (
     /^(?:new topic|start a new topic)[.!]?$/i.test(options.input.message.trim())
   )
     return {
@@ -303,6 +331,21 @@ export async function answerRecordsTurn(options: {
     ),
     options.input.revision,
   );
+}
+
+export function warrantyRecordsAnswer(
+  result: RecordsResult,
+  revision: number,
+): CareAnswer {
+  const answer = recordsAnswer(result, revision);
+  return {
+    ...answer,
+    text: "No verified warranty-expiration dates are recorded in the available purchase data. I can't identify expiring warranties from purchase dates or return deadlines. These are relevant saved products and documents, not a list of confirmed expiring warranties.",
+    steps: [
+      "Warranty duration, start date and exclusions must be verified from the applicable terms before calculating an expiration. A saved policy is not proof of warranty coverage.",
+      ...answer.steps,
+    ],
+  };
 }
 
 export function previousRecordsResult(history: CareTurn[]) {

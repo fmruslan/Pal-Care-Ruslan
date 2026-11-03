@@ -14,6 +14,13 @@ import {
   recordsInterpretationSchema,
   RECORDS_INTERPRETATION_VERSION,
 } from "./interpretation";
+import { northConversationalPresentation } from "../../private-preview-origin";
+import {
+  answerConversationTurn,
+  conversationPlanSchema,
+  CONVERSATION_INSTRUCTIONS,
+} from "./conversation-service";
+import { getKnowledge } from "../knowledge-repository";
 
 export async function assertRecordsModelAccess() {
   const { config } = careRuntime();
@@ -47,6 +54,28 @@ export async function answerAuthorizedRecords(
     AbortSignal.timeout(TURN_DEADLINE_MS),
   ]);
   const history = (await store.get(id, owner)).turns;
+  if (northConversationalPresentation(process.env))
+    return answerConversationTurn({
+      input,
+      history,
+      load: getSavedRecordsData,
+      knowledge: getKnowledge,
+      model: provider,
+      call: async (work) => (await work(timeout)).value,
+      interpret: async (payload) => {
+        await assertRecordsModelAccess();
+        timeout.throwIfAborted();
+        return (
+          await provider.structured(
+            payload,
+            conversationPlanSchema,
+            "north_conversation_v1",
+            timeout,
+            CONVERSATION_INSTRUCTIONS,
+          )
+        ).value;
+      },
+    });
   return answerSemanticRecordsTurn({
     input,
     history,

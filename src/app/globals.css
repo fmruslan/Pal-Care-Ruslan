@@ -221,6 +221,8 @@
   }
   .careos-context {
     gap: 8px;
+    max-height: 25%;
+    overflow-y: auto;
   }
   .careos-composer form {
     gap: 8px;

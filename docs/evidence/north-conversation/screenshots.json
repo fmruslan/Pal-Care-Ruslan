@@ -1,0 +1,91 @@
+{
+  "origin": "https://greatbison.tail9e8802.ts.net:8445",
+  "screenshots": [
+    {
+      "file": "conversation-human-02.png",
+      "buildId": "mF6-SXLoa4IqO-N5A2Omb",
+      "sha256": "feec3535cf79dcad45d17e959383066cb7b837c228307ff9e8ed5bb687f9b94a"
+    },
+    {
+      "file": "conversation-human-03.png",
+      "buildId": "mF6-SXLoa4IqO-N5A2Omb",
+      "sha256": "163fd6e34d1e6fa0c58a8f556bc0483bde3319efd5690fd86cc5f2bc2f235cb3"
+    },
+    {
+      "file": "conversation-human-04.png",
+      "buildId": "mF6-SXLoa4IqO-N5A2Omb",
+      "sha256": "fb5e4d17f00f5aee12145bcba2141f506638a6d83c3b5b94b99b7010a6de22a3"
+    },
+    {
+      "file": "conversation-human-05.png",
+      "buildId": "mF6-SXLoa4IqO-N5A2Omb",
+      "sha256": "4bfe2a6eea87d47ace2c11bbc044d01e29c72317f8bff384c902fd56ea054a26"
+    },
+    {
+      "file": "conversation-human-09.png",
+      "buildId": "mF6-SXLoa4IqO-N5A2Omb",
+      "sha256": "92aa34fc93ab0b746a7daec303552bd5816c404485ae29230489c3e4c20fae2f"
+    },
+    {
+      "file": "conversation-human-10-native.png",
+      "buildId": "mF6-SXLoa4IqO-N5A2Omb",
+      "sha256": "be4afc3c8d3406ce9d7349c0c9f956e2a65cb4769cfd52fee5a18b5f97891966"
+    },
+    {
+      "file": "conversation-human-13.png",
+      "buildId": "mF6-SXLoa4IqO-N5A2Omb",
+      "sha256": "8a50b58737e2eacd9c4cf8bb1a714d5e03eaf3b22bbde59692a38ff3ac03f527"
+    },
+    {
+      "file": "conversation-human-17.png",
+      "buildId": "mF6-SXLoa4IqO-N5A2Omb",
+      "sha256": "3bef798ded95fe58bfc8d4435a7aca038c73b1019e87de9d1e9ad7680bcc7c96"
+    },
+    {
+      "file": "current-natural-01.png",
+      "buildId": "JRrxEWNBIyXzxCZMKaXRk",
+      "sha256": "f56918e1b7874010a1baa21b4a394a2de64d3ce8c8094a148e5da5d2d09c546b"
+    },
+    {
+      "file": "current-natural-02.png",
+      "buildId": "JRrxEWNBIyXzxCZMKaXRk",
+      "sha256": "6b9e7b7487544aab824e8365097cfc7b71e1069b2e738b25f10d3bb1b097b655"
+    },
+    {
+      "file": "current-natural-03.png",
+      "buildId": "JRrxEWNBIyXzxCZMKaXRk",
+      "sha256": "8af64524e643f7e28263fd18442def4dd737d6760e19e60452762da5fdea2ae0"
+    },
+    {
+      "file": "current-natural-04.png",
+      "buildId": "JRrxEWNBIyXzxCZMKaXRk",
+      "sha256": "1e64979053af7d1f8ad05df6a8de3c2a70f312db08a0cd98d0ee6b7534eba14c"
+    },
+    {
+      "file": "current-enlarged-text-keyboard.png",
+      "buildId": "JRrxEWNBIyXzxCZMKaXRk",
+      "sha256": "5ae32e7ab3693f894fd3442128dbc3fcd4065fbc7c43f8bfece1a96b943642a9"
+    },
+    {
+      "file": "retained-care-followup-failure.png",
+      "buildId": "Z0Ut87UXI2pEJRYxYfN-z",
+      "sha256": "6bf7f296af343d2afed9fdb8ef44df86b83137699bd31c36dbee8c91e5682347"
+    },
+    {
+      "file": "current-ambiguity-01.png",
+      "buildId": "JRrxEWNBIyXzxCZMKaXRk",
+      "sha256": "45eb259d0318287a7c78b8e0f4db388e32cd096a43c42728fdf087ff5912c2e3"
+    },
+    {
+      "file": "current-ambiguity-02.png",
+      "buildId": "JRrxEWNBIyXzxCZMKaXRk",
+      "sha256": "3deaa6754d105184873a5c5035b5825201addb1e65ff727778aecbcbfee4e71d"
+    },
+    {
+      "file": "current-ambiguity-03.png",
+      "buildId": "JRrxEWNBIyXzxCZMKaXRk",
+      "sha256": "a46f2a4fd6542db936ce04b923b63c1c1fa3405a6c9f58079ea4bc56014d1e37"
+    }
+  ],
+  "limits": "Actual HTTPS captures; unretouched CSS-pixel screenshots; mobile viewport emulation, not real-device acceptance. Native vendor notice/watermark remains."
+}

@@ -5,8 +5,12 @@ import {
   assertOwnerRequest,
   OWNER_COOKIE,
   StandingOwner,
+  ownerCookieName,
 } from "@/lib/careos/standing-owner";
-import { standingOwnerMode } from "@/lib/careos/standing-runtime";
+import {
+  standingOwnerMode,
+  configuredOwnerOrigin,
+} from "@/lib/careos/standing-runtime";
 import { subscriptionFiles } from "@/lib/careos/subscription/provider";
 import { CareError } from "@/lib/careos/contracts";
 import { careError, careResponse, readJson } from "@/lib/careos/security";
@@ -15,9 +19,14 @@ export const runtime = "nodejs";
 async function context(request: Request, mutation: boolean) {
   if (!standingOwnerMode())
     throw new CareError("careos_owner_ai_disabled", 403);
-  assertOwnerRequest(request, mutation);
+  const origin = configuredOwnerOrigin();
+  assertOwnerRequest(request, mutation, origin);
+  const owner = new StandingOwner();
+  await owner.assertOriginApproval(origin);
   return {
-    owner: new StandingOwner(),
+    owner,
+    origin,
+    cookieName: ownerCookieName(origin),
     jar: await cookies(),
     agent: request.headers.get("user-agent") ?? "",
   };
@@ -25,11 +34,15 @@ async function context(request: Request, mutation: boolean) {
 export async function GET(request: Request) {
   const diagnosticId = randomUUID();
   try {
-    const { owner, jar, agent } = await context(request, false);
+    const { owner, jar, agent, origin, cookieName } = await context(
+      request,
+      false,
+    );
     const status = await owner.status(
       {
-        token: jar.get(OWNER_COOKIE)?.value,
+        token: jar.get(cookieName)?.value ?? jar.get(OWNER_COOKIE)?.value,
         agent,
+        origin,
       },
       (reason) => {
         // Protected service journal only. Never log headers, tokens, hashes or UA.
@@ -80,19 +93,26 @@ const cookieOptions = {
 };
 export async function POST(request: Request) {
   try {
-    const { owner, jar, agent } = await context(request, true);
+    const { owner, jar, agent, origin, cookieName } = await context(
+      request,
+      true,
+    );
     const parsed = actionSchema.safeParse(await readJson(request));
     if (!parsed.success) throw new CareError("careos_invalid_request", 400);
-    const proof = { token: jar.get(OWNER_COOKIE)?.value, agent };
+    const proof = {
+      token: jar.get(cookieName)?.value ?? jar.get(OWNER_COOKIE)?.value,
+      agent,
+      origin,
+    };
     if (parsed.data.action === "pair") {
       const pair = await owner.pair(agent, proof.token);
       if (!pair.reused)
-        jar.set(OWNER_COOKIE, pair.token, { ...cookieOptions, maxAge: 300 });
+        jar.set(cookieName, pair.token, { ...cookieOptions, maxAge: 300 });
       return careResponse({ id: pair.id }); // Public request ID, never the secret.
     }
     if (parsed.data.action === "finish") {
       const expiresAt = await owner.finishBrowser(proof);
-      jar.set(OWNER_COOKIE, proof.token!, {
+      jar.set(cookieName, proof.token!, {
         ...cookieOptions,
         maxAge: Math.max(0, Math.floor((expiresAt - Date.now()) / 1000)),
       });
@@ -107,7 +127,7 @@ export async function POST(request: Request) {
         )
           throw error;
       }
-      jar.set(OWNER_COOKIE, "", { ...cookieOptions, maxAge: 0 });
+      jar.set(cookieName, "", { ...cookieOptions, maxAge: 0 });
     } else await owner.revokePolicy(proof);
     return careResponse({ ok: true });
   } catch (error) {

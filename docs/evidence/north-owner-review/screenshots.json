@@ -1,0 +1,60 @@
+{
+  "at": "2026-11-03T17:39:04.698Z",
+  "origin": "https://greatbison.tail9e8802.ts.net:8445",
+  "runtime": {
+    "baselineCommit": "1efd0e77040a7ae0a1aad190d5d47320ce1c941a",
+    "buildId": "yO4tITCett20kBtsK06c9",
+    "sourceHash": "b20994b715f30f72f2e4e0ca55716e1fd4c4e15552b035df089917b734086a96"
+  },
+  "screenshots": [
+    {
+      "file": "desktop-light-open.png",
+      "sha256": "0cf0028f5149c341e5f1f972b0e5c73bcdb6a981ac0f165b8c9ac624646836dc"
+    },
+    {
+      "file": "desktop-light-records.png",
+      "sha256": "e1bf10078b677e5482e282f743bf4f580ed9af85af651feb91c5f5c13ccf98e6"
+    },
+    {
+      "file": "desktop-light-native-chart.png",
+      "sha256": "24c2d34a9b40e3327debc3f708f7455641606d25c449fdba3a01287541909d18"
+    },
+    {
+      "file": "desktop-dark-open.png",
+      "sha256": "b8c2c40084bb75743611a4bb8b3da90754671865d59a1b4ae27a847277bbe6cf"
+    },
+    {
+      "file": "desktop-dark-records.png",
+      "sha256": "47ac2c54d206f168f2623a99c4c84294e097b1b428f383ead830b862772db64a"
+    },
+    {
+      "file": "desktop-dark-native-chart.png",
+      "sha256": "ee4f0cc0754c6a6990fa6072faa152d0562c9b512cbb130687d920589d4ab010"
+    },
+    {
+      "file": "mobile-light-open.png",
+      "sha256": "d2b441a8a44a18d62f402e2b0f8bc68a0c4cd54ec214471cb1191009e89f8627"
+    },
+    {
+      "file": "mobile-light-records.png",
+      "sha256": "c947d4ab4268d97b366740a478868d0430ab46ca5bd4a7679413d04628f4698a"
+    },
+    {
+      "file": "mobile-light-native-chart.png",
+      "sha256": "d0fe1992b47d2206179cbb9a0b03357a1e7fa6d6c523fa8d00ebdb9f47aaacf3"
+    },
+    {
+      "file": "mobile-dark-open.png",
+      "sha256": "6877ea7112500a7157023a28297bedc703fc323682f88218a56c785705d213e8"
+    },
+    {
+      "file": "mobile-dark-records.png",
+      "sha256": "b9fefaf11ceb9d66ab3ef1ff97b8ad83fb3ade36cd354ffaa47e59d91bdbc864"
+    },
+    {
+      "file": "mobile-dark-native-chart.png",
+      "sha256": "16c94a4565f11db8bbb1975477a5087e12347f411f63dee35ec0d8da1cf4bf41"
+    }
+  ],
+  "limits": "Actual HTTPS Chromium; mobile emulation at device pixel ratio, not real-device acceptance; original vendor watermark retained."
+}

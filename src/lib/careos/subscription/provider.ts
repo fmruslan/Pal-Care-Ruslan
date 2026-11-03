@@ -6,6 +6,7 @@ import { CareError } from "../contracts";
 import { subscriptionStructured } from "./session";
 import { standingStructured } from "./standing";
 import { StandingOwner, type OwnerProof } from "../standing-owner";
+import { northReviewLivePresentation } from "../../private-preview-origin";
 import {
   CARE_INSTRUCTIONS,
   CARE_SELECTION_INSTRUCTIONS,
@@ -41,8 +42,9 @@ export class SubscriptionProvider implements CareModel {
         scope: this.context.scope === "studio" ? "customer-studio" : "customer",
         enabled: () =>
           process.env.CAREOS_OWNER_MODE === "true" &&
-          process.env.APP_ORIGIN ===
-            "https://greatbison.tail9e8802.ts.net:8444" &&
+          (process.env.APP_ORIGIN ===
+            "https://greatbison.tail9e8802.ts.net:8444" ||
+            northReviewLivePresentation(process.env)) &&
           process.env.CAREOS_SUBSCRIPTION_CREDITS_DISABLED === "true" &&
           process.env.CAREOS_STANDING_AI_ENABLED === "true",
         requestId: this.context.requestId,

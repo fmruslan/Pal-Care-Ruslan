@@ -8,13 +8,23 @@ try {
   if (
     extra.length ||
     !id ||
-    !["approve-browser", "revoke-browser", "approve-policy"].includes(action)
+    ![
+      "approve-browser",
+      "revoke-browser",
+      "approve-policy",
+      "approve-review-origin",
+    ].includes(action)
   )
     throw new Error("usage");
   const owner = new StandingOwner();
   if (action === "approve-browser") await owner.approve(id);
   else if (action === "revoke-browser") await owner.revokeSession(id);
-  else {
+  else if (action === "approve-review-origin") {
+    if (id !== "north-review-origin-approval.json") throw new Error("usage");
+    await owner.installReviewOriginApproval(
+      await owner.files.read("north-review-origin-request.json"),
+    );
+  } else {
     // The argument must name the one protected approval file, not arbitrary
     // browser input. Installing authority requires a separate exact approval.
     if (id !== "standing-approval.json") throw new Error("usage");
@@ -32,9 +42,11 @@ try {
     await owner.installPolicy(policy);
   }
   console.log(
-    action === "approve-policy"
-      ? "Exact standing policy stored. Runtime activation and provider credentials unchanged."
-      : "Browser access updated. AI permission and provider credentials unchanged.",
+    action === "approve-review-origin"
+      ? "Exact review origin approved against the existing policy. No allowance, session or expiry was reset."
+      : action === "approve-policy"
+        ? "Exact standing policy stored. Runtime activation and provider credentials unchanged."
+        : "Browser access updated. AI permission and provider credentials unchanged.",
   );
 } catch {
   console.error(

@@ -21,7 +21,16 @@ export function recordsRequestAllowed(message: string) {
   );
 }
 
-const normalize = (s: string) => s.normalize("NFKC").trim().toLowerCase();
+/** Small, disclosed fallback normalization; live conversation does not depend
+ * on this grammar. Never fuzzy-match unknown product identities. */
+export const normalizeRecordsLanguage = (s: string) =>
+  s
+    .normalize("NFKC")
+    .trim()
+    .toLowerCase()
+    .replace(/\b(?:purches|purchses|purhcases|purchaes)\b/g, "purchases")
+    .replace(/\b(?:warrantys|warrenties|warrentys)\b/g, "warranties");
+const normalize = normalizeRecordsLanguage;
 const disallowed =
   /\b(?:refund|pay|capture|transfer|delete|drop|insert|update|grant|revoke|password|secret|credentials?|renew|bypass|activate|credits?)\b|https?:|javascript:|```|ignore.{0,40}(instructions|rules)/i;
 const followup =
@@ -76,7 +85,9 @@ export function recordsCandidate(message: string, previous?: RecordsQuery) {
     followup.test(s) ||
     (!!previous && shortFollowup.test(s)) ||
     (recordsQueryContinuation(s) && !shortFollowup.test(s)) ||
-    /\b(?:purchases|spending|spent|bought|documents)\b/.test(s) ||
+    /\b(?:purchases|spending|spent|bought|documents|warranties|warranty)\b/.test(
+      s,
+    ) ||
     /\bwhich (?:purchases|products)\b|\bcompare (?:last|this) month\b|\b(?:all|saved|my|recorded)\b.{0,35}\b(?:purchases|receipts|totals|spending|library)\b|\b(?:what did i buy|what have i bought|how much (?:did|have) i spen[dt]|spending patterns|purchase totals|purchase value)\b|\b(?:find|list|show|search)\b.{0,50}\b(?:purchases|receipts|headphones|kettle|speaker|raspberry|pi 5)\b/.test(
       s,
     )
@@ -193,7 +204,7 @@ export function resolveRecordsQuery(
   if (/\b(?:bullet|linked list|in a list)\b/.test(s)) query.format = "bullets";
   else if (/\btable\b/.test(s)) query.format = "table";
   else if (/\bcards?\b/.test(s)) query.format = "cards";
-  if (/\b(?:totals?|sum|how much|purchase value)\b/.test(s))
+  if (/\b(?:totals?|sum|how much|how many|purchase value)\b/.test(s))
     query.operation = "total";
   else if (/\b(?:patterns?|breakdown|by category|categories)\b/.test(s))
     query.operation = "breakdown";
@@ -356,6 +367,8 @@ export function resolveRecordsQuery(
     "priced",
     "now",
     "just",
+    "many",
+    "do",
   ])
     knownWords.add(word);
   const residual = s
@@ -364,7 +377,7 @@ export function resolveRecordsQuery(
     .filter((word) => word && !knownWords.has(word));
   if (residual.length)
     return {
-      clarification: `I could not safely resolve ‘${residual.slice(0, 4).join(" ")}’ as a saved product or supported filter. Please use the product name/model, a known category, or an exact date range. No qualifier was ignored.`,
+      clarification: `The limited saved-record fallback couldn't interpret ‘${residual.slice(0, 4).join(" ")}’. Conversational AI needs active browser/model access; no unknown condition was silently removed.`,
     };
   if (/\b(?:manual|product care)\b/.test(s))
     return {

@@ -74,12 +74,14 @@ export function CareOSProvider({
   aiExpiresAt,
   aiAccessDisabled = false,
   ownerAccess = false,
+  conversationalAI = false,
 }: {
   children: ReactNode;
   mode?: "fixture" | "disabled" | "responses" | "subscription" | "unavailable";
   aiExpiresAt?: number;
   aiAccessDisabled?: boolean;
   ownerAccess?: boolean;
+  conversationalAI?: boolean;
 }) {
   const [clock, setClock] = useState(0);
   const aiExpired =
@@ -226,11 +228,14 @@ export function CareOSProvider({
     !!lastReply?.context &&
     !lastReply.recordsResult &&
     lastReply.questionScope !== "library";
-  const recordDraft = recordsTaskCandidate(
-    draft,
-    ownedPreviousQuery,
-    lastReplyWasPurchase,
-  );
+  const conversationalReady =
+    conversationalAI &&
+    !aiAccessDisabled &&
+    !aiExpired &&
+    (!ownerAccess || ownerState === "ready");
+  const recordDraft =
+    conversationalReady ||
+    recordsTaskCandidate(draft, ownedPreviousQuery, lastReplyWasPurchase);
   const submitBlocked = recordDraft
     ? busy || !!pending
     : unavailable || plannerBlocked;
@@ -337,10 +342,25 @@ export function CareOSProvider({
   ]);
   async function ask(message: string, intent?: Intent, selected?: CareContext) {
     loadPresentation();
+    if (admitting.current || busy || pending || !message.trim()) return false;
+    let liveAdmission = false;
+    if (conversationalAI && !aiAccessDisabled && !aiExpired) {
+      admitting.current = true;
+      try {
+        liveAdmission = await checkOwnerAccess();
+      } finally {
+        admitting.current = false;
+      }
+    }
     const savedRecords =
-      !intent &&
-      !selected &&
-      recordsTaskCandidate(message, ownedPreviousQuery, lastReplyWasPurchase);
+      liveAdmission ||
+      (!intent &&
+        !selected &&
+        recordsTaskCandidate(
+          message,
+          ownedPreviousQuery,
+          lastReplyWasPurchase,
+        ));
     if (
       admitting.current ||
       (savedRecords
@@ -371,12 +391,12 @@ export function CareOSProvider({
     // This is an admission hint only; server-owned history/auth/validation wins.
     const modelInterpretation =
       savedRecords &&
-      deterministicQuery &&
-      "clarification" in deterministicQuery &&
+      (liveAdmission ||
+        (deterministicQuery && "clarification" in deterministicQuery)) &&
       mode === "subscription" &&
       !aiExpired &&
       !aiAccessDisabled &&
-      (!ownerAccess || ownerState === "ready");
+      (liveAdmission || !ownerAccess || ownerState === "ready");
     const planning =
       !savedRecords &&
       analytics &&
@@ -404,9 +424,27 @@ export function CareOSProvider({
             twinId: bound?.twinId ?? null,
             revision: boundRevision,
             message: message.trim(),
+            ...(intent ? { intent } : {}),
           },
           bound,
           modelInterpretation ? "interpret" : "turns",
+          (turn) => {
+            if (
+              !conversationalAI ||
+              !turn.answer.conversationPlan ||
+              turn.answer.revision !== revision.current
+            )
+              return;
+            if (
+              turn.answer.context ||
+              (turn.answer.questionScope === "library" &&
+                turn.answer.conversationPlan.relation === "fresh")
+            ) {
+              explicitContext.current = true;
+              setContextExplicit(true);
+              updateContext(turn.answer.context);
+            }
+          },
         );
       if (planning) {
         setOpen(true);
@@ -434,6 +472,10 @@ export function CareOSProvider({
     // This GET-only channel has its own cookie/owner namespace. Restoring saved
     // records neither reads private AI history nor issues an inference grant.
     void records.restore(false);
+    if (conversationalAI) {
+      await checkOwnerAccess();
+      return;
+    }
     if (!(await checkOwnerAccess())) return;
     if (aiAccessDisabled || evaluationWindowExpired(aiExpiresAt)) return;
     void insights.restore();
@@ -502,8 +544,9 @@ export function CareOSProvider({
                     id="careos-description"
                     className="sr-only"
                   >
-                    Pal Care’s purchase assistant. Choose context or ask a
-                    question. Selection and expansion never send a question.
+                    Pal Care’s purchase assistant. Ask about all saved purchases
+                    immediately, or optionally choose a product for care.
+                    Selection and expansion never send a question.
                   </Dialog.Description>
                 </div>
                 <div className="flex gap-0">
@@ -597,15 +640,19 @@ export function CareOSProvider({
                 </div>
               </div>
               <div
-                className="careos-context flex shrink-0 items-center justify-between border-b bg-accent/30 text-xs"
+                className="careos-context flex min-h-0 shrink items-center justify-between border-b bg-accent/30 text-xs"
                 aria-label="Persistent purchase context"
+                role="region"
+                tabIndex={0}
               >
                 <span className="min-w-0 text-muted-foreground">
-                  <span className="block text-xs">Purchase context</span>
+                  <span className="block text-xs">
+                    {context ? "Purchase context" : "Ask across your library"}
+                  </span>
                   <strong className="block break-words text-sm text-foreground">
                     {context
                       ? `${context.name} · ${context.model}`
-                      : "No purchase selected"}
+                      : "All saved purchases"}
                   </strong>
                   {context && (
                     <span>
@@ -624,6 +671,7 @@ export function CareOSProvider({
                       )}
                     </span>
                   )}
+                  {!context && <span>Choosing a product is optional.</span>}
                 </span>
                 <div className="flex shrink-0 items-center">
                   <Button
@@ -820,7 +868,9 @@ export function CareOSProvider({
                             : turn.answer.mode === "fixture"
                               ? "Demo response · no live AI"
                               : turn.answer.mode === "live"
-                                ? "Live AI · check sources"
+                                ? turn.answer.conversationPlan
+                                  ? "Live AI understanding · saved-data tools"
+                                  : "Live AI · check sources"
                                 : "From saved records · no model call"}
                         </p>
                         <p>{turn.answer.text}</p>
@@ -1063,27 +1113,29 @@ export function CareOSProvider({
               )}
               <div className="careos-composer shrink-0 border-t bg-card">
                 <p className="mb-2 text-xs text-muted-foreground">
-                  {recordDraft
-                    ? "Saved-record question · supported queries run without AI; private interpretation requires AI access"
-                    : aiExpired
-                      ? "AI access expired · saved records remain available in Purchases and Insights"
-                      : aiAccessDisabled
-                        ? "AI access unavailable · saved records remain available"
-                        : ownerAccess && ownerState !== "ready"
-                          ? ownerSendMessage[ownerState]
-                          : plannerBlocked
-                            ? insights.recoverable
-                              ? "A saved view is ready to review in Insights. You can still ask a product question."
-                              : "Interactive Insights is not connected yet. Your draft is kept."
-                            : analytics
-                              ? "Personal Insights · presentation only"
-                              : mode === "fixture"
-                                ? "Sample demo · no live AI"
-                                : mode === "subscription"
-                                  ? "Using ChatGPT plan"
-                                  : mode === "responses"
-                                    ? "Model assistance · check sources"
-                                    : "Model unavailable"}
+                  {conversationalReady
+                    ? "Live AI · saved-data tools"
+                    : recordDraft
+                      ? "Limited saved-record mode · no model call"
+                      : aiExpired
+                        ? "AI access expired · saved records remain available in Purchases and Insights"
+                        : aiAccessDisabled
+                          ? "AI access unavailable · saved records remain available"
+                          : ownerAccess && ownerState !== "ready"
+                            ? ownerSendMessage[ownerState]
+                            : plannerBlocked
+                              ? insights.recoverable
+                                ? "A saved view is ready to review in Insights. You can still ask a product question."
+                                : "Interactive Insights is not connected yet. Your draft is kept."
+                              : analytics
+                                ? "Personal Insights · presentation only"
+                                : mode === "fixture"
+                                  ? "Sample demo · no live AI"
+                                  : mode === "subscription"
+                                    ? "Using ChatGPT plan"
+                                    : mode === "responses"
+                                      ? "Model assistance · check sources"
+                                      : "Model unavailable"}
                 </p>
                 <form
                   className="flex items-end gap-2"

@@ -1,0 +1,3721 @@
+{
+  "limits": "Actual HTTPS/provider-correlated customer regression cases, not independent demographic research and not silently counted toward the original 200 campaign. Failed initial care follow-up remains retained separately. Provider request IDs unavailable; application request/reservation correlations retained privately.",
+  "groups": [
+    {
+      "name": "18-turn",
+      "at": "2026-11-03T18:20:17.604Z",
+      "buildId": "mF6-SXLoa4IqO-N5A2Omb"
+    },
+    {
+      "name": "current-build",
+      "at": "2026-11-03T18:37:38.058Z",
+      "buildId": "JRrxEWNBIyXzxCZMKaXRk"
+    },
+    {
+      "name": "ambiguity",
+      "at": "2026-11-03T18:46:27.868Z",
+      "buildId": "JRrxEWNBIyXzxCZMKaXRk"
+    }
+  ],
+  "cases": [
+    {
+      "group": "18-turn",
+      "caseId": "human-01",
+      "question": "show me all my purches and how much I spent",
+      "requestId": "201fa284-19b1-438e-b352-369cab6760e4",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "revision": 0,
+        "questionScope": "library",
+        "context": null,
+        "text": "5 matching saved purchases · all saved dates.",
+        "steps": [
+          "Sample and Verified Sandbox values are separate; reference/unpriced records are excluded from amounts. No financial operation was performed."
+        ],
+        "sources": [],
+        "actions": [],
+        "recordsResult": {
+          "version": 1,
+          "snapshotId": "fe41e4a894e95fb8f22defd20c450f3e14bc78d9b94eaa4173eebd402ce4fac9",
+          "queryFingerprint": "9357670b5832a6a451325ff90d879d6e4f75bc166b8676a1ae1b8649dc63ac4e",
+          "observedAt": "2026-11-03T18:16:50.526Z",
+          "query": {
+            "version": 1,
+            "operation": "total",
+            "format": "bullets",
+            "from": null,
+            "to": null,
+            "categories": [],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": "",
+            "referenceDate": "2026-11-03",
+            "timezone": "UTC"
+          },
+          "coverage": {
+            "source": "database",
+            "complete": true,
+            "availableCount": 5,
+            "limit": 1000,
+            "excludedInvalidCount": 0
+          },
+          "records": [
+            {
+              "id": "21301174-dcfa-4e19-b5cc-18f21e745700",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "category": "Audio",
+              "purchasedOn": "2026-10-22",
+              "origin": "sandbox",
+              "amountMinor": 12900,
+              "receiptId": "aee87787-6493-4e6d-8b48-175317fc1be5",
+              "documents": [
+                {
+                  "id": "a21b64c0-2264-40b6-93ab-f6608a33c7ae",
+                  "title": "Everyday Goods · demo merchant policy v1"
+                },
+                {
+                  "id": "aee87787-6493-4e6d-8b48-175317fc1be5",
+                  "title": "Everyday headphones · sandbox receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000201",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "category": "Audio",
+              "purchasedOn": "2026-10-18",
+              "origin": "sample",
+              "amountMinor": 14900,
+              "receiptId": "00000000-0000-4000-8000-000000000301",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000301",
+                  "title": "Headphones · sample receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000202",
+              "name": "Pour-over kettle",
+              "model": "H-02",
+              "category": "Kitchen",
+              "purchasedOn": "2026-10-12",
+              "origin": "sample",
+              "amountMinor": 8900,
+              "receiptId": "00000000-0000-4000-8000-000000000302",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000302",
+                  "title": "Kettle · sample receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000203",
+              "name": "Everywhere speaker",
+              "model": "F-03",
+              "category": "Audio",
+              "purchasedOn": "2026-10-08",
+              "origin": "sample",
+              "amountMinor": 6900,
+              "receiptId": null,
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000303",
+                  "title": "Speaker · sample care card"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000204",
+              "name": "Raspberry Pi 5",
+              "model": "5",
+              "category": "Computing",
+              "purchasedOn": "2026-10-07",
+              "origin": "sample",
+              "amountMinor": null,
+              "receiptId": null,
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000304",
+                  "title": "Raspberry Pi 5 · sample ownership note"
+                }
+              ]
+            }
+          ],
+          "totals": [
+            {
+              "origin": "sample",
+              "amountMinor": 30700,
+              "pricedCount": 3,
+              "excludedCount": 1
+            },
+            {
+              "origin": "sandbox",
+              "amountMinor": 12900,
+              "pricedCount": 1,
+              "excludedCount": 0
+            }
+          ],
+          "groups": [
+            {
+              "label": "Audio",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 21800,
+                  "pricedCount": 2,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 12900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "21301174-dcfa-4e19-b5cc-18f21e745700",
+                "00000000-0000-4000-8000-000000000201",
+                "00000000-0000-4000-8000-000000000203"
+              ]
+            },
+            {
+              "label": "Computing",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 1
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000204"
+              ]
+            },
+            {
+              "label": "Kitchen",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 8900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000202"
+              ]
+            }
+          ],
+          "comparison": null
+        },
+        "conversationPlan": {
+          "task": "records",
+          "relation": "fresh",
+          "query": {
+            "outcome": "query",
+            "operation": "total",
+            "format": "bullets",
+            "from": null,
+            "to": null,
+            "categories": [],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "",
+          "productAction": "summary",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "18-turn",
+      "caseId": "human-02",
+      "question": "how many purchases do i have in the last three months",
+      "requestId": "10efb875-494d-48f0-8daf-3dcc65714c6e",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "revision": 0,
+        "questionScope": "library",
+        "context": null,
+        "text": "5 matching saved purchases · 2026-08-03 through 2026-11-03 (inclusive; UTC).",
+        "steps": [
+          "Sample and Verified Sandbox values are separate; reference/unpriced records are excluded from amounts. No financial operation was performed."
+        ],
+        "sources": [],
+        "actions": [],
+        "recordsResult": {
+          "version": 1,
+          "snapshotId": "fe41e4a894e95fb8f22defd20c450f3e14bc78d9b94eaa4173eebd402ce4fac9",
+          "queryFingerprint": "110d20bf78915199399920fe8cf51948eb19ddb3abc41dd9b281099564949619",
+          "observedAt": "2026-11-03T18:17:01.772Z",
+          "query": {
+            "version": 1,
+            "operation": "total",
+            "format": "bullets",
+            "from": "2026-08-03",
+            "to": "2026-11-03",
+            "categories": [],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": "",
+            "referenceDate": "2026-11-03",
+            "timezone": "UTC"
+          },
+          "coverage": {
+            "source": "database",
+            "complete": true,
+            "availableCount": 5,
+            "limit": 1000,
+            "excludedInvalidCount": 0
+          },
+          "records": [
+            {
+              "id": "21301174-dcfa-4e19-b5cc-18f21e745700",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "category": "Audio",
+              "purchasedOn": "2026-10-22",
+              "origin": "sandbox",
+              "amountMinor": 12900,
+              "receiptId": "aee87787-6493-4e6d-8b48-175317fc1be5",
+              "documents": [
+                {
+                  "id": "a21b64c0-2264-40b6-93ab-f6608a33c7ae",
+                  "title": "Everyday Goods · demo merchant policy v1"
+                },
+                {
+                  "id": "aee87787-6493-4e6d-8b48-175317fc1be5",
+                  "title": "Everyday headphones · sandbox receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000201",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "category": "Audio",
+              "purchasedOn": "2026-10-18",
+              "origin": "sample",
+              "amountMinor": 14900,
+              "receiptId": "00000000-0000-4000-8000-000000000301",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000301",
+                  "title": "Headphones · sample receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000202",
+              "name": "Pour-over kettle",
+              "model": "H-02",
+              "category": "Kitchen",
+              "purchasedOn": "2026-10-12",
+              "origin": "sample",
+              "amountMinor": 8900,
+              "receiptId": "00000000-0000-4000-8000-000000000302",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000302",
+                  "title": "Kettle · sample receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000203",
+              "name": "Everywhere speaker",
+              "model": "F-03",
+              "category": "Audio",
+              "purchasedOn": "2026-10-08",
+              "origin": "sample",
+              "amountMinor": 6900,
+              "receiptId": null,
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000303",
+                  "title": "Speaker · sample care card"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000204",
+              "name": "Raspberry Pi 5",
+              "model": "5",
+              "category": "Computing",
+              "purchasedOn": "2026-10-07",
+              "origin": "sample",
+              "amountMinor": null,
+              "receiptId": null,
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000304",
+                  "title": "Raspberry Pi 5 · sample ownership note"
+                }
+              ]
+            }
+          ],
+          "totals": [
+            {
+              "origin": "sample",
+              "amountMinor": 30700,
+              "pricedCount": 3,
+              "excludedCount": 1
+            },
+            {
+              "origin": "sandbox",
+              "amountMinor": 12900,
+              "pricedCount": 1,
+              "excludedCount": 0
+            }
+          ],
+          "groups": [
+            {
+              "label": "Audio",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 21800,
+                  "pricedCount": 2,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 12900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "21301174-dcfa-4e19-b5cc-18f21e745700",
+                "00000000-0000-4000-8000-000000000201",
+                "00000000-0000-4000-8000-000000000203"
+              ]
+            },
+            {
+              "label": "Computing",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 1
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000204"
+              ]
+            },
+            {
+              "label": "Kitchen",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 8900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000202"
+              ]
+            }
+          ],
+          "comparison": null
+        },
+        "conversationPlan": {
+          "task": "records",
+          "relation": "fresh",
+          "query": {
+            "outcome": "query",
+            "operation": "total",
+            "format": "bullets",
+            "from": "2026-08-03",
+            "to": "2026-11-03",
+            "categories": [],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "",
+          "productAction": "summary",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "18-turn",
+      "caseId": "human-03",
+      "question": "what products have warrantys expiring",
+      "requestId": "77700084-68c7-426d-bf8a-01a465e636af",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "revision": 0,
+        "questionScope": "library",
+        "context": null,
+        "text": "No verified warranty-expiration dates are recorded in the available purchase data. I can't identify expiring warranties from purchase dates or return deadlines. These are relevant saved products and documents, not a list of confirmed expiring warranties.",
+        "steps": [
+          "Warranty duration, start date and exclusions must be verified from the applicable terms before calculating an expiration. A saved policy is not proof of warranty coverage.",
+          "Sample and Verified Sandbox values are separate; reference/unpriced records are excluded from amounts. No financial operation was performed."
+        ],
+        "sources": [],
+        "actions": [],
+        "recordsResult": {
+          "version": 1,
+          "snapshotId": "fe41e4a894e95fb8f22defd20c450f3e14bc78d9b94eaa4173eebd402ce4fac9",
+          "queryFingerprint": "9357670b5832a6a451325ff90d879d6e4f75bc166b8676a1ae1b8649dc63ac4e",
+          "observedAt": "2026-11-03T18:17:14.357Z",
+          "query": {
+            "version": 1,
+            "operation": "list",
+            "format": "bullets",
+            "from": null,
+            "to": null,
+            "categories": [],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": "",
+            "referenceDate": "2026-11-03",
+            "timezone": "UTC"
+          },
+          "coverage": {
+            "source": "database",
+            "complete": true,
+            "availableCount": 5,
+            "limit": 1000,
+            "excludedInvalidCount": 0
+          },
+          "records": [
+            {
+              "id": "21301174-dcfa-4e19-b5cc-18f21e745700",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "category": "Audio",
+              "purchasedOn": "2026-10-22",
+              "origin": "sandbox",
+              "amountMinor": 12900,
+              "receiptId": "aee87787-6493-4e6d-8b48-175317fc1be5",
+              "documents": [
+                {
+                  "id": "a21b64c0-2264-40b6-93ab-f6608a33c7ae",
+                  "title": "Everyday Goods · demo merchant policy v1"
+                },
+                {
+                  "id": "aee87787-6493-4e6d-8b48-175317fc1be5",
+                  "title": "Everyday headphones · sandbox receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000201",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "category": "Audio",
+              "purchasedOn": "2026-10-18",
+              "origin": "sample",
+              "amountMinor": 14900,
+              "receiptId": "00000000-0000-4000-8000-000000000301",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000301",
+                  "title": "Headphones · sample receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000202",
+              "name": "Pour-over kettle",
+              "model": "H-02",
+              "category": "Kitchen",
+              "purchasedOn": "2026-10-12",
+              "origin": "sample",
+              "amountMinor": 8900,
+              "receiptId": "00000000-0000-4000-8000-000000000302",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000302",
+                  "title": "Kettle · sample receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000203",
+              "name": "Everywhere speaker",
+              "model": "F-03",
+              "category": "Audio",
+              "purchasedOn": "2026-10-08",
+              "origin": "sample",
+              "amountMinor": 6900,
+              "receiptId": null,
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000303",
+                  "title": "Speaker · sample care card"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000204",
+              "name": "Raspberry Pi 5",
+              "model": "5",
+              "category": "Computing",
+              "purchasedOn": "2026-10-07",
+              "origin": "sample",
+              "amountMinor": null,
+              "receiptId": null,
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000304",
+                  "title": "Raspberry Pi 5 · sample ownership note"
+                }
+              ]
+            }
+          ],
+          "totals": [
+            {
+              "origin": "sample",
+              "amountMinor": 30700,
+              "pricedCount": 3,
+              "excludedCount": 1
+            },
+            {
+              "origin": "sandbox",
+              "amountMinor": 12900,
+              "pricedCount": 1,
+              "excludedCount": 0
+            }
+          ],
+          "groups": [
+            {
+              "label": "Audio",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 21800,
+                  "pricedCount": 2,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 12900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "21301174-dcfa-4e19-b5cc-18f21e745700",
+                "00000000-0000-4000-8000-000000000201",
+                "00000000-0000-4000-8000-000000000203"
+              ]
+            },
+            {
+              "label": "Computing",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 1
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000204"
+              ]
+            },
+            {
+              "label": "Kitchen",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 8900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000202"
+              ]
+            }
+          ],
+          "comparison": null
+        },
+        "conversationPlan": {
+          "task": "warranty",
+          "relation": "fresh",
+          "query": {
+            "outcome": "query",
+            "operation": "list",
+            "format": "bullets",
+            "from": null,
+            "to": null,
+            "categories": [],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "",
+          "productAction": "summary",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "18-turn",
+      "caseId": "human-04",
+      "question": "I need the receipt for the sample headphones I bought on October 18. Could you find it for me?",
+      "requestId": "20ae6211-bb6d-43cc-bfc2-7a201e6ddce7",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "context": {
+          "twinId": "00000000-0000-4000-8000-000000000201",
+          "name": "Everyday headphones",
+          "model": "F-01",
+          "origin": "sample",
+          "purchasedOn": "2026-10-18"
+        },
+        "revision": 0,
+        "text": "Here’s the receipt saved with this purchase.",
+        "steps": [],
+        "sources": [
+          {
+            "id": "00000000-0000-4000-8000-000000000201",
+            "title": "Everyday headphones · Purchase Twin",
+            "label": "Sample purchase record",
+            "href": "/vault/00000000-0000-4000-8000-000000000201"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000301",
+            "title": "Headphones · sample receipt",
+            "label": "Fictional sample document",
+            "href": "/documents/00000000-0000-4000-8000-000000000301"
+          }
+        ],
+        "actions": [
+          {
+            "label": "Open receipt",
+            "href": "/documents/00000000-0000-4000-8000-000000000301"
+          }
+        ],
+        "questionScope": "purchase",
+        "conversationPlan": {
+          "task": "product",
+          "relation": "fresh",
+          "query": {
+            "outcome": "query",
+            "operation": "list",
+            "format": "bullets",
+            "from": "2026-10-18",
+            "to": "2026-10-18",
+            "categories": [],
+            "origin": "sample",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "Everyday headphones F-01",
+          "productAction": "receipt",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "18-turn",
+      "caseId": "human-05",
+      "question": "And is there a proper manual for them? Please don't guess.",
+      "requestId": "b592042f-2576-4745-ac17-f4350fde70be",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "context": {
+          "twinId": "00000000-0000-4000-8000-000000000201",
+          "name": "Everyday headphones",
+          "model": "F-01",
+          "origin": "sample",
+          "purchasedOn": "2026-10-18"
+        },
+        "revision": 1,
+        "text": "No manufacturer manual is available for Forma F-01 in these records. The saved documents below are not a substitute manufacturer manual.",
+        "steps": [],
+        "sources": [
+          {
+            "id": "00000000-0000-4000-8000-000000000201",
+            "title": "Everyday headphones · Purchase Twin",
+            "label": "Sample purchase record",
+            "href": "/vault/00000000-0000-4000-8000-000000000201"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000301",
+            "title": "Headphones · sample receipt",
+            "label": "Fictional sample document",
+            "href": "/documents/00000000-0000-4000-8000-000000000301"
+          }
+        ],
+        "actions": [
+          {
+            "label": "Headphones · sample receipt",
+            "href": "/documents/00000000-0000-4000-8000-000000000301"
+          },
+          {
+            "label": "Review saved documents",
+            "href": "/vault/00000000-0000-4000-8000-000000000201#documents-heading"
+          }
+        ],
+        "questionScope": "purchase",
+        "conversationPlan": {
+          "task": "product",
+          "relation": "followup",
+          "query": {
+            "outcome": "query",
+            "operation": "list",
+            "format": "bullets",
+            "from": "2026-10-18",
+            "to": "2026-10-18",
+            "categories": [],
+            "origin": "sample",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "Everyday headphones F-01",
+          "productAction": "manual",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "18-turn",
+      "caseId": "human-06",
+      "question": "Does that mean the warranty has run out?",
+      "requestId": "9d70daef-685b-497e-8a17-dbed4f9698bc",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "revision": 1,
+        "questionScope": "library",
+        "context": null,
+        "text": "No verified warranty-expiration dates are recorded in the available purchase data. I can't identify expiring warranties from purchase dates or return deadlines. These are relevant saved products and documents, not a list of confirmed expiring warranties.",
+        "steps": [
+          "Warranty duration, start date and exclusions must be verified from the applicable terms before calculating an expiration. A saved policy is not proof of warranty coverage.",
+          "Evidence filter: Sample.",
+          "Sample and Verified Sandbox values are separate; reference/unpriced records are excluded from amounts. No financial operation was performed."
+        ],
+        "sources": [],
+        "actions": [],
+        "recordsResult": {
+          "version": 1,
+          "snapshotId": "bcac770a72f6ca3dcc380851fc453eab1affede1b06abc689afc43c8faf87caf",
+          "queryFingerprint": "a87378f13f4065b30e173da213eb76a965bb3639dba49fb785deac1f41c0605e",
+          "observedAt": "2026-11-03T18:17:50.274Z",
+          "query": {
+            "version": 1,
+            "operation": "list",
+            "format": "bullets",
+            "from": "2026-10-18",
+            "to": "2026-10-18",
+            "categories": [],
+            "origin": "sample",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": "Everyday headphones F-01",
+            "referenceDate": "2026-11-03",
+            "timezone": "UTC"
+          },
+          "coverage": {
+            "source": "database",
+            "complete": true,
+            "availableCount": 1,
+            "limit": 1000,
+            "excludedInvalidCount": 0
+          },
+          "records": [
+            {
+              "id": "00000000-0000-4000-8000-000000000201",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "category": "Audio",
+              "purchasedOn": "2026-10-18",
+              "origin": "sample",
+              "amountMinor": 14900,
+              "receiptId": "00000000-0000-4000-8000-000000000301",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000301",
+                  "title": "Headphones · sample receipt"
+                }
+              ]
+            }
+          ],
+          "totals": [
+            {
+              "origin": "sample",
+              "amountMinor": 14900,
+              "pricedCount": 1,
+              "excludedCount": 0
+            },
+            {
+              "origin": "sandbox",
+              "amountMinor": 0,
+              "pricedCount": 0,
+              "excludedCount": 0
+            }
+          ],
+          "groups": [
+            {
+              "label": "Audio",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 14900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000201"
+              ]
+            }
+          ],
+          "comparison": null
+        },
+        "conversationPlan": {
+          "task": "warranty",
+          "relation": "followup",
+          "query": {
+            "outcome": "query",
+            "operation": "list",
+            "format": "bullets",
+            "from": "2026-10-18",
+            "to": "2026-10-18",
+            "categories": [],
+            "origin": "sample",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": "Everyday headphones F-01"
+          },
+          "comparison": null,
+          "productSearch": "Everyday headphones F-01",
+          "productAction": "summary",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "18-turn",
+      "caseId": "human-07",
+      "question": "ok back to everything i bought, just show the sample stuff",
+      "requestId": "db99aa51-d820-4bdb-a4dd-62357eccb95c",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "revision": 1,
+        "questionScope": "library",
+        "context": null,
+        "text": "4 matching saved purchases · all saved dates.",
+        "steps": [
+          "Evidence filter: Sample.",
+          "Sample and Verified Sandbox values are separate; reference/unpriced records are excluded from amounts. No financial operation was performed."
+        ],
+        "sources": [],
+        "actions": [],
+        "recordsResult": {
+          "version": 1,
+          "snapshotId": "fe41e4a894e95fb8f22defd20c450f3e14bc78d9b94eaa4173eebd402ce4fac9",
+          "queryFingerprint": "55011450130d907c2f6a69063df46becc89a861b90888bb26ccd4fb5fb061e8c",
+          "observedAt": "2026-11-03T18:18:02.485Z",
+          "query": {
+            "version": 1,
+            "operation": "list",
+            "format": "bullets",
+            "from": null,
+            "to": null,
+            "categories": [],
+            "origin": "sample",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": "",
+            "referenceDate": "2026-11-03",
+            "timezone": "UTC"
+          },
+          "coverage": {
+            "source": "database",
+            "complete": true,
+            "availableCount": 5,
+            "limit": 1000,
+            "excludedInvalidCount": 0
+          },
+          "records": [
+            {
+              "id": "00000000-0000-4000-8000-000000000201",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "category": "Audio",
+              "purchasedOn": "2026-10-18",
+              "origin": "sample",
+              "amountMinor": 14900,
+              "receiptId": "00000000-0000-4000-8000-000000000301",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000301",
+                  "title": "Headphones · sample receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000202",
+              "name": "Pour-over kettle",
+              "model": "H-02",
+              "category": "Kitchen",
+              "purchasedOn": "2026-10-12",
+              "origin": "sample",
+              "amountMinor": 8900,
+              "receiptId": "00000000-0000-4000-8000-000000000302",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000302",
+                  "title": "Kettle · sample receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000203",
+              "name": "Everywhere speaker",
+              "model": "F-03",
+              "category": "Audio",
+              "purchasedOn": "2026-10-08",
+              "origin": "sample",
+              "amountMinor": 6900,
+              "receiptId": null,
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000303",
+                  "title": "Speaker · sample care card"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000204",
+              "name": "Raspberry Pi 5",
+              "model": "5",
+              "category": "Computing",
+              "purchasedOn": "2026-10-07",
+              "origin": "sample",
+              "amountMinor": null,
+              "receiptId": null,
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000304",
+                  "title": "Raspberry Pi 5 · sample ownership note"
+                }
+              ]
+            }
+          ],
+          "totals": [
+            {
+              "origin": "sample",
+              "amountMinor": 30700,
+              "pricedCount": 3,
+              "excludedCount": 1
+            },
+            {
+              "origin": "sandbox",
+              "amountMinor": 0,
+              "pricedCount": 0,
+              "excludedCount": 0
+            }
+          ],
+          "groups": [
+            {
+              "label": "Audio",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 21800,
+                  "pricedCount": 2,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000201",
+                "00000000-0000-4000-8000-000000000203"
+              ]
+            },
+            {
+              "label": "Computing",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 1
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000204"
+              ]
+            },
+            {
+              "label": "Kitchen",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 8900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000202"
+              ]
+            }
+          ],
+          "comparison": null
+        },
+        "conversationPlan": {
+          "task": "records",
+          "relation": "fresh",
+          "query": {
+            "outcome": "query",
+            "operation": "list",
+            "format": "bullets",
+            "from": null,
+            "to": null,
+            "categories": [],
+            "origin": "sample",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "",
+          "productAction": "summary",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "18-turn",
+      "caseId": "human-08",
+      "question": "which of those have receipts?",
+      "requestId": "26990d23-4f83-47db-a709-43f102646bb5",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "revision": 2,
+        "questionScope": "library",
+        "context": null,
+        "text": "2 matching saved purchases · all saved dates.",
+        "steps": [
+          "Receipt filter: present; policies and care cards do not count as receipts.",
+          "Evidence filter: Sample.",
+          "Sample and Verified Sandbox values are separate; reference/unpriced records are excluded from amounts. No financial operation was performed."
+        ],
+        "sources": [],
+        "actions": [],
+        "recordsResult": {
+          "version": 1,
+          "snapshotId": "fe41e4a894e95fb8f22defd20c450f3e14bc78d9b94eaa4173eebd402ce4fac9",
+          "queryFingerprint": "79095df01cd4e9250a603671a85f71f18b3f8e6a2691cfa2b112dd14c291c950",
+          "observedAt": "2026-11-03T18:18:14.047Z",
+          "query": {
+            "version": 1,
+            "operation": "list",
+            "format": "bullets",
+            "from": null,
+            "to": null,
+            "categories": [],
+            "origin": "sample",
+            "receipt": "present",
+            "document": "any",
+            "price": "any",
+            "search": "",
+            "referenceDate": "2026-11-03",
+            "timezone": "UTC"
+          },
+          "coverage": {
+            "source": "database",
+            "complete": true,
+            "availableCount": 5,
+            "limit": 1000,
+            "excludedInvalidCount": 0
+          },
+          "records": [
+            {
+              "id": "00000000-0000-4000-8000-000000000201",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "category": "Audio",
+              "purchasedOn": "2026-10-18",
+              "origin": "sample",
+              "amountMinor": 14900,
+              "receiptId": "00000000-0000-4000-8000-000000000301",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000301",
+                  "title": "Headphones · sample receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000202",
+              "name": "Pour-over kettle",
+              "model": "H-02",
+              "category": "Kitchen",
+              "purchasedOn": "2026-10-12",
+              "origin": "sample",
+              "amountMinor": 8900,
+              "receiptId": "00000000-0000-4000-8000-000000000302",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000302",
+                  "title": "Kettle · sample receipt"
+                }
+              ]
+            }
+          ],
+          "totals": [
+            {
+              "origin": "sample",
+              "amountMinor": 23800,
+              "pricedCount": 2,
+              "excludedCount": 0
+            },
+            {
+              "origin": "sandbox",
+              "amountMinor": 0,
+              "pricedCount": 0,
+              "excludedCount": 0
+            }
+          ],
+          "groups": [
+            {
+              "label": "Audio",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 14900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000201"
+              ]
+            },
+            {
+              "label": "Kitchen",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 8900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000202"
+              ]
+            }
+          ],
+          "comparison": null
+        },
+        "conversationPlan": {
+          "task": "records",
+          "relation": "followup",
+          "query": {
+            "outcome": "query",
+            "operation": "list",
+            "format": "bullets",
+            "from": null,
+            "to": null,
+            "categories": [],
+            "origin": "sample",
+            "receipt": "present",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "",
+          "productAction": "summary",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "18-turn",
+      "caseId": "human-09",
+      "question": "how much was that altogether? pls put it in a tiny table",
+      "requestId": "1ac89108-cf47-4f26-9c50-a3cf60df40fe",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "revision": 2,
+        "questionScope": "library",
+        "context": null,
+        "text": "2 matching saved purchases · all saved dates.",
+        "steps": [
+          "Receipt filter: present; policies and care cards do not count as receipts.",
+          "Evidence filter: Sample.",
+          "Sample and Verified Sandbox values are separate; reference/unpriced records are excluded from amounts. No financial operation was performed."
+        ],
+        "sources": [],
+        "actions": [],
+        "recordsResult": {
+          "version": 1,
+          "snapshotId": "fe41e4a894e95fb8f22defd20c450f3e14bc78d9b94eaa4173eebd402ce4fac9",
+          "queryFingerprint": "79095df01cd4e9250a603671a85f71f18b3f8e6a2691cfa2b112dd14c291c950",
+          "observedAt": "2026-11-03T18:18:27.281Z",
+          "query": {
+            "version": 1,
+            "operation": "total",
+            "format": "table",
+            "from": null,
+            "to": null,
+            "categories": [],
+            "origin": "sample",
+            "receipt": "present",
+            "document": "any",
+            "price": "any",
+            "search": "",
+            "referenceDate": "2026-11-03",
+            "timezone": "UTC"
+          },
+          "coverage": {
+            "source": "database",
+            "complete": true,
+            "availableCount": 5,
+            "limit": 1000,
+            "excludedInvalidCount": 0
+          },
+          "records": [
+            {
+              "id": "00000000-0000-4000-8000-000000000201",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "category": "Audio",
+              "purchasedOn": "2026-10-18",
+              "origin": "sample",
+              "amountMinor": 14900,
+              "receiptId": "00000000-0000-4000-8000-000000000301",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000301",
+                  "title": "Headphones · sample receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000202",
+              "name": "Pour-over kettle",
+              "model": "H-02",
+              "category": "Kitchen",
+              "purchasedOn": "2026-10-12",
+              "origin": "sample",
+              "amountMinor": 8900,
+              "receiptId": "00000000-0000-4000-8000-000000000302",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000302",
+                  "title": "Kettle · sample receipt"
+                }
+              ]
+            }
+          ],
+          "totals": [
+            {
+              "origin": "sample",
+              "amountMinor": 23800,
+              "pricedCount": 2,
+              "excludedCount": 0
+            },
+            {
+              "origin": "sandbox",
+              "amountMinor": 0,
+              "pricedCount": 0,
+              "excludedCount": 0
+            }
+          ],
+          "groups": [
+            {
+              "label": "Audio",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 14900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000201"
+              ]
+            },
+            {
+              "label": "Kitchen",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 8900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000202"
+              ]
+            }
+          ],
+          "comparison": null
+        },
+        "conversationPlan": {
+          "task": "records",
+          "relation": "followup",
+          "query": {
+            "outcome": "query",
+            "operation": "total",
+            "format": "table",
+            "from": null,
+            "to": null,
+            "categories": [],
+            "origin": "sample",
+            "receipt": "present",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "",
+          "productAction": "summary",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "18-turn",
+      "caseId": "human-10",
+      "question": "graph that pls",
+      "requestId": "c8eace57-3fd0-487a-99f9-467a714f8c93",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "revision": 0,
+        "questionScope": "library",
+        "context": null,
+        "text": "2 matching saved purchases · all saved dates.",
+        "steps": [
+          "Receipt filter: present; policies and care cards do not count as receipts.",
+          "Evidence filter: Sample.",
+          "Sample and Verified Sandbox values are separate; reference/unpriced records are excluded from amounts. No financial operation was performed.",
+          "Sample saved evidence: Audio has the largest recorded category value ($149.00), within $238.00 across 2 priced purchases; 0 unpriced/reference excluded. This describes available records, not a reason for spending."
+        ],
+        "sources": [],
+        "actions": [],
+        "recordsResult": {
+          "version": 1,
+          "snapshotId": "fe41e4a894e95fb8f22defd20c450f3e14bc78d9b94eaa4173eebd402ce4fac9",
+          "queryFingerprint": "79095df01cd4e9250a603671a85f71f18b3f8e6a2691cfa2b112dd14c291c950",
+          "observedAt": "2026-11-03T18:18:38.289Z",
+          "query": {
+            "version": 1,
+            "operation": "breakdown",
+            "format": "chart",
+            "from": null,
+            "to": null,
+            "categories": [],
+            "origin": "sample",
+            "receipt": "present",
+            "document": "any",
+            "price": "any",
+            "search": "",
+            "referenceDate": "2026-11-03",
+            "timezone": "UTC"
+          },
+          "coverage": {
+            "source": "database",
+            "complete": true,
+            "availableCount": 5,
+            "limit": 1000,
+            "excludedInvalidCount": 0
+          },
+          "records": [
+            {
+              "id": "00000000-0000-4000-8000-000000000201",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "category": "Audio",
+              "purchasedOn": "2026-10-18",
+              "origin": "sample",
+              "amountMinor": 14900,
+              "receiptId": "00000000-0000-4000-8000-000000000301",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000301",
+                  "title": "Headphones · sample receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000202",
+              "name": "Pour-over kettle",
+              "model": "H-02",
+              "category": "Kitchen",
+              "purchasedOn": "2026-10-12",
+              "origin": "sample",
+              "amountMinor": 8900,
+              "receiptId": "00000000-0000-4000-8000-000000000302",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000302",
+                  "title": "Kettle · sample receipt"
+                }
+              ]
+            }
+          ],
+          "totals": [
+            {
+              "origin": "sample",
+              "amountMinor": 23800,
+              "pricedCount": 2,
+              "excludedCount": 0
+            },
+            {
+              "origin": "sandbox",
+              "amountMinor": 0,
+              "pricedCount": 0,
+              "excludedCount": 0
+            }
+          ],
+          "groups": [
+            {
+              "label": "Audio",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 14900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000201"
+              ]
+            },
+            {
+              "label": "Kitchen",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 8900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000202"
+              ]
+            }
+          ],
+          "comparison": null
+        },
+        "conversationPlan": {
+          "task": "records",
+          "relation": "followup",
+          "query": {
+            "outcome": "query",
+            "operation": "breakdown",
+            "format": "chart",
+            "from": null,
+            "to": null,
+            "categories": [],
+            "origin": "sample",
+            "receipt": "present",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "",
+          "productAction": "summary",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "18-turn",
+      "caseId": "human-11",
+      "question": "compare this month with last month",
+      "requestId": "253b33db-3c59-417c-98b5-64636ffa9496",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "revision": 0,
+        "questionScope": "library",
+        "context": null,
+        "text": "0 matching saved purchases · 2026-11-01 through 2026-11-03 (inclusive; UTC).",
+        "steps": [
+          "Sample and Verified Sandbox values are separate; reference/unpriced records are excluded from amounts. No financial operation was performed.",
+          "Sample recorded-value comparison: current $0.00 (0 priced, 0 excluded), previous $307.00 (3 priced, 1 excluded); difference −$307.00. A recorded-value difference does not establish a cause or a complete account trend.",
+          "Verified Sandbox recorded-value comparison: current $0.00 (0 priced, 0 excluded), previous $129.00 (1 priced, 0 excluded); difference −$129.00. A recorded-value difference does not establish a cause or a complete account trend."
+        ],
+        "sources": [],
+        "actions": [],
+        "recordsResult": {
+          "version": 1,
+          "snapshotId": "fe41e4a894e95fb8f22defd20c450f3e14bc78d9b94eaa4173eebd402ce4fac9",
+          "queryFingerprint": "c1324b8602f88ee07ed4017c1053997d62b274cd3ec0f1b4eb636a74a5ef2629",
+          "observedAt": "2026-11-03T18:18:50.171Z",
+          "query": {
+            "version": 1,
+            "operation": "compare",
+            "format": "table",
+            "from": "2026-11-01",
+            "to": "2026-11-03",
+            "categories": [],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": "",
+            "referenceDate": "2026-11-03",
+            "timezone": "UTC"
+          },
+          "coverage": {
+            "source": "database",
+            "complete": true,
+            "availableCount": 5,
+            "limit": 1000,
+            "excludedInvalidCount": 0
+          },
+          "records": [],
+          "totals": [
+            {
+              "origin": "sample",
+              "amountMinor": 0,
+              "pricedCount": 0,
+              "excludedCount": 0
+            },
+            {
+              "origin": "sandbox",
+              "amountMinor": 0,
+              "pricedCount": 0,
+              "excludedCount": 0
+            }
+          ],
+          "groups": [],
+          "comparison": {
+            "from": "2026-10-01",
+            "to": "2026-10-31",
+            "records": [
+              {
+                "id": "21301174-dcfa-4e19-b5cc-18f21e745700",
+                "name": "Everyday headphones",
+                "model": "F-01",
+                "category": "Audio",
+                "purchasedOn": "2026-10-22",
+                "origin": "sandbox",
+                "amountMinor": 12900,
+                "receiptId": "aee87787-6493-4e6d-8b48-175317fc1be5",
+                "documents": [
+                  {
+                    "id": "a21b64c0-2264-40b6-93ab-f6608a33c7ae",
+                    "title": "Everyday Goods · demo merchant policy v1"
+                  },
+                  {
+                    "id": "aee87787-6493-4e6d-8b48-175317fc1be5",
+                    "title": "Everyday headphones · sandbox receipt"
+                  }
+                ]
+              },
+              {
+                "id": "00000000-0000-4000-8000-000000000201",
+                "name": "Everyday headphones",
+                "model": "F-01",
+                "category": "Audio",
+                "purchasedOn": "2026-10-18",
+                "origin": "sample",
+                "amountMinor": 14900,
+                "receiptId": "00000000-0000-4000-8000-000000000301",
+                "documents": [
+                  {
+                    "id": "00000000-0000-4000-8000-000000000301",
+                    "title": "Headphones · sample receipt"
+                  }
+                ]
+              },
+              {
+                "id": "00000000-0000-4000-8000-000000000202",
+                "name": "Pour-over kettle",
+                "model": "H-02",
+                "category": "Kitchen",
+                "purchasedOn": "2026-10-12",
+                "origin": "sample",
+                "amountMinor": 8900,
+                "receiptId": "00000000-0000-4000-8000-000000000302",
+                "documents": [
+                  {
+                    "id": "00000000-0000-4000-8000-000000000302",
+                    "title": "Kettle · sample receipt"
+                  }
+                ]
+              },
+              {
+                "id": "00000000-0000-4000-8000-000000000203",
+                "name": "Everywhere speaker",
+                "model": "F-03",
+                "category": "Audio",
+                "purchasedOn": "2026-10-08",
+                "origin": "sample",
+                "amountMinor": 6900,
+                "receiptId": null,
+                "documents": [
+                  {
+                    "id": "00000000-0000-4000-8000-000000000303",
+                    "title": "Speaker · sample care card"
+                  }
+                ]
+              },
+              {
+                "id": "00000000-0000-4000-8000-000000000204",
+                "name": "Raspberry Pi 5",
+                "model": "5",
+                "category": "Computing",
+                "purchasedOn": "2026-10-07",
+                "origin": "sample",
+                "amountMinor": null,
+                "receiptId": null,
+                "documents": [
+                  {
+                    "id": "00000000-0000-4000-8000-000000000304",
+                    "title": "Raspberry Pi 5 · sample ownership note"
+                  }
+                ]
+              }
+            ],
+            "totals": [
+              {
+                "origin": "sample",
+                "amountMinor": 30700,
+                "pricedCount": 3,
+                "excludedCount": 1
+              },
+              {
+                "origin": "sandbox",
+                "amountMinor": 12900,
+                "pricedCount": 1,
+                "excludedCount": 0
+              }
+            ]
+          }
+        },
+        "conversationPlan": {
+          "task": "records",
+          "relation": "fresh",
+          "query": {
+            "outcome": "query",
+            "operation": "compare",
+            "format": "table",
+            "from": "2026-11-01",
+            "to": "2026-11-03",
+            "categories": [],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": {
+            "from": "2026-10-01",
+            "to": "2026-10-31"
+          },
+          "productSearch": "",
+          "productAction": "summary",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "18-turn",
+      "caseId": "human-12",
+      "question": "how do i turn my pi off safely?",
+      "requestId": "6f3c2f54-d109-4843-92a9-862343fc9007",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "context": {
+          "twinId": "00000000-0000-4000-8000-000000000204",
+          "name": "Raspberry Pi 5",
+          "model": "5",
+          "origin": "sample",
+          "purchasedOn": "2026-10-07"
+        },
+        "revision": 0,
+        "text": "Raspberry Pi 5 · Shutdown options · Raspberry Pi OS. Follow the model and software conditions in the original guide.",
+        "steps": [
+          "Raspberry Pi 5: Double-press the power button to shut the device down (the Shutdown Options window might display briefly).",
+          "Shutdown. Closes all running programs and powers off your Raspberry Pi. Use this option before disconnecting your Raspberry Pi from power."
+        ],
+        "sources": [
+          {
+            "id": "00000000-0000-4000-8000-000000000501",
+            "title": "Raspberry Pi 5 · safe shutdown",
+            "label": "Raspberry Pi Ltd · CC BY-SA 4.0 · reviewed 2026-10-23 · AI adaptation",
+            "href": "/vault/00000000-0000-4000-8000-000000000204/care#source-00000000-0000-4000-8000-000000000501",
+            "excerpt": "Shutdown. Closes all running programs and powers off your Raspberry Pi. Use this option before disconnecting your Raspberry Pi from power.\nTo open the Shutdown Options window from the desktop, select the Raspberry Pi icon in the top-left corner of the system tray, then select Shutdown.\nRaspberry Pi 5: Double-press the power button to shut the device down (the Shutdown Options window might display briefly)."
+          }
+        ],
+        "actions": [
+          {
+            "label": "Open product-care guide",
+            "href": "/vault/00000000-0000-4000-8000-000000000204/care"
+          }
+        ],
+        "questionScope": "purchase",
+        "conversationPlan": {
+          "task": "care",
+          "relation": "fresh",
+          "query": {
+            "outcome": "query",
+            "operation": "list",
+            "format": "bullets",
+            "from": null,
+            "to": null,
+            "categories": [],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "Raspberry Pi 5",
+          "productAction": "summary",
+          "careQuestion": "How do I safely shut down my Raspberry Pi 5?",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 2,
+      "confirmedProviderCompletions": 2
+    },
+    {
+      "group": "18-turn",
+      "caseId": "human-13",
+      "question": "can i just unplug it?",
+      "requestId": "35eff4de-49a3-40d8-8316-d9f4b746534d",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "context": {
+          "twinId": "00000000-0000-4000-8000-000000000204",
+          "name": "Raspberry Pi 5",
+          "model": "5",
+          "origin": "sample",
+          "purchasedOn": "2026-10-07"
+        },
+        "revision": 1,
+        "text": "Raspberry Pi 5 · Shutdown options · Raspberry Pi OS. Follow the model and software conditions in the original guide.",
+        "steps": [
+          "Shutdown. Closes all running programs and powers off your Raspberry Pi. Use this option before disconnecting your Raspberry Pi from power."
+        ],
+        "sources": [
+          {
+            "id": "00000000-0000-4000-8000-000000000501",
+            "title": "Raspberry Pi 5 · safe shutdown",
+            "label": "Raspberry Pi Ltd · CC BY-SA 4.0 · reviewed 2026-10-23 · AI adaptation",
+            "href": "/vault/00000000-0000-4000-8000-000000000204/care#source-00000000-0000-4000-8000-000000000501",
+            "excerpt": "Shutdown. Closes all running programs and powers off your Raspberry Pi. Use this option before disconnecting your Raspberry Pi from power.\nTo open the Shutdown Options window from the desktop, select the Raspberry Pi icon in the top-left corner of the system tray, then select Shutdown.\nRaspberry Pi 5: Double-press the power button to shut the device down (the Shutdown Options window might display briefly)."
+          }
+        ],
+        "actions": [
+          {
+            "label": "Open product-care guide",
+            "href": "/vault/00000000-0000-4000-8000-000000000204/care"
+          }
+        ],
+        "questionScope": "purchase",
+        "conversationPlan": {
+          "task": "care",
+          "relation": "followup",
+          "query": {
+            "outcome": "query",
+            "operation": "list",
+            "format": "bullets",
+            "from": null,
+            "to": null,
+            "categories": [],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "Raspberry Pi 5",
+          "productAction": "summary",
+          "careQuestion": "Is it safe to turn off my Raspberry Pi 5 by unplugging it rather than shutting it down first?",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 2,
+      "confirmedProviderCompletions": 2
+    },
+    {
+      "group": "18-turn",
+      "caseId": "human-14",
+      "question": "sorry, back to all my purchases again",
+      "requestId": "f3c927eb-e497-4475-ac3b-f65fc7079368",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "revision": 1,
+        "questionScope": "library",
+        "context": null,
+        "text": "5 matching saved purchases · all saved dates.",
+        "steps": [
+          "Sample and Verified Sandbox values are separate; reference/unpriced records are excluded from amounts. No financial operation was performed."
+        ],
+        "sources": [],
+        "actions": [],
+        "recordsResult": {
+          "version": 1,
+          "snapshotId": "fe41e4a894e95fb8f22defd20c450f3e14bc78d9b94eaa4173eebd402ce4fac9",
+          "queryFingerprint": "9357670b5832a6a451325ff90d879d6e4f75bc166b8676a1ae1b8649dc63ac4e",
+          "observedAt": "2026-11-03T18:19:26.201Z",
+          "query": {
+            "version": 1,
+            "operation": "list",
+            "format": "bullets",
+            "from": null,
+            "to": null,
+            "categories": [],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": "",
+            "referenceDate": "2026-11-03",
+            "timezone": "UTC"
+          },
+          "coverage": {
+            "source": "database",
+            "complete": true,
+            "availableCount": 5,
+            "limit": 1000,
+            "excludedInvalidCount": 0
+          },
+          "records": [
+            {
+              "id": "21301174-dcfa-4e19-b5cc-18f21e745700",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "category": "Audio",
+              "purchasedOn": "2026-10-22",
+              "origin": "sandbox",
+              "amountMinor": 12900,
+              "receiptId": "aee87787-6493-4e6d-8b48-175317fc1be5",
+              "documents": [
+                {
+                  "id": "a21b64c0-2264-40b6-93ab-f6608a33c7ae",
+                  "title": "Everyday Goods · demo merchant policy v1"
+                },
+                {
+                  "id": "aee87787-6493-4e6d-8b48-175317fc1be5",
+                  "title": "Everyday headphones · sandbox receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000201",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "category": "Audio",
+              "purchasedOn": "2026-10-18",
+              "origin": "sample",
+              "amountMinor": 14900,
+              "receiptId": "00000000-0000-4000-8000-000000000301",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000301",
+                  "title": "Headphones · sample receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000202",
+              "name": "Pour-over kettle",
+              "model": "H-02",
+              "category": "Kitchen",
+              "purchasedOn": "2026-10-12",
+              "origin": "sample",
+              "amountMinor": 8900,
+              "receiptId": "00000000-0000-4000-8000-000000000302",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000302",
+                  "title": "Kettle · sample receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000203",
+              "name": "Everywhere speaker",
+              "model": "F-03",
+              "category": "Audio",
+              "purchasedOn": "2026-10-08",
+              "origin": "sample",
+              "amountMinor": 6900,
+              "receiptId": null,
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000303",
+                  "title": "Speaker · sample care card"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000204",
+              "name": "Raspberry Pi 5",
+              "model": "5",
+              "category": "Computing",
+              "purchasedOn": "2026-10-07",
+              "origin": "sample",
+              "amountMinor": null,
+              "receiptId": null,
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000304",
+                  "title": "Raspberry Pi 5 · sample ownership note"
+                }
+              ]
+            }
+          ],
+          "totals": [
+            {
+              "origin": "sample",
+              "amountMinor": 30700,
+              "pricedCount": 3,
+              "excludedCount": 1
+            },
+            {
+              "origin": "sandbox",
+              "amountMinor": 12900,
+              "pricedCount": 1,
+              "excludedCount": 0
+            }
+          ],
+          "groups": [
+            {
+              "label": "Audio",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 21800,
+                  "pricedCount": 2,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 12900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "21301174-dcfa-4e19-b5cc-18f21e745700",
+                "00000000-0000-4000-8000-000000000201",
+                "00000000-0000-4000-8000-000000000203"
+              ]
+            },
+            {
+              "label": "Computing",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 1
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000204"
+              ]
+            },
+            {
+              "label": "Kitchen",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 8900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000202"
+              ]
+            }
+          ],
+          "comparison": null
+        },
+        "conversationPlan": {
+          "task": "records",
+          "relation": "fresh",
+          "query": {
+            "outcome": "query",
+            "operation": "list",
+            "format": "bullets",
+            "from": null,
+            "to": null,
+            "categories": [],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "",
+          "productAction": "summary",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "18-turn",
+      "caseId": "human-15",
+      "question": "how much did I spend last month? split sample and sandbox please",
+      "requestId": "f1697d38-5b22-4b0e-895e-a695e4fda931",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "revision": 2,
+        "questionScope": "library",
+        "context": null,
+        "text": "5 matching saved purchases · 2026-10-01 through 2026-10-31 (inclusive; UTC).",
+        "steps": [
+          "Sample and Verified Sandbox values are separate; reference/unpriced records are excluded from amounts. No financial operation was performed."
+        ],
+        "sources": [],
+        "actions": [],
+        "recordsResult": {
+          "version": 1,
+          "snapshotId": "fe41e4a894e95fb8f22defd20c450f3e14bc78d9b94eaa4173eebd402ce4fac9",
+          "queryFingerprint": "73f0852b717ef631bb469435b89f1510c8b59e1714f40f82a6da4922c6b96896",
+          "observedAt": "2026-11-03T18:19:37.369Z",
+          "query": {
+            "version": 1,
+            "operation": "total",
+            "format": "table",
+            "from": "2026-10-01",
+            "to": "2026-10-31",
+            "categories": [],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": "",
+            "referenceDate": "2026-11-03",
+            "timezone": "UTC"
+          },
+          "coverage": {
+            "source": "database",
+            "complete": true,
+            "availableCount": 5,
+            "limit": 1000,
+            "excludedInvalidCount": 0
+          },
+          "records": [
+            {
+              "id": "21301174-dcfa-4e19-b5cc-18f21e745700",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "category": "Audio",
+              "purchasedOn": "2026-10-22",
+              "origin": "sandbox",
+              "amountMinor": 12900,
+              "receiptId": "aee87787-6493-4e6d-8b48-175317fc1be5",
+              "documents": [
+                {
+                  "id": "a21b64c0-2264-40b6-93ab-f6608a33c7ae",
+                  "title": "Everyday Goods · demo merchant policy v1"
+                },
+                {
+                  "id": "aee87787-6493-4e6d-8b48-175317fc1be5",
+                  "title": "Everyday headphones · sandbox receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000201",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "category": "Audio",
+              "purchasedOn": "2026-10-18",
+              "origin": "sample",
+              "amountMinor": 14900,
+              "receiptId": "00000000-0000-4000-8000-000000000301",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000301",
+                  "title": "Headphones · sample receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000202",
+              "name": "Pour-over kettle",
+              "model": "H-02",
+              "category": "Kitchen",
+              "purchasedOn": "2026-10-12",
+              "origin": "sample",
+              "amountMinor": 8900,
+              "receiptId": "00000000-0000-4000-8000-000000000302",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000302",
+                  "title": "Kettle · sample receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000203",
+              "name": "Everywhere speaker",
+              "model": "F-03",
+              "category": "Audio",
+              "purchasedOn": "2026-10-08",
+              "origin": "sample",
+              "amountMinor": 6900,
+              "receiptId": null,
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000303",
+                  "title": "Speaker · sample care card"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000204",
+              "name": "Raspberry Pi 5",
+              "model": "5",
+              "category": "Computing",
+              "purchasedOn": "2026-10-07",
+              "origin": "sample",
+              "amountMinor": null,
+              "receiptId": null,
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000304",
+                  "title": "Raspberry Pi 5 · sample ownership note"
+                }
+              ]
+            }
+          ],
+          "totals": [
+            {
+              "origin": "sample",
+              "amountMinor": 30700,
+              "pricedCount": 3,
+              "excludedCount": 1
+            },
+            {
+              "origin": "sandbox",
+              "amountMinor": 12900,
+              "pricedCount": 1,
+              "excludedCount": 0
+            }
+          ],
+          "groups": [
+            {
+              "label": "Audio",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 21800,
+                  "pricedCount": 2,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 12900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "21301174-dcfa-4e19-b5cc-18f21e745700",
+                "00000000-0000-4000-8000-000000000201",
+                "00000000-0000-4000-8000-000000000203"
+              ]
+            },
+            {
+              "label": "Computing",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 1
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000204"
+              ]
+            },
+            {
+              "label": "Kitchen",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 8900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000202"
+              ]
+            }
+          ],
+          "comparison": null
+        },
+        "conversationPlan": {
+          "task": "records",
+          "relation": "fresh",
+          "query": {
+            "outcome": "query",
+            "operation": "total",
+            "format": "table",
+            "from": "2026-10-01",
+            "to": "2026-10-31",
+            "categories": [],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "",
+          "productAction": "summary",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "18-turn",
+      "caseId": "human-16",
+      "question": "only audio n make it a list",
+      "requestId": "3b5c3a10-5f39-40ba-83c7-cf803e90189b",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "revision": 2,
+        "questionScope": "library",
+        "context": null,
+        "text": "3 matching saved purchases · 2026-10-01 through 2026-10-31 (inclusive; UTC).",
+        "steps": [
+          "Categories: Audio.",
+          "Sample and Verified Sandbox values are separate; reference/unpriced records are excluded from amounts. No financial operation was performed."
+        ],
+        "sources": [],
+        "actions": [],
+        "recordsResult": {
+          "version": 1,
+          "snapshotId": "fe41e4a894e95fb8f22defd20c450f3e14bc78d9b94eaa4173eebd402ce4fac9",
+          "queryFingerprint": "09e8efec6694a8c83057cbdfb3ae5fa9f61a8cbca028bdbf58c8c5e7fc2346e9",
+          "observedAt": "2026-11-03T18:19:49.958Z",
+          "query": {
+            "version": 1,
+            "operation": "list",
+            "format": "bullets",
+            "from": "2026-10-01",
+            "to": "2026-10-31",
+            "categories": [
+              "Audio"
+            ],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": "",
+            "referenceDate": "2026-11-03",
+            "timezone": "UTC"
+          },
+          "coverage": {
+            "source": "database",
+            "complete": true,
+            "availableCount": 5,
+            "limit": 1000,
+            "excludedInvalidCount": 0
+          },
+          "records": [
+            {
+              "id": "21301174-dcfa-4e19-b5cc-18f21e745700",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "category": "Audio",
+              "purchasedOn": "2026-10-22",
+              "origin": "sandbox",
+              "amountMinor": 12900,
+              "receiptId": "aee87787-6493-4e6d-8b48-175317fc1be5",
+              "documents": [
+                {
+                  "id": "a21b64c0-2264-40b6-93ab-f6608a33c7ae",
+                  "title": "Everyday Goods · demo merchant policy v1"
+                },
+                {
+                  "id": "aee87787-6493-4e6d-8b48-175317fc1be5",
+                  "title": "Everyday headphones · sandbox receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000201",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "category": "Audio",
+              "purchasedOn": "2026-10-18",
+              "origin": "sample",
+              "amountMinor": 14900,
+              "receiptId": "00000000-0000-4000-8000-000000000301",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000301",
+                  "title": "Headphones · sample receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000203",
+              "name": "Everywhere speaker",
+              "model": "F-03",
+              "category": "Audio",
+              "purchasedOn": "2026-10-08",
+              "origin": "sample",
+              "amountMinor": 6900,
+              "receiptId": null,
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000303",
+                  "title": "Speaker · sample care card"
+                }
+              ]
+            }
+          ],
+          "totals": [
+            {
+              "origin": "sample",
+              "amountMinor": 21800,
+              "pricedCount": 2,
+              "excludedCount": 0
+            },
+            {
+              "origin": "sandbox",
+              "amountMinor": 12900,
+              "pricedCount": 1,
+              "excludedCount": 0
+            }
+          ],
+          "groups": [
+            {
+              "label": "Audio",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 21800,
+                  "pricedCount": 2,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 12900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "21301174-dcfa-4e19-b5cc-18f21e745700",
+                "00000000-0000-4000-8000-000000000201",
+                "00000000-0000-4000-8000-000000000203"
+              ]
+            }
+          ],
+          "comparison": null
+        },
+        "conversationPlan": {
+          "task": "records",
+          "relation": "followup",
+          "query": {
+            "outcome": "query",
+            "operation": "list",
+            "format": "bullets",
+            "from": "2026-10-01",
+            "to": "2026-10-31",
+            "categories": [
+              "Audio"
+            ],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "",
+          "productAction": "summary",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "18-turn",
+      "caseId": "human-17",
+      "question": "what about ones without receipts?",
+      "requestId": "1c711e51-a1d2-4ddc-a925-4aaa82e1730f",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "revision": 2,
+        "questionScope": "library",
+        "context": null,
+        "text": "1 matching saved purchase · 2026-10-01 through 2026-10-31 (inclusive; UTC).",
+        "steps": [
+          "Categories: Audio.",
+          "Receipt filter: missing; policies and care cards do not count as receipts.",
+          "Sample and Verified Sandbox values are separate; reference/unpriced records are excluded from amounts. No financial operation was performed."
+        ],
+        "sources": [],
+        "actions": [],
+        "recordsResult": {
+          "version": 1,
+          "snapshotId": "fe41e4a894e95fb8f22defd20c450f3e14bc78d9b94eaa4173eebd402ce4fac9",
+          "queryFingerprint": "e1e6f4b87a6e84f975c2fcc01b740d7a39aa2ccdfe5434a72b7d4c60c050a1fa",
+          "observedAt": "2026-11-03T18:20:01.713Z",
+          "query": {
+            "version": 1,
+            "operation": "list",
+            "format": "bullets",
+            "from": "2026-10-01",
+            "to": "2026-10-31",
+            "categories": [
+              "Audio"
+            ],
+            "origin": "all",
+            "receipt": "missing",
+            "document": "any",
+            "price": "any",
+            "search": "",
+            "referenceDate": "2026-11-03",
+            "timezone": "UTC"
+          },
+          "coverage": {
+            "source": "database",
+            "complete": true,
+            "availableCount": 5,
+            "limit": 1000,
+            "excludedInvalidCount": 0
+          },
+          "records": [
+            {
+              "id": "00000000-0000-4000-8000-000000000203",
+              "name": "Everywhere speaker",
+              "model": "F-03",
+              "category": "Audio",
+              "purchasedOn": "2026-10-08",
+              "origin": "sample",
+              "amountMinor": 6900,
+              "receiptId": null,
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000303",
+                  "title": "Speaker · sample care card"
+                }
+              ]
+            }
+          ],
+          "totals": [
+            {
+              "origin": "sample",
+              "amountMinor": 6900,
+              "pricedCount": 1,
+              "excludedCount": 0
+            },
+            {
+              "origin": "sandbox",
+              "amountMinor": 0,
+              "pricedCount": 0,
+              "excludedCount": 0
+            }
+          ],
+          "groups": [
+            {
+              "label": "Audio",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 6900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000203"
+              ]
+            }
+          ],
+          "comparison": null
+        },
+        "conversationPlan": {
+          "task": "records",
+          "relation": "followup",
+          "query": {
+            "outcome": "query",
+            "operation": "list",
+            "format": "bullets",
+            "from": "2026-10-01",
+            "to": "2026-10-31",
+            "categories": [
+              "Audio"
+            ],
+            "origin": "all",
+            "receipt": "missing",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "",
+          "productAction": "summary",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "18-turn",
+      "caseId": "human-18",
+      "question": "put those in a chart",
+      "requestId": "8397c8d2-2ced-495b-8f10-bc45299e1cd4",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "revision": 2,
+        "questionScope": "library",
+        "context": null,
+        "text": "1 matching saved purchase · 2026-10-01 through 2026-10-31 (inclusive; UTC).",
+        "steps": [
+          "Categories: Audio.",
+          "Receipt filter: missing; policies and care cards do not count as receipts.",
+          "Sample and Verified Sandbox values are separate; reference/unpriced records are excluded from amounts. No financial operation was performed.",
+          "Sample saved evidence: Audio has the largest recorded category value ($69.00), within $69.00 across 1 priced purchases; 0 unpriced/reference excluded. This describes available records, not a reason for spending."
+        ],
+        "sources": [],
+        "actions": [],
+        "recordsResult": {
+          "version": 1,
+          "snapshotId": "fe41e4a894e95fb8f22defd20c450f3e14bc78d9b94eaa4173eebd402ce4fac9",
+          "queryFingerprint": "e1e6f4b87a6e84f975c2fcc01b740d7a39aa2ccdfe5434a72b7d4c60c050a1fa",
+          "observedAt": "2026-11-03T18:20:14.758Z",
+          "query": {
+            "version": 1,
+            "operation": "breakdown",
+            "format": "chart",
+            "from": "2026-10-01",
+            "to": "2026-10-31",
+            "categories": [
+              "Audio"
+            ],
+            "origin": "all",
+            "receipt": "missing",
+            "document": "any",
+            "price": "any",
+            "search": "",
+            "referenceDate": "2026-11-03",
+            "timezone": "UTC"
+          },
+          "coverage": {
+            "source": "database",
+            "complete": true,
+            "availableCount": 5,
+            "limit": 1000,
+            "excludedInvalidCount": 0
+          },
+          "records": [
+            {
+              "id": "00000000-0000-4000-8000-000000000203",
+              "name": "Everywhere speaker",
+              "model": "F-03",
+              "category": "Audio",
+              "purchasedOn": "2026-10-08",
+              "origin": "sample",
+              "amountMinor": 6900,
+              "receiptId": null,
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000303",
+                  "title": "Speaker · sample care card"
+                }
+              ]
+            }
+          ],
+          "totals": [
+            {
+              "origin": "sample",
+              "amountMinor": 6900,
+              "pricedCount": 1,
+              "excludedCount": 0
+            },
+            {
+              "origin": "sandbox",
+              "amountMinor": 0,
+              "pricedCount": 0,
+              "excludedCount": 0
+            }
+          ],
+          "groups": [
+            {
+              "label": "Audio",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 6900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000203"
+              ]
+            }
+          ],
+          "comparison": null
+        },
+        "conversationPlan": {
+          "task": "records",
+          "relation": "followup",
+          "query": {
+            "outcome": "query",
+            "operation": "breakdown",
+            "format": "chart",
+            "from": "2026-10-01",
+            "to": "2026-10-31",
+            "categories": [
+              "Audio"
+            ],
+            "origin": "all",
+            "receipt": "missing",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "",
+          "productAction": "summary",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "current-build",
+      "caseId": "natural-01",
+      "question": "show me all my purches and how much I spent",
+      "requestId": "38462b1d-1159-4cb7-b27a-61257aa1df3a",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "revision": 0,
+        "questionScope": "library",
+        "context": null,
+        "text": "5 matching saved purchases · all saved dates.",
+        "steps": [
+          "Sample and Verified Sandbox values are separate; reference/unpriced records are excluded from amounts. No financial operation was performed."
+        ],
+        "sources": [],
+        "actions": [],
+        "recordsResult": {
+          "version": 1,
+          "snapshotId": "fe41e4a894e95fb8f22defd20c450f3e14bc78d9b94eaa4173eebd402ce4fac9",
+          "queryFingerprint": "9357670b5832a6a451325ff90d879d6e4f75bc166b8676a1ae1b8649dc63ac4e",
+          "observedAt": "2026-11-03T18:36:59.799Z",
+          "query": {
+            "version": 1,
+            "operation": "total",
+            "format": "table",
+            "from": null,
+            "to": null,
+            "categories": [],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": "",
+            "referenceDate": "2026-11-03",
+            "timezone": "UTC"
+          },
+          "coverage": {
+            "source": "database",
+            "complete": true,
+            "availableCount": 5,
+            "limit": 1000,
+            "excludedInvalidCount": 0
+          },
+          "records": [
+            {
+              "id": "21301174-dcfa-4e19-b5cc-18f21e745700",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "category": "Audio",
+              "purchasedOn": "2026-10-22",
+              "origin": "sandbox",
+              "amountMinor": 12900,
+              "receiptId": "aee87787-6493-4e6d-8b48-175317fc1be5",
+              "documents": [
+                {
+                  "id": "a21b64c0-2264-40b6-93ab-f6608a33c7ae",
+                  "title": "Everyday Goods · demo merchant policy v1"
+                },
+                {
+                  "id": "aee87787-6493-4e6d-8b48-175317fc1be5",
+                  "title": "Everyday headphones · sandbox receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000201",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "category": "Audio",
+              "purchasedOn": "2026-10-18",
+              "origin": "sample",
+              "amountMinor": 14900,
+              "receiptId": "00000000-0000-4000-8000-000000000301",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000301",
+                  "title": "Headphones · sample receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000202",
+              "name": "Pour-over kettle",
+              "model": "H-02",
+              "category": "Kitchen",
+              "purchasedOn": "2026-10-12",
+              "origin": "sample",
+              "amountMinor": 8900,
+              "receiptId": "00000000-0000-4000-8000-000000000302",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000302",
+                  "title": "Kettle · sample receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000203",
+              "name": "Everywhere speaker",
+              "model": "F-03",
+              "category": "Audio",
+              "purchasedOn": "2026-10-08",
+              "origin": "sample",
+              "amountMinor": 6900,
+              "receiptId": null,
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000303",
+                  "title": "Speaker · sample care card"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000204",
+              "name": "Raspberry Pi 5",
+              "model": "5",
+              "category": "Computing",
+              "purchasedOn": "2026-10-07",
+              "origin": "sample",
+              "amountMinor": null,
+              "receiptId": null,
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000304",
+                  "title": "Raspberry Pi 5 · sample ownership note"
+                }
+              ]
+            }
+          ],
+          "totals": [
+            {
+              "origin": "sample",
+              "amountMinor": 30700,
+              "pricedCount": 3,
+              "excludedCount": 1
+            },
+            {
+              "origin": "sandbox",
+              "amountMinor": 12900,
+              "pricedCount": 1,
+              "excludedCount": 0
+            }
+          ],
+          "groups": [
+            {
+              "label": "Audio",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 21800,
+                  "pricedCount": 2,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 12900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "21301174-dcfa-4e19-b5cc-18f21e745700",
+                "00000000-0000-4000-8000-000000000201",
+                "00000000-0000-4000-8000-000000000203"
+              ]
+            },
+            {
+              "label": "Computing",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 1
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000204"
+              ]
+            },
+            {
+              "label": "Kitchen",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 8900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000202"
+              ]
+            }
+          ],
+          "comparison": null
+        },
+        "conversationPlan": {
+          "task": "records",
+          "relation": "fresh",
+          "query": {
+            "outcome": "query",
+            "operation": "total",
+            "format": "table",
+            "from": null,
+            "to": null,
+            "categories": [],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "",
+          "productAction": "summary",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "current-build",
+      "caseId": "natural-02",
+      "question": "what did I pay for my sample purchases last month?",
+      "requestId": "e09249a4-c97d-4a04-aedf-47aa8a456e70",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "revision": 0,
+        "questionScope": "library",
+        "context": null,
+        "text": "4 matching saved purchases · 2026-10-01 through 2026-10-31 (inclusive; UTC).",
+        "steps": [
+          "Evidence filter: Sample.",
+          "Sample and Verified Sandbox values are separate; reference/unpriced records are excluded from amounts. No financial operation was performed."
+        ],
+        "sources": [],
+        "actions": [],
+        "recordsResult": {
+          "version": 1,
+          "snapshotId": "fe41e4a894e95fb8f22defd20c450f3e14bc78d9b94eaa4173eebd402ce4fac9",
+          "queryFingerprint": "2558225f1155cd6e677a59b17d1ef7672a42ee78064e67aa5c9038cd4629de8b",
+          "observedAt": "2026-11-03T18:37:12.666Z",
+          "query": {
+            "version": 1,
+            "operation": "total",
+            "format": "table",
+            "from": "2026-10-01",
+            "to": "2026-10-31",
+            "categories": [],
+            "origin": "sample",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": "",
+            "referenceDate": "2026-11-03",
+            "timezone": "UTC"
+          },
+          "coverage": {
+            "source": "database",
+            "complete": true,
+            "availableCount": 5,
+            "limit": 1000,
+            "excludedInvalidCount": 0
+          },
+          "records": [
+            {
+              "id": "00000000-0000-4000-8000-000000000201",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "category": "Audio",
+              "purchasedOn": "2026-10-18",
+              "origin": "sample",
+              "amountMinor": 14900,
+              "receiptId": "00000000-0000-4000-8000-000000000301",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000301",
+                  "title": "Headphones · sample receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000202",
+              "name": "Pour-over kettle",
+              "model": "H-02",
+              "category": "Kitchen",
+              "purchasedOn": "2026-10-12",
+              "origin": "sample",
+              "amountMinor": 8900,
+              "receiptId": "00000000-0000-4000-8000-000000000302",
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000302",
+                  "title": "Kettle · sample receipt"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000203",
+              "name": "Everywhere speaker",
+              "model": "F-03",
+              "category": "Audio",
+              "purchasedOn": "2026-10-08",
+              "origin": "sample",
+              "amountMinor": 6900,
+              "receiptId": null,
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000303",
+                  "title": "Speaker · sample care card"
+                }
+              ]
+            },
+            {
+              "id": "00000000-0000-4000-8000-000000000204",
+              "name": "Raspberry Pi 5",
+              "model": "5",
+              "category": "Computing",
+              "purchasedOn": "2026-10-07",
+              "origin": "sample",
+              "amountMinor": null,
+              "receiptId": null,
+              "documents": [
+                {
+                  "id": "00000000-0000-4000-8000-000000000304",
+                  "title": "Raspberry Pi 5 · sample ownership note"
+                }
+              ]
+            }
+          ],
+          "totals": [
+            {
+              "origin": "sample",
+              "amountMinor": 30700,
+              "pricedCount": 3,
+              "excludedCount": 1
+            },
+            {
+              "origin": "sandbox",
+              "amountMinor": 0,
+              "pricedCount": 0,
+              "excludedCount": 0
+            }
+          ],
+          "groups": [
+            {
+              "label": "Audio",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 21800,
+                  "pricedCount": 2,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000201",
+                "00000000-0000-4000-8000-000000000203"
+              ]
+            },
+            {
+              "label": "Computing",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 1
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000204"
+              ]
+            },
+            {
+              "label": "Kitchen",
+              "totals": [
+                {
+                  "origin": "sample",
+                  "amountMinor": 8900,
+                  "pricedCount": 1,
+                  "excludedCount": 0
+                },
+                {
+                  "origin": "sandbox",
+                  "amountMinor": 0,
+                  "pricedCount": 0,
+                  "excludedCount": 0
+                }
+              ],
+              "recordIds": [
+                "00000000-0000-4000-8000-000000000202"
+              ]
+            }
+          ],
+          "comparison": null
+        },
+        "conversationPlan": {
+          "task": "records",
+          "relation": "fresh",
+          "query": {
+            "outcome": "query",
+            "operation": "total",
+            "format": "table",
+            "from": "2026-10-01",
+            "to": "2026-10-31",
+            "categories": [],
+            "origin": "sample",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "",
+          "productAction": "summary",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "current-build",
+      "caseId": "natural-03",
+      "question": "can you send me the receipt for those headphones please?",
+      "requestId": "707134ed-7037-4993-9ba0-a19793308445",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "context": {
+          "twinId": "00000000-0000-4000-8000-000000000201",
+          "name": "Everyday headphones",
+          "model": "F-01",
+          "origin": "sample",
+          "purchasedOn": "2026-10-18"
+        },
+        "revision": 0,
+        "text": "Here’s the receipt saved with this purchase.",
+        "steps": [],
+        "sources": [
+          {
+            "id": "00000000-0000-4000-8000-000000000201",
+            "title": "Everyday headphones · Purchase Twin",
+            "label": "Sample purchase record",
+            "href": "/vault/00000000-0000-4000-8000-000000000201"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000301",
+            "title": "Headphones · sample receipt",
+            "label": "Fictional sample document",
+            "href": "/documents/00000000-0000-4000-8000-000000000301"
+          }
+        ],
+        "actions": [
+          {
+            "label": "Open receipt",
+            "href": "/documents/00000000-0000-4000-8000-000000000301"
+          }
+        ],
+        "questionScope": "purchase",
+        "conversationPlan": {
+          "task": "product",
+          "relation": "followup",
+          "query": {
+            "outcome": "query",
+            "operation": "list",
+            "format": "table",
+            "from": "2026-10-01",
+            "to": "2026-10-31",
+            "categories": [],
+            "origin": "sample",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "Everyday headphones F-01",
+          "productAction": "receipt",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "current-build",
+      "caseId": "natural-04",
+      "question": "pay for another pair now",
+      "requestId": "b13ddb0e-0261-43d5-b224-0ab4d2130344",
+      "passed": true,
+      "answer": {
+        "outcome": "unsupported",
+        "mode": "live",
+        "questionScope": "general",
+        "context": null,
+        "revision": 1,
+        "text": "That is outside North's read-only saved-purchase tools. No financial or permission change was performed.",
+        "steps": [],
+        "sources": [],
+        "actions": [],
+        "conversationPlan": {
+          "task": "unsupported",
+          "relation": "followup",
+          "query": {
+            "outcome": "unsupported",
+            "operation": "list",
+            "format": "table",
+            "from": null,
+            "to": null,
+            "categories": [],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "Everyday headphones F-01",
+          "productAction": "summary",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "ambiguity",
+      "caseId": "ambiguity-01",
+      "question": "what did I pay for my headphones?",
+      "requestId": "1a5f8e3c-bcc6-46e9-b9a3-10f6db5fda0d",
+      "passed": true,
+      "answer": {
+        "outcome": "selection",
+        "mode": "live",
+        "context": null,
+        "revision": 0,
+        "text": "I found more than one matching dated purchase. Which one do you mean?",
+        "steps": [],
+        "sources": [],
+        "purchaseChoices": [
+          {
+            "context": {
+              "twinId": "21301174-dcfa-4e19-b5cc-18f21e745700",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "origin": "sandbox",
+              "purchasedOn": "2026-10-22"
+            },
+            "purchasedOn": "2026-10-22",
+            "provenance": "Verified Sandbox"
+          },
+          {
+            "context": {
+              "twinId": "00000000-0000-4000-8000-000000000201",
+              "name": "Everyday headphones",
+              "model": "F-01",
+              "origin": "sample",
+              "purchasedOn": "2026-10-18"
+            },
+            "purchasedOn": "2026-10-18",
+            "provenance": "Sample"
+          }
+        ],
+        "actions": [
+          {
+            "label": "Everyday headphones · Oct 22, 2026 · Verified Sandbox",
+            "href": "/vault/21301174-dcfa-4e19-b5cc-18f21e745700"
+          },
+          {
+            "label": "Everyday headphones · Oct 18, 2026 · Sample",
+            "href": "/vault/00000000-0000-4000-8000-000000000201"
+          }
+        ],
+        "conversationPlan": {
+          "task": "product",
+          "relation": "fresh",
+          "query": {
+            "outcome": "query",
+            "operation": "list",
+            "format": "bullets",
+            "from": null,
+            "to": null,
+            "categories": [],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "Everyday headphones F-01",
+          "productAction": "summary",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "ambiguity",
+      "caseId": "ambiguity-02",
+      "question": "the older pair, from October 18",
+      "requestId": "8c9979e3-e6c0-4aa8-aa37-f39e98d18c9b",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "context": {
+          "twinId": "00000000-0000-4000-8000-000000000201",
+          "name": "Everyday headphones",
+          "model": "F-01",
+          "origin": "sample",
+          "purchasedOn": "2026-10-18"
+        },
+        "revision": 0,
+        "text": "Everyday headphones (Forma F-01) · $149.00 · Oct 18, 2026. 1 saved document. This is a fictional sample purchase, not a verified payment. No manufacturer manual is available for this fictional model. Saved policy and aftercare records are not a refund approval.",
+        "steps": [],
+        "sources": [
+          {
+            "id": "00000000-0000-4000-8000-000000000201",
+            "title": "Everyday headphones · Purchase Twin",
+            "label": "Sample purchase record",
+            "href": "/vault/00000000-0000-4000-8000-000000000201"
+          }
+        ],
+        "actions": [
+          {
+            "label": "Open saved receipt",
+            "href": "/documents/00000000-0000-4000-8000-000000000301"
+          },
+          {
+            "label": "View purchase",
+            "href": "/vault/00000000-0000-4000-8000-000000000201"
+          },
+          {
+            "label": "Review documents",
+            "href": "/vault/00000000-0000-4000-8000-000000000201#documents-heading"
+          },
+          {
+            "label": "Review recorded aftercare",
+            "href": "/guardian?twinId=00000000-0000-4000-8000-000000000201"
+          }
+        ],
+        "questionScope": "purchase",
+        "conversationPlan": {
+          "task": "product",
+          "relation": "followup",
+          "query": {
+            "outcome": "query",
+            "operation": "list",
+            "format": "bullets",
+            "from": "2026-10-18",
+            "to": "2026-10-18",
+            "categories": [],
+            "origin": "all",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "Everyday headphones F-01",
+          "productAction": "summary",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    },
+    {
+      "group": "ambiguity",
+      "caseId": "ambiguity-03",
+      "question": "can I get its receipt?",
+      "requestId": "5e5ab0bd-852b-449a-aba2-d3e0a04a3597",
+      "passed": true,
+      "answer": {
+        "outcome": "answered",
+        "mode": "live",
+        "context": {
+          "twinId": "00000000-0000-4000-8000-000000000201",
+          "name": "Everyday headphones",
+          "model": "F-01",
+          "origin": "sample",
+          "purchasedOn": "2026-10-18"
+        },
+        "revision": 1,
+        "text": "Here’s the receipt saved with this purchase.",
+        "steps": [],
+        "sources": [
+          {
+            "id": "00000000-0000-4000-8000-000000000201",
+            "title": "Everyday headphones · Purchase Twin",
+            "label": "Sample purchase record",
+            "href": "/vault/00000000-0000-4000-8000-000000000201"
+          },
+          {
+            "id": "00000000-0000-4000-8000-000000000301",
+            "title": "Headphones · sample receipt",
+            "label": "Fictional sample document",
+            "href": "/documents/00000000-0000-4000-8000-000000000301"
+          }
+        ],
+        "actions": [
+          {
+            "label": "Open receipt",
+            "href": "/documents/00000000-0000-4000-8000-000000000301"
+          }
+        ],
+        "questionScope": "purchase",
+        "conversationPlan": {
+          "task": "product",
+          "relation": "followup",
+          "query": {
+            "outcome": "query",
+            "operation": "list",
+            "format": "bullets",
+            "from": "2026-10-18",
+            "to": "2026-10-18",
+            "categories": [],
+            "origin": "sample",
+            "receipt": "any",
+            "document": "any",
+            "price": "any",
+            "search": ""
+          },
+          "comparison": null,
+          "productSearch": "Everyday headphones F-01",
+          "productAction": "receipt",
+          "careQuestion": "",
+          "clarification": ""
+        }
+      },
+      "providerAttempts": 1,
+      "confirmedProviderCompletions": 1
+    }
+  ]
+}

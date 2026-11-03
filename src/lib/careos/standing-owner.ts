@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { z } from "zod";
 import { CareError } from "./contracts";
 import { PilotFiles } from "./subscription/files";
+import { northReviewOrigin } from "../private-preview-origin";
 
 export const OWNER_COOKIE = "__Host-palcare-owner";
 export const OWNER_ORIGIN = "https://greatbison.tail9e8802.ts.net:8444";
@@ -92,7 +93,19 @@ const stateSchema = z.strictObject({
   events: z.array(eventSchema).max(3000),
 });
 type State = z.infer<typeof stateSchema>;
-export type OwnerProof = { token?: string; agent: string };
+export type OwnerProof = { token?: string; agent: string; origin?: string };
+export const reviewOriginApprovalSchema = z.strictObject({
+  version: z.literal(1),
+  origin: z.literal(northReviewOrigin),
+  policyId: z.uuid(),
+  policyHash: digest,
+  approvedAt: time,
+});
+export function ownerCookieName(origin: string) {
+  return origin === northReviewOrigin
+    ? "__Host-palcare-north-owner"
+    : OWNER_COOKIE;
+}
 export const ownerFiles = () =>
   new PilotFiles(join(homedir(), ".config/palcare-standing-owner"));
 const deny = (code: string): never => {
@@ -120,9 +133,46 @@ export class StandingOwner {
   private async change<T>(work: (s: State) => T) {
     return this.files.lockedWaiting(async () => {
       const s = await this.state();
-      const result = work(s);
+      const result = await work(s);
       await this.files.write("owner-state.json", stateSchema.parse(s));
       return result;
+    }, ".owner-access-lock");
+  }
+  private async additionalOrigin(s: State, origin = OWNER_ORIGIN) {
+    if (origin === OWNER_ORIGIN) return;
+    const approval = reviewOriginApprovalSchema.safeParse(
+      await this.files.read("north-review-origin-approval.json"),
+    );
+    if (
+      origin !== northReviewOrigin ||
+      !approval.success ||
+      !s.policy ||
+      approval.data.policyId !== s.policy.id ||
+      approval.data.policyHash !== hash(JSON.stringify(s.policy)) ||
+      approval.data.approvedAt < s.policy.approvedAt ||
+      approval.data.approvedAt > this.now()
+    )
+      return deny("origin_not_approved");
+  }
+  async assertOriginApproval(origin: string) {
+    await this.additionalOrigin(await this.state(), origin);
+  }
+  /** Exact owner-approved additive origin, not policy replacement or allowance. */
+  async installReviewOriginApproval(value: unknown) {
+    const approval = reviewOriginApprovalSchema.parse(value);
+    await this.files.lockedWaiting(async () => {
+      const s = await this.state();
+      if (
+        (await this.files.read("north-review-origin-approval.json")) ||
+        !s.policy ||
+        approval.policyId !== s.policy.id ||
+        approval.policyHash !== hash(JSON.stringify(s.policy)) ||
+        approval.approvedAt < s.policy.approvedAt ||
+        approval.approvedAt > this.now() ||
+        s.events.some((e) => e.kind === "revoke-policy")
+      )
+        return deny("origin_not_approved");
+      await this.files.write("north-review-origin-approval.json", approval);
     }, ".owner-access-lock");
   }
   private event(
@@ -301,7 +351,8 @@ export class StandingOwner {
     });
   }
   async authenticate(proof: OwnerProof) {
-    return this.change((s) => {
+    return this.change(async (s) => {
+      await this.additionalOrigin(s, proof.origin);
       const entry = this.session(s, proof);
       // Bound write volume; absolute lifetime never slides.
       if (this.now() - entry.lastSeen >= 3600000) {
@@ -353,7 +404,9 @@ export class StandingOwner {
   ) {
     // Same cross-process lock as logout/revocation/accounting, not the provider lock.
     return this.files.lockedWaiting(async () => {
-      return this.allowed(await this.state(), proof, selected, enabled);
+      const state = await this.state();
+      await this.additionalOrigin(state, proof.origin);
+      return this.allowed(state, proof, selected, enabled);
     }, ".owner-access-lock");
   }
   async reserve(
@@ -363,7 +416,8 @@ export class StandingOwner {
     enabled: boolean,
   ) {
     z.string().min(1).max(200).parse(key);
-    return this.change((s) => {
+    return this.change(async (s) => {
+      await this.additionalOrigin(s, proof.origin);
       this.allowed(s, proof, selected, enabled);
       if (s.events.some((e) => e.kind === "reserve" && e.subject === key))
         return deny("already_dispatched");
@@ -449,11 +503,16 @@ export class StandingOwner {
   }
 }
 
-export function assertOwnerRequest(request: Request, mutation: boolean) {
+export function assertOwnerRequest(
+  request: Request,
+  mutation: boolean,
+  origin: string = OWNER_ORIGIN,
+) {
   if (
-    request.headers.get("host") !== new URL(OWNER_ORIGIN).host ||
+    ![OWNER_ORIGIN, northReviewOrigin].includes(origin) ||
+    request.headers.get("host") !== new URL(origin).host ||
     ((mutation || request.headers.has("origin")) &&
-      request.headers.get("origin") !== OWNER_ORIGIN) ||
+      request.headers.get("origin") !== origin) ||
     request.headers.get("sec-fetch-site") === "cross-site"
   )
     return deny("origin_rejected");
