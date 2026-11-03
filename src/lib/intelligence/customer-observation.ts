@@ -9,6 +9,7 @@ export type NativeWidgetDisplay = {
   type: "value" | "grid" | "bar-chart-grouped";
   ready: boolean;
   value?: number;
+  expectedValue?: number;
   rows?: number;
 };
 export function nativeDisplayVerified(
@@ -21,7 +22,7 @@ export function nativeDisplayVerified(
       (display) =>
         display.ready &&
         (display.type === "value"
-          ? display.value === expectedCount
+          ? display.value === (display.expectedValue ?? expectedCount)
           : display.type === "grid"
             ? display.rows === expectedCount
             : true),

@@ -110,15 +110,19 @@ export async function careApi<T>(
   path: string,
   method = "GET",
   body?: unknown,
+  channel: "care" | "records" = "care",
 ): Promise<T> {
-  const response = await fetch(`/api/careos/conversations${path}`, {
-    method,
-    headers:
-      body === undefined ? undefined : { "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-    cache: "no-store",
-    signal: AbortSignal.timeout(65000),
-  });
+  const response = await fetch(
+    `/api/careos/${channel === "records" ? "records/" : ""}conversations${path}`,
+    {
+      method,
+      headers:
+        body === undefined ? undefined : { "Content-Type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      cache: "no-store",
+      signal: AbortSignal.timeout(65000),
+    },
+  );
   if (!response.ok) {
     const value = await response.json().catch(() => null);
     // Never render server/provider text. Only these local messages reach the UI.

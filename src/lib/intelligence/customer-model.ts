@@ -135,6 +135,7 @@ export function customerDataset(
   guardian: GuardianOverview | null,
   activity: PurchaseActivity,
   unavailable: string[] = [],
+  purchaseLimit: 100 | 1000 = PURCHASE_LIMIT,
 ): CustomerDataset {
   const missing = new Set([...unavailable, ...activity.unavailable]);
   if (!guardian) missing.add("Price Guardian");
@@ -189,7 +190,7 @@ export function customerDataset(
             b.twin.createdAt.localeCompare(a.twin.createdAt) ||
             a.twin.id.localeCompare(b.twin.id),
         )
-        .slice(0, PURCHASE_LIMIT)
+        .slice(0, purchaseLimit)
     : [];
   const sandbox = new Map(
     records
@@ -420,7 +421,7 @@ export function customerDataset(
     adjustments,
     unavailable: [...missing],
     evidenceAvailable,
-    limit: PURCHASE_LIMIT,
+    limit: purchaseLimit,
     adjustmentScope: "loaded-purchase-window",
   };
 }

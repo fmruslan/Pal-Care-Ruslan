@@ -579,7 +579,9 @@ test("one North Star host executes real Studio tools for categories, documents, 
   test.setTimeout(90_000);
   const records = await openWorkspace(page);
   await expect(page.locator(".careos-launcher")).toHaveCount(1);
-  let turn = await ask(page, "Show my purchases by category");
+  // This suite forbids ALL API writes: exercise the explicit native workspace
+  // command, while north-records separately checks saved-record queries/charts.
+  let turn = await ask(page, "Show category chart in this workspace");
   await expect(turn.answer).toContainText("dashboard state was checked");
   await closeAssistant(page);
   await inspectTools(page);
@@ -614,12 +616,12 @@ test("one North Star host executes real Studio tools for categories, documents, 
 
   for (const request of [
     {
-      message: "Show my documents",
+      message: "Open the documents view in this workspace",
       filter: (record: SourceRecord) => record.documentCount > 0,
       scope: "with documents",
     },
     {
-      message: "Which purchases have product care?",
+      message: "Open the product care view in this workspace",
       filter: (record: SourceRecord) => !!record.careHref,
       scope: "supported care",
     },

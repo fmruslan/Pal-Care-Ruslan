@@ -1,6 +1,6 @@
 # Product vision and scope
 
-**Assistant update approved; checkpoint 1A under review:** Pal Care remains the product. Its intelligent assistant is **North ☆**, pronounced **North Star**, with violet accents and no assistant attribution branding. The approved direction separates persistent product context from per-question scope and makes interactions dismissible. Library intelligence and personal analytics are subsequent checkpoints, not accepted by the rename. [Approved refinements and gates](NORTH-STAR-PLAN.md) · [implementation truth](STATUS.md). Historical CareOS descriptions below retain their original scope.
+**Complete North makeover approved; implementation/acceptance ongoing:** Pal Care remains the product. Its assistant is **North ☆**, pronounced **North Star**, with violet accents and no assistant attribution branding. The approved continuous project unifies saved-purchase search, computed personal analytics, native Insights, follow-ups and grounded product care while preserving product context and financial safeguards. Isolated saved-record/native evidence does not establish live semantic quality, the required new **200 genuine evaluated cases**, owner/real-device acceptance or installation on the working preview. [Approved complete plan](NORTH-FULL-MAKEOVER-PLAN.md) · [implementation truth](STATUS.md). Historical CareOS descriptions below retain their original scope.
 
 ## North star
 

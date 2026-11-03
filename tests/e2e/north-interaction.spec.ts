@@ -168,7 +168,7 @@ async function chooseHeadphones(page: Page, dialog: Locator) {
 async function sendCare(page: Page, dialog: Locator, message: string) {
   const result = page.waitForResponse(
     (response) =>
-      /\/api\/careos\/conversations\/[^/]+\/turns$/.test(
+      /\/api\/careos\/(?:records\/)?conversations\/[^/]+\/turns$/.test(
         new URL(response.url()).pathname,
       ) && response.request().method() === "POST",
   );
@@ -223,17 +223,14 @@ test("new North conversation exposes exactly four optional, honest discovery sho
   ).toHaveCount(0);
   const before = log.mutations();
   for (const name of suggestions.slice(0, 3)) {
+    await composer.fill("");
     await discovery.getByRole("button", { name, exact: true }).click();
-    await expect(
-      dialog
-        .getByRole("status")
-        .filter({ hasText: "coming in the next checkpoints" }),
-    ).toContainText("Nothing was sent");
     await expect(discovery.getByRole("button")).toHaveText(suggestions);
     await expect(dialog.locator("[data-user-message]")).toHaveCount(0);
-    await expect(composer).toHaveValue("");
+    await expect(composer).toHaveValue(name);
     expect(log.mutations()).toEqual(before);
   }
+  await composer.fill("");
   await discovery
     .getByRole("button", { name: suggestions[3], exact: true })
     .click();
@@ -527,7 +524,7 @@ test("search and directly change/remove persistent purchase context without subm
   await expect(page).toHaveURL(/\/dashboard$/);
 });
 
-test("a library question is honestly guarded, never a selected item's price, and keeps exact product context for care", async ({
+test("a supported library query returns computed records, never a selected item's price, and keeps exact context for care", async ({
   page,
 }) => {
   await page.goto(headphone);
@@ -544,11 +541,14 @@ test("a library question is honestly guarded, never a selected item's price, and
     "Find purchases with receipts.",
   ]) {
     const turn = await sendCare(page, dialog, question);
-    expect(turn.answer.outcome).toBe("unsupported");
+    expect(turn.answer.outcome).toBe("answered");
     expect(turn.answer.mode).toBe("deterministic");
     expect(turn.answer.questionScope).toBe("library");
     expect(turn.answer.context).toBeNull();
-    expect(turn.answer.text).toContain("coming in the next checkpoints");
+    expect(turn.answer.recordsResult?.coverage.complete).toBe(true);
+    expect(turn.answer.recordsResult?.records.length).toBeGreaterThan(1);
+    if (turn.answer.recordsResult?.query.operation === "total")
+      expect(turn.answer.recordsResult.totals[0].amountMinor).toBe(30700);
     expect(turn.answer.text).not.toMatch(/\$\s*129|129\.00/);
     expect(turn.answer.purchaseChoices).toBeUndefined();
     await expect(dialog.locator(".careos-context strong")).toHaveText(
@@ -558,7 +558,7 @@ test("a library question is honestly guarded, never a selected item's price, and
       dialog.locator(
         `[data-request-id="${turn.requestId}"] [data-answer-scope]`,
       ),
-    ).toContainText("all saved purchases · answer not yet supported");
+    ).toContainText("saved-purchase library · filters and coverage below");
     await expect(
       dialog.getByRole("region", { name: "Choose a purchase", exact: true }),
     ).toHaveCount(0);
@@ -575,7 +575,7 @@ test("a library question is honestly guarded, never a selected item's price, and
   await expect(
     dialog
       .locator("[data-answer-scope]")
-      .filter({ hasText: "all saved purchases" }),
+      .filter({ hasText: "saved-purchase library" }),
   ).toHaveCount(3);
 });
 
@@ -610,7 +610,9 @@ test("one timeline and draft survive customer navigation, Insights and return, c
       opened.dialog.getByRole("link", { name: "Open receipt", exact: true }),
     ).toHaveAttribute("href", receipt);
   }
-  await opened.composer.fill("Show my purchases by category");
+  // Explicit presentation command keeps this a mixed care/native-transport
+  // continuity regression; monetary category queries have separate real-SDK tests.
+  await opened.composer.fill("Reset this dashboard");
   await opened.dialog
     .getByRole("button", { name: "Send to North Star", exact: true })
     .click();
@@ -623,7 +625,7 @@ test("one timeline and draft survive customer navigation, Insights and return, c
   );
   await expect(opened.dialog.locator("[data-user-message]")).toHaveText([
     care.message,
-    "Show my purchases by category",
+    "Reset this dashboard",
   ]);
   const scopes = await opened.dialog
     .locator("[data-answer-scope]")
@@ -665,7 +667,7 @@ test("one timeline and draft survive customer navigation, Insights and return, c
   );
   await expect(opened.dialog.locator("[data-user-message]")).toHaveText([
     care.message,
-    "Show my purchases by category",
+    "Reset this dashboard",
   ]);
   await expect(opened.dialog.locator("[data-answer-scope]")).toHaveText(scopes);
   expect(
@@ -682,7 +684,7 @@ test("one timeline and draft survive customer navigation, Insights and return, c
   expect(log.bootstraps()).toHaveLength(1);
 });
 
-test("Insights routes library guards and exact-product receipt/amount questions without losing persistent context", async ({
+test("Insights routes supported library queries and exact-product receipt/amount questions without losing context", async ({
   page,
 }) => {
   const log = requestLog(page);
@@ -700,10 +702,15 @@ test("Insights routes library guards and exact-product receipt/amount questions 
     "Find purchases with receipts.",
   );
   const library = dialog.locator("article[data-request-id]").last();
-  await expect(library).toContainText("coming in the next checkpoints");
+  await expect(library.locator("[data-records-result]")).toBeVisible();
+  await expect(
+    library
+      .getByRole("list", { name: "Matching saved purchases" })
+      .getByRole("listitem"),
+  ).toHaveCount(2);
   await expect(library).toContainText("From saved records · no model call");
   await expect(library.locator("[data-answer-scope]")).toContainText(
-    "all saved purchases · answer not yet supported",
+    "saved-purchase library · filters and coverage below",
   );
   const libraryId = await library.getAttribute("data-request-id");
   await expect(dialog.locator(".careos-context strong")).toHaveText(
@@ -729,7 +736,7 @@ test("Insights routes library guards and exact-product receipt/amount questions 
   expect(amount.answer.text).not.toContain("$129.00");
   await expect(
     dialog.locator(`[data-request-id="${libraryId}"] [data-answer-scope]`),
-  ).toContainText("all saved purchases · answer not yet supported");
+  ).toContainText("saved-purchase library · filters and coverage below");
   expect(
     log.requests.filter((entry) => entry.startsWith("POST /api/intelligence/")),
   ).toEqual([]);

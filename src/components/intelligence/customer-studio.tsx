@@ -59,6 +59,11 @@ import {
   stateFingerprint,
   type WidgetObservation,
 } from "@/lib/intelligence/customer-observation";
+import {
+  recordsChartState,
+  recordsChartWidgets,
+  expectedValueForMapping,
+} from "@/lib/intelligence/records-chart";
 
 type CustomId = "documents-care" | "attention" | "adjustments";
 type CustomData = AgWidgetData<
@@ -267,7 +272,7 @@ export function CustomerStudio({
   live: boolean;
 }) {
   const { resolvedTheme } = useTheme();
-  const { register, phase } = useInsightsControl();
+  const { register, registerRecords, phase } = useInsightsControl();
   const api = useRef<AgStudioApi | null>(null);
   const [ready, setReady] = useState(false);
   const [page, setPage] = useState<InsightPage>("purchases");
@@ -386,6 +391,16 @@ export function CustomerStudio({
             purchasedOn: p.purchasedOn,
             provenance: p.origin === "sandbox" ? "Verified Sandbox" : "Sample",
             paidUsd: p.amountMinor === null ? null : p.amountMinor / 100,
+            // Aggregate contributions are zero for excluded/unpriced records;
+            // paidUsd remains null and the saved-result exclusions stay visible.
+            sampleUsd:
+              p.origin === "sample" && p.amountMinor !== null
+                ? p.amountMinor / 100
+                : 0,
+            sandboxUsd:
+              p.origin === "sandbox" && p.amountMinor !== null
+                ? p.amountMinor / 100
+                : 0,
             documentCount: p.documentCount,
             careCount:
               p.careStatus === "unavailable" ? null : p.careAvailable ? 1 : 0,
@@ -412,6 +427,16 @@ export function CustomerStudio({
               id: "documentCount",
               name: "Saved documents",
               format: "integerFormat",
+            },
+            {
+              id: "sampleUsd",
+              name: "Sample (USD)",
+              format: "currencyFormat",
+            },
+            {
+              id: "sandboxUsd",
+              name: "Verified Sandbox (USD)",
+              format: "currencyFormat",
             },
             {
               id: "careCount",
@@ -504,7 +529,11 @@ export function CustomerStudio({
     return ids;
   }
 
-  async function apply(command: CustomerCommand, signal: AbortSignal) {
+  async function apply(
+    command: CustomerCommand,
+    signal: AbortSignal,
+    recordIds?: string[],
+  ) {
     if (signal.aborted || !api.current) throw new Error("insights_cancelled");
     const current = api.current;
     if (command.operation === "reset")
@@ -595,11 +624,12 @@ export function CustomerStudio({
     // A valid state mutation alone is not a checked result. Confirm the actual
     // Studio data-engine rows observed by the source widget, including empty data.
     const expectedIds = (
-      command.operation === "evidence" || command.operation === "widget"
+      recordIds ??
+      (command.operation === "evidence" || command.operation === "widget"
         ? (rowsRef.current ?? [])
         : matchingPurchases(dataset.purchases, filtersRef.current).map(
             (p) => p.id,
-          )
+          ))
     )
       .slice()
       .sort();
@@ -680,7 +710,17 @@ export function CustomerStudio({
                 canvas.height &&
                 wrapper.querySelector('figure, [role="figure"]')
               ),
-            value: empty ? 0 : text ? Number(text.replaceAll(",", "")) : NaN,
+            value: empty
+              ? 0
+              : text
+                ? Number(text.replace(/[^\d.-]/g, ""))
+                : NaN,
+            expectedValue: expectedValueForMapping(
+              (definition as { dataMapping?: { value?: { id?: string }[] } })
+                .dataMapping?.value?.[0]?.id,
+              dataset.purchases.filter((p) => expectedIds.includes(p.id)),
+              expectedIds.length,
+            ),
             rows: empty ? 0 : rowCount ? Number(rowCount) - 1 : NaN,
           });
         }
@@ -760,6 +800,49 @@ export function CustomerStudio({
     }
     return { empty: expectedIds.length === 0, nativeReady: true };
   }
+
+  useEffect(() => {
+    if (!ready) return;
+    const controller = new AbortController();
+    const unregister = registerRecords(async (result, callerSignal) => {
+      const signal = AbortSignal.any([controller.signal, callerSignal]);
+      if (!api.current || signal.aborted) throw new Error("insights_not_ready");
+      const expected = recordsChartState(
+        api.current.getState(),
+        result,
+        dataset.purchases,
+        compact,
+      );
+      api.current.setState(expected);
+      if (
+        stateFingerprint(api.current.getState()) !== stateFingerprint(expected)
+      )
+        throw new Error("insights_saved_analysis_state_unverified");
+      for (const widget of recordsChartWidgets)
+        validateTarget(api.current.getState(), "purchases", `extra-${widget}`);
+      const ids = result.records.map((r) => r.id);
+      const next = { ...emptyPurchaseFilters, recordIds: ids };
+      filtersRef.current = next;
+      setFilters(next);
+      setPage("purchases");
+      setCrossCategory("");
+      await apply(
+        { operation: "widget", widget: "recorded-value-chart" },
+        signal,
+        ids,
+      );
+      if (signal.aborted) throw new Error("insights_cancelled");
+      setNotice(
+        `Saved analysis chart verified: ${ids.length} matching purchases; Sample and Verified Sandbox values remain separate. Unpriced/reference exclusions are shown in North.`,
+      );
+    });
+    return () => {
+      controller.abort();
+      unregister();
+    };
+    // The registered action is bound to this immutable dataset/native instance.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, registerRecords, dataset, compact]);
 
   useEffect(() => {
     if (!ready) return;

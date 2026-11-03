@@ -13,7 +13,7 @@ import { CUSTOMER_ID, MERCHANT_ID } from "../lib/demo/fixtures";
 
 export async function readDemoData(
   db: ReturnType<typeof createDatabase>["db"],
-  scope?: { twinId?: string; documentId?: string },
+  scope?: { twinId?: string; documentId?: string; library?: true },
 ): Promise<DemoData> {
   return db.transaction(
     async (tx) => {
@@ -54,7 +54,9 @@ export async function readDemoData(
           ),
         )
         .orderBy(desc(purchaseTwins.createdAt), purchaseTwins.id)
-        .limit(100);
+        // A bounded complete-library probe is distinct from the dashboard's
+        // newest-100 display window. The extra row detects incomplete coverage.
+        .limit(scope?.library ? 1001 : 100);
       const twinIds = twins
         .filter((twin) => twin.merchantId === MERCHANT_ID)
         .map((twin) => twin.id);

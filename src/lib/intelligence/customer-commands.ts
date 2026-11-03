@@ -5,6 +5,9 @@ import { z } from "zod";
 export const customerWidgets = [
   "purchase-grid",
   "category-chart",
+  "sample-value",
+  "sandbox-value",
+  "recorded-value-chart",
   "documents-care",
   "attention",
   "adjustments",
@@ -214,12 +217,29 @@ const variants: ReadonlyArray<readonly [string, CustomerCommand]> = [
   ["Reset my dashboard", { operation: "reset" }],
 ];
 
+// Explicit presentation vocabulary avoids confusing a saved-record search with
+// a request to execute native Studio tools. Original ordinary query phrases stay
+// available to the new records resolver and its independent browser tests.
+export const customerWorkspacePrompts = [
+  ["Show category chart in this workspace", { operation: "category" }],
+  ["Open the documents view in this workspace", { operation: "documents" }],
+  ["Open the product care view in this workspace", { operation: "care" }],
+] as const satisfies ReadonlyArray<readonly [string, CustomerCommand]>;
+export function explicitCustomerWorkspaceRequest(message: string) {
+  return customerWorkspacePrompts.some(
+    ([prompt]) =>
+      prompt.toLowerCase() === message.normalize("NFKC").trim().toLowerCase(),
+  );
+}
+
 // An exact, case-insensitive fixture grammar, not semantic understanding or live AI.
 export function scriptedCustomerPlan(message: string): CustomerPlan | null {
   if (!customerRequestAllowed(message)) return null;
-  const match = [...customerScriptedPrompts, ...variants].find(
-    ([prompt]) => prompt.toLowerCase() === message.trim().toLowerCase(),
-  );
+  const match = [
+    ...customerScriptedPrompts,
+    ...variants,
+    ...customerWorkspacePrompts,
+  ].find(([prompt]) => prompt.toLowerCase() === message.trim().toLowerCase());
   return match
     ? validateCustomerPlan({ outcome: "apply", commands: [{ ...match[1] }] })
     : null;

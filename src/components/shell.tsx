@@ -19,6 +19,7 @@ import { Brand } from "./brand";
 import { Button } from "./ui/button";
 import { ThemeSelector } from "./theme-selector";
 import { Badge } from "./ui/badge";
+import { WorkspaceNavigationLink } from "./intelligence/workspace-navigation-link";
 
 const customerIcons = {
   "/dashboard": LayoutDashboard,
@@ -83,7 +84,7 @@ export function Shell({
           className="space-y-1 px-4"
         >
           {links.map(({ href, label, icon: Icon }) => (
-            <Link
+            <WorkspaceNavigationLink
               key={href}
               href={href}
               aria-current={selected === href ? "page" : undefined}
@@ -97,7 +98,7 @@ export function Shell({
                   aria-hidden="true"
                 />
               )}
-            </Link>
+            </WorkspaceNavigationLink>
           ))}
         </nav>
         <div className="mt-auto p-5">
@@ -232,7 +233,7 @@ export function Shell({
         className={`fixed inset-x-0 bottom-0 z-40 grid ${merchant ? "grid-cols-2" : "grid-cols-4"} border-t bg-card px-2 pt-2 pb-[max(.5rem,env(safe-area-inset-bottom))] shadow-card lg:hidden`}
       >
         {links.map(({ href, mobile, icon: Icon }) => (
-          <Link
+          <WorkspaceNavigationLink
             key={href}
             href={href}
             aria-current={selected === href ? "page" : undefined}
@@ -240,7 +241,7 @@ export function Shell({
           >
             <Icon className="size-5 shrink-0" aria-hidden="true" />
             <span className="min-w-0 max-w-full break-words">{mobile}</span>
-          </Link>
+          </WorkspaceNavigationLink>
         ))}
       </nav>
     </div>

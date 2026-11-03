@@ -24,6 +24,11 @@ import {
 import { Button } from "../ui/button";
 import type { CareContext, Intent } from "@/lib/careos/contracts";
 import { useConversation } from "./use-conversation";
+import { RecordsResultView } from "./records-result";
+import {
+  recordsTaskCandidate,
+  resolveRecordsQuery,
+} from "@/lib/careos/records/query";
 import { useConversationScroll } from "./use-conversation-scroll";
 import { AnswerActions } from "./answer-actions";
 import { PurchaseChoices } from "./purchase-choices";
@@ -109,26 +114,56 @@ export function CareOSProvider({
   const [presentationLoaded, setPresentationLoaded] = useState(false);
   const loadedPresentation = useRef(false);
   const [discoveryNotice, setDiscoveryNotice] = useState("");
+  // In-memory submission identity only: restored history never auto-executes SDK actions.
+  const [recordsSubmission, setRecordsSubmission] = useState<string | null>(
+    null,
+  );
   const revision = useRef(0);
   const regular = useConversation();
+  const records = useConversation("records");
   const insights = useInsightsControl();
+  const registerDeparture = insights.registerDeparture;
+  useEffect(
+    () => registerDeparture(() => setRecordsSubmission(null)),
+    [registerDeparture],
+  );
   const analytics = pathname === "/insights";
   const turns = mergeAssistantTurns(
-    regular.conversation?.turns ?? [],
+    [
+      ...(regular.conversation?.turns ?? []),
+      ...(records.conversation?.turns ?? []),
+    ],
     insights.conversation?.turns ?? [],
     submittedOrder,
   );
   const conversation = turns.length ? { turns } : null;
-  const pending = regular.pending ?? insights.pending;
-  const phase = regular.phase !== "idle" ? regular.phase : insights.phase;
-  const error = regular.error || insights.error;
+  const pending = records.pending ?? regular.pending ?? insights.pending;
+  const phase =
+    records.phase !== "idle"
+      ? records.phase
+      : regular.phase !== "idle"
+        ? regular.phase
+        : insights.phase;
+  const error = records.error || regular.error || insights.error;
   async function clear() {
-    if (regular.phase !== "idle" || insights.phase !== "idle") return;
+    if (
+      records.phase !== "idle" ||
+      regular.phase !== "idle" ||
+      insights.phase !== "idle"
+    )
+      return;
+    insights.cancelRecords();
+    setRecordsSubmission(null);
+    await records.clear();
     await regular.clear();
     await insights.clear();
   }
   const { restore, send } = regular;
-  const check = regular.pending ? regular.check : insights.check;
+  const check = records.pending
+    ? records.check
+    : regular.pending
+      ? regular.check
+      : insights.check;
   const [draft, setDraft] = useState("");
   const busy = phase !== "idle";
   const [ownerState, setOwnerState] = useState<OwnerSendState>("checking");
@@ -179,7 +214,26 @@ export function CareOSProvider({
     analytics &&
     questionUsesInsights(draft, !!context) &&
     (!insights.connected || !!insights.recoverable);
-  const submitBlocked = unavailable || plannerBlocked;
+  const recordsHistory = records.conversation?.turns ?? [];
+  const recordsTopicStart = recordsHistory.findLastIndex(
+    (t) => t.answer.recordsTopic === "reset",
+  );
+  const ownedPreviousQuery = [...recordsHistory.slice(recordsTopicStart + 1)]
+    .reverse()
+    .find((t) => t.answer.recordsResult)?.answer.recordsResult?.query;
+  const lastReply = turns.at(-1)?.answer;
+  const lastReplyWasPurchase =
+    !!lastReply?.context &&
+    !lastReply.recordsResult &&
+    lastReply.questionScope !== "library";
+  const recordDraft = recordsTaskCandidate(
+    draft,
+    ownedPreviousQuery,
+    lastReplyWasPurchase,
+  );
+  const submitBlocked = recordDraft
+    ? busy || !!pending
+    : unavailable || plannerBlocked;
   const trigger = useRef<HTMLButtonElement>(null);
   const composing = useRef(false);
   const admitting = useRef(false);
@@ -243,6 +297,8 @@ export function CareOSProvider({
   }
   function select(value: CareContext | null) {
     loadPresentation();
+    insights.cancelRecords();
+    setRecordsSubmission(null);
     explicitContext.current = true;
     setContextExplicit(true);
     updateContext(value);
@@ -281,10 +337,15 @@ export function CareOSProvider({
   ]);
   async function ask(message: string, intent?: Intent, selected?: CareContext) {
     loadPresentation();
+    const savedRecords =
+      !intent &&
+      !selected &&
+      recordsTaskCandidate(message, ownedPreviousQuery, lastReplyWasPurchase);
     if (
       admitting.current ||
-      interactionBlocked ||
-      evaluationWindowExpired(aiExpiresAt) ||
+      (savedRecords
+        ? busy || !!pending
+        : interactionBlocked || evaluationWindowExpired(aiExpiresAt)) ||
       !message.trim()
     )
       return false;
@@ -292,14 +353,42 @@ export function CareOSProvider({
     if (selected) select(selected);
     const bound = contextRef.current;
     const boundRevision = revision.current;
+    const history = records.conversation?.turns ?? [];
+    const topicStart = history.findLastIndex(
+      (t) => t.answer.recordsTopic === "reset",
+    );
+    const previousQuery = [...history.slice(topicStart + 1)]
+      .reverse()
+      .find((t) => t.answer.recordsResult)?.answer.recordsResult?.query;
+    const deterministicQuery = savedRecords
+      ? resolveRecordsQuery(
+          message,
+          new Date().toISOString().slice(0, 10),
+          previousQuery,
+        )
+      : null;
+    // A submitted saved-record question may need the protected interpreter.
+    // This is an admission hint only; server-owned history/auth/validation wins.
+    const modelInterpretation =
+      savedRecords &&
+      deterministicQuery &&
+      "clarification" in deterministicQuery &&
+      mode === "subscription" &&
+      !aiExpired &&
+      !aiAccessDisabled &&
+      (!ownerAccess || ownerState === "ready");
     const planning =
+      !savedRecords &&
       analytics &&
       questionUsesInsights(message, !!bound, !!selected || !!intent);
     if (planning && (!insights.connected || insights.recoverable)) return false;
     admitting.current = true;
     try {
-      if (!(await checkOwnerAccess())) return false;
+      if ((!savedRecords || modelInterpretation) && !(await checkOwnerAccess()))
+        return false;
       const requestId = crypto.randomUUID();
+      insights.cancelRecords();
+      setRecordsSubmission(savedRecords ? requestId : null);
       setSubmittedOrder((prior) => [...prior, requestId]);
       setDiscoveryNotice("");
       setDismissedChoices((prior) => [
@@ -308,6 +397,17 @@ export function CareOSProvider({
           .filter((t) => t.answer.outcome === "selection")
           .map((t) => t.requestId),
       ]);
+      if (savedRecords)
+        return await records.send(
+          {
+            requestId,
+            twinId: bound?.twinId ?? null,
+            revision: boundRevision,
+            message: message.trim(),
+          },
+          bound,
+          modelInterpretation ? "interpret" : "turns",
+        );
       if (planning) {
         setOpen(true);
         return await insights.send(message.trim(), requestId);
@@ -331,6 +431,9 @@ export function CareOSProvider({
   async function open() {
     loadPresentation();
     setOpen(true);
+    // This GET-only channel has its own cookie/owner namespace. Restoring saved
+    // records neither reads private AI history nor issues an inference grant.
+    void records.restore(false);
     if (!(await checkOwnerAccess())) return;
     if (aiAccessDisabled || evaluationWindowExpired(aiExpiresAt)) return;
     void insights.restore();
@@ -383,14 +486,14 @@ export function CareOSProvider({
             )}
             <Dialog.Content
               ref={panelRef}
-              className={`careos-assistant ${expanded ? "careos-expanded" : ""} fixed z-[60] flex flex-col overflow-hidden border bg-card shadow-lift`}
+              className={`careos-assistant ${expanded ? "careos-expanded" : ""} fixed z-[60] flex flex-col overflow-clip border bg-card shadow-lift`}
               onCloseAutoFocus={(event) => {
                 event.preventDefault();
                 trigger.current?.focus();
               }}
               aria-describedby="careos-description"
             >
-              <header className="careos-header flex shrink-0 items-center justify-between gap-2 border-b bg-card">
+              <div className="careos-header flex shrink-0 items-center justify-between gap-2 border-b bg-card">
                 <div className="min-w-0">
                   <Dialog.Title className="flex items-center gap-2 text-lg font-semibold text-intelligence-foreground">
                     <AssistantName />
@@ -492,7 +595,7 @@ export function CareOSProvider({
                     </Button>
                   </Dialog.Close>
                 </div>
-              </header>
+              </div>
               <div
                 className="careos-context flex shrink-0 items-center justify-between border-b bg-accent/30 text-xs"
                 aria-label="Persistent purchase context"
@@ -633,11 +736,10 @@ export function CareOSProvider({
                             key={suggestion}
                             className="min-h-11 rounded-xl border border-input bg-card px-3 py-3 text-left text-sm leading-6 hover:bg-intelligence focus-visible:outline-2 focus-visible:outline-ring"
                             onClick={() => {
-                              if (index < 3)
-                                setDiscoveryNotice(
-                                  "Library lists and totals are coming in the next checkpoints. Explore saved records in Purchases or Insights for now. Nothing was sent; your product context is kept.",
-                                );
-                              else if (!context) setContextOpen(true);
+                              if (index < 3) {
+                                if (!draft.trim()) setDraft(suggestion);
+                                composer.current?.focus();
+                              } else if (!context) setContextOpen(true);
                               else {
                                 if (!draft.trim())
                                   setDraft("Help me care for this product.");
@@ -684,7 +786,9 @@ export function CareOSProvider({
                     >
                       Question scope:{" "}
                       {turn.answer.questionScope === "library"
-                        ? "all saved purchases · answer not yet supported"
+                        ? turn.answer.recordsResult
+                          ? "saved-purchase library · filters and coverage below"
+                          : "all saved purchases · answer not yet supported"
                         : turn.answer.outcome === "selection"
                           ? "purchase choice needed"
                           : turn.answer.context
@@ -720,6 +824,22 @@ export function CareOSProvider({
                                 : "From saved records · no model call"}
                         </p>
                         <p>{turn.answer.text}</p>
+                        {turn.answer.recordsResult && (
+                          <RecordsResultView
+                            result={turn.answer.recordsResult}
+                            autoApply={recordsSubmission === turn.requestId}
+                            onAutoApplyStarted={() =>
+                              setRecordsSubmission((current) =>
+                                current === turn.requestId ? null : current,
+                              )
+                            }
+                            onNavigate={() => {
+                              insights.cancelRecords();
+                              setRecordsSubmission(null);
+                              if (mobile) setOpen(false);
+                            }}
+                          />
+                        )}
                         {turn.answer.resolution && (
                           <details className="mt-3 rounded-xl border px-3">
                             <summary className="cursor-pointer py-2 font-medium">
@@ -943,25 +1063,27 @@ export function CareOSProvider({
               )}
               <div className="careos-composer shrink-0 border-t bg-card">
                 <p className="mb-2 text-xs text-muted-foreground">
-                  {aiExpired
-                    ? "AI access expired · saved records remain available in Purchases and Insights"
-                    : aiAccessDisabled
-                      ? "AI access unavailable · saved records remain available"
-                      : ownerAccess && ownerState !== "ready"
-                        ? ownerSendMessage[ownerState]
-                        : plannerBlocked
-                          ? insights.recoverable
-                            ? "A saved view is ready to review in Insights. You can still ask a product question."
-                            : "Interactive Insights is not connected yet. Your draft is kept."
-                          : analytics
-                            ? "Personal Insights · presentation only"
-                            : mode === "fixture"
-                              ? "Sample demo · no live AI"
-                              : mode === "subscription"
-                                ? "Using ChatGPT plan"
-                                : mode === "responses"
-                                  ? "Model assistance · check sources"
-                                  : "Model unavailable"}
+                  {recordDraft
+                    ? "Saved-record question · supported queries run without AI; private interpretation requires AI access"
+                    : aiExpired
+                      ? "AI access expired · saved records remain available in Purchases and Insights"
+                      : aiAccessDisabled
+                        ? "AI access unavailable · saved records remain available"
+                        : ownerAccess && ownerState !== "ready"
+                          ? ownerSendMessage[ownerState]
+                          : plannerBlocked
+                            ? insights.recoverable
+                              ? "A saved view is ready to review in Insights. You can still ask a product question."
+                              : "Interactive Insights is not connected yet. Your draft is kept."
+                            : analytics
+                              ? "Personal Insights · presentation only"
+                              : mode === "fixture"
+                                ? "Sample demo · no live AI"
+                                : mode === "subscription"
+                                  ? "Using ChatGPT plan"
+                                  : mode === "responses"
+                                    ? "Model assistance · check sources"
+                                    : "Model unavailable"}
                 </p>
                 <form
                   className="flex items-end gap-2"

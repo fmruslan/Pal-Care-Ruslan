@@ -17,7 +17,7 @@ if (!sdkChunk)
     "Native Studio build chunk required for navigation regression",
   );
 
-for (const width of [375, 1440]) {
+for (const width of [375, 430, 1440]) {
   test(`customer navigation ${width}px: leave a held SDK import, then leave a ready native workspace`, async ({
     page,
   }) => {

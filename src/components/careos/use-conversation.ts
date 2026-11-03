@@ -8,18 +8,28 @@ import type {
   TurnInput,
 } from "@/lib/careos/contracts";
 import {
-  careApi,
+  careApi as requestApi,
   CareHttpError,
   careMessage,
-  conversationKey,
-  pendingKey,
+  conversationKey as careConversationKey,
+  pendingKey as carePendingKey,
   readPending,
   readUnsent,
-  unsentKey,
+  unsentKey as careUnsentKey,
   type PendingQuestion,
 } from "./conversation-client";
 
-export function useConversation() {
+export function useConversation(channel: "care" | "records" = "care") {
+  const conversationKey =
+    channel === "care"
+      ? careConversationKey
+      : "palcare-records-conversation-v1";
+  const pendingKey =
+    channel === "care" ? carePendingKey : "palcare-records-pending-v1";
+  const unsentKey =
+    channel === "care" ? careUnsentKey : "palcare-records-unsent-v1";
+  const careApi = <T>(path: string, method = "GET", body?: unknown) =>
+    requestApi<T>(path, method, body, channel);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const current = useRef<Conversation | null>(null);
   const [pending, setPendingState] = useState<PendingQuestion | null>(null);
@@ -191,7 +201,11 @@ export function useConversation() {
       setPhase("idle");
     }
   }
-  async function send(input: TurnInput, context: CareContext | null) {
+  async function send(
+    input: TurnInput,
+    context: CareContext | null,
+    target: "turns" | "interpret" = "turns",
+  ) {
     if (locked.current || pendingRef.current) return false;
     // Read an existing hint before admitting a new submission, even if the panel was never opened.
     if (!initialized.current) {
@@ -228,7 +242,11 @@ export function useConversation() {
       question = { ...question, conversationId: value.id };
       storePending(question);
       dispatched = true;
-      const turn = await careApi<CareTurn>(`/${value.id}/turns`, "POST", input);
+      const turn = await careApi<CareTurn>(
+        `/${value.id}/${target}`,
+        "POST",
+        input,
+      );
       save({
         ...current.current!,
         turns: [

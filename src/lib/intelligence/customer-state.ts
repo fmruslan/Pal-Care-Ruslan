@@ -8,6 +8,9 @@ export type InsightPage = (typeof insightPages)[number];
 export const insightWidgets = [
   "purchase-grid",
   "category-chart",
+  "sample-value",
+  "sandbox-value",
+  "recorded-value-chart",
   "documents-care",
   "attention",
   "adjustments",
@@ -23,6 +26,7 @@ export type PurchaseFilters = {
   attention: boolean;
   verified: boolean;
   query: string;
+  recordIds?: string[];
 };
 export const emptyPurchaseFilters: PurchaseFilters = {
   origin: "all",
@@ -58,6 +62,7 @@ export function matchingPurchases(
     );
   return purchases.filter(
     (p) =>
+      (!filters.recordIds || filters.recordIds.includes(p.id)) &&
       (filters.origin === "all" || p.origin === filters.origin) &&
       (filters.category === "all" || p.category === filters.category) &&
       (!filters.from || p.purchasedOn >= filters.from) &&
@@ -119,6 +124,52 @@ export function commandSelection(
 }
 
 export function widgetDefinition(widget: InsightWidget) {
+  if (widget === "sample-value" || widget === "sandbox-value")
+    return {
+      type: "value" as const,
+      dataMapping: {
+        value: [
+          {
+            id:
+              widget === "sample-value"
+                ? "purchases.sampleUsd"
+                : "purchases.sandboxUsd",
+            aggregation: "sum" as const,
+          },
+        ],
+      },
+      format: {
+        title: {
+          enabled: true,
+          text:
+            widget === "sample-value"
+              ? "Sample purchase value (USD)"
+              : "Verified Sandbox purchase value (USD)",
+        },
+      },
+    };
+  if (widget === "recorded-value-chart")
+    return {
+      type: "bar-chart-grouped" as const,
+      dataMapping: {
+        categoryKey: [{ id: "purchases.category" }],
+        valueKey: [
+          { id: "purchases.sampleUsd", aggregation: "sum" as const },
+          { id: "purchases.sandboxUsd", aggregation: "sum" as const },
+        ],
+      },
+      format: {
+        title: {
+          enabled: true,
+          text: "Recorded value (USD)",
+        },
+        style: {
+          theme: {
+            common: { legend: { enabled: true, position: "bottom" as const } },
+          },
+        },
+      },
+    };
   if (widget === "purchase-grid")
     return {
       type: "grid" as const,

@@ -1,5 +1,7 @@
 # North ☆ — approved assistant update plan
 
+**Historical staged-delivery plan:** the owner approved [continuous full makeover execution and a new 200-genuine-test campaign](NORTH-FULL-MAKEOVER-PLAN.md), replacing routine 1A/1B/2/3 owner stops while retaining this technical direction and all genuine separate authorization boundaries. The staged instructions/evidence below are history, not current approval stops. New campaign progress starts at 0/200; original provider accounting/unknowns are never reset. The working preview remains unchanged until final replacement approval.
+
 **Status: direction and three-slice roadmap approved with final owner refinements. Checkpoint 1A is authorized; 1B and later implementation await the owner's 1A review approval.**
 
 Prepared: **2026-11-02**; updated before implementation with the owner's final approval. Reviewed baseline: **`47f62048b8e820d81078c0c575efb0b3f15aa005`**, primary `main` checkout. **North ☆**, pronounced **North Star**, is Pal Care's intelligent assistant, not a separate product or competing brand. **Pal Care remains the primary product identity.** Approval of the plan is not acceptance of implemented behavior. [STATUS](STATUS.md) remains implementation truth.

@@ -250,7 +250,7 @@ for (const pending of [
   });
 }
 
-test("an already open assistant disables new work when its original window expires", async ({
+test("an already open assistant disables AI work on expiry while provider-free saved records remain available", async ({
   page,
 }) => {
   await page.goto("/insights");
@@ -279,9 +279,9 @@ test("an already open assistant disables new work when its original window expir
     }),
   ).toBeVisible();
   await expect(input).toBeEditable();
-  await input.fill("Show my purchases");
+  await input.fill("Show category chart in this workspace");
   await input.press("Enter");
-  await expect(input).toHaveValue("Show my purchases");
+  await expect(input).toHaveValue("Show category chart in this workspace");
   await expect(
     dialog.getByRole("button", { name: "Send to North Star" }),
   ).toBeDisabled();
@@ -291,4 +291,36 @@ test("an already open assistant disables new work when its original window expir
     .evaluate((form: HTMLFormElement) => form.requestSubmit());
   await expect(dialog.locator("[data-pending-question]")).toHaveCount(0);
   expect(mutations).toEqual([]);
+  // Saved-library conversations are intentionally independent of AI authority.
+  // This is an actual application read, not an exception for a model endpoint.
+  await input.fill("Show my purchases");
+  const savedResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      /\/api\/careos\/records\/conversations\/[a-f0-9-]{36}\/turns$/.test(
+        new URL(response.url()).pathname,
+      ),
+  );
+  await expect(
+    dialog.getByRole("button", { name: "Send to North Star" }),
+  ).toBeEnabled();
+  await dialog.getByRole("button", { name: "Send to North Star" }).click();
+  const response = await savedResponse;
+  expect(response.ok()).toBe(true);
+  const turn = await response.json();
+  expect(turn.answer.mode).toBe("deterministic");
+  expect(turn.answer.recordsResult.totals[0].amountMinor).toBe(30700);
+  await expect(
+    dialog.locator(
+      `[data-request-id="${turn.requestId}"] [data-records-result]`,
+    ),
+  ).toBeVisible();
+  expect(mutations.length).toBeGreaterThan(0);
+  expect(
+    mutations.every((path) =>
+      /^\/api\/careos\/records\/conversations(?:\/[a-f0-9-]{36}\/turns)?$/.test(
+        path,
+      ),
+    ),
+  ).toBe(true);
 });

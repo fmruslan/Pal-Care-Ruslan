@@ -86,3 +86,32 @@ export async function getCareData(twinId: string | null) {
     events: [...data.events, ...scoped.events],
   };
 }
+
+/** Fixed fictional library only; no visitor scope, migration or model authority. */
+export async function getSavedRecordsData() {
+  await connection();
+  const config = getEnvironment();
+  if (config.dataSource === "fixtures")
+    return { ...demoData, source: "fixtures" as const };
+  const database = createDatabase(config.databaseUrl!, { readOnly: true });
+  try {
+    await assertDatabaseAuthority(database.pool, "reader", {
+      requiredReads: [
+        "demo_customers",
+        "merchants",
+        "products",
+        "purchase_twins",
+        "documents",
+        "care_events",
+      ],
+    });
+    return {
+      ...(await readDemoData(database.db, { library: true })),
+      source: "database" as const,
+    };
+  } catch {
+    throw new Error(
+      "Saved purchases could not be read. No sample fallback was used.",
+    );
+  }
+}

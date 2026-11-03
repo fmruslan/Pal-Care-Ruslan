@@ -53,6 +53,15 @@ export type Evidence = {
   excerpt?: string;
 };
 export type CareAnswer = {
+  /** Application-computed saved-record result; never model-supplied facts. */
+  recordsResult?: import("./records/contracts").RecordsResult;
+  recordsTopic?: "reset";
+  /** Strict model proposal retained for individual evaluation, never proof of
+   * provider completion or financial authority. Runtime accounting is separate. */
+  recordsInterpretation?: {
+    version: "north-records-intent-v1";
+    proposal: import("./records/interpretation").RecordsInterpretation;
+  };
   /** Effective scope of this answer, never the persistent browser product context. */
   questionScope?: "library" | "purchase" | "general";
   resolution?: import("./resolution").CareResolution;

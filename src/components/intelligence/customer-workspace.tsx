@@ -1,11 +1,13 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 import type { CustomerDataset } from "@/lib/intelligence/customer-model";
 import { CustomerRecords } from "./customer-records";
 import { PurchaseMetrics } from "../purchase-metrics";
 import { purchaseTotals } from "@/lib/intelligence/customer-presentation";
 import { CustomerHighlights } from "./customer-highlights";
+import { useInsightsControl } from "./customer-control";
 
 const Studio = dynamic(
   () => import("./customer-studio").then((m) => m.CustomerStudio),
@@ -28,6 +30,12 @@ export function CustomerWorkspace({
   studioAllowed: boolean;
   live: boolean;
 }) {
+  const { registerDeparture } = useInsightsControl();
+  const [departing, setDeparting] = useState(false);
+  useEffect(
+    () => registerDeparture(() => setDeparting(true)),
+    [registerDeparture],
+  );
   const totals = purchaseTotals(dataset.purchases);
   return (
     <>
@@ -67,7 +75,13 @@ export function CustomerWorkspace({
           aria-label="Interactive purchase workspace"
           className="scroll-mt-6"
         >
-          <Studio dataset={dataset} live={live} />
+          {departing ? (
+            <p role="status" className="py-8">
+              Opening your next view…
+            </p>
+          ) : (
+            <Studio dataset={dataset} live={live} />
+          )}
         </section>
       ) : (
         <>
