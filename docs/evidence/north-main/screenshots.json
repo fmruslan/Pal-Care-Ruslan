@@ -1,0 +1,78 @@
+{
+  "origin": "https://greatbison.tail9e8802.ts.net:8444",
+  "screenshots": [
+    {
+      "file": "desktop-light.png",
+      "sha256": "0d033556b1c0ebe9eef6d7c0bf87c1106be175e975d1e55e0b6bddfcf7549f6a",
+      "buildId": "UJKlFD0_5cAQbk49d7NIG",
+      "scope": "Unverified browser; actual theme/viewport and North UI, not live AI proof"
+    },
+    {
+      "file": "desktop-dark.png",
+      "sha256": "64fdf2879f84a404c83220e1fbf15532b6ad2579b9117ef08b06496de68c74f1",
+      "buildId": "UJKlFD0_5cAQbk49d7NIG",
+      "scope": "Unverified browser; actual theme/viewport and North UI, not live AI proof"
+    },
+    {
+      "file": "mobile-light.png",
+      "sha256": "d27340aed304f335c2258f9515931a67d9f1dafdf39820e6f2dd1247f43d92e3",
+      "buildId": "UJKlFD0_5cAQbk49d7NIG",
+      "scope": "Unverified browser; actual theme/viewport and North UI, not live AI proof"
+    },
+    {
+      "file": "mobile-dark.png",
+      "sha256": "5aa2a25d17fb4368269a28ddef36f0f753788b6a475894cce1d2835e697d74b3",
+      "buildId": "UJKlFD0_5cAQbk49d7NIG",
+      "scope": "Unverified browser; actual theme/viewport and North UI, not live AI proof"
+    },
+    {
+      "file": "case-1.png",
+      "sha256": "f28ea4a006b630d7155f21c1c4bb6564c7e3d0b920a6b25a8a6e6f1ee242dbd9",
+      "buildId": "UJKlFD0_5cAQbk49d7NIG",
+      "scope": "Verified browser; actual main-site live conversation/native chart"
+    },
+    {
+      "file": "case-2.png",
+      "sha256": "3df9d7ce7b65835d8ef44dcda9d8a39a922d486556d0d7ac54190080f6c7a0df",
+      "buildId": "UJKlFD0_5cAQbk49d7NIG",
+      "scope": "Verified browser; actual main-site live conversation/native chart"
+    },
+    {
+      "file": "case-3.png",
+      "sha256": "2721e021f96a1da7b5f628243ab86077f4c052843421e16edb8dc305a701ed28",
+      "buildId": "UJKlFD0_5cAQbk49d7NIG",
+      "scope": "Verified browser; actual main-site live conversation/native chart"
+    },
+    {
+      "file": "case-4.png",
+      "sha256": "fca896950f4e7ab0294f7f97b895f95fb66944337f061e5faedfd0c6b5f597a1",
+      "buildId": "UJKlFD0_5cAQbk49d7NIG",
+      "scope": "Verified browser; actual main-site live conversation/native chart"
+    },
+    {
+      "file": "case-5.png",
+      "sha256": "cf181d739b2fe3c2122464bebdfdade420a40477f09ecfd7fb8adcb72a0c2cfc",
+      "buildId": "UJKlFD0_5cAQbk49d7NIG",
+      "scope": "Verified browser; actual main-site live conversation/native chart"
+    },
+    {
+      "file": "case-6.png",
+      "sha256": "45de55132168478da4f981ac7e4615decfc9bddf16803fc286ec5097e1759248",
+      "buildId": "UJKlFD0_5cAQbk49d7NIG",
+      "scope": "Verified browser; actual main-site live conversation/native chart"
+    },
+    {
+      "file": "case-7.png",
+      "sha256": "b84d0a9e231bc21f90567e33eddcdc337f2b4934ecc19394a6b72b4b9030e3a1",
+      "buildId": "UJKlFD0_5cAQbk49d7NIG",
+      "scope": "Verified browser; actual main-site live conversation/native chart"
+    },
+    {
+      "file": "native-chart.png",
+      "sha256": "4f3fc5bb4a432ba256d157e2fd02a6167e612f983daf400df2203d1d9af8ef6e",
+      "buildId": "UJKlFD0_5cAQbk49d7NIG",
+      "scope": "Verified browser; actual main-site live conversation/native chart"
+    }
+  ],
+  "limits": "Unretouched actual HTTPS CSS-pixel captures; mobile emulation, not real devices. Vendor watermark remains."
+}

@@ -1,6 +1,8 @@
 # Pal Care
 
-**Main North promotion is approved and in progress:** exact-commit CI, startup-verified rollback and committed-release checks must pass before switching **8444**. Current execution/results: [promotion evidence](docs/evidence/NORTH-MAIN-PROMOTION.md). Historical 8445 snapshots below do not claim main deployment.
+**North ☆ is live on the main private website: [https://greatbison.tail9e8802.ts.net:8444/dashboard](https://greatbison.tail9e8802.ts.net:8444/dashboard).** Release `1d1e3bc` passed [both exact-commit CI jobs](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/41706103724), then actual 8444 HTTPS live AI, purchases/documents/Insights, charts, product-care follow-ups, existing authorization and conversation persistence. Desktop/mobile Light/Dark checks pass. Original rollback is startup-verified and retained; purchase evidence, credentials, accounting and Tailscale are preserved. [Deployment results, screenshots and remaining limits](docs/evidence/NORTH-MAIN-PROMOTION.md).
+
+The following 8445 review entries are **historical pre-promotion checkpoints**, not the current main-site deployment/accounting. The separate review remains available; no public exposure or new allowance was added.
 
 **North ☆ live conversational preview:** [https://greatbison.tail9e8802.ts.net:8445/dashboard](https://greatbison.tail9e8802.ts.net:8445/dashboard), connected to Tailscale. **Genuine Sol/medium AI is enabled for an actually verified browser under the existing shared policy**, not anonymously. It interprets ordinary questions and follow-ups; server tools retrieve/calculate facts and select exact-product sources. Unverified/unavailable access offers an explicitly limited saved-record fallback. No customer registration or new allowance. Original **8444 → 3002** remains unchanged. [Actual customer questions, retained failure/correction, screenshots and limitations](docs/evidence/NORTH-CONVERSATIONAL-AI.md).
 

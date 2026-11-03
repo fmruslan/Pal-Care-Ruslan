@@ -1,5 +1,7 @@
 # North preview promotion and rollback — procedure, not activation
 
+**Executed under the owner's later explicit approval:** North is now verified on main **8444** after exact-commit CI, startup-tested original rollback and actual post-deployment HTTPS/provider checks. [Deployment results and retained limitations](evidence/NORTH-MAIN-PROMOTION.md). The procedure below remains the recovery contract, not a claim that the whole makeover/200-case campaign is accepted.
+
 ## Implemented / current boundary
 
 The owner now explicitly authorizes promotion to **8444 → 127.0.0.1:3002**, after exact-commit CI, release-critical checks and startup-verified rollback. This supersedes the earlier approval stop, not the safety prerequisites. The **8445 → 3003** review remains separate, using the original shared policy/accounting. [STATUS](STATUS.md) records execution and actual acceptance; the 200-case campaign remains separate.
@@ -28,4 +30,4 @@ The owner now explicitly authorizes promotion to **8444 → 127.0.0.1:3002**, af
 
 ## Incomplete / Blocked / Next
 
-Main-preview replacement is **not executed**. Owner-device acceptance, exact accepted-commit CI, validated 8444-specific conversational activation and a proven matching original rollback snapshot remain prerequisites. The actual 8445 customer journeys/results are in [current evidence](evidence/NORTH-CONVERSATIONAL-AI.md). Next: owner hands-on feedback, then the exact main-preview decision and missing cutover verification; no invented engineering date or silent promotion.
+Main-preview replacement **executed after the separately approved safety checks**; [actual 8444 results](evidence/NORTH-MAIN-PROMOTION.md). Owner-device/independent-user acceptance and remaining evaluation are still incomplete. Next: owner hands-on feedback on main 8444, with final evidence-commit provenance/read-back reported at handoff; no invented engineering date, new allowance or public exposure.

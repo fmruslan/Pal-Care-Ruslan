@@ -1,6 +1,6 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
-**Main promotion configuration:** the owner-approved 8444 launcher selects the same conversational records `/interpret` implementation using an exact main-origin presentation flag. It does not reuse the 8445 flag or rewrite request origins. Original 8444 authentication, policy, cookies and shared accounting remain required; no access/financial/migration authority follows from this flag. [Execution evidence](evidence/NORTH-MAIN-PROMOTION.md).
+**Main promotion executed and actual HTTPS verified:** the owner-approved 8444 launcher selects the same conversational records `/interpret` implementation using an exact main-origin presentation flag. It does not reuse the 8445 flag or rewrite request origins. Original 8444 authentication, policy, cookies and shared accounting remain required; no access/financial/migration authority follows from this flag. Genuine interpreted turns and unauthorized-model 403 denial passed after replacement. [Execution evidence](evidence/NORTH-MAIN-PROMOTION.md).
 
 ## Authenticated conversational North review — actual 8445 acceptance
 
