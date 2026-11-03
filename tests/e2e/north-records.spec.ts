@@ -653,12 +653,18 @@ test("document and priced predicates produce an actual table with exact document
     visible: node.clientWidth,
     content: node.scrollWidth,
   }));
-  expect(widths.content).toBeGreaterThan(widths.visible);
-  await scrollRegion.focus();
-  await scrollRegion.press("ArrowRight");
-  await expect
-    .poll(() => scrollRegion.evaluate((node) => node.scrollLeft))
-    .toBeGreaterThan(0);
+  await expect(table).toHaveCSS("min-width", "704px");
+  if (widths.visible < 704) {
+    expect(widths.content).toBeGreaterThan(widths.visible);
+    await scrollRegion.focus();
+    await scrollRegion.press("ArrowRight");
+    await expect
+      .poll(() => scrollRegion.evaluate((node) => node.scrollLeft))
+      .toBeGreaterThan(0);
+  } else {
+    // Full-width tablet panels can show all columns without overflow.
+    expect(widths.content).toBe(widths.visible);
+  }
   await expect(
     table.getByRole("link", {
       name: "Headphones · sample receipt",
