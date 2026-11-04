@@ -1,6 +1,6 @@
 # Unified ownership timeline, smart status pill and North ☆
 
-**Status: core scope A and bounded genuine-North check B approved by the owner; implementation in progress.**
+**Status: core A deployed from `1dbec14`; approved B completed with eight questions/eight counted attempts and the disposable browser revoked.** [Actual release evidence and remaining limits](evidence/OWNERSHIP-PRIVATE-RELEASE.md). The proposal below retains the approved scope, not a request to repeat implementation or browser approval.
 
 The owner's explicit **“Approve A and B”** authorizes the core implementation and gated private release, plus one new disposable browser for at most eight questions / 16 counted attempts within existing actually valid authority/allowance, revoked afterward. It does not approve the separately gated extensions, new allowance, financial operations or database/credential changes described below. The original proposal follows as the scope/acceptance contract, not a delivery claim.
 

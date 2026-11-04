@@ -1,6 +1,8 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
-## Ownership milestones — candidate under verification
+## Ownership milestones — deployed core (`1dbec14`)
+
+Exact-commit CI and private HTTPS/genuine ownership acceptance passed; [evidence and remaining limits](evidence/OWNERSHIP-PRIVATE-RELEASE.md). The acceptance browser is consumed/revoked, not ongoing provider authority.
 
 `/vault/{twinId}?milestone={topic}` opens an exact saved-product milestone. Allowlisted topics: `purchase`, `shipment`, `delivery`, `price`, `price-window`, `return-window`, `returns`, `refunds`, `warranty`, `safety`, `watch`. Invalid values grant no data/write/command authority. Existing Twin, document and `/care/{id}#...` links remain supported. **No mutation/provider endpoint is added.**
 
