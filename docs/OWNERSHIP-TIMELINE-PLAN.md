@@ -1,5 +1,11 @@
 # Unified ownership timeline, smart status pill and North ☆
 
+## Approved homepage correction
+
+The owner clarified that **Care itself**, not only the dated product page, must show Product + top-right status → one compact SVG ownership timeline → one next action. The detailed product timeline stays. Reuse the same `OwnershipView` facts, dates, provenance and evidence panel; show core purchase/delivery/price/return/warranty windows and relevant recorded events, keeping unknown/unverified states honest. Combine repeated findings for one product, retaining every source/watch finding in its disclosure. Aim for 30–40% shorter cards rather than appending text. North's fresh homepage answers highlight the exact product/milestone alongside a source-backed explanation, with visible-fact/revision read-back; History never replays highlights. Preserve one field, context, drafts, native Insights and navigation.
+
+This correction is approved for implementation, focused functional/accessibility and one lightweight visual smoke, commit/push, all three mandatory exact-commit CI jobs and rollback-protected automatic private **8444 → 3002** deployment. Owner visual review follows on the **live Care homepage**. No additional genuine-North browser, allowance, external provider/write, migration, credentials or financial scope follows. Earlier B remains consumed/revoked. [STATUS](STATUS.md) records actual progress.
+
 **Status: core A deployed from `1dbec14`; approved B completed with eight questions/eight counted attempts and the disposable browser revoked.** [Actual release evidence and remaining limits](evidence/OWNERSHIP-PRIVATE-RELEASE.md). The proposal below retains the approved scope, not a request to repeat implementation or browser approval.
 
 The owner's explicit **“Approve A and B”** authorizes the core implementation and gated private release, plus one new disposable browser for at most eight questions / 16 counted attempts within existing actually valid authority/allowance, revoked afterward. It does not approve the separately gated extensions, new allowance, financial operations or database/credential changes described below. The original proposal follows as the scope/acceptance contract, not a delivery claim.

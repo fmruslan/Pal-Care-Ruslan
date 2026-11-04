@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useRef,
+  useId,
   useState,
   useTransition,
   type ReactNode,
@@ -17,6 +18,12 @@ import { Button } from "../ui/button";
 import { ReturnDraft } from "./return-draft";
 import { displayDate } from "@/lib/demo/presentation";
 import {
+  careMilestones,
+  careMilestoneLabel,
+  careMilestoneState,
+  careNextWindow,
+} from "@/lib/care/summary";
+import {
   ownershipTopic,
   type OwnershipFact,
   type OwnershipTopic,
@@ -26,6 +33,7 @@ import {
 type JourneyContext = {
   view: OwnershipView;
   show: (topic: OwnershipTopic, opener?: HTMLElement) => void;
+  focused: OwnershipTopic | null;
 };
 const Journey = createContext<JourneyContext | null>(null);
 function useJourney() {
@@ -116,27 +124,37 @@ function FactDetails({ fact }: { fact: OwnershipFact }) {
 export function OwnershipScope({
   view,
   children,
+  surface = "product",
 }: {
   view: OwnershipView | null;
   children: ReactNode;
+  surface?: "product" | "care";
 }) {
   if (!view) return <>{children}</>;
   return (
-    <ConnectedOwnershipScope view={view}>{children}</ConnectedOwnershipScope>
+    <ConnectedOwnershipScope view={view} surface={surface}>
+      {children}
+    </ConnectedOwnershipScope>
   );
 }
 function ConnectedOwnershipScope({
   view,
   children,
+  surface,
 }: {
   view: OwnershipView;
   children: ReactNode;
+  surface: "product" | "care";
 }) {
+  const instance = useId();
+  const scope = useRef<HTMLDivElement>(null);
+  const [focused, setFocused] = useState<OwnershipTopic | null>(null);
   const [selected, setSelected] = useState<OwnershipTopic | null>(null);
   const [open, setOpen] = useState(false);
   const opener = useRef<HTMLElement | null>(null);
   const params = useSearchParams();
-  const requested = ownershipTopic(params.get("milestone"));
+  const requested =
+    surface === "product" ? ownershipTopic(params.get("milestone")) : null;
   const router = useRouter();
   const [refreshing, refresh] = useTransition();
   const previousRevision = useRef(view.revision);
@@ -166,11 +184,41 @@ function ConnectedOwnershipScope({
   // Saved-record refresh only. Never poll an external source/model or interrupt
   // someone reading a modal. Tab visibility bounds background work.
   useEffect(() => {
+    if (surface === "care") return;
     const timer = setInterval(() => {
       if (!open && document.visibilityState === "visible") router.refresh();
     }, 60000);
     return () => clearInterval(timer);
-  }, [open, router]);
+  }, [open, router, surface]);
+  useEffect(() => {
+    if (surface !== "care") return;
+    const receive = (event: Event) => {
+      const value = (event as CustomEvent).detail;
+      if (!value) {
+        setFocused(null);
+        return;
+      }
+      if (value.twinId !== view.twinId) return;
+      const target = ownershipTopic(value.topic);
+      if (
+        value.revision === view.revision &&
+        target &&
+        view.facts.some((f) => f.topic === target)
+      ) {
+        setFocused(target);
+      }
+    };
+    window.addEventListener("palcare-care-focus", receive);
+    return () => window.removeEventListener("palcare-care-focus", receive);
+  }, [surface, view]);
+  useEffect(() => {
+    if (!focused) return;
+    const frame = requestAnimationFrame(() => {
+      scope.current?.scrollIntoView({ block: "nearest", behavior: "instant" });
+      window.dispatchEvent(new Event("palcare-care-visible"));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focused, view.revision]);
   useEffect(() => {
     if (!open) return;
     const frame = requestAnimationFrame(() =>
@@ -183,6 +231,7 @@ function ConnectedOwnershipScope({
       const value = (event as CustomEvent).detail;
       const target = ownershipTopic(value?.topic);
       if (
+        surface === "product" &&
         value?.twinId === view.twinId &&
         value?.revision === view.revision &&
         target &&
@@ -194,7 +243,7 @@ function ConnectedOwnershipScope({
     };
     window.addEventListener("palcare-open-ownership", receive);
     return () => window.removeEventListener("palcare-open-ownership", receive);
-  }, [view]);
+  }, [view, surface]);
   const show = (value: OwnershipTopic, target?: HTMLElement) => {
     if (target && !target.closest("[data-ownership-panel]"))
       opener.current = target;
@@ -202,8 +251,22 @@ function ConnectedOwnershipScope({
     setOpen(true);
   };
   return (
-    <Journey.Provider value={{ view, show }}>
-      {children}
+    <Journey.Provider value={{ view, show, focused }}>
+      <div
+        ref={scope}
+        data-ownership-scope={instance}
+        data-ownership-surface={surface}
+        data-ownership-twin={view.twinId}
+        data-ownership-revision={view.revision}
+        data-care-focused={focused ?? undefined}
+        className={
+          focused
+            ? "rounded-2xl ring-2 ring-intelligence-foreground ring-offset-2 ring-offset-background"
+            : undefined
+        }
+      >
+        {children}
+      </div>
       <Dialog.Root open={open} onOpenChange={setOpen}>
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm" />
@@ -217,7 +280,9 @@ function ConnectedOwnershipScope({
               event.preventDefault();
               (
                 opener.current ??
-                document.querySelector<HTMLElement>("[data-ownership-pill]")
+                scope.current?.querySelector<HTMLElement>(
+                  "[data-ownership-pill]",
+                )
               )?.focus();
             }}
           >
@@ -355,7 +420,7 @@ function ConnectedOwnershipScope({
   );
 }
 
-export function OwnershipPill() {
+export function OwnershipPill({ compact = false }: { compact?: boolean }) {
   const journey = useJourney();
   if (!journey)
     return (
@@ -370,7 +435,7 @@ export function OwnershipPill() {
       data-ownership-twin={view.twinId}
       aria-haspopup="dialog"
       onClick={(event) => show(view.pill.topic, event.currentTarget)}
-      className={`inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border px-4 py-2 text-left text-sm font-semibold transition-colors motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${view.pill.verified ? "border-success/30 bg-success-surface text-success" : view.pill.attention ? "border-warning/40 bg-warning-surface text-warning" : "border-primary/30 bg-secondary text-foreground"}`}
+      className={`inline-flex min-h-11 max-w-full items-center rounded-full border ${compact ? "gap-1.5 px-2.5 py-1 text-[11px] [overflow-wrap:normal] sm:text-xs" : "gap-2 px-4 py-2 text-sm"} text-left font-semibold transition-colors motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${view.pill.verified ? "border-success/30 bg-success-surface text-success" : view.pill.attention ? "border-warning/40 bg-warning-surface text-warning" : "border-primary/30 bg-secondary text-foreground"}`}
     >
       {view.pill.verified ? (
         <Check className="size-4 shrink-0" aria-hidden="true" />
@@ -378,8 +443,167 @@ export function OwnershipPill() {
         <OwnershipIcon topic={view.pill.topic} className="size-4 shrink-0" />
       )}
       <span>{view.pill.label}</span>
-      <ChevronDown className="size-4 shrink-0" aria-hidden="true" />
+      <ChevronDown
+        className={`${compact ? "hidden sm:block" : ""} size-4 shrink-0`}
+        aria-hidden="true"
+      />
     </button>
+  );
+}
+
+/** One saved-record refresh for the collection, never one timer per card. */
+export function CareCollectionRefresh() {
+  const router = useRouter();
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (
+        document.visibilityState === "visible" &&
+        !document.querySelector("[data-ownership-panel]")
+      )
+        router.refresh();
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [router]);
+  return null;
+}
+
+export function OwnershipSummary({ topic }: { topic: OwnershipTopic }) {
+  const journey = useJourney();
+  const label = useId();
+  if (!journey)
+    return (
+      <p className="text-xs text-muted-foreground">
+        Ownership evidence unavailable; no status assumed.
+      </p>
+    );
+  const { view, show, focused } = journey;
+  const milestones = careMilestones(view, focused ?? topic);
+  const next = careNextWindow(view);
+  const selected = focused ? view.facts.filter((f) => f.topic === focused) : [];
+  return (
+    <div className="min-w-0" data-care-timeline>
+      <p id={label} className="sr-only">
+        {view.purchase.name} ownership summary. Compressed spacing is not
+        elapsed time. Select a milestone for its evidence.
+      </p>
+      <div
+        role="region"
+        aria-labelledby={label}
+        tabIndex={0}
+        className="overflow-x-auto overscroll-x-contain focus-visible:outline-2 focus-visible:outline-ring"
+      >
+        <ol className="flex min-w-full">
+          {milestones.map((fact, index) => (
+            <li
+              key={fact.id}
+              className="relative min-w-[3.25rem] flex-1 sm:min-w-[4.5rem]"
+            >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 100 20"
+                preserveAspectRatio="none"
+                className="absolute top-0 h-5 w-full text-border"
+              >
+                <path
+                  d={`M${index === 0 ? 50 : 0} 10H${index === milestones.length - 1 ? 50 : 100}`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeDasharray={
+                    fact.state === "recorded" ? undefined : "3 4"
+                  }
+                />
+              </svg>
+              <button
+                data-care-milestone={fact.topic}
+                data-milestone-state={fact.state}
+                data-milestone-verified={fact.verified}
+                aria-label={`${careMilestoneLabel(fact)}: ${fact.status}${fact.date ? `, ${displayDate(fact.date)}` : ""}`}
+                aria-current={
+                  (focused ?? view.pill.topic) === fact.topic
+                    ? "step"
+                    : undefined
+                }
+                title={
+                  view.pill.topic === fact.topic
+                    ? "Current recorded state"
+                    : undefined
+                }
+                aria-haspopup="dialog"
+                onClick={(event) => show(fact.topic, event.currentTarget)}
+                className={`relative flex min-h-[3.75rem] w-full flex-col items-center rounded-lg px-1 pb-1 text-center text-[10px] leading-4 [overflow-wrap:normal] hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring sm:text-[11px] ${focused === fact.topic ? "bg-intelligence text-intelligence-foreground" : "text-foreground"}`}
+              >
+                <span
+                  className={`relative flex size-5 items-center justify-center rounded-full border bg-card ${view.pill.topic === fact.topic ? "ring-2 ring-primary/30 ring-offset-1 ring-offset-card" : ""} ${fact.state === "recorded" ? "border-primary text-primary" : fact.state === "upcoming" || fact.state === "attention" ? "border-intelligence-foreground text-intelligence-foreground" : "border-muted-foreground text-muted-foreground"} ${["unknown", "unavailable", "not-applicable"].includes(fact.state) ? "border-dashed" : ""}`}
+                >
+                  {fact.state === "recorded" ? (
+                    <Check className="size-3" aria-hidden="true" />
+                  ) : fact.state === "expired" ? (
+                    <X className="size-3" aria-hidden="true" />
+                  ) : (
+                    <OwnershipIcon topic={fact.topic} className="size-3" />
+                  )}
+                </span>
+                <span className="mt-1 font-semibold">
+                  <span className="sm:hidden">
+                    {fact.topic === "purchase"
+                      ? "Bought"
+                      : fact.topic === "price-window"
+                        ? "Price window"
+                        : fact.topic === "return-window"
+                          ? "Returns"
+                          : careMilestoneLabel(fact)}
+                  </span>
+                  <span className="hidden sm:inline">
+                    {careMilestoneLabel(fact)}
+                  </span>
+                </span>
+                <span className="text-muted-foreground">
+                  {fact.date
+                    ? displayDate(fact.date)
+                    : careMilestoneState(fact)}
+                </span>
+                {fact.date && fact.state !== "recorded" && (
+                  <span className="text-muted-foreground">
+                    {careMilestoneState(fact)}
+                  </span>
+                )}
+              </button>
+            </li>
+          ))}
+        </ol>
+      </div>
+      {next && (
+        <p className="mt-1 text-xs text-intelligence-foreground">
+          Next recorded window: {careMilestoneLabel(next)} ·{" "}
+          <time dateTime={next.date!}>{displayDate(next.date!)}</time> ·{" "}
+          {careMilestoneState(next)} (not a coverage guarantee)
+        </p>
+      )}
+      {selected.length > 0 && (
+        <div
+          data-care-focus-evidence={focused}
+          className="mt-2 rounded-lg border border-intelligence-border bg-intelligence p-3 text-sm text-intelligence-foreground"
+        >
+          <p className="font-semibold">North ☆ · {selected[0].title}</p>
+          {selected.map((fact) => (
+            <p
+              key={fact.id}
+              data-care-focus-fact={fact.id}
+              className="mt-1 leading-6"
+            >
+              {fact.status}. {fact.detail} {fact.provenance}.
+            </p>
+          ))}
+          <button
+            className="mt-1 min-h-11 font-semibold underline underline-offset-4"
+            onClick={(event) => show(focused!, event.currentTarget)}
+          >
+            Review evidence & available actions
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 

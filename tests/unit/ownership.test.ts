@@ -12,6 +12,7 @@ import type { GuardianView } from "../../src/lib/price-guardian/contracts";
 import { ownershipHref, ownershipTopic } from "../../src/lib/care/ownership";
 import {
   ownershipPostcondition,
+  careHomepagePostcondition,
   ownershipPresentationTarget,
 } from "../../src/lib/care/ownership-presentation";
 import {
@@ -19,6 +20,12 @@ import {
   type ConversationPlan,
 } from "../../src/lib/careos/records/conversation-service";
 import { emptyRecordsQuery } from "../../src/lib/careos/records/contracts";
+import {
+  careMilestones,
+  careProductCards,
+  careNextWindow,
+  careMilestoneState,
+} from "../../src/lib/care/summary";
 
 const id = (n: number) =>
   `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -48,6 +55,102 @@ const evidence = {
 };
 
 describe("one ownership view across Twin, Care and North", () => {
+  it("summarizes the original shared facts, retains unknowns and selects only recorded upcoming windows", () => {
+    const feed = project();
+    const view = feed.ownership.find((v) => v.twinId === id(201))!;
+    const summary = careMilestones(view, "price");
+    for (const topic of [
+      "purchase",
+      "delivery",
+      "price-window",
+      "return-window",
+      "warranty",
+      "price",
+    ]) {
+      expect(summary.find((f) => f.topic === topic)).toBe(
+        view.facts.find((f) => f.topic === topic),
+      );
+    }
+    expect(careNextWindow(view)).toBeNull();
+    expect(
+      careMilestoneState(view.facts.find((f) => f.topic === "purchase")!),
+    ).toBe("Recorded");
+    const saved = emptySavedCare();
+    saved.warranties.push({
+      twinId: id(201),
+      expiresOn: "2026-11-14",
+      basis: "Reported only",
+      evidence,
+    });
+    const dated = project({ savedCare: saved }).ownership.find(
+      (v) => v.twinId === id(201),
+    )!;
+    expect(careNextWindow(dated)).toBe(
+      dated.facts.find((f) => f.topic === "warranty"),
+    );
+    expect(
+      careNextWindow({
+        ...dated,
+        facts: dated.facts.map((f) => ({ ...f, state: "expired" as const })),
+      }),
+    ).toBeNull();
+  });
+  it("groups every finding once per product without losing watch/source evidence", () => {
+    const feed = project();
+    const first = feed.items[0];
+    feed.items.push({
+      ...first,
+      id: "secondary-watch",
+      kind: "watch",
+      group: "tracking",
+    });
+    const cards = careProductCards(feed, false);
+    expect(
+      cards.filter((c) => c.item.purchase.id === first.purchase.id),
+    ).toHaveLength(1);
+    expect(
+      cards
+        .find((c) => c.item.purchase.id === first.purchase.id)!
+        .findings.map((f) => f.id),
+    ).toContain("secondary-watch");
+    expect(cards.flatMap((c) => c.findings)).toHaveLength(
+      feed.items.filter((i) => i.group !== "completed").length,
+    );
+    expect(careProductCards(feed, true)).toHaveLength(0);
+  });
+  it("resolves North homepage highlights from real cards and requires exact visible fact read-back", () => {
+    const feed = project();
+    const answer = careStatusAnswer(feed, 1, [id(201)], "delivery");
+    const target = answer.careHighlights![0];
+    expect(target).toEqual({
+      twinId: id(201),
+      topic: "delivery",
+      revision: feed.ownership.find((v) => v.twinId === id(201))!.revision,
+    });
+    const actual = {
+      pathname: "/dashboard",
+      twinId: target.twinId,
+      topic: target.topic,
+      revision: target.revision,
+      visible: true,
+      facts: 1,
+    };
+    expect(careHomepagePostcondition(target, actual)).toBe(true);
+    for (const change of [
+      { pathname: `/vault/${target.twinId}` },
+      { twinId: id(202) },
+      { topic: "warranty" },
+      { revision: "bad" },
+      { visible: false },
+      { facts: 0 },
+    ])
+      expect(careHomepagePostcondition(target, { ...actual, ...change })).toBe(
+        false,
+      );
+    expect(
+      careStatusAnswer(feed, 1, [id(202)], "delivery").careHighlights,
+    ).toBeUndefined();
+  });
   it.each([
     "2026-11-05T09:59:59.999Z",
     "2026-11-05T10:00:00.000Z",

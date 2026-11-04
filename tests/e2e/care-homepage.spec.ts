@@ -23,7 +23,8 @@ test("Care is the default and has three calm destinations, factual cards and no 
   ).toHaveText(["Care", "Purchases", "Insights"]);
   await expect(page.locator("[data-north-search]")).toHaveCount(1);
   const card = page.locator(`[data-care-card="price:${headphones}"]`);
-  await expect(card).toContainText("not confirmed savings");
+  await expect(card.locator("[data-ownership-pill]")).toBeVisible();
+  await expect(card.locator("[data-care-timeline]")).toBeVisible();
   await expect(
     card.getByRole("link", { name: "Compare prices" }),
   ).toBeVisible();
@@ -32,6 +33,7 @@ test("Care is the default and has three calm destinations, factual cards and no 
     .boundingBox();
   expect(action!.y + action!.height).toBeLessThan(664);
   await card.getByText("Evidence & source", { exact: true }).click();
+  await expect(card).toContainText("not confirmed savings");
   await expect(card).toContainText("not continuous monitoring");
   expect(writes).toEqual([]);
 });

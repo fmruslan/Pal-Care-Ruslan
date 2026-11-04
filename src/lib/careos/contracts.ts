@@ -58,6 +58,8 @@ export type Evidence = {
 export type CareAnswer = {
   /** Server-derived immutable ownership snapshot metadata; never write authority. */
   ownershipAsOf?: string;
+  /** Server-resolved homepage highlights, presentation only; History never replays. */
+  careHighlights?: import("../care/ownership-presentation").OwnershipPresentation[];
   ownershipPresentation?: {
     twinId: string;
     topic: import("../care/ownership").OwnershipTopic;

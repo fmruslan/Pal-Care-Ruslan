@@ -1,81 +1,106 @@
-import { ArrowRight, Check, Info } from "lucide-react";
+import { ArrowRight, Info } from "lucide-react";
 import { WorkspaceNavigationLink as Link } from "../intelligence/workspace-navigation-link";
 import { ProductArt } from "../product-art";
 import { Button } from "../ui/button";
 import { displayDate } from "@/lib/demo/presentation";
-import type { CareFeed, CareItem } from "@/lib/care/model";
-import { OwnershipIcon } from "./ownership";
+import type { CareFeed } from "@/lib/care/model";
+import { careItemTopic, careProductCards } from "@/lib/care/summary";
+import { AskCareOS } from "../careos/provider";
+import {
+  OwnershipScope,
+  OwnershipPill,
+  OwnershipSummary,
+  CareCollectionRefresh,
+  OwnershipIcon,
+} from "./ownership";
 
-function CareCard({ item }: { item: CareItem }) {
+function CareCard({
+  item,
+  findings,
+  view,
+}: ReturnType<typeof careProductCards>[number]) {
   const p = item.purchase;
   return (
-    <article
-      className="care-action-card grid min-w-0 grid-cols-[minmax(0,20%)_minmax(0,1fr)] items-start gap-x-4 gap-y-2 rounded-2xl border bg-card p-4 shadow-sm [overflow-wrap:anywhere] sm:grid-cols-[6rem_minmax(0,1fr)_auto] sm:gap-x-6 sm:p-6"
-      data-care-card={item.id}
-    >
-      <div className="care-product-art min-w-0 sm:row-span-3 sm:self-center">
-        <ProductArt kind={p.illustration ?? "computer"} size="thumbnail" />
-      </div>
-      <div className="min-w-0">
-        <p className="text-xs leading-5 text-muted-foreground">
-          {p.model} ·{" "}
-          <time dateTime={p.purchasedOn}>{displayDate(p.purchasedOn)}</time> ·{" "}
-          {p.origin === "sandbox" ? "Sandbox purchase" : "Sample purchase"}
-        </p>
-        <h3 className="mt-1 text-base font-semibold tracking-tight">
-          <Link href={p.href} className="hover:text-primary hover:underline">
-            {p.name}
-          </Link>
-        </h3>
-        <p
-          className={`mt-2 flex items-center gap-2 text-sm font-semibold ${item.verified ? "text-success-foreground" : "text-foreground"}`}
-        >
-          {item.verified && (
-            <Check className="size-4 shrink-0" aria-hidden="true" />
-          )}
-          {!item.verified && (
-            <OwnershipIcon
-              topic={
-                item.kind === "return"
-                  ? "returns"
-                  : item.kind === "refund"
-                    ? "refunds"
-                    : item.kind
-              }
-              className="size-4 shrink-0 text-primary"
-            />
-          )}
-          {item.status}
-        </p>
-      </div>
-      <p className="col-span-2 text-sm leading-6 text-muted-foreground sm:col-span-1 sm:col-start-2 sm:row-start-2">
-        {item.summary ?? item.detail}
-      </p>
-      <div className="col-span-2 flex min-w-0 flex-wrap items-center justify-between gap-2 sm:contents">
-        <details className="min-w-0 text-xs text-muted-foreground sm:col-start-2 sm:row-start-3">
-          <summary className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-            <Info className="size-3.5" aria-hidden="true" />
-            Evidence & source
-          </summary>
-          {item.summary && <p className="mb-2 leading-5">{item.detail}</p>}
-          <p className="leading-5">{item.provenance}</p>
-          <time dateTime={item.at} className="mt-1 block leading-5">
-            Record checked or dated {displayDate(item.at)}
-          </time>
-          <ul className="mt-2 list-disc pl-4">
-            {item.evidence.map((e) => (
-              <li key={e.href}>
-                <Link
-                  href={e.href}
-                  className="inline-flex min-h-11 items-center text-primary underline underline-offset-4"
-                >
-                  {e.label}
-                </Link>
-              </li>
+    <OwnershipScope view={view} surface="care">
+      <article
+        className="care-action-card grid min-w-0 grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1 rounded-2xl border bg-card p-3 shadow-sm [overflow-wrap:anywhere] sm:grid-cols-[3rem_minmax(0,1fr)_auto] sm:gap-x-4 sm:px-4"
+        data-care-card={item.id}
+        data-care-product={p.id}
+      >
+        <div className="care-product-art min-w-0 sm:row-span-3 sm:self-center">
+          <ProductArt kind={p.illustration ?? "computer"} size="thumbnail" />
+        </div>
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,45%)] items-start gap-x-2 gap-y-1 sm:col-span-2 sm:flex sm:flex-wrap sm:justify-between sm:gap-x-3">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold tracking-tight">
+              <Link
+                href={p.href}
+                className="hover:text-primary hover:underline"
+              >
+                {p.name}
+              </Link>
+            </h3>
+            <p className="text-xs leading-5 text-muted-foreground">
+              {p.model} ·{" "}
+              {p.origin === "sandbox" ? "Sandbox purchase" : "Sample purchase"}{" "}
+              <span className="hidden sm:inline">
+                {" "}
+                ·{" "}
+                <time dateTime={p.purchasedOn}>
+                  {displayDate(p.purchasedOn)}
+                </time>
+              </span>
+            </p>
+          </div>
+          <div className="col-start-2 row-start-1 min-w-0 justify-self-end sm:order-last">
+            <OwnershipPill compact />
+          </div>
+          <details className="col-start-1 row-start-2 min-w-0 text-xs text-muted-foreground">
+            <summary className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+              <Info className="size-3.5" aria-hidden="true" />
+              Evidence & source
+            </summary>
+            {findings.map((finding) => (
+              <div key={finding.id} className="mb-3 max-w-xl">
+                <p className="font-semibold leading-5">{finding.status}</p>
+                <p className="leading-5">{finding.detail}</p>
+                <p className="leading-5">{finding.provenance}</p>
+                <time dateTime={finding.at} className="mt-1 block leading-5">
+                  Record checked or dated {displayDate(finding.at)}
+                </time>
+                <ul className="mt-2 list-disc pl-4">
+                  {finding.evidence.map((e) => (
+                    <li key={e.href}>
+                      <Link
+                        href={e.href}
+                        className="inline-flex min-h-11 items-center text-primary underline underline-offset-4"
+                      >
+                        {e.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
-        </details>
-        <div className="min-w-0 sm:col-start-3 sm:row-span-3 sm:row-start-1 sm:self-center">
+          </details>
+          <AskCareOS
+            context={{
+              twinId: p.id,
+              name: p.name,
+              model: p.model,
+              origin: p.origin,
+              purchasedOn: p.purchasedOn,
+            }}
+            label={`Ask North about ${p.name}, purchased ${p.purchasedOn}`}
+          >
+            <OwnershipIcon topic="north" className="size-4" />
+            <span className="hidden sm:inline">Ask North</span>
+          </AskCareOS>
+        </div>
+        <div className="col-span-2 min-w-0 sm:col-span-1 sm:col-start-2">
+          <OwnershipSummary topic={careItemTopic(item)} />
+        </div>
+        <div className="col-span-2 min-w-0 sm:col-span-1 sm:col-start-3 sm:row-start-2 sm:self-center">
           <Button
             asChild
             className="max-w-full flex-wrap whitespace-normal text-left"
@@ -85,9 +110,12 @@ function CareCard({ item }: { item: CareItem }) {
               <ArrowRight className="shrink-0" aria-hidden="true" />
             </Link>
           </Button>
+          <p className="mt-1 max-w-52 text-xs leading-4 text-muted-foreground">
+            {item.status}
+          </p>
         </div>
-      </div>
-    </article>
+      </article>
+    </OwnershipScope>
   );
 }
 
@@ -103,11 +131,10 @@ export function CareFeedView({
   const groups = completed
     ? ["completed" as const]
     : ["action" as const, "tracking" as const];
-  const shown = feed.items.filter((item) =>
-    groups.some((group) => group === item.group),
-  );
+  const shown = careProductCards(feed, completed);
   return (
     <>
+      <CareCollectionRefresh />
       {filters && (
         <div className="mb-7">
           <CareFilters completed={completed} />
@@ -176,7 +203,7 @@ export function CareFeedView({
         </section>
       )}
       {groups.map((group) => {
-        const items = shown.filter((item) => item.group === group);
+        const items = shown.filter(({ item }) => item.group === group);
         if (!items.length) return null;
         const title =
           group === "completed"
@@ -190,8 +217,8 @@ export function CareFeedView({
               {title}
             </h2>
             <div className="space-y-4">
-              {items.map((item) => (
-                <CareCard item={item} key={item.id} />
+              {items.map((card) => (
+                <CareCard {...card} key={card.item.purchase.id} />
               ))}
             </div>
           </section>

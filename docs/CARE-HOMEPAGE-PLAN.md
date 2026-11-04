@@ -1,5 +1,7 @@
 # Care homepage — researched implementation proposal
 
+**Approved ownership-homepage correction:** the product-page-only release missed the primary placement requirement. Care cards must themselves show the shared top-right pill, compact horizontal SVG timeline, important recorded windows and one next action, approximately 30–40% shorter than old cards. North retains visible cards for exact-product/milestone highlighting and evidence without replaying History. Keep full product details and shared facts, not a second date/status engine. Automatic private release follows focused checks and mandatory CI; owner visual review happens on `/dashboard`. [Correction scope](OWNERSHIP-TIMELINE-PLAN.md#approved-homepage-correction) · [implementation truth](STATUS.md).
+
 **Status: complete plan approved; implemented candidate in final verification.** The owner explicitly approved this plan and continuous implementation/test/fix/commit/push/exact-commit CI and rollback-protected private 8444 delivery. The subsequent [exact persistence/permissions scope](CARE-PERSISTENCE-APPROVAL.md) is separately approved **after remaining gates**; that approval is not activation evidence. This plan does not establish implemented features or acceptance. [STATUS](STATUS.md) remains implementation truth.
 
 ## Outcome and selected gate

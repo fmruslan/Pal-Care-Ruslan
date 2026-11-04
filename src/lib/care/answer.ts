@@ -3,6 +3,7 @@ import type { CareFeed } from "./model";
 import { careDetailHref } from "./model";
 import { evidenceLabel } from "./contracts";
 import { ownershipHref, ownershipTopic } from "./ownership";
+import { careProductCards, careItemTopic } from "./summary";
 
 /** Same server-derived facts as Care cards. No model-written statuses/amounts. */
 export function careStatusAnswer(
@@ -15,6 +16,17 @@ export function careStatusAnswer(
   const requested = open ? topic.slice(5) : topic;
   const normalized = requested === "payment" ? "purchase" : requested;
   const selected = feed.ownership.filter((v) => ids.includes(v.twinId));
+  const homepage = careProductCards(feed, false);
+  const careHighlights = selected
+    .flatMap((view) => {
+      const card = homepage.find((card) => card.view?.twinId === view.twinId);
+      if (!card) return [];
+      const target = ownershipTopic(normalized) ?? careItemTopic(card.item);
+      return view.facts.some((fact) => fact.topic === target)
+        ? [{ twinId: view.twinId, topic: target, revision: view.revision }]
+        : [];
+    })
+    .slice(0, 4);
   if (
     ownershipTopic(normalized) ||
     (normalized === "summary" && selected.length === 1)
@@ -71,6 +83,7 @@ export function careStatusAnswer(
     return {
       careSelection: purchases.map((p) => p.id),
       ownershipAsOf: feed.observedAt,
+      ...(careHighlights.length ? { careHighlights } : {}),
       ...(open && selected.length === 1 && target && matching.length
         ? {
             ownershipPresentation: {
@@ -173,6 +186,13 @@ export function careStatusAnswer(
   const hasFacts = items.length > 0 || recorded.length > 0;
   return {
     ownershipAsOf: feed.observedAt,
+    ...(careHighlights.length
+      ? {
+          careHighlights: careHighlights.filter((target) =>
+            items.some((item) => item.purchase.id === target.twinId),
+          ),
+        }
+      : {}),
     careSelection: ["summary", "attention", "price", "refunds"].includes(topic)
       ? [
           ...new Set([

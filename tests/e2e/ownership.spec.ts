@@ -9,6 +9,159 @@ import type { CareTurn } from "../../src/lib/careos/contracts";
 
 const twin = "00000000-0000-4000-8000-000000000201";
 
+test("Care itself shows compact shared pills and SVG milestones, with exact-card evidence and scoped focus restoration", async ({
+  page,
+}) => {
+  const writes: string[] = [];
+  page.on("request", (request) => {
+    if (!["GET", "HEAD"].includes(request.method())) writes.push(request.url());
+  });
+  await page.goto("/dashboard?milestone=delivery");
+  await expect(page.locator("[data-ownership-panel]")).toHaveCount(0);
+  const cards = page.locator("[data-care-product]");
+  expect(await cards.count()).toBeGreaterThan(0);
+  expect(
+    new Set(
+      await cards.evaluateAll((cards) =>
+        cards.map((card) => card.getAttribute("data-care-product")),
+      ),
+    ).size,
+  ).toBe(await cards.count());
+  for (const card of await cards.all()) {
+    await expect(card.locator("[data-ownership-pill]")).toBeVisible();
+    for (const topic of [
+      "purchase",
+      "delivery",
+      "price-window",
+      "return-window",
+      "warranty",
+    ])
+      await expect(
+        card.locator(`[data-care-milestone="${topic}"]`),
+      ).toHaveCount(1);
+    expect(
+      await card.locator("[data-care-timeline] svg").count(),
+    ).toBeGreaterThanOrEqual(5);
+  }
+  const card = page.locator(`[data-care-product="${twin}"]`);
+  const delivery = card.locator('[data-care-milestone="delivery"]');
+  await delivery.focus();
+  await page.keyboard.press("Enter");
+  const panel = page.getByRole("dialog", { name: "Delivery", exact: true });
+  await expect(panel).toHaveAttribute("data-ownership-twin", twin);
+  await expect(panel).toContainText("not delivery evidence");
+  await page.keyboard.press("Escape");
+  await expect(delivery).toBeFocused();
+  const other = cards.last();
+  const warranty = other.locator('[data-care-milestone="warranty"]');
+  await warranty.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator("[data-ownership-panel]")).toHaveAttribute(
+    "data-ownership-twin",
+    (await other.getAttribute("data-care-product"))!,
+  );
+  await page.keyboard.press("Escape");
+  await expect(warranty).toBeFocused();
+  expect(writes).toEqual([]);
+});
+
+test("injected North highlights the homepage milestone beside its answer, validates read-back and never replays History", async ({
+  page,
+}) => {
+  await page.goto("/dashboard");
+  const scope = page.locator(
+    `[data-ownership-surface="care"][data-ownership-twin="${twin}"]`,
+  );
+  const revision = (await scope.getAttribute("data-ownership-revision"))!;
+  const {
+    version: _v,
+    referenceDate: _r,
+    timezone: _t,
+    ...query
+  } = emptyRecordsQuery("2026-11-04");
+  void _v;
+  void _r;
+  void _t;
+  let dispatches = 0;
+  await page.route(
+    "**/api/careos/records/conversations/*/turns",
+    async (route) => {
+      dispatches++;
+      const input = route.request().postDataJSON();
+      const feed = careFeed({
+        data: demoData,
+        knowledge: [],
+        guardian: emptyOverview(),
+        activity: { items: [], unavailable: [] },
+      });
+      const answer = careStatusAnswer(
+        feed,
+        input.revision,
+        [twin],
+        "open_delivery",
+      );
+      answer.careHighlights![0].revision = revision;
+      answer.conversationPlan = {
+        task: "aftercare",
+        relation: "selected",
+        query: { ...query, outcome: "query" },
+        comparison: null,
+        productSearch: "",
+        productAction: "open_delivery",
+        careQuestion: "",
+        clarification: "",
+      };
+      await route.fulfill({
+        json: { requestId: input.requestId, message: input.message, answer },
+      });
+    },
+  );
+  await page
+    .getByRole("searchbox", {
+      name: "Search products and documents",
+      exact: true,
+    })
+    .fill("Show all my purchases");
+  await page
+    .getByRole("button", { name: "Ask North Star", exact: true })
+    .click();
+  const north = page.getByRole("dialog", { name: "North Star", exact: true });
+  await expect(north).toContainText(
+    "Visible cards, supporting facts and evidence revisions were checked",
+  );
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(scope).toHaveAttribute("data-care-focused", "delivery");
+  await expect(
+    scope.locator('[data-care-milestone="delivery"]'),
+  ).toHaveAttribute("aria-current", "step");
+  await expect(scope.locator("[data-care-focus-evidence]")).toContainText(
+    "not delivery evidence",
+  );
+  await expect(page.locator("[data-ownership-panel]")).toHaveCount(0);
+  await expect(scope.locator("[data-care-product]")).toBeVisible();
+  await scope
+    .getByRole("button", {
+      name: "Review evidence & available actions",
+      exact: true,
+    })
+    .click();
+  await expect(
+    page.getByRole("dialog", { name: "Delivery", exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await north
+    .getByRole("button", { name: "Close North Star", exact: true })
+    .click();
+  await page.getByRole("button", { name: "History", exact: true }).click();
+  await page
+    .getByRole("region", { name: "Previous North results" })
+    .getByRole("button")
+    .first()
+    .click();
+  await expect(scope).not.toHaveAttribute("data-care-focused", "delivery");
+  expect(dispatches).toBe(1);
+});
+
 test("ownership pill, complete timeline, evidence and keyboard are useful without model or financial calls", async ({
   page,
 }) => {

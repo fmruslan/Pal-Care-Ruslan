@@ -101,7 +101,10 @@ export function NorthWorkspaceSlot() {
 
 export function NorthCollection({ children }: { children: ReactNode }) {
   const assistant = useOptionalCareOS();
-  return assistant?.integrated?.isOpen ? null : <>{children}</>;
+  const pathname = usePathname();
+  return assistant?.integrated?.isOpen && pathname !== "/dashboard" ? null : (
+    <>{children}</>
+  );
 }
 
 export function NorthSearch({

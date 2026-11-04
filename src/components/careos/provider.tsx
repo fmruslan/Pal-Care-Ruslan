@@ -71,6 +71,7 @@ import {
 } from "@/lib/north-presentation";
 import {
   ownershipPostcondition,
+  careHomepagePostcondition,
   ownershipPresentationTarget,
   type OwnershipPresentation,
 } from "@/lib/care/ownership-presentation";
@@ -136,11 +137,47 @@ export function CareOSProvider({
     expected: OwnershipPresentation;
     requestId: string;
   } | null>(null);
+  const careIntent = useRef<{
+    expected: OwnershipPresentation[];
+    requestId: string;
+  } | null>(null);
   const [ownershipNotice, setOwnershipNotice] = useState("");
   const [ownershipNoticeFor, setOwnershipNoticeFor] = useState<string | null>(
     null,
   );
   useEffect(() => {
+    const verifyCare = () => {
+      const intent = careIntent.current;
+      if (!intent) return;
+      const checked = intent.expected.every((expected) => {
+        const card = [
+          ...document.querySelectorAll<HTMLElement>(
+            '[data-ownership-surface="care"]',
+          ),
+        ].find((card) => card.dataset.ownershipTwin === expected.twinId);
+        return (
+          !!card &&
+          careHomepagePostcondition(expected, {
+            pathname: window.location.pathname,
+            twinId: card.dataset.ownershipTwin,
+            topic: card.dataset.careFocused,
+            revision: card.dataset.ownershipRevision,
+            visible:
+              card.getClientRects().length > 0 &&
+              !card.closest('[aria-hidden="true"], [hidden]') &&
+              !!card.querySelector('[aria-current="step"]'),
+            facts: card.querySelectorAll("[data-care-focus-fact]").length,
+          })
+        );
+      });
+      setOwnershipNoticeFor(intent.requestId);
+      setOwnershipNotice(
+        checked
+          ? "Highlighted the exact Care products and milestones. Visible cards, supporting facts and evidence revisions were checked; no records changed."
+          : "The current Care milestone could not be verified. Review the saved evidence; no status or financial change was made.",
+      );
+      if (checked) careIntent.current = null;
+    };
     const verify = () => {
       const intent = ownershipIntent.current;
       if (!intent) return;
@@ -179,11 +216,15 @@ export function CareOSProvider({
     };
     const depart = () => {
       ownershipIntent.current = null;
+      careIntent.current = null;
+      window.dispatchEvent(new CustomEvent("palcare-care-focus"));
     };
     window.addEventListener("palcare-ownership-visible", verify);
+    window.addEventListener("palcare-care-visible", verifyCare);
     window.addEventListener("popstate", depart);
     return () => {
       window.removeEventListener("palcare-ownership-visible", verify);
+      window.removeEventListener("palcare-care-visible", verifyCare);
       window.removeEventListener("popstate", depart);
     };
   }, []);
@@ -201,6 +242,10 @@ export function CareOSProvider({
   const historySelection = useRef(false);
   const [historySelected, setHistorySelected] = useState(false);
   const selectHistoryScope = useCallback((value: boolean) => {
+    if (value) {
+      careIntent.current = null;
+      window.dispatchEvent(new CustomEvent("palcare-care-focus"));
+    }
     historySelection.current = value;
     setHistorySelected(value);
   }, []);
@@ -230,6 +275,8 @@ export function CareOSProvider({
     () =>
       registerDeparture(() => {
         ownershipIntent.current = null;
+        careIntent.current = null;
+        window.dispatchEvent(new CustomEvent("palcare-care-focus"));
         presentationEpoch.current++;
         setRecordsSubmission(null);
         setReturnFocusRequested(false);
@@ -624,6 +671,8 @@ export function CareOSProvider({
       setSubmittedOrder((prior) => [...prior, requestId]);
       setDiscoveryNotice("");
       setOwnershipNotice("");
+      careIntent.current = null;
+      window.dispatchEvent(new CustomEvent("palcare-care-focus"));
       setOwnershipNoticeFor(null);
       setDismissedChoices((prior) => [
         ...prior,
@@ -659,6 +708,28 @@ export function CareOSProvider({
               explicitContext.current = true;
               setContextExplicit(true);
               updateContext(turn.answer.context);
+            }
+            if (
+              window.location.pathname === "/dashboard" &&
+              turn.answer.careHighlights?.length &&
+              !historySelection.current
+            ) {
+              const expected = turn.answer.careHighlights;
+              // Validate application-resolved targets before selector/event use.
+              for (const target of expected)
+                ownershipPresentationTarget(target);
+              careIntent.current = { expected, requestId: turn.requestId };
+              for (const target of expected)
+                window.dispatchEvent(
+                  new CustomEvent("palcare-care-focus", { detail: target }),
+                );
+              requestAnimationFrame(() =>
+                requestAnimationFrame(() => {
+                  if (careIntent.current?.requestId === turn.requestId)
+                    window.dispatchEvent(new Event("palcare-care-visible"));
+                }),
+              );
+              return;
             }
             if (
               turn.answer.ownershipPresentation &&
@@ -741,6 +812,8 @@ export function CareOSProvider({
 
   function closeWorkspace() {
     ownershipIntent.current = null;
+    careIntent.current = null;
+    window.dispatchEvent(new CustomEvent("palcare-care-focus"));
     presentationEpoch.current++;
     insights.cancelRecords();
     setRecordsSubmission(null);
