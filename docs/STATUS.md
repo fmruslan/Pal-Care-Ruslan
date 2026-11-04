@@ -1,6 +1,18 @@
 # Implementation status
 
-## Care homepage timeline correction — candidate, not yet deployed
+## Care homepage timeline correction — deployed; owner visual review next
+
+**Implemented / deployed:** **Care itself** now shows shared top-right product status pills, compact SVG ownership windows/relevant events and one next action; product timelines remain. North highlights exact homepage facts beside its answer with visible-card/milestone/revision read-back. Live application **`8df4e196c88f694a78f740c11ce722523cb2979e`**, build **`EErnoTPEmARxrGOappjku`**, source **`30e956e32c2c4269d7ef88286909b325841390e237febef447b4d25d756a3f56`**. [Full release evidence, retained failures and limits](evidence/CARE-HOMEPAGE-TIMELINE-RELEASE.md).
+
+**Verified — exact commit:** [41933066055](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/41933066055), all three mandatory jobs passed: **1,416 units / 118 PostgreSQL / 966 fixture + 966 database browser/accessibility / 33 access / 179 first-try compatibility + one configured-retry recovery / 14 injected Sol / six Guardian** checks. Actual elapsed **19m50s fixtures / 21m39s database / 15m58s native**. WebKit's purchase-search disabled-button first attempt recovered on its unchanged configured retry; no real-device/no-retry claim. Earlier failed CI and local attempts below remain retained.
+
+**Verified — actual application:** four desktop/mobile Light/Dark GET-only HTTPS homepage checks passed **2026-11-04T23:46:24Z**, including visible pills/timelines, exact evidence, focus restoration and no page overflow; zero model/financial/external/record-write calls or browser errors. Actual desktop cards **158px / 142px versus 210px before (25% / 32% shorter)**; separate **234px watch card** is merged, not lost. Fixture cards were both 142px; do not project that onto live watch data. Homepage North execution is injected acceptance; prior genuine evidence is historical, not a new browser/provider grant.
+
+**Verified — operations:** prior **1dbec14** integrity/startup/HTTPS verified and retained; automatic rollbacks succeeded for an overly strict private size bound and then a cold-start synchronous-count harness error. Final same-SHA smoke passes without application/CI changes. New **1,759-file** same-build restart snapshot is integrity/role/readiness/startup verified; temporary 3014 stopped. All four runtime/authority/accounting fingerprints unchanged; no data/credential rollback, financial/provider/database/worker/license/public activation. Documentation-only final evidence schedules no application rebuild/cutover or local finalizer.
+
+**Incomplete:** owner live-homepage visual/real-device review and new genuine homepage-highlight inference; external/financial/connector/customer-write/judging gates stay separate, watch expiry **2026-12-04T20:18:12.252Z** unchanged. **Blocked:** nothing prevents owner review; consumed/revoked B grants no new agent browser/allowance. **Next:** owner tests [Care itself](https://greatbison.tail9e8802.ts.net:8444/dashboard) and supplies visual feedback. The development checkpoints below retain their original pending/failure scope and are superseded only by the evidence above.
+
+### Retained correction development checkpoints
 
 **Implemented:** `/dashboard` relevant-product cards compose the existing `OwnershipView` pill, compact SVG core windows/relevant events and exact-product evidence dialog. Multiple findings share one product card; original price/watch/source findings remain in its disclosure. Homepage instances ignore product-only milestone URLs, scope focus restoration and share one saved-record refresh. North's server-resolved `careHighlights` retain visible homepage cards beside answers and check exact Twin/topic/revision/rendered facts before reporting success. Full product timelines/actions remain compatible; History never replays highlights. No new date/status engine, provider, database, worker or financial change.
 

@@ -1,6 +1,6 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
-**Care homepage correction (candidate):** saved-record North answers may include optional application-resolved `careHighlights: { twinId, topic, revision }[]`, at most four relevant-product targets. This is presentation metadata, not a browser-supplied query, data write or authorization. On `/dashboard`, fresh answers highlight exact shared facts without navigating away; success requires actual visible card/milestone/fact/revision read-back. History never executes it. Existing product-page `ownershipPresentation` stays compatible. No endpoint, migration or provider scope is added. [Actual status](STATUS.md).
+**Care homepage correction (deployed `8df4e19`):** saved-record North answers may include optional application-resolved `careHighlights: { twinId, topic, revision }[]`, at most four relevant-product targets. This is presentation metadata, not a browser-supplied query, data write or authorization. On `/dashboard`, fresh answers highlight exact shared facts without navigating away; success requires exactly one visible matching card and its exact current milestone/fact/revision read-back, excluding hidden streaming copies. History never executes it. Existing product-page `ownershipPresentation` stays compatible. No endpoint, migration or provider scope is added. [Release evidence and limits](evidence/CARE-HOMEPAGE-TIMELINE-RELEASE.md).
 
 ## Ownership milestones — deployed core (`1dbec14`)
 
