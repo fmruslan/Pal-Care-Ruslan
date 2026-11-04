@@ -398,30 +398,91 @@ test("keyboard focus remains visible with reduced motion and traverses the nonmo
   expect(
     await composer.evaluate((node) => node.matches(":focus-visible")),
   ).toBe(true);
-  expect(
-    await composer.evaluate((node) => {
+  const readIndicator = () =>
+    composer.evaluate((node) => {
       const style = getComputedStyle(node);
-      const shadowLengths = style.boxShadow.replace(/rgba?\([^)]*\)/g, "");
-      return (
-        (style.outlineStyle !== "none" &&
-          parseFloat(style.outlineWidth) >= 2) ||
-        /(?:^|\s)(?:[1-9]\d*(?:\.\d+)?|0?\.\d+)px/.test(shadowLengths)
-      );
-    }),
-    "keyboard focus has a rendered indicator",
-  ).toBe(true);
-  await composer.fill("An unsent keyboard draft");
-  let leftWorkspace = false;
-  for (let index = 0; index < 30; index++) {
-    await page.keyboard.press("Tab");
-    if (
-      !(await dialog.evaluate((node) => node.contains(document.activeElement)))
-    ) {
-      leftWorkspace = true;
-      break;
-    }
+      // Resolve modern CSS color syntax through the engine, not an rgb-only
+      // parser. A transparent outline must never pass the width/style check.
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 1;
+      const context = canvas.getContext("2d")!;
+      context.fillStyle = "transparent";
+      context.fillStyle = style.outlineColor;
+      context.fillRect(0, 0, 1, 1);
+      return {
+        outlineStyle: style.outlineStyle,
+        outlineWidth: style.outlineWidth,
+        outlineOffset: style.outlineOffset,
+        outlineColor: style.outlineColor,
+        outlineAlpha: context.getImageData(0, 0, 1, 1).data[3],
+        boxShadow: style.boxShadow,
+      };
+    });
+  let indicator: Awaited<ReturnType<typeof readIndicator>> | null = null;
+  try {
+    await expect
+      .poll(
+        async () => {
+          indicator = await readIndicator();
+          return (
+            indicator.outlineStyle !== "none" &&
+            indicator.outlineStyle !== "hidden" &&
+            parseFloat(indicator.outlineWidth) >= 2 &&
+            parseFloat(indicator.outlineOffset) >= 2 &&
+            indicator.outlineAlpha > 0
+          );
+        },
+        {
+          message:
+            "keyboard focus settles to a nontransparent >=2px outline with >=2px offset",
+        },
+      )
+      .toBe(true);
+  } finally {
+    await test.info().attach("settled-keyboard-focus-style", {
+      body: JSON.stringify(indicator),
+      contentType: "application/json",
+    });
   }
-  expect(leftWorkspace, "North must not trap page navigation").toBe(true);
+  const draft = "An unsent keyboard draft";
+  await composer.fill(draft);
+  await expect(composer).toBeFocused();
+  await expectControlFits(composer);
+  const send = dialog.getByRole("button", {
+    name: "Send to North Star",
+    exact: true,
+  });
+  await expect(send).toBeEnabled();
+  await page.keyboard.press("Tab");
+  await expect(send).toBeFocused();
+  await expectControlFits(send);
+  const back = dialog.getByRole("button", {
+    name: "Back to your products",
+    exact: true,
+  });
+  await page.keyboard.press("Tab");
+  await expect(back).toBeFocused();
+  await expectControlFits(back);
+
+  // Back is the document's last tabbable control. Firefox need not wrap its
+  // activeElement to the page start when forward Tab reaches browser chrome.
+  // Instead cross the real leading page/workspace boundary in both directions.
+  const history = dialog.getByRole("button", { name: "History", exact: true });
+  const precedingPageLink = page.getByRole("link", {
+    name: "Inspect official recall evidence",
+    exact: true,
+  });
+  await history.focus();
+  await expectControlFits(history);
+  await page.keyboard.press("Shift+Tab");
+  await expect(precedingPageLink).toBeFocused();
+  expect(
+    await dialog.evaluate((node) => node.contains(document.activeElement)),
+    "North must allow keyboard exit to the actual preceding page link",
+  ).toBe(false);
+  await page.keyboard.press("Tab");
+  await expect(history).toBeFocused();
+  await expect(composer).toHaveValue(draft);
   expect(
     await page.evaluate(
       () => matchMedia("(prefers-reduced-motion: reduce)").matches,

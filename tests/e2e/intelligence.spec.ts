@@ -28,6 +28,57 @@ test("intelligence separates real records and scenarios, with actual local Studi
       exact: true,
     }),
   ).toBeVisible();
+  // Switching datasets changes both button variants. Wait for their actual
+  // semantic colors, not just the new content while transition-colors is still
+  // interpolating foreground/background independently. Axe remains unchanged.
+  const modeColors = await page.evaluate(() => {
+    const root = getComputedStyle(document.documentElement);
+    const rgb = (token: string) => {
+      const raw = root.getPropertyValue(token).trim().slice(1);
+      const hex =
+        raw.length === 3
+          ? [...raw].map((digit) => digit.repeat(2)).join("")
+          : raw;
+      return `rgb(${[0, 2, 4].map((offset) => parseInt(hex.slice(offset, offset + 2), 16)).join(", ")})`;
+    };
+    return {
+      card: rgb("--card"),
+      foreground: rgb("--foreground"),
+      action: rgb("--primary-action"),
+      onAction: rgb("--primary-foreground"),
+      hover: rgb("--primary-hover"),
+    };
+  });
+  const recordedMode = page.getByRole("button", {
+    name: "Recorded application data",
+    exact: true,
+  });
+  await expect(recordedMode).toHaveCSS("background-color", modeColors.card);
+  await expect(recordedMode).toHaveCSS("color", modeColors.foreground);
+  const illustrativeMode = page.getByRole("button", {
+    name: "Explore illustrative scenarios",
+    exact: true,
+  });
+  await expect(illustrativeMode).toHaveCSS("color", modeColors.onAction);
+  await expect(illustrativeMode).toHaveCSS(
+    "background-color",
+    new RegExp(
+      `^(${[modeColors.action, modeColors.hover].map((value) => value.replace(/[()]/g, "\\$&")).join("|")})$`,
+    ),
+  );
+  await info.attach("settled-dataset-button-colors", {
+    body: JSON.stringify(
+      await recordedMode.evaluate((node) => {
+        const style = getComputedStyle(node);
+        return {
+          color: style.color,
+          backgroundColor: style.backgroundColor,
+          transitionProperty: style.transitionProperty,
+        };
+      }),
+    ),
+    contentType: "application/json",
+  });
   expect(
     (
       await new AxeBuilder({ page })

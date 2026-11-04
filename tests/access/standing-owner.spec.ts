@@ -268,10 +268,22 @@ test("owner settings replace testing requests without making saved records depen
   await expect(
     page.getByRole("button", { name: /copy|request testing|renew/i }),
   ).toHaveCount(0);
-  for (const path of ["/dashboard", "/vault", "/documents", "/insights"]) {
+  for (const [path, heading] of [
+    ["/dashboard", "Your products"],
+    ["/vault", "Your products"],
+    ["/documents", "Your products"],
+    ["/insights", "Insights"],
+  ]) {
     await page.goto(OWNER_ORIGIN + path);
-    await page.waitForLoadState("networkidle");
-    await expect(page.locator("main")).toBeVisible();
+    // Streaming can briefly retain the loading main beside the actual page.
+    // Wait for its accessible retirement, not unrelated network quiescence.
+    const main = page.getByRole("main");
+    await expect(main).toHaveCount(1);
+    await expect(main).not.toHaveAttribute("aria-busy", "true");
+    await expect(main).toBeVisible();
+    await expect(
+      main.getByRole("heading", { level: 1, name: heading, exact: true }),
+    ).toBeVisible();
     await expect(
       page.getByText("Application error", { exact: false }),
     ).toHaveCount(0);
@@ -290,7 +302,6 @@ test("owner settings replace testing requests without making saved records depen
     await button.click();
     await expect(button).toHaveAttribute("aria-pressed", "true");
   }
-  await page.waitForLoadState("networkidle");
 });
 
 test("current browser auth gates Send and legacy unsent hello recovers without clearing history or draft", async ({

@@ -1,4 +1,9 @@
 /* Customer presentation only. Shared semantic colors, theme and Studio stay authoritative. */
+.north-inline-workspace textarea:focus-visible,
+.north-unified-search:focus-within {
+  outline: 2px solid var(--intelligence-foreground);
+  outline-offset: 2px;
+}
 .north-inline-workspace.careos-assistant {
   position: static;
   inset: auto;

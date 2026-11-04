@@ -130,6 +130,12 @@ for (const width of widths) {
     await expect(composer).toBeVisible();
     await composer.fill("Layout-only draft; never submitted");
     await expect(composer).toHaveValue("Layout-only draft; never submitted");
+    // Exercise idle close/return focus after owned restoration completes. While
+    // work is genuinely pending, the disabled Ask action correctly returns
+    // focus to read-only History instead (covered by the pending-search case).
+    await expect(
+      dialog.getByRole("button", { name: "Send to North Star", exact: true }),
+    ).toBeEnabled();
     await page.keyboard.press("Escape");
     await expect(dialog).not.toBeVisible();
     await expect(launcher).toBeFocused();

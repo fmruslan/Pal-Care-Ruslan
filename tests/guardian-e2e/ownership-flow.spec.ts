@@ -12,16 +12,31 @@ test("synthetic test-DB flow: proactive opportunity → protected approval → i
       financialBrowserPosts++;
   });
   try {
-    await page.goto("/dashboard");
+    // Home is a calm library; the recorded opportunity is contextual to its Twin.
+    await page.goto(`/vault/${fixture.twinId}`);
+    const adjustment = page.getByRole("region", {
+      name: "Price Guardian adjustment",
+      exact: true,
+    });
     await expect(
-      page.getByRole("heading", {
-        name: "$20.00 merchant price adjustment found",
+      adjustment.getByRole("heading", {
+        name: "$20.00 price adjustment found.",
         exact: true,
       }),
     ).toBeVisible();
-    await page
-      .getByRole("link", { name: "View price adjustment", exact: true })
-      .click();
+    await expect(
+      adjustment.getByText("Awaiting merchant approval", { exact: true }),
+    ).toBeVisible();
+    const evidence = adjustment.getByRole("link", {
+      name: "View adjustment evidence",
+      exact: true,
+    });
+    await expect(evidence).toHaveAttribute(
+      "href",
+      `/guardian/${fixture.caseId}`,
+    );
+    await evidence.click();
+    await expect(page).toHaveURL(`/guardian/${fixture.caseId}`);
     await expect(page.getByRole("heading", { level: 1 })).toContainText(
       "Awaiting merchant approval",
     );

@@ -25,6 +25,14 @@ import {
 import { Button } from "../ui/button";
 import type { CareContext, Intent } from "@/lib/careos/contracts";
 import { useConversation } from "./use-conversation";
+import {
+  readPending,
+  pendingKey as carePendingKey,
+} from "./conversation-client";
+import {
+  readInsightPending,
+  insightPendingKey,
+} from "../intelligence/customer-client";
 import { RecordsResultView } from "./records-result";
 import {
   recordsTaskCandidate,
@@ -123,6 +131,7 @@ export function CareOSProvider({
       pathname,
     );
   const [isOpen, setOpen] = useState(false);
+  const [returnFocusRequested, setReturnFocusRequested] = useState(false);
   const [workspaceElement, setWorkspaceElement] =
     useState<HTMLDivElement | null>(null);
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
@@ -161,6 +170,7 @@ export function CareOSProvider({
       registerDeparture(() => {
         presentationEpoch.current++;
         setRecordsSubmission(null);
+        setReturnFocusRequested(false);
         if (integrated) setOpen(false);
       }),
     [registerDeparture, integrated],
@@ -425,6 +435,43 @@ export function CareOSProvider({
     const beforeAdmission = presentationEpoch.current;
     loadPresentation();
     if (admitting.current || busy || pending || !message.trim()) return false;
+    if (integrated) {
+      // Closed Home can admit directly through its one field, before an open
+      // workspace has restored any hooks. Never bypass another channel's
+      // dispatched uncertainty or overwrite its original envelope. A known
+      // owned saved result (including a recoverable presentation) is different
+      // from uncertainty; it may retain its hint without blocking unrelated care.
+      const unresolved = (
+        [
+          [
+            readPending(sessionStorageSafe(carePendingKey)),
+            regular.conversation,
+          ],
+          [
+            readPending(sessionStorageSafe("palcare-records-pending-v1")),
+            records.conversation,
+          ],
+        ] as const
+      ).some(
+        ([hint, saved]) =>
+          hint &&
+          hint.status !== "not-sent" &&
+          !saved?.turns.some((turn) => turn.requestId === hint.input.requestId),
+      );
+      const insightHint = readInsightPending(
+        sessionStorageSafe(insightPendingKey),
+      );
+      if (
+        unresolved ||
+        (insightHint &&
+          !insights.conversation?.turns.some(
+            (turn) => turn.requestId === insightHint.requestId,
+          ))
+      ) {
+        await open(true);
+        return false;
+      }
+    }
     let liveAdmission = false;
     if (conversationalAI && !aiAccessDisabled && !aiExpired) {
       admitting.current = true;
@@ -503,6 +550,7 @@ export function CareOSProvider({
         return false;
       if (admittedEpoch !== presentationEpoch.current) return false;
       setOpen(true);
+      setReturnFocusRequested(false);
       const requestId = crypto.randomUUID();
       if (integrated) {
         setActiveResultId(requestId);
@@ -570,8 +618,9 @@ export function CareOSProvider({
       admitting.current = false;
     }
   }
-  async function open() {
+  async function open(recoveryOnly = false) {
     loadPresentation();
+    setReturnFocusRequested(false);
     setOpen(true);
     // This GET-only channel has its own cookie/owner namespace. Restoring saved
     // records neither reads private AI history nor issues an inference grant.
@@ -586,7 +635,7 @@ export function CareOSProvider({
     if (!(await checkOwnerAccess())) return;
     if (aiAccessDisabled || evaluationWindowExpired(aiExpiresAt)) return;
     void insights.restore();
-    const value = await restore(!analytics);
+    const value = await restore(!analytics && !recoveryOnly);
     const previous = value?.turns.at(-1)?.answer.context;
     if (!registered.current && !contextRef.current && previous)
       select(previous);
@@ -610,8 +659,20 @@ export function CareOSProvider({
     insights.cancelRecords();
     setRecordsSubmission(null);
     setOpen(false);
-    if (integrated)
-      requestAnimationFrame(() => {
+    if (integrated) setReturnFocusRequested(true);
+  }
+  useEffect(() => {
+    if (!integrated || isOpen || !returnFocusRequested) return;
+    // Wait for the closing commit to mount the real page opener. Do not steal
+    // focus from a subsequent deliberate navigation or a quickly reopened view.
+    const frame = requestAnimationFrame(() => {
+      const focused = document.activeElement;
+      if (
+        !focused ||
+        focused === document.body ||
+        focused === document.documentElement ||
+        !focused.isConnected
+      ) {
         const opener = document.querySelector<HTMLButtonElement>(
           'button[aria-label="Ask North Star"]',
         );
@@ -622,8 +683,11 @@ export function CareOSProvider({
                 "[data-north-search] > div > button",
               )) ?? document.getElementById("library-search");
         target?.focus();
-      });
-  }
+      }
+      setReturnFocusRequested(false);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [integrated, isOpen, returnFocusRequested]);
   const integratedState: IntegratedNorthState = {
     isOpen,
     turns,

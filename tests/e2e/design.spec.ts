@@ -56,9 +56,9 @@ test("purchase details use the existing assistant, keep drafts across appearance
     "rgb(39, 51, 62)",
   );
   await composer.focus();
-  expect(
-    await composer.evaluate((node) => getComputedStyle(node).boxShadow),
-  ).toContain("rgb(208, 202, 255)");
+  await expect(composer).toHaveCSS("outline-style", "solid");
+  await expect(composer).toHaveCSS("outline-width", "2px");
+  await expect(composer).toHaveCSS("outline-color", "rgb(208, 202, 255)");
   expect(
     await page
       .locator("body")

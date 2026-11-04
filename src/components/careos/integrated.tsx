@@ -231,11 +231,14 @@ function DocumentPreview({
   href,
   title,
   label,
+  headingLevel,
 }: {
   href: string;
   title: string;
   label: string;
+  headingLevel: 2 | 3;
 }) {
+  const PreviewHeading = headingLevel === 2 ? "h2" : "h3";
   const id = documentPreviewId(href);
   const [content, setContent] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -285,7 +288,9 @@ function DocumentPreview({
       </div>
       <div className="flex min-w-0 flex-col items-start justify-center gap-3">
         <FileText className="size-8 text-primary" aria-hidden="true" />
-        <h3 className="text-lg font-semibold">{title}</h3>
+        <PreviewHeading className="text-lg font-semibold">
+          {title}
+        </PreviewHeading>
         <p className="text-sm text-muted-foreground">{label}</p>
         <Button asChild>
           <Link href={href}>View full receipt or document</Link>
@@ -584,6 +589,7 @@ export function IntegratedNorthView({
               {doc && doc.href !== pathname && (
                 <DocumentPreview
                   key={doc.href}
+                  headingLevel={pathname === "/dashboard" ? 2 : 3}
                   href={doc.href}
                   title={doc.title}
                   label={doc.label}
@@ -803,7 +809,7 @@ export function IntegratedNorthView({
             rows={1}
             maxLength={2000}
             placeholder="Ask a follow-up..."
-            className="max-h-36 min-h-11 min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-base outline-none focus-visible:ring-2 focus-visible:ring-intelligence-foreground"
+            className="max-h-36 min-h-11 min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-base focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-intelligence-foreground"
           />
           <Button
             type="submit"

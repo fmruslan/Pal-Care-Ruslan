@@ -178,6 +178,11 @@ async function chooseHeadphones(page: Page, dialog: Locator) {
     .getByRole("button", { name: headphoneChoice, exact: true })
     .click();
   await expect(picker).toHaveCount(0);
+  // Radix restores focus after unmount, not necessarily before picker removal.
+  // Observe that handoff before another control deliberately takes focus.
+  await expect(
+    dialog.getByRole("button", { name: "Change context", exact: true }),
+  ).toBeFocused();
   await expect(dialog.locator(".careos-context strong")).toHaveText(
     "Everyday headphones · F-01",
   );
@@ -291,6 +296,9 @@ test("new inline North opens with library context and an editable draft but no a
   await expect(picker).toBeVisible();
   await picker.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(picker).toHaveCount(0);
+  await expect(
+    dialog.getByRole("button", { name: "Change context", exact: true }),
+  ).toBeFocused();
   await expect(composer).toBeEditable();
   await expect(dialog.locator("[data-user-message]")).toHaveCount(0);
   expect(log.mutations()).toEqual(before);
@@ -385,9 +393,10 @@ test("North identity uses a silent outlined star, neutral shell and violet acces
   await expect(heading).toHaveCSS("color", colors.violet);
   await composer.focus();
   await expect(composer).toBeFocused();
-  expect(
-    await composer.evaluate((node) => getComputedStyle(node).boxShadow),
-  ).toContain(colors.violet);
+  await expect(composer).toHaveCSS("outline-style", "solid");
+  await expect(composer).toHaveCSS("outline-width", "2px");
+  await expect(composer).toHaveCSS("outline-offset", "2px");
+  await expect(composer).toHaveCSS("outline-color", colors.violet);
   await expect(
     dialog.getByRole("button", {
       name: "Clear conversation history",
@@ -1095,9 +1104,13 @@ test("an uncertain Insights plan blocks new sends until GET recovery, then offer
         json: { error: "injected_unexpected_mutation" },
       });
   });
-  await page.goto("/dashboard");
-  await page.evaluate(
+  // Seed before hydration can load/persist presentation defaults. The marker
+  // prevents reload from replacing the original uncertain envelope or its age.
+  await page.addInitScript(
     ({ careId, planId, requestId, context }) => {
+      const marker = `palcare-e2e-uncertain-insights-${requestId}`;
+      if (window !== window.top || sessionStorage.getItem(marker)) return;
+      const createdAt = Date.now();
       sessionStorage.setItem("palcare-careos-conversation", careId);
       sessionStorage.setItem(
         "palcare-insights-pending-v1",
@@ -1105,7 +1118,7 @@ test("an uncertain Insights plan blocks new sends until GET recovery, then offer
           requestId,
           conversationId: planId,
           message: "Show my documents",
-          createdAt: Date.now(),
+          createdAt,
         }),
       );
       sessionStorage.setItem(
@@ -1116,14 +1129,50 @@ test("an uncertain Insights plan blocks new sends until GET recovery, then offer
           explicit: true,
           draft: "Find receipt",
           order: [requestId],
-          savedAt: Date.now(),
+          savedAt: createdAt,
         }),
       );
+      sessionStorage.setItem(marker, "true");
     },
     { careId, planId, requestId, context: headphoneContext },
   );
+  await page.goto("/dashboard");
+  await expect(
+    page.getByRole("searchbox", {
+      name: "Search products and documents",
+      exact: true,
+    }),
+  ).toHaveValue("Find receipt");
+  const originalPending = await page.evaluate(() =>
+    sessionStorage.getItem("palcare-insights-pending-v1"),
+  );
+  expect(originalPending).not.toBeNull();
+  expect(JSON.parse(originalPending!)).toMatchObject({
+    requestId,
+    conversationId: planId,
+    message: planned.message,
+  });
   await page.reload();
   const { dialog, composer } = await openNorth(page);
+  const expectRetainedDraftAndContext = async () => {
+    await expect(composer).toHaveValue("Find receipt");
+    await expect(dialog.locator(".careos-context strong")).toHaveText(
+      "Everyday headphones · F-01",
+    );
+    await expect(
+      dialog.getByRole("region", {
+        name: "Persistent purchase context",
+        exact: true,
+      }),
+    ).toContainText("Oct 18, 2026 · Sample");
+    expect(
+      await page.evaluate(
+        () =>
+          JSON.parse(sessionStorage.getItem("palcare-careos-interaction-v1")!)
+            .context,
+      ),
+    ).toEqual(headphoneContext);
+  };
   await expect(dialog.locator("[data-pending-question]")).toHaveAttribute(
     "data-request-id",
     requestId,
@@ -1131,15 +1180,32 @@ test("an uncertain Insights plan blocks new sends until GET recovery, then offer
   await expect(
     dialog.getByRole("button", { name: "Send to North Star", exact: true }),
   ).toBeDisabled();
+  await expectRetainedDraftAndContext();
   await composer.press("Enter");
+  await expectRetainedDraftAndContext();
   await dialog
     .locator("form")
     .evaluate((form: HTMLFormElement) => form.requestSubmit());
+  await expectRetainedDraftAndContext();
   expect(inputs).toEqual([]);
   expect(log.mutations()).toEqual([]);
+  expect(
+    await page.evaluate(() =>
+      sessionStorage.getItem("palcare-insights-pending-v1"),
+    ),
+  ).toBe(originalPending);
+  const recovery = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      response.request().method() === "GET" &&
+      url.pathname === "/api/intelligence/customer/plan" &&
+      url.searchParams.get("conversationId") === planId
+    );
+  });
   await dialog
     .getByRole("button", { name: "Check for saved answer", exact: true })
     .click();
+  expect((await recovery).ok()).toBe(true);
   await expect(dialog.locator("[data-pending-question]")).toHaveCount(0);
   await expect(
     dialog.getByRole("link", {
@@ -1150,11 +1216,41 @@ test("an uncertain Insights plan blocks new sends until GET recovery, then offer
   await expect(
     dialog.getByRole("button", { name: "Apply saved view", exact: true }),
   ).toHaveCount(0);
-  await expect(composer).toHaveValue("Find receipt");
-  const answered = await sendCare(page, dialog, "Find receipt");
+  await expectRetainedDraftAndContext();
+  expect(inputs).toEqual([]);
+  expect(log.mutations()).toEqual([]);
+  const result = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      new URL(response.url()).pathname ===
+        `/api/careos/conversations/${careId}/turns`,
+  );
+  // Submit the restored draft itself: refilling would hide a recovery regression.
+  await dialog
+    .getByRole("button", { name: "Send to North Star", exact: true })
+    .click();
+  const response = await result;
+  expect(response.ok()).toBe(true);
+  const answered = (await response.json()) as CareTurn;
+  await expect(dialog.locator("[data-pending-question]")).toHaveCount(0);
+  await expect(
+    dialog.locator(
+      `[data-request-id="${answered.requestId}"] [data-user-message]`,
+    ),
+  ).toHaveText("Find receipt");
+  expect(answered.requestId).toMatch(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+  );
   expect(answered.requestId).not.toBe(requestId);
   expect(inputs).toHaveLength(1);
-  expect(inputs[0].twinId).toBe(headphoneId);
+  expect(inputs[0]).toMatchObject({
+    requestId: answered.requestId,
+    twinId: headphoneId,
+    message: "Find receipt",
+  });
+  expect(log.mutations()).toEqual([
+    `POST /api/careos/conversations/${careId}/turns`,
+  ]);
   expect(
     log.requests.filter((entry) => entry.startsWith("POST /api/intelligence/")),
   ).toEqual([]);
@@ -1162,11 +1258,7 @@ test("an uncertain Insights plan blocks new sends until GET recovery, then offer
     await page.evaluate(() =>
       JSON.parse(sessionStorage.getItem("palcare-insights-pending-v1")!),
     ),
-  ).toMatchObject({
-    requestId,
-    conversationId: planId,
-    message: planned.message,
-  });
+  ).toMatchObject(JSON.parse(originalPending!));
   await selectHistory(dialog, planned.message, planned.requestId);
   await expect(
     dialog.getByRole("link", {
@@ -1175,4 +1267,7 @@ test("an uncertain Insights plan blocks new sends until GET recovery, then offer
     }),
   ).toBeVisible();
   await expect(page).toHaveURL(/\/dashboard$/);
+  expect(log.mutations()).toEqual([
+    `POST /api/careos/conversations/${careId}/turns`,
+  ]);
 });

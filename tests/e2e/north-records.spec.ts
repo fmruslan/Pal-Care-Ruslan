@@ -197,10 +197,16 @@ test("North opens library-first and what have I bought returns linked results wi
 test("enlarged narrow-screen text keeps result and composer reachable in page flow", async ({
   page,
 }) => {
+  const posts: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST")
+      posts.push(new URL(request.url()).pathname);
+  });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/dashboard");
   const dialog = await open(page);
   await ask(page, "Show my sample purchases");
+  const submittedPosts = [...posts];
   await page.evaluate(() => {
     document.documentElement.style.fontSize = "200%";
   });
@@ -208,8 +214,12 @@ test("enlarged narrow-screen text keeps result and composer reachable in page fl
     name: "Ask about your purchases",
     exact: true,
   });
+  const draft = "Unsent accessibility draft";
   await input.focus();
-  await input.scrollIntoViewIfNeeded();
+  await input.fill(draft);
+  // A textarea scroll target need not expose its ancestor's disclosure/padding.
+  // Test the complete page-flow composer explicitly, at the same viewport.
+  await dialog.locator(".careos-composer").scrollIntoViewIfNeeded();
   await expect(input).toBeFocused();
   const geometry = await dialog.evaluate((el) => {
     const transcript = el
@@ -218,32 +228,91 @@ test("enlarged narrow-screen text keeps result and composer reachable in page fl
     const composer = el
       .querySelector(".careos-composer")!
       .getBoundingClientRect();
-    const header = el.querySelector("header")!.getBoundingClientRect();
     return {
       transcriptHeight: transcript.height,
+      composerTop: composer.top,
       composerBottom: composer.bottom,
-      headerTop: header.top,
       viewport: innerHeight,
+      viewportWidth: innerWidth,
       fontSize: parseFloat(
         getComputedStyle(el.querySelector("textarea")!).fontSize,
       ),
     };
   });
+  expect(geometry.viewportWidth).toBe(390);
+  expect(geometry.viewport).toBe(844);
   expect(geometry.fontSize).toBeGreaterThanOrEqual(32);
   expect(geometry.transcriptHeight).toBeGreaterThanOrEqual(150);
+  expect(geometry.composerTop).toBeGreaterThanOrEqual(-1);
   expect(geometry.composerBottom).toBeLessThanOrEqual(geometry.viewport + 1);
+
+  const expectControlInViewport = async (control: Locator) => {
+    await expect(control).toBeVisible();
+    const bounds = await control.evaluate((node) => {
+      const rect = node.getBoundingClientRect();
+      const hit = document.elementFromPoint(
+        rect.left + rect.width / 2,
+        rect.top + rect.height / 2,
+      );
+      return {
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        bottom: rect.bottom,
+        width: rect.width,
+        height: rect.height,
+        viewportWidth: innerWidth,
+        viewportHeight: innerHeight,
+        hit: hit !== null && (hit === node || node.contains(hit)),
+      };
+    });
+    const diagnostic = `${control}: ${JSON.stringify(bounds)}`;
+    expect(bounds.width, diagnostic).toBeGreaterThanOrEqual(44);
+    expect(bounds.height, diagnostic).toBeGreaterThanOrEqual(44);
+    expect(bounds.left, diagnostic).toBeGreaterThanOrEqual(-1);
+    expect(bounds.right, diagnostic).toBeLessThanOrEqual(
+      bounds.viewportWidth + 1,
+    );
+    expect(bounds.top, diagnostic).toBeGreaterThanOrEqual(-1);
+    expect(bounds.bottom, diagnostic).toBeLessThanOrEqual(
+      bounds.viewportHeight + 1,
+    );
+    expect(bounds.hit, `${diagnostic}: target is not clipped or covered`).toBe(
+      true,
+    );
+  };
+  const send = dialog.getByRole("button", {
+    name: "Send to North Star",
+    exact: true,
+  });
+  await expect(send).toBeEnabled();
+  await expectControlInViewport(input);
+  await expectControlInViewport(send);
+  await page.keyboard.press("Tab");
+  await expect(send).toBeFocused();
+  await expectControlInViewport(send);
+  await expect(input).toHaveValue(draft);
   await dialog.locator("[data-user-message]").scrollIntoViewIfNeeded();
-  await expect(dialog.locator("[data-user-message]")).toBeInViewport();
-  await dialog
-    .getByRole("button", { name: "Change context", exact: true })
-    .focus();
-  await expect(
-    dialog.getByRole("button", { name: "Change context", exact: true }),
-  ).toBeFocused();
+  await expect(dialog.locator("[data-user-message]")).toBeInViewport({
+    ratio: 1,
+  });
+  const context = dialog.getByRole("button", {
+    name: "Change context",
+    exact: true,
+  });
+  await context.focus();
+  await context.scrollIntoViewIfNeeded();
+  await expect(context).toBeFocused();
+  await expectControlInViewport(context);
+  await expect(input).toHaveValue(draft);
   await expect(dialog).toHaveAttribute("aria-modal", "false");
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(391);
+  expect(
+    posts,
+    "layout and keyboard traversal must not submit the draft",
+  ).toEqual(submittedPosts);
 });
 
 test("comparison plus table retrieves prior-period evidence; a plain total keeps the selection without a stale comparison panel", async ({

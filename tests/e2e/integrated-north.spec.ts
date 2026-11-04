@@ -11,6 +11,135 @@ const field = (page: Page) =>
     name: "Search products and documents",
     exact: true,
   });
+
+for (const kind of ["care", "records", "Insights"] as const) {
+  test(`closed Home admission preserves an uncertain ${kind} envelope before any new conversational POST`, async ({
+    page,
+  }) => {
+    const originalId = "00000000-0000-4000-8000-000000009801";
+    const conversationId = "00000000-0000-4000-8000-000000009802";
+    const key =
+      kind === "Insights"
+        ? "palcare-insights-pending-v1"
+        : kind === "records"
+          ? "palcare-records-pending-v1"
+          : "palcare-careos-pending-v1";
+    await page.addInitScript(
+      ({ key, kind, originalId, conversationId }) => {
+        if (sessionStorage.getItem("north-closed-admission-seeded")) return;
+        sessionStorage.setItem("north-closed-admission-seeded", "yes");
+        const message =
+            "Original dispatched question with an unconfirmed result",
+          createdAt = Date.now();
+        const pending =
+          kind === "Insights"
+            ? { requestId: originalId, conversationId, message, createdAt }
+            : {
+                input: {
+                  requestId: originalId,
+                  twinId: null,
+                  revision: 0,
+                  message,
+                },
+                context: null,
+                conversationId,
+                createdAt,
+              };
+        sessionStorage.setItem(key, JSON.stringify(pending));
+        sessionStorage.setItem(
+          "palcare-north-workspace-v1",
+          JSON.stringify({
+            version: 1,
+            id: null,
+            open: false,
+            historySelected: false,
+          }),
+        );
+        sessionStorage.setItem(
+          "palcare-careos-interaction-v1",
+          JSON.stringify({
+            version: 1,
+            context: null,
+            explicit: false,
+            draft: "Keep this new question unsent",
+            savedAt: Date.now(),
+          }),
+        );
+      },
+      { key, kind, originalId, conversationId },
+    );
+    const posts: string[] = [];
+    await page.route(
+      /\/api\/(?:careos\/(?:records\/)?conversations|intelligence\/customer\/plan)/,
+      async (route) => {
+        const request = route.request();
+        if (request.method() === "POST") {
+          posts.push(new URL(request.url()).pathname);
+          await route.fulfill({
+            status: 503,
+            json: { error: "injected_new_dispatch_forbidden" },
+          });
+          return;
+        }
+        if (kind === "Insights" && request.url().includes("/intelligence/")) {
+          await route.fulfill({
+            status: 503,
+            json: { error: "injected_original_still_unknown" },
+          });
+          return;
+        }
+        await route.fulfill({
+          json: {
+            id: conversationId,
+            expiresAt: new Date(Date.now() + 86400000).toISOString(),
+            turns: [],
+          },
+        });
+      },
+    );
+    await page.goto("/dashboard");
+    await expect(field(page)).toHaveValue("Keep this new question unsent");
+    await expect(north(page)).toHaveCount(0);
+    const envelope = await page.evaluate(
+      (key) => sessionStorage.getItem(key),
+      key,
+    );
+    await page
+      .getByRole("button", { name: "Ask North Star", exact: true })
+      .click();
+    await expect(north(page)).toBeVisible();
+    expect(posts).toEqual([]);
+    await expect(
+      north(page).locator("[data-pending-question]"),
+    ).toHaveAttribute("data-request-id", originalId);
+    await expect(
+      north(page).getByRole("textbox", {
+        name: "Ask about your purchases",
+        exact: true,
+      }),
+    ).toHaveValue("Keep this new question unsent");
+    expect(await page.evaluate((key) => sessionStorage.getItem(key), key)).toBe(
+      envelope,
+    );
+    await north(page)
+      .getByRole("button", { name: "Close North Star", exact: true })
+      .click();
+    await expect(
+      page.getByRole("button", { name: "History", exact: true }),
+    ).toBeFocused();
+    await field(page).fill("Headphones");
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await expect(page).toHaveURL(
+      (url) =>
+        url.pathname === "/dashboard" &&
+        url.searchParams.get("q") === "Headphones",
+    );
+    expect(posts).toEqual([]);
+    expect(await page.evaluate((key) => sessionStorage.getItem(key), key)).toBe(
+      envelope,
+    );
+  });
+}
 async function ask(page: Page, message: string) {
   const panel = north(page);
   await panel
@@ -120,6 +249,22 @@ test("receipt → totals → Audio → native chart → exact product care → p
     }),
   ).toHaveAttribute("href", `/documents/${receipt}`);
   const inline = north(page);
+  await expect(
+    inline
+      .getByRole("region", {
+        name: "Receipt and document preview",
+        exact: true,
+      })
+      .getByRole("heading", { level: 2 }),
+  ).toBeVisible();
+  expect(
+    (
+      await new AxeBuilder({ page })
+        .include("[data-north-workspace-slot]")
+        .withRules(["heading-order"])
+        .analyze()
+    ).violations,
+  ).toEqual([]);
   expect(await inline.evaluate((element) => !!element.closest("main"))).toBe(
     true,
   );
