@@ -40,17 +40,25 @@ test("purchase details use the existing assistant, keep drafts across appearance
     exact: true,
   });
   await composer.fill("Keep my unsent care question");
-  // The desktop panel is nonmodal; mobile closes/reopens without losing its draft.
+  // Inline results close/reopen without losing the shared draft.
   await dialog.getByRole("button", { name: "Close North Star" }).click();
   await page.getByRole("combobox", { name: "Appearance" }).selectOption("dark");
-  await page.locator(".careos-launcher").click();
+  await page
+    .getByRole("button", { name: "Ask North Star", exact: true })
+    .click();
   await expect(composer).toHaveValue("Keep my unsent care question");
-  await expect(composer).toHaveCSS("background-color", "rgb(29, 38, 48)");
+  await expect(dialog.locator(".careos-composer")).toHaveCSS(
+    "background-color",
+    "rgb(69, 82, 95)",
+  );
   await expect(page.locator("header").first()).toHaveCSS(
     "background-color",
     "rgb(39, 51, 62)",
   );
-  await expect(composer).toHaveCSS("border-top-color", "rgb(169, 161, 255)");
+  await composer.focus();
+  expect(
+    await composer.evaluate((node) => getComputedStyle(node).boxShadow),
+  ).toContain("rgb(208, 202, 255)");
   expect(
     await page
       .locator("body")
@@ -178,7 +186,7 @@ test("blocked local storage falls back to System without breaking the app", asyn
     "system",
   );
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Your purchases, together.",
+    "Your products",
   );
 });
 

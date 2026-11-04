@@ -7,8 +7,8 @@ on:
 permissions:
   contents: read
 
-# Both mandatory jobs use independent disposable PostgreSQL services and the
-# same provider-off policy; neither can read application/owner credentials.
+# All mandatory runners use independent disposable PostgreSQL services and the
+# same provider-off policy; none can read application/owner credentials.
 env:
   DATABASE_URL: postgresql://palcare:${{ github.run_id }}-${{ github.run_attempt }}@127.0.0.1:5432/palcare_test
   TEST_DATABASE_URL: postgresql://palcare:${{ github.run_id }}-${{ github.run_attempt }}@127.0.0.1:5432/palcare_test
@@ -26,8 +26,14 @@ env:
 
 jobs:
   foundation:
+    name: foundation (${{ matrix.data-source }})
     runs-on: ubuntu-24.04
     timeout-minutes: 35
+    strategy:
+      # Complete both full data-source suites even if the other runner fails.
+      fail-fast: false
+      matrix:
+        data-source: [fixtures, database]
     services:
       postgres:
         image: postgres:17-alpine
@@ -70,19 +76,18 @@ jobs:
       - name: Unavailable database readiness (real production server)
         run: pnpm test:failure
       - run: pnpm exec playwright install --with-deps chromium firefox webkit
-      - name: Fixture-preview browser and accessibility tests
-        run: pnpm test:e2e
-      - name: PostgreSQL-backed browser and accessibility tests
+      - name: Full ${{ matrix.data-source }} browser and accessibility tests
         run: pnpm test:e2e
         env:
-          E2E_DATA_SOURCE: database
+          E2E_DATA_SOURCE: ${{ matrix.data-source }}
       - name: Exclusive Guardian flow (test DB and injected provider only)
+        if: matrix.data-source == 'database'
         run: pnpm test:guardian:e2e
       - name: Browser artifacts
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: browser-results
+          name: browser-results-${{ matrix.data-source }}
           path: |
             playwright-report/
             test-results/

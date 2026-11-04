@@ -10,6 +10,7 @@ import {
   northConversationalPresentation,
 } from "@/lib/private-preview-origin";
 import "./globals.css";
+import "./customer-visual.css";
 
 const inter = localFont({
   src: "../../public/fonts/InterVariable-v4.1.woff2",
@@ -61,6 +62,7 @@ export default function RootLayout({
           </a>
           <InsightsControlProvider>
             <CareOSProvider
+              integrated
               mode={mode}
               ownerAccess={ownerMode}
               conversationalAI={northConversationalPresentation(process.env)}

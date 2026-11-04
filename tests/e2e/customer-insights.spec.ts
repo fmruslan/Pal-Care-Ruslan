@@ -142,12 +142,17 @@ function ids(records: SourceRecord[]) {
 
 async function openWorkspace(page: Page) {
   await page.goto("/insights");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Personal Purchase Intelligence",
-  );
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Insights");
   await expect(viewButton(page, "My Purchases")).toBeEnabled({
     timeout: 20_000,
   });
+  if (!(await page.getByLabel("Category", { exact: true }).isVisible()))
+    await page.getByText("Filters & sort", { exact: true }).click();
+  await page
+    .getByText("Loaded-window overview & saved-record suggestions", {
+      exact: true,
+    })
+    .click();
   const initialRecords = sourceSummary(page).getByTestId(
     "insight-source-records",
   );
@@ -258,7 +263,10 @@ async function ask(page: Page, message: string) {
     .getByRole("button", { name: "Ask North Star", exact: true })
     .click();
   const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
-  await expect(dialog).toContainText("Personal Insights · presentation only");
+  await expect(dialog).toHaveAttribute("aria-modal", "false");
+  expect(await dialog.evaluate((node) => !!node.closest("#main-content"))).toBe(
+    true,
+  );
   const composer = dialog.getByLabel("Ask about your purchases", {
     exact: true,
   });
@@ -331,7 +339,9 @@ test("customer navigation keeps two visible destinations and secondary explorati
       primaryLabels[index],
     );
     await expect(page.locator('a[href^="/merchant"]')).toHaveCount(0);
-    await expect(page.locator(".careos-launcher")).toHaveCount(1);
+    await expect(
+      page.getByRole("button", { name: "Ask North Star", exact: true }),
+    ).toHaveCount(1);
   }
   const explore = page.locator("summary").filter({ hasText: /^Explore$/ });
   await explore.focus();
@@ -511,9 +521,13 @@ test("Insights source records retain the exact Twin, receipt and reference-care 
     "Everyday headphones",
   );
   await expect(
-    page.getByText("Sample price paid", { exact: true }).locator(".."),
-  ).toContainText("$149.00");
-  await expect(page.locator(".careos-launcher")).toHaveCount(1);
+    page
+      .getByRole("article", { name: "Purchase Twin passport", exact: true })
+      .getByText("Sample amount $149.00", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Ask North Star", exact: true }),
+  ).toHaveCount(1);
 
   const savedSandbox = records.find(
     (record) => record.origin === "sandbox" && record.receiptHref,
@@ -545,7 +559,7 @@ test("Insights source records retain the exact Twin, receipt and reference-care 
         .map((link) => {
           const card = link.closest(".motion-card")!;
           return {
-            id: link.getAttribute("href")!.split("/").at(-1)!,
+            id: card.getAttribute("data-purchase-card")!,
             origin: card.textContent?.includes("Verified sandbox")
               ? "sandbox"
               : "sample",
@@ -572,7 +586,9 @@ test("one North Star host executes real Studio tools for categories, documents, 
 }) => {
   test.setTimeout(90_000);
   const records = await openWorkspace(page);
-  await expect(page.locator(".careos-launcher")).toHaveCount(1);
+  await expect(
+    page.getByRole("button", { name: "Ask North Star", exact: true }),
+  ).toHaveCount(1);
   // This suite forbids ALL API writes: exercise the explicit native workspace
   // command, while north-records separately checks saved-record queries/charts.
   let turn = await ask(page, "Show category chart in this workspace");
@@ -969,7 +985,7 @@ test("native Insights and the unified assistant support keyboard, reduced motion
   await launcher.press("Enter");
   const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
   await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText("Personal Insights · presentation only");
+  await expect(dialog).toHaveAttribute("aria-modal", "false");
   await expect(
     dialog.getByLabel("Ask about your purchases", { exact: true }),
   ).toBeVisible();

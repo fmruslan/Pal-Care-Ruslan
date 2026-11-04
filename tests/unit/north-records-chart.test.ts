@@ -52,9 +52,14 @@ describe("saved records → native Studio state contract (domain, not browser ex
       });
       expect(
         initial.pages.find((p) => p.id === "purchases")?.widgets?.[
-          "extra-sample-value"
+          "extra-recorded-value-chart"
         ],
       ).toBeUndefined();
+      expect(
+        initial.pages.find((p) => p.id === "purchases")?.widgets?.[
+          "extra-sample-value"
+        ],
+      ).toEqual(page.widgets?.["extra-sample-value"]);
       expect(state.pages.find((p) => p.id === "documents")).toEqual(
         initial.pages.find((p) => p.id === "documents"),
       );

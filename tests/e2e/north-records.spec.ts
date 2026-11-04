@@ -1,13 +1,32 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import type { CareTurn } from "../../src/lib/careos/contracts";
 
 test.describe.configure({ timeout: 60_000 });
 async function open(page: Page) {
-  await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
-    .click();
   const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
+  const restoreOpen = await page.evaluate(() => {
+    try {
+      return (
+        JSON.parse(
+          sessionStorage.getItem("palcare-north-workspace-v1") ?? "null",
+        )?.open === true
+      );
+    } catch {
+      return false;
+    }
+  });
+  if (!restoreOpen && !(await dialog.isVisible())) {
+    if (new URL(page.url()).pathname === "/dashboard") {
+      await page.getByRole("button", { name: "History", exact: true }).click();
+      await dialog
+        .getByRole("button", { name: "History", exact: true })
+        .click();
+    } else
+      await page
+        .getByRole("button", { name: "Ask North Star", exact: true })
+        .click();
+  }
   await expect(dialog).toBeVisible();
   await expect(
     dialog.getByText("Working… your next draft is kept.", { exact: true }),
@@ -39,6 +58,23 @@ async function ask(page: Page, message: string) {
     turn,
     article: dialog.locator(`[data-request-id="${turn.requestId}"]`),
   };
+}
+
+async function selectHistory(
+  dialog: Locator,
+  message: string,
+  requestId: string,
+) {
+  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog
+    .getByRole("region", { name: "Previous North results", exact: true })
+    .getByRole("button", { name: message, exact: true })
+    .click();
+  await expect(dialog.locator("article[data-request-id]")).toHaveAttribute(
+    "data-request-id",
+    requestId,
+  );
+  await expect(dialog.locator("[data-user-message]")).toHaveText(message);
 }
 
 test("actual saved records → bullets → totals → category/date follow-up retains exact snapshots and no model transport", async ({
@@ -133,15 +169,14 @@ test("North opens library-first and what have I bought returns linked results wi
   });
   await page.goto("/dashboard");
   const dialog = await open(page);
-  await expect(
-    dialog.getByRole("heading", { name: "North Star", exact: true }),
-  ).toBeVisible();
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAccessibleName("North Star");
   await expect(dialog.locator(".careos-context strong")).toHaveText(
     "All saved purchases",
   );
-  await expect(dialog.locator(".careos-context")).toContainText(
-    "Choosing a product is optional.",
-  );
+  await expect(
+    dialog.getByRole("button", { name: "Change context", exact: true }),
+  ).toBeEnabled();
   await expect(
     page.getByText("Powered by CareOS", { exact: true }),
   ).toHaveCount(0);
@@ -159,7 +194,7 @@ test("North opens library-first and what have I bought returns linked results wi
   expect(prohibited).toEqual([]);
 });
 
-test("enlarged narrow-screen text keeps answer reading space and the composer within the panel", async ({
+test("enlarged narrow-screen text keeps result and composer reachable in page flow", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -174,6 +209,7 @@ test("enlarged narrow-screen text keeps answer reading space and the composer wi
     exact: true,
   });
   await input.focus();
+  await input.scrollIntoViewIfNeeded();
   await expect(input).toBeFocused();
   const geometry = await dialog.evaluate((el) => {
     const transcript = el
@@ -182,7 +218,7 @@ test("enlarged narrow-screen text keeps answer reading space and the composer wi
     const composer = el
       .querySelector(".careos-composer")!
       .getBoundingClientRect();
-    const header = el.querySelector(".careos-header")!.getBoundingClientRect();
+    const header = el.querySelector("header")!.getBoundingClientRect();
     return {
       transcriptHeight: transcript.height,
       composerBottom: composer.bottom,
@@ -196,16 +232,18 @@ test("enlarged narrow-screen text keeps answer reading space and the composer wi
   expect(geometry.fontSize).toBeGreaterThanOrEqual(32);
   expect(geometry.transcriptHeight).toBeGreaterThanOrEqual(150);
   expect(geometry.composerBottom).toBeLessThanOrEqual(geometry.viewport + 1);
-  expect(geometry.headerTop).toBeGreaterThanOrEqual(0);
+  await dialog.locator("[data-user-message]").scrollIntoViewIfNeeded();
+  await expect(dialog.locator("[data-user-message]")).toBeInViewport();
   await dialog
-    .getByRole("region", { name: "Persistent purchase context", exact: true })
+    .getByRole("button", { name: "Change context", exact: true })
     .focus();
   await expect(
-    dialog.getByRole("region", {
-      name: "Persistent purchase context",
-      exact: true,
-    }),
+    dialog.getByRole("button", { name: "Change context", exact: true }),
   ).toBeFocused();
+  await expect(dialog).toHaveAttribute("aria-modal", "false");
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth),
+  ).toBeLessThanOrEqual(391);
 });
 
 test("comparison plus table retrieves prior-period evidence; a plain total keeps the selection without a stale comparison panel", async ({
@@ -281,6 +319,13 @@ test("leaving before a chart response keeps the late saved answer without reopen
       .getByRole("button", { name: "Send to North Star", exact: true })
       .click();
     await held;
+    await expect(
+      dialog.getByRole("button", { name: "Send to North Star", exact: true }),
+    ).toBeDisabled();
+    // Disabling the clicked Send button can return focus to the document body.
+    // Escape belongs to the nonmodal workspace, not to unrelated page content.
+    await dialog.focus();
+    await expect(dialog).toBeFocused();
     await page.keyboard.press("Escape");
     await expect(dialog).not.toBeVisible();
     const nav = page.getByRole("navigation", {
@@ -296,7 +341,7 @@ test("leaving before a chart response keeps the late saved answer without reopen
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: "Your purchases, together.",
+        name: "Your products",
         exact: true,
       }),
     ).toBeVisible();
@@ -517,6 +562,7 @@ test("saved totals apply a real native chart and provenance KPIs, then exact pro
   await expect(dialog.locator("[data-latest-answer]")).toContainText(
     /Shutdown|shut down|power/i,
   );
+  await selectHistory(dialog, totals.turn.message, totals.turn.requestId);
   await expect(
     dialog.locator(
       `[data-request-id="${totals.turn.requestId}"] [data-records-result]`,
@@ -547,14 +593,20 @@ test("a newly submitted chart follow-up opens the one Insights workspace and exe
     { timeout: 20000 },
   );
   await expect(page.getByTestId("customer-studio")).toHaveCount(1);
+  await expect(
+    page.getByTestId("customer-studio").locator(".ag-studio-layout-widget"),
+  ).toHaveCount(7);
   const panelBox = await dialog.boundingBox();
-  const headerBox = await dialog.locator(".careos-header").boundingBox();
+  const headerBox = await dialog.locator("header").boundingBox();
   expect(panelBox).not.toBeNull();
   expect(headerBox).not.toBeNull();
   expect(headerBox!.y).toBeGreaterThanOrEqual(panelBox!.y);
-  await expect(
-    dialog.getByRole("button", { name: "Close North Star", exact: true }),
-  ).toBeInViewport();
+  const close = dialog.getByRole("button", {
+    name: "Close North Star",
+    exact: true,
+  });
+  await close.scrollIntoViewIfNeeded();
+  await expect(close).toBeInViewport();
   const evidence = info.outputPath("north-chart-conversation.png");
   await page.screenshot({ path: evidence });
   await info.attach("newly-executed-native-chart-conversation", {
@@ -597,11 +649,43 @@ test("a newly submitted chart follow-up opens the one Insights workspace and exe
   await expect(saved.locator("[data-records-result]")).toBeVisible();
   await expect(saved).not.toContainText("executed and verified");
   await expect(page.getByTestId("customer-studio")).toHaveCount(1);
+  const widgets = page
+    .getByTestId("customer-studio")
+    .locator(".ag-studio-layout-widget");
+  await expect(widgets).toHaveCount(6);
+  for (const [title, value] of [
+    ["Sample purchase value (USD)", "307.00"],
+    ["Verified Sandbox purchase value (USD)", "0.00"],
+  ] as const) {
+    const widget = widgets.filter({
+      has: page.getByText(title, { exact: true }),
+    });
+    await expect(widget).toHaveCount(1);
+    await expect(widget.locator(".ag-studio-value-widget-content")).toHaveText(
+      value,
+    );
+  }
+  await expect(
+    widgets
+      .filter({
+        has: page.locator(".ag-studio-layout-widget-title", {
+          hasText: /^Purchases in this view$/,
+        }),
+      })
+      .locator(".ag-studio-value-widget-content"),
+  ).toHaveText("4");
+  await expect(
+    page.getByTestId("customer-studio").locator(".ag-studio-grid-widget"),
+  ).toHaveCount(1);
+  await expect(page.getByTestId("insight-documents-care")).toHaveCount(1);
+  await expect(
+    page.getByTestId("customer-studio").locator(".ag-studio-chart-widget"),
+  ).toHaveCount(1);
   await expect(
     page
       .getByTestId("customer-studio")
       .locator(".ag-studio-layout-widget-title")
-      .filter({ hasText: /^Sample purchase value \(USD\)$/ }),
+      .filter({ hasText: /^Recorded value \(USD\)$/ }),
   ).toHaveCount(0);
   expect(posts).toBe(0);
   expect(errors).toEqual([]);
@@ -624,10 +708,9 @@ test("reopening a completed chart preserves manual native filters and still perm
   const category = page.getByRole("combobox", {
     name: "Category",
     exact: true,
-    // After reopening the modal, read back the underlying native selection;
-    // do not interact through the modal or treat aria-hidden as a missing filter.
-    includeHidden: true,
   });
+  if (!(await category.isVisible()))
+    await page.getByText("Filters & sort", { exact: true }).click();
   await category.selectOption("Kitchen");
   const selected = page
     .getByTestId("insight-documents-care")
@@ -663,6 +746,7 @@ test("reopening a completed chart preserves manual native filters and still perm
   await expect(sample.locator(".ag-studio-value-widget-content")).toHaveText(
     "89.00",
   );
+  await selectHistory(dialog, first.turn.message, first.turn.requestId);
   await first.article
     .getByRole("link", { name: "Raspberry Pi 5 · 5", exact: true })
     .click();
@@ -695,11 +779,12 @@ test("reopening a completed chart preserves manual native filters and still perm
   await expect(page).toHaveURL(
     /\/vault\/00000000-0000-4000-8000-000000000204$/,
   );
+  await selectHistory(dialog, chart.turn.message, chart.turn.requestId);
   await expect(
     dialog.locator(
       `[data-request-id="${chart.turn.requestId}"] [data-records-result]`,
     ),
-  ).toBeAttached();
+  ).toBeVisible();
 });
 
 test("formatting plus receipt refinement changes the actual linked list, while an unresolved qualifier is clarified", async ({
@@ -728,7 +813,7 @@ test("formatting plus receipt refinement changes the actual linked list, while a
   );
 });
 
-test("document and priced predicates produce an actual table with exact document links, without granting model access", async ({
+test("document and priced predicates produce a desktop table or narrow linked cards with exact document links, without granting model access", async ({
   page,
 }) => {
   await page.goto("/dashboard");
@@ -747,43 +832,60 @@ test("document and priced predicates produce an actual table with exact document
   const table = result.article.getByRole("table", {
     name: "Matching saved purchases",
   });
-  await expect(table.getByRole("row")).toHaveCount(4);
-  const amount = table.getByRole("row").nth(1).getByRole("cell").nth(3);
-  await expect(amount).toHaveText("$149.00");
-  await expect(amount).toHaveCSS("white-space", "nowrap");
-  const scrollRegion = result.article.getByRole("region", {
-    name: "Scrollable saved-purchase table",
-    exact: true,
-  });
-  const widths = await scrollRegion.evaluate((node) => ({
-    visible: node.clientWidth,
-    content: node.scrollWidth,
-  }));
-  await expect(table).toHaveCSS("min-width", "704px");
-  if (widths.visible < 704) {
-    expect(widths.content).toBeGreaterThan(widths.visible);
-    await scrollRegion.focus();
-    await scrollRegion.press("ArrowRight");
-    await expect
-      .poll(() => scrollRegion.evaluate((node) => node.scrollLeft))
-      .toBeGreaterThan(0);
+  const narrow = page.viewportSize()!.width < 768;
+  const rendered = narrow
+    ? result.article.getByRole("list", {
+        name: "Matching saved purchases",
+        exact: true,
+      })
+    : table;
+  if (narrow) {
+    await expect(rendered.locator(":scope > li")).toHaveCount(3);
+    await expect(rendered.locator(":scope > li").first()).toContainText(
+      "$149.00",
+    );
+    await expect(table).toHaveCount(0);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - innerWidth,
+      ),
+    ).toBeLessThanOrEqual(1);
   } else {
-    // Full-width tablet panels can show all columns without overflow.
-    expect(widths.content).toBe(widths.visible);
+    await expect(table.getByRole("row")).toHaveCount(4);
+    const amount = table.getByRole("row").nth(1).getByRole("cell").nth(3);
+    await expect(amount).toHaveText("$149.00");
+    await expect(amount).toHaveCSS("white-space", "nowrap");
+    const scrollRegion = result.article.getByRole("region", {
+      name: "Scrollable saved-purchase table",
+      exact: true,
+    });
+    const widths = await scrollRegion.evaluate((node) => ({
+      visible: node.clientWidth,
+      content: node.scrollWidth,
+    }));
+    await expect(table).toHaveCSS("min-width", "704px");
+    if (widths.visible < 704) {
+      expect(widths.content).toBeGreaterThan(widths.visible);
+      await scrollRegion.focus();
+      await scrollRegion.press("ArrowRight");
+      await expect
+        .poll(() => scrollRegion.evaluate((node) => node.scrollLeft))
+        .toBeGreaterThan(0);
+    } else expect(widths.content).toBe(widths.visible);
   }
   await expect(
-    table.getByRole("link", {
+    rendered.getByRole("link", {
       name: "Headphones · sample receipt",
       exact: true,
     }),
   ).toHaveAttribute("href", "/documents/00000000-0000-4000-8000-000000000301");
   await expect(
-    table.getByRole("link", {
+    rendered.getByRole("link", {
       name: "Speaker · sample care card",
       exact: true,
     }),
   ).toHaveAttribute("href", "/documents/00000000-0000-4000-8000-000000000303");
-  await expect(table).not.toContainText("Raspberry Pi");
+  await expect(rendered).not.toContainText("Raspberry Pi");
   const empty = await ask(page, "Show my purchases without documents");
   expect(empty.turn.answer.recordsResult?.records).toEqual([]);
   await expect(empty.article).toContainText("No matching saved purchases");
@@ -842,11 +944,19 @@ test("care follow-up stays with the exact product; explicit analysis and short f
   );
   expect(total.turn.answer.recordsResult?.totals[0].amountMinor).toBe(21800);
   const table = await ask(page, "Table please");
-  await expect(
-    table.article
-      .getByRole("table", { name: "Matching saved purchases" })
-      .getByRole("row"),
-  ).toHaveCount(4);
+  if (page.viewportSize()!.width < 768) {
+    await expect(
+      table.article
+        .getByRole("list", { name: "Matching saved purchases", exact: true })
+        .locator(":scope > li"),
+    ).toHaveCount(3);
+  } else {
+    await expect(
+      table.article
+        .getByRole("table", { name: "Matching saved purchases" })
+        .getByRole("row"),
+    ).toHaveCount(4);
+  }
   await expect(dialog.locator(".careos-context")).toContainText(
     "Raspberry Pi 5",
   );

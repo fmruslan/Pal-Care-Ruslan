@@ -17,6 +17,7 @@ import {
   RECORDS_INTERPRETATION_VERSION,
 } from "./interpretation";
 import { emptyRecordsQuery } from "./contracts";
+import { ownedFollowupHistory } from "./followup";
 
 /** The caller must enforce private inference permission and durable accounting.
  * The model only proposes bounded filters; application arithmetic/IDs are final. */
@@ -27,9 +28,13 @@ export async function answerSemanticRecordsTurn(options: {
   interpret: (payload: string) => Promise<unknown>;
   now?: () => Date;
 }): Promise<CareAnswer> {
+  const history = ownedFollowupHistory(
+    options.history,
+    options.input.followupRequestId,
+  );
   const now = (options.now ?? (() => new Date()))();
   const referenceDate = now.toISOString().slice(0, 10);
-  const previous = previousRecordsResult(options.history);
+  const previous = previousRecordsResult(history);
   const continuation = recordsQueryContinuation(options.input.message);
   const deterministic = resolveRecordsQuery(
     options.input.message,
@@ -41,7 +46,7 @@ export async function answerSemanticRecordsTurn(options: {
     (continuation && !previous) ||
     /^(?:new topic|start a new topic)[.!]?$/i.test(options.input.message.trim())
   )
-    return answerRecordsTurn(options);
+    return answerRecordsTurn({ ...options, history });
   if (!recordsRequestAllowed(options.input.message))
     return {
       outcome: "unsupported",

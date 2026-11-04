@@ -2,7 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, BookOpen, ArrowUpRight } from "lucide-react";
 import { getDemoData } from "@/lib/demo/repository";
-import { findTwin, recordIdSchema } from "@/lib/demo/presentation";
+import {
+  findTwin,
+  recordIdSchema,
+  displayDate,
+  money,
+} from "@/lib/demo/presentation";
 import { getKnowledge } from "@/lib/careos/knowledge-repository";
 import { contextOf } from "@/lib/careos/contracts";
 import {
@@ -13,6 +18,9 @@ import { Shell } from "@/components/shell";
 import { PageHeading } from "@/components/page-heading";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ProductArt } from "@/components/product-art";
+import { PurchaseBadge } from "@/components/vault";
+import { REFERENCE_PRODUCT } from "@/lib/careos/knowledge";
 import {
   libraryReturn,
   withLibraryReturn,
@@ -45,24 +53,46 @@ export default async function CarePage({
       <CareContextRegistration context={contextOf(record)} />
       <Link
         href={withLibraryReturn(`/vault/${id}`, from)}
-        className="mb-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary"
+        className="mb-3 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
         Back to {record.product.name}
       </Link>
       <PageHeading
-        eyebrow="Pal Care · Guidance with a source"
-        title="A little knowledge. Better care."
-        description={`${record.product.name} · ${record.product.brand} ${record.product.model}. Only documentation matched to this product is shown.`}
+        title="Product care"
+        description="Documentation matched to this exact product. Missing guides stay missing — another model’s instructions won’t be substituted."
         action={
           <AskCareOS
             context={contextOf(record)}
-            label="Ask North Star about product care"
+            label="Ask North about product care"
           />
         }
       />
+      <div className="customer-record-context mb-6 flex flex-wrap items-center gap-4 rounded-2xl border bg-card p-4">
+        <ProductArt kind={record.product.illustration} size="thumbnail" />
+        <div className="min-w-0 flex-1 basis-44">
+          <Link
+            href={withLibraryReturn(`/vault/${id}`, from)}
+            className="inline-flex min-h-11 items-center font-semibold underline-offset-4 hover:text-primary hover:underline"
+          >
+            {record.product.name}
+          </Link>
+          <p className="text-sm leading-6 text-muted-foreground">
+            {record.product.brand} {record.product.model} ·{" "}
+            <time dateTime={record.twin.purchasedOn}>
+              {displayDate(record.twin.purchasedOn)}
+            </time>
+          </p>
+          <p className="text-sm leading-6 text-muted-foreground">
+            {record.product.id === REFERENCE_PRODUCT
+              ? "Reference sample · amount unavailable"
+              : `${record.twin.origin === "sandbox" ? "Sandbox" : "Sample"} amount ${money(record.twin.purchasePriceMinor)}`}
+          </p>
+        </div>
+        <PurchaseBadge origin={record.twin.origin} />
+      </div>
       {!sources.length && (
-        <Card>
+        <Card className="customer-care-empty">
           <BookOpen
             className="mb-4 size-6 text-intelligence-foreground"
             aria-hidden="true"
@@ -77,7 +107,7 @@ export default async function CarePage({
           </p>
         </Card>
       )}
-      <div className="space-y-6">
+      <div className="customer-care-sources space-y-6">
         {sources.map((source) => (
           <Card key={source.id} id={`source-${source.id}`}>
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -91,7 +121,7 @@ export default async function CarePage({
             <p className="mt-3 text-sm text-muted-foreground">
               {source.section} · English · reviewed {source.reviewedOn}
             </p>
-            <blockquote className="my-6 border-l-2 border-lavender pl-5 text-base leading-8 whitespace-pre-line">
+            <blockquote className="my-6 max-w-[75ch] border-l-2 border-lavender pl-5 text-base leading-8 whitespace-pre-line">
               {source.content}
             </blockquote>
             <a

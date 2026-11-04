@@ -12,15 +12,8 @@ import type {
   TurnInput,
 } from "../../src/lib/careos/contracts";
 
-// Checkpoint 1A only. The standard E2E server uses fictional saved records and
+// Integrated main-content regression. The E2E server uses fictional saved records and
 // fixture assistance; this is not genuine-model, financial or real-device proof.
-// Keep these literal names independent of the implementation's suggestion list.
-const suggestions = [
-  "What did I buy in the last three months?",
-  "Show my recorded purchase totals.",
-  "Find purchases with receipts.",
-  "Help me care for a product.",
-];
 const headphoneId = "00000000-0000-4000-8000-000000000201";
 const headphone = `/vault/${headphoneId}`;
 const receipt = "/documents/00000000-0000-4000-8000-000000000301";
@@ -102,18 +95,41 @@ function requestLog(page: Page) {
   };
 }
 
-async function openNorth(page: Page) {
+async function openNorth(page: Page, expectedAlert?: string) {
+  const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
+  const restoreOpen = await page.evaluate(() => {
+    try {
+      return (
+        JSON.parse(
+          sessionStorage.getItem("palcare-north-workspace-v1") ?? "null",
+        )?.open === true
+      );
+    } catch {
+      return false;
+    }
+  });
   const launcher = page.getByRole("button", {
     name: "Ask North Star",
     exact: true,
   });
-  await launcher.click();
-  const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
+  if (!restoreOpen && !(await dialog.isVisible())) {
+    // Home's star submits the unified field; History is the read-only opener
+    // when a retained draft is present. Neither restore nor history can replay.
+    if (new URL(page.url()).pathname === "/dashboard") {
+      await page.getByRole("button", { name: "History", exact: true }).click();
+      await dialog
+        .getByRole("button", { name: "History", exact: true })
+        .click();
+    } else await launcher.click();
+  }
   await expect(dialog).toBeVisible();
   await expect(
     dialog.getByText("Working… your next draft is kept.", { exact: true }),
   ).toHaveCount(0);
-  await expect(dialog.getByRole("alert")).toHaveCount(0);
+  if (expectedAlert) {
+    await expect(dialog.getByRole("alert")).toHaveCount(1);
+    await expect(dialog.getByRole("alert")).toContainText(expectedAlert);
+  } else await expect(dialog.getByRole("alert")).toHaveCount(0);
   return {
     dialog,
     composer: dialog.getByRole("textbox", {
@@ -133,7 +149,9 @@ async function chooseHeadphones(page: Page, dialog: Locator) {
       new URL(response.url()).pathname === "/api/careos/context" &&
       response.request().method() === "GET",
   );
-  await dialog.getByRole("button", { name: "Change", exact: true }).click();
+  await dialog
+    .getByRole("button", { name: "Change context", exact: true })
+    .click();
   const picker = page.getByRole("dialog", {
     name: "Purchase context",
     exact: true,
@@ -162,6 +180,25 @@ async function chooseHeadphones(page: Page, dialog: Locator) {
   await expect(picker).toHaveCount(0);
   await expect(dialog.locator(".careos-context strong")).toHaveText(
     "Everyday headphones · F-01",
+  );
+}
+
+async function selectHistory(
+  dialog: Locator,
+  message: string,
+  requestId: string,
+) {
+  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  const history = dialog.getByRole("region", {
+    name: "Previous North results",
+    exact: true,
+  });
+  await history.getByRole("button", { name: message, exact: true }).click();
+  await expect(dialog.locator("[data-user-message]")).toHaveText(message);
+  await expect(dialog.locator("article[data-request-id]")).toHaveCount(1);
+  await expect(dialog.locator("article[data-request-id]")).toHaveAttribute(
+    "data-request-id",
+    requestId,
   );
 }
 
@@ -213,7 +250,7 @@ async function navigate(page: Page, label: string, path: string) {
   );
 }
 
-test("new North conversation exposes exactly four optional, honest discovery shortcuts and no automatic question", async ({
+test("new inline North opens with library context and an editable draft but no automatic question", async ({
   page,
 }) => {
   const log = requestLog(page);
@@ -222,8 +259,10 @@ test("new North conversation exposes exactly four optional, honest discovery sho
   await expect(dialog.locator(".careos-context strong")).toHaveText(
     "All saved purchases",
   );
-  const discovery = dialog.locator("[data-north-discovery]");
-  await expect(discovery.getByRole("button")).toHaveText(suggestions);
+  await expect(dialog).toHaveAttribute("aria-modal", "false");
+  expect(await dialog.evaluate((node) => !!node.closest("#main-content"))).toBe(
+    true,
+  );
   await expect(dialog.locator("[data-user-message]")).toHaveCount(0);
   await expect(
     dialog.getByRole("button", {
@@ -231,17 +270,19 @@ test("new North conversation exposes exactly four optional, honest discovery sho
     }),
   ).toHaveCount(0);
   const before = log.mutations();
-  for (const name of suggestions.slice(0, 3)) {
-    await composer.fill("");
-    await discovery.getByRole("button", { name, exact: true }).click();
-    await expect(discovery.getByRole("button")).toHaveText(suggestions);
+  for (const name of [
+    "What did I buy in the last three months?",
+    "Show my recorded purchase totals.",
+    "Find purchases with receipts.",
+  ]) {
+    await composer.fill(name);
     await expect(dialog.locator("[data-user-message]")).toHaveCount(0);
     await expect(composer).toHaveValue(name);
     expect(log.mutations()).toEqual(before);
   }
-  await composer.fill("");
-  await discovery
-    .getByRole("button", { name: suggestions[3], exact: true })
+  await composer.fill("Keep my existing unsent question");
+  await dialog
+    .getByRole("button", { name: "Change context", exact: true })
     .click();
   const picker = page.getByRole("dialog", {
     name: "Purchase context",
@@ -256,22 +297,13 @@ test("new North conversation exposes exactly four optional, honest discovery sho
   expect(log.modelWork()).toEqual([]);
   await chooseHeadphones(page, dialog);
   await composer.fill("Keep my existing unsent question");
-  await discovery
-    .getByRole("button", { name: suggestions[3], exact: true })
-    .click();
   await expect(composer).toHaveValue("Keep my existing unsent question");
   await expect(composer).toBeFocused();
   expect(log.mutations()).toEqual(before);
-  await composer.fill("");
-  await discovery
-    .getByRole("button", { name: suggestions[3], exact: true })
-    .click();
-  await expect(composer).toHaveValue("Help me care for this product.");
-  await expect(composer).toBeFocused();
-  await expect(dialog.locator("[data-user-message]")).toHaveCount(0);
-  expect(log.mutations()).toEqual(before);
   await sendCare(page, dialog, "What does North Star do?");
-  await expect(discovery).toHaveCount(0);
+  await expect(dialog.locator("[data-user-message]")).toHaveText(
+    "What does North Star do?",
+  );
 });
 
 for (const retirement of ["dismiss", "change context"] as const) {
@@ -322,12 +354,9 @@ test("North identity uses a silent outlined star, neutral shell and violet acces
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/dashboard");
   const { dialog, composer, transcript } = await openNorth(page);
-  const heading = dialog.getByRole("heading", {
-    name: "North Star",
-    exact: true,
-  });
+  const heading = dialog.locator("header > div").first();
   await expect(heading).toBeVisible();
-  await expect(heading).toHaveAccessibleName("North Star");
+  await expect(dialog).toHaveAccessibleName("North Star");
   await expect(heading.locator('svg[aria-hidden="true"]')).toHaveAttribute(
     "fill",
     "none",
@@ -352,23 +381,22 @@ test("North identity uses a silent outlined star, neutral shell and violet acces
     };
   });
   expect(colors.bronze).toBe("#b8733a");
-  await expect(dialog.locator(".careos-header")).toHaveCSS(
-    "background-color",
-    colors.card,
-  );
+  await expect(dialog).toHaveAttribute("aria-modal", "false");
   await expect(heading).toHaveCSS("color", colors.violet);
   await composer.focus();
   await expect(composer).toBeFocused();
-  await expect(composer).toHaveCSS("outline-color", colors.violet);
-  await expect(composer).toHaveCSS("outline-style", "solid");
+  expect(
+    await composer.evaluate((node) => getComputedStyle(node).boxShadow),
+  ).toContain(colors.violet);
   await expect(
     dialog.getByRole("button", {
       name: "Clear conversation history",
       exact: true,
     }),
   ).toHaveCount(0);
+  await dialog.getByRole("button", { name: "History", exact: true }).click();
   await dialog
-    .locator('summary[aria-label="North Star options"]')
+    .getByText("Conversation settings", { exact: true })
     .press("Enter");
   await expect(
     dialog.getByRole("button", {
@@ -384,9 +412,7 @@ test("North identity uses a silent outlined star, neutral shell and violet acces
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
     .analyze();
   expect(accessibility.violations).toEqual([]);
-  await dialog
-    .locator('summary[aria-label="North Star options"]')
-    .press("Enter");
+  await dialog.getByRole("button", { name: "History", exact: true }).click();
   await page.keyboard.press("Escape");
   await expect(
     page.getByRole("button", { name: "Ask North Star", exact: true }),
@@ -402,7 +428,9 @@ test("cancel an accidental searchable context picker without messages, navigatio
   const turn = await sendCare(page, dialog, "What does North Star do?");
   await composer.fill("Keep this question while I look");
   const before = log.mutations();
-  await dialog.getByRole("button", { name: "Change", exact: true }).click();
+  await dialog
+    .getByRole("button", { name: "Change context", exact: true })
+    .click();
   const picker = page.getByRole("dialog", {
     name: "Purchase context",
     exact: true,
@@ -417,7 +445,7 @@ test("cancel an accidental searchable context picker without messages, navigatio
   await expect(picker).toHaveCount(0);
   await expect(dialog).toBeVisible();
   await expect(
-    dialog.getByRole("button", { name: "Change", exact: true }),
+    dialog.getByRole("button", { name: "Change context", exact: true }),
   ).toBeFocused();
   await expect(composer).toHaveValue("Keep this question while I look");
   await expect(dialog.locator("[data-user-message]")).toHaveText(turn.message);
@@ -426,7 +454,9 @@ test("cancel an accidental searchable context picker without messages, navigatio
   );
   await expect(page).toHaveURL(/\/dashboard$/);
   expect(log.mutations()).toEqual(before);
-  await dialog.getByRole("button", { name: "Change", exact: true }).click();
+  await dialog
+    .getByRole("button", { name: "Change context", exact: true })
+    .click();
   await expect(
     picker.getByRole("textbox", {
       name: "Search saved purchases",
@@ -436,7 +466,7 @@ test("cancel an accidental searchable context picker without messages, navigatio
   await picker.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(picker).toHaveCount(0);
   await expect(
-    dialog.getByRole("button", { name: "Change", exact: true }),
+    dialog.getByRole("button", { name: "Change context", exact: true }),
   ).toBeFocused();
   await expect(composer).toHaveValue("Keep this question while I look");
   await expect(dialog.locator("[data-user-message]")).toHaveText(turn.message);
@@ -500,9 +530,7 @@ test("search and directly change/remove persistent purchase context without subm
   const before = log.mutations();
   await chooseHeadphones(page, dialog);
   await expect(dialog.locator(".careos-context")).toContainText("Oct 18, 2026");
-  await expect(dialog.locator(".careos-context")).toContainText(
-    "Sample purchase",
-  );
+  await expect(dialog.locator(".careos-context")).toContainText("Sample");
   await expect(composer).toHaveValue(
     "A draft that context controls cannot consume",
   );
@@ -522,11 +550,14 @@ test("search and directly change/remove persistent purchase context without subm
     "A draft that context controls cannot consume",
   );
   await expect(dialog.locator("[data-user-message]")).toHaveText(prior.message);
-  await expect(
-    dialog.locator(
-      `[data-request-id="${prior.requestId}"] [data-answer-scope]`,
-    ),
-  ).toHaveText("Question scope: no purchase used");
+  expect(prior.answer.context).toBeNull();
+  expect(prior.answer.questionScope).not.toBe("library");
+  const priorAnswer = dialog.locator(`[data-request-id="${prior.requestId}"]`);
+  await expect(priorAnswer).toHaveAttribute(
+    "data-answer-mode",
+    prior.answer.mode,
+  );
+  await expect(priorAnswer.locator("[data-answer-scope]")).toHaveCount(0);
   expect(log.mutations()).toEqual(before);
   await expect(page).toHaveURL(/\/dashboard$/);
 });
@@ -542,12 +573,15 @@ test("a supported library query returns computed records, never a selected item'
     })
     .click();
   const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
-  for (const question of [
+  const libraryQuestions = [
     "What did I buy in the last three months?",
     "Show my recorded purchase totals.",
     "Find purchases with receipts.",
-  ]) {
+  ];
+  const libraryTurns: CareTurn[] = [];
+  for (const question of libraryQuestions) {
     const turn = await sendCare(page, dialog, question);
+    libraryTurns.push(turn);
     expect(turn.answer.outcome).toBe("answered");
     expect(turn.answer.mode).toBe("deterministic");
     expect(turn.answer.questionScope).toBe("library");
@@ -562,10 +596,13 @@ test("a supported library query returns computed records, never a selected item'
       "Everyday headphones · F-01",
     );
     await expect(
+      dialog.locator(`[data-request-id="${turn.requestId}"]`),
+    ).toHaveAttribute("data-answer-mode", "deterministic");
+    await expect(
       dialog.locator(
         `[data-request-id="${turn.requestId}"] [data-answer-scope]`,
       ),
-    ).toContainText("saved-purchase library · filters and coverage below");
+    ).toHaveClass(/\bsr-only\b/);
     await expect(
       dialog.getByRole("region", { name: "Choose a purchase", exact: true }),
     ).toHaveCount(0);
@@ -574,19 +611,25 @@ test("a supported library query returns computed records, never a selected item'
   const productTurn = await sendCare(page, dialog, "Find receipt");
   expect(productTurn.answer.context?.twinId).toBe(headphoneId);
   await expect(
-    dialog
-      .locator("[data-latest-answer]")
-      .getByRole("link", { name: "Open receipt", exact: true }),
+    dialog.locator("[data-latest-answer]").getByRole("link", {
+      name: "View full receipt or document",
+      exact: true,
+    }),
   ).toHaveAttribute("href", receipt);
   // Earlier library answers keep their scope after another product answer.
-  await expect(
-    dialog
-      .locator("[data-answer-scope]")
-      .filter({ hasText: "saved-purchase library" }),
-  ).toHaveCount(3);
+  for (const turn of libraryTurns) {
+    await selectHistory(dialog, turn.message, turn.requestId);
+    await expect(dialog.locator("[data-answer-scope]")).toHaveClass(
+      /\bsr-only\b/,
+    );
+    await expect(dialog.locator("article[data-request-id]")).toHaveAttribute(
+      "data-answer-mode",
+      turn.answer.mode,
+    );
+  }
 });
 
-test("one timeline and draft survive customer navigation, Insights and return, close/reopen and expansion without extra work", async ({
+test("owned result history and draft survive navigation, Insights, return and close/reopen without extra work", async ({
   page,
 }) => {
   const log = requestLog(page);
@@ -614,7 +657,10 @@ test("one timeline and draft survive customer navigation, Insights and return, c
       "Everyday headphones · F-01",
     );
     await expect(
-      opened.dialog.getByRole("link", { name: "Open receipt", exact: true }),
+      opened.dialog.getByRole("link", {
+        name: "View full receipt or document",
+        exact: true,
+      }),
     ).toHaveAttribute("href", receipt);
   }
   // Explicit presentation command keeps this a mixed care/native-transport
@@ -630,35 +676,29 @@ test("one timeline and draft survive customer navigation, Insights and return, c
   await expect(opened.dialog.locator("[data-latest-answer]")).toContainText(
     "dashboard state was checked",
   );
-  await expect(opened.dialog.locator("[data-user-message]")).toHaveText([
-    care.message,
+  await expect(opened.dialog.locator("[data-user-message]")).toHaveText(
     "Reset this dashboard",
-  ]);
-  const scopes = await opened.dialog
-    .locator("[data-answer-scope]")
-    .allTextContents();
-  const identities = await opened.dialog
+  );
+  const planId = await opened.dialog
     .locator("article[data-request-id]")
-    .evaluateAll((nodes) =>
-      nodes.map((node) => node.getAttribute("data-request-id")),
-    );
-  expect(new Set(identities).size).toBe(2);
+    .getAttribute("data-request-id");
+  await selectHistory(opened.dialog, care.message, care.requestId);
+  await expect(
+    opened.dialog.locator("article[data-request-id]"),
+  ).toHaveAttribute("data-request-id", care.requestId);
+  await expect(opened.dialog.locator("[data-answer-scope]")).toContainText(
+    "Everyday headphones · F-01",
+  );
+  await selectHistory(opened.dialog, "Reset this dashboard", planId!);
+  await expect(
+    opened.dialog.locator("article[data-request-id]"),
+  ).toHaveAttribute("data-request-id", planId!);
+  expect(planId).not.toBe(care.requestId);
   await opened.composer.fill("Retain this after the Insights answer");
   const mutations = log.mutations();
   const bootstraps = log.bootstraps();
   const modelWork = log.modelWork();
   const url = page.url();
-  await opened.dialog
-    .getByRole("button", { name: "Expand assistant", exact: true })
-    .click();
-  await expect(opened.dialog).toHaveClass(/careos-expanded/);
-  await expect(opened.composer).toHaveValue(
-    "Retain this after the Insights answer",
-  );
-  await expect(opened.dialog.locator("[data-answer-scope]")).toHaveText(scopes);
-  await opened.dialog
-    .getByRole("button", { name: "Compact assistant", exact: true })
-    .click();
   await opened.dialog
     .getByRole("button", { name: "Close North Star", exact: true })
     .click();
@@ -672,18 +712,19 @@ test("one timeline and draft survive customer navigation, Insights and return, c
   await expect(opened.composer).toHaveValue(
     "Retain this after the Insights answer",
   );
-  await expect(opened.dialog.locator("[data-user-message]")).toHaveText([
-    care.message,
+  await expect(opened.dialog.locator("[data-user-message]")).toHaveText(
     "Reset this dashboard",
-  ]);
-  await expect(opened.dialog.locator("[data-answer-scope]")).toHaveText(scopes);
-  expect(
-    await opened.dialog
-      .locator("article[data-request-id]")
-      .evaluateAll((nodes) =>
-        nodes.map((node) => node.getAttribute("data-request-id")),
-      ),
-  ).toEqual(identities);
+  );
+  await expect(
+    opened.dialog.locator("article[data-request-id]"),
+  ).toHaveAttribute("data-request-id", planId!);
+  await selectHistory(opened.dialog, care.message, care.requestId);
+  await expect(
+    opened.dialog.locator("article[data-request-id]"),
+  ).toHaveAttribute("data-request-id", care.requestId);
+  await expect(opened.dialog.locator("[data-answer-scope]")).toContainText(
+    "Everyday headphones · F-01",
+  );
   await expect(opened.dialog.locator(".careos-context strong")).toHaveText(
     "Everyday headphones · F-01",
   );
@@ -699,25 +740,30 @@ test("Insights routes supported library queries and exact-product receipt/amount
   await expect(page.getByTestId("insight-documents-care")).toBeVisible({
     timeout: 20_000,
   });
-  const { dialog, composer } = await openNorth(page);
+  const { dialog } = await openNorth(page);
   await chooseHeadphones(page, dialog);
-  await composer.fill("Find purchases with receipts.");
-  await dialog
-    .getByRole("button", { name: "Send to North Star", exact: true })
-    .click();
-  await expect(dialog.locator("[data-user-message]").last()).toHaveText(
+  const libraryTurn = await sendCare(
+    page,
+    dialog,
     "Find purchases with receipts.",
   );
-  const library = dialog.locator("article[data-request-id]").last();
+  await expect(dialog.locator("[data-user-message]")).toHaveText(
+    "Find purchases with receipts.",
+  );
+  expect(libraryTurn.answer.questionScope).toBe("library");
+  expect(libraryTurn.answer.context).toBeNull();
+  const library = dialog.locator(
+    `[data-request-id="${libraryTurn.requestId}"]`,
+  );
   await expect(library.locator("[data-records-result]")).toBeVisible();
   await expect(
     library
       .getByRole("list", { name: "Matching saved purchases" })
       .getByRole("listitem"),
   ).toHaveCount(2);
-  await expect(library).toContainText("From saved records · no model call");
-  await expect(library.locator("[data-answer-scope]")).toContainText(
-    "saved-purchase library · filters and coverage below",
+  await expect(library).toHaveAttribute("data-answer-mode", "deterministic");
+  await expect(library.locator("[data-answer-scope]")).toHaveClass(
+    /\bsr-only\b/,
   );
   const libraryId = await library.getAttribute("data-request-id");
   await expect(dialog.locator(".careos-context strong")).toHaveText(
@@ -726,9 +772,10 @@ test("Insights routes supported library queries and exact-product receipt/amount
   const productReceipt = await sendCare(page, dialog, "Find receipt");
   expect(productReceipt.answer.context?.twinId).toBe(headphoneId);
   await expect(
-    dialog
-      .locator("[data-latest-answer]")
-      .getByRole("link", { name: "Open receipt", exact: true }),
+    dialog.locator("[data-latest-answer]").getByRole("link", {
+      name: "View full receipt or document",
+      exact: true,
+    }),
   ).toHaveAttribute("href", receipt);
   const amount = await sendCare(
     page,
@@ -741,9 +788,14 @@ test("Insights routes supported library queries and exact-product receipt/amount
   expect(amount.answer.questionScope).not.toBe("library");
   expect(amount.answer.text).toContain("$149.00");
   expect(amount.answer.text).not.toContain("$129.00");
+  await selectHistory(
+    dialog,
+    "Find purchases with receipts.",
+    libraryTurn.requestId,
+  );
   await expect(
     dialog.locator(`[data-request-id="${libraryId}"] [data-answer-scope]`),
-  ).toContainText("saved-purchase library · filters and coverage below");
+  ).toHaveClass(/\bsr-only\b/);
   expect(
     log.requests.filter((entry) => entry.startsWith("POST /api/intelligence/")),
   ).toEqual([]);
@@ -859,11 +911,19 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
       timeout: 20_000,
     });
     const { dialog, composer } = await openNorth(page);
-    await expect(dialog.locator("[data-user-message]")).toHaveText([
-      first.message,
-      plannedQuestion,
+    await expect(dialog.locator("[data-user-message]")).toHaveText(
       last.message,
-    ]);
+    );
+    await dialog.getByRole("button", { name: "History", exact: true }).click();
+    await expect(
+      dialog
+        .getByRole("region", { name: "Previous North results", exact: true })
+        .locator("ol button"),
+    ).toHaveText([first.message, plannedQuestion, last.message]);
+    await dialog
+      .getByRole("region", { name: "Previous North results", exact: true })
+      .getByRole("button", { name: plannedQuestion, exact: true })
+      .click();
     const recovered = dialog.locator(
       `[data-request-id="${planned.requestId}"]`,
     );
@@ -880,7 +940,17 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
     await expect(dialog.locator(".careos-context strong")).toHaveText(
       "Everyday headphones · F-01",
     );
-    await expect(dialog.locator("article[data-request-id]")).toHaveCount(3);
+    await expect(dialog.locator("article[data-request-id]")).toHaveCount(1);
+    await selectHistory(dialog, first.message, first.requestId);
+    await expect(dialog.locator("article[data-request-id]")).toHaveAttribute(
+      "data-request-id",
+      first.requestId,
+    );
+    await selectHistory(dialog, last.message, last.requestId);
+    await expect(dialog.locator("article[data-request-id]")).toHaveAttribute(
+      "data-request-id",
+      last.requestId,
+    );
     expect(
       log.requests.filter(
         (entry) => entry === "GET /api/intelligence/customer/plan",
@@ -920,21 +990,19 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
     { deniedPlanId, deniedRequestId },
   );
   await page.reload();
-  await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
-    .click();
+  await openNorth(
+    page,
+    "Some saved Insights history is unavailable. Available entries were restored",
+  );
   const denied = page.getByRole("dialog", { name: "North Star", exact: true });
   await expect(denied.getByRole("alert")).toContainText(
     "Some saved Insights history is unavailable. Available entries were restored",
   );
-  await expect(denied.locator("[data-user-message]")).toHaveText([
-    first.message,
-    plannedQuestion,
-    last.message,
-  ]);
+  await expect(denied.locator("[data-user-message]")).toHaveText(last.message);
   await expect(
     denied.locator(`[data-request-id="${deniedRequestId}"]`),
   ).toHaveCount(0);
+  await selectHistory(denied, plannedQuestion, planned.requestId);
   await expect(
     denied.locator(`[data-request-id="${planned.requestId}"]`),
   ).toContainText(
@@ -1099,6 +1167,7 @@ test("an uncertain Insights plan blocks new sends until GET recovery, then offer
     conversationId: planId,
     message: planned.message,
   });
+  await selectHistory(dialog, planned.message, planned.requestId);
   await expect(
     dialog.getByRole("link", {
       name: "Return to Insights to apply saved view",

@@ -21,9 +21,8 @@ export default async function InsightsPage() {
   return (
     <Shell active="/insights" source={dataset.source}>
       <PageHeading
-        eyebrow="Your purchases. A clearer picture."
-        title="Personal Purchase Intelligence"
-        description="Less to keep track of. More to understand and take care of."
+        title="Insights"
+        description="Explore your saved purchases, documents and recorded price adjustments."
       />
       <CustomerWorkspace
         dataset={dataset}

@@ -21,6 +21,7 @@ import {
   CONVERSATION_INSTRUCTIONS,
 } from "./conversation-service";
 import { getKnowledge } from "../knowledge-repository";
+import { ownedFollowupHistory } from "./followup";
 
 export async function assertRecordsModelAccess() {
   const { config } = careRuntime();
@@ -41,6 +42,10 @@ export async function answerAuthorizedRecords(
 ) {
   await assertRecordsModelAccess();
   const { store } = recordsRuntime();
+  const history = ownedFollowupHistory(
+    (await store.get(id, owner)).turns,
+    input.followupRequestId,
+  );
   const ownerProof = standingOwnerMode()
     ? await assertStandingOwner()
     : undefined;
@@ -53,7 +58,6 @@ export async function answerAuthorizedRecords(
     signal,
     AbortSignal.timeout(TURN_DEADLINE_MS),
   ]);
-  const history = (await store.get(id, owner)).turns;
   if (northConversationalPresentation(process.env))
     return answerConversationTurn({
       input,

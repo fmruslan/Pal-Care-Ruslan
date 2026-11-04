@@ -51,12 +51,17 @@ export function RecordsResultView({
   onNavigate,
   autoApply = false,
   onAutoApplyStarted,
+  presentation = "transcript",
+  headingLevel = 3,
 }: {
   result: RecordsResult;
   onNavigate: () => void;
   autoApply?: boolean;
   onAutoApplyStarted?: () => void;
+  presentation?: "inline" | "transcript";
+  headingLevel?: 2 | 3;
 }) {
+  const ResultHeading = headingLevel === 2 ? "h2" : "h3";
   const [shown, setShown] = useState(10);
   const [copied, setCopied] = useState(false);
   const [applying, setApplying] = useState(false);
@@ -82,6 +87,16 @@ export function RecordsResultView({
       setChartStatus(
         "Native chart, separate USD KPIs, filters and matching purchase rows were executed and verified in Insights. Purchase records are unchanged.",
       );
+      if (presentation === "inline") {
+        const title = [
+          ...document.querySelectorAll<HTMLElement>(
+            ".ag-studio-layout-widget-title",
+          ),
+        ].find((node) => node.textContent?.trim() === "Recorded value (USD)");
+        title
+          ?.closest(".ag-studio-layout-widget")
+          ?.scrollIntoView({ block: "center", behavior: "instant" });
+      }
     } catch {
       setChartStatus(
         "The native chart could not be verified or was stopped. An already-applied view may remain; no rollback, success or automatic retry is implied. Saved records are unchanged.",
@@ -90,7 +105,7 @@ export function RecordsResultView({
       active.current = null;
       setApplying(false);
     }
-  }, [applyRecords, raw]);
+  }, [applyRecords, raw, presentation]);
   useEffect(() => () => active.current?.abort(), []);
   useEffect(() => {
     if (!autoApply || raw.query.format !== "chart" || started.current) return;
@@ -188,7 +203,7 @@ export function RecordsResultView({
   ));
   return (
     <div
-      className="space-y-4"
+      className={`space-y-4 ${presentation === "inline" ? "north-native-records" : ""}`}
       data-records-result
       data-snapshot-id={result.snapshotId}
     >
@@ -229,9 +244,9 @@ export function RecordsResultView({
             </summary>
             {result.groups.map((group) => (
               <section key={group.label}>
-                <h3 className="font-semibold">
+                <ResultHeading className="font-semibold">
                   {group.label} · {group.recordIds.length} purchases
-                </h3>
+                </ResultHeading>
                 <Totals
                   totals={group.totals}
                   partial={!result.coverage.complete}
@@ -242,10 +257,10 @@ export function RecordsResultView({
         )}
       {result.comparison && (
         <section className="space-y-2">
-          <h3 className="font-semibold">
+          <ResultHeading className="font-semibold">
             Previous period: {result.comparison.from} through{" "}
             {result.comparison.to}
-          </h3>
+          </ResultHeading>
           <Totals
             totals={result.comparison.totals}
             partial={!result.coverage.complete}
@@ -353,10 +368,10 @@ export function RecordsResultView({
           {chartStatus}
         </p>
       )}
-      <h3 className="font-semibold">
+      <ResultHeading className="font-semibold">
         {summaries ? "Purchases behind these numbers" : "Matching purchases"} (
         {result.records.length})
-      </h3>
+      </ResultHeading>
       {!rows.length && (
         <p>
           No matching saved purchases. Filters have not been removed to
@@ -364,71 +379,81 @@ export function RecordsResultView({
         </p>
       )}
       {result.query.format === "table" ? (
-        <div
-          role="region"
-          aria-label="Scrollable saved-purchase table"
-          tabIndex={0}
-          className="overflow-x-auto rounded-lg focus-visible:outline-2 focus-visible:outline-ring"
-        >
-          <table className="w-full min-w-[44rem] text-left text-sm">
-            <caption className="sr-only">Matching saved purchases</caption>
-            <thead>
-              <tr>
-                {[
-                  "Purchase",
-                  "Date",
-                  "Evidence",
-                  "Recorded USD",
-                  "Documents",
-                ].map((h) => (
-                  <th key={h} className="p-2 whitespace-nowrap">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-t">
-                  <td className="p-2">
-                    <Link
-                      href={`/vault/${r.id}`}
-                      onClick={onNavigate}
-                      className="inline-flex min-h-11 items-center text-primary underline"
-                    >
-                      {r.name} · {r.model}
-                    </Link>
-                  </td>
-                  <td className="p-2 whitespace-nowrap">{r.purchasedOn}</td>
-                  <td className="p-2 whitespace-nowrap">
-                    {r.origin === "sample" ? "Sample" : "Verified Sandbox"}
-                  </td>
-                  <td className="p-2 whitespace-nowrap">
-                    {r.amountMinor === null
-                      ? "Unavailable"
-                      : usd(r.amountMinor)}
-                  </td>
-                  <td className="p-2">
-                    <ul>
-                      {r.documents.map((d) => (
-                        <li key={d.id}>
-                          <Link
-                            href={`/documents/${d.id}`}
-                            onClick={onNavigate}
-                            className="inline-flex min-h-11 items-center text-primary underline"
-                          >
-                            {d.title}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                    {!r.documents.length && "No saved documents"}
-                  </td>
+        <>
+          <div
+            role="region"
+            aria-label="Scrollable saved-purchase table"
+            tabIndex={0}
+            className={`${presentation === "inline" ? "hidden md:block" : ""} overflow-x-auto rounded-lg focus-visible:outline-2 focus-visible:outline-ring`}
+          >
+            <table className="w-full min-w-[44rem] text-left text-sm">
+              <caption className="sr-only">Matching saved purchases</caption>
+              <thead>
+                <tr>
+                  {[
+                    "Purchase",
+                    "Date",
+                    "Evidence",
+                    "Recorded USD",
+                    "Documents",
+                  ].map((h) => (
+                    <th key={h} className="p-2 whitespace-nowrap">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.id} className="border-t">
+                    <td className="p-2">
+                      <Link
+                        href={`/vault/${r.id}`}
+                        onClick={onNavigate}
+                        className="inline-flex min-h-11 items-center text-primary underline"
+                      >
+                        {r.name} · {r.model}
+                      </Link>
+                    </td>
+                    <td className="p-2 whitespace-nowrap">{r.purchasedOn}</td>
+                    <td className="p-2 whitespace-nowrap">
+                      {r.origin === "sample" ? "Sample" : "Verified Sandbox"}
+                    </td>
+                    <td className="p-2 whitespace-nowrap">
+                      {r.amountMinor === null
+                        ? "Unavailable"
+                        : usd(r.amountMinor)}
+                    </td>
+                    <td className="p-2">
+                      <ul>
+                        {r.documents.map((d) => (
+                          <li key={d.id}>
+                            <Link
+                              href={`/documents/${d.id}`}
+                              onClick={onNavigate}
+                              className="inline-flex min-h-11 items-center text-primary underline"
+                            >
+                              {d.title}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                      {!r.documents.length && "No saved documents"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {presentation === "inline" && (
+            <ul
+              className="space-y-3 md:hidden"
+              aria-label="Matching saved purchases"
+            >
+              {items}
+            </ul>
+          )}
+        </>
       ) : (
         <ul
           className={

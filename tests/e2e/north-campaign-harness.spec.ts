@@ -131,11 +131,21 @@ test("injected semantic orchestration renders a fresh missing-receipt search wit
   expect(history[0].answer.recordsResult?.records.map((r) => r.id)).toEqual([
     "00000000-0000-4000-8000-000000000202",
   ]);
+  const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
+  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog
+    .getByRole("region", { name: "Previous North results", exact: true })
+    .getByRole("button", { name: history[0].message, exact: true })
+    .click();
+  await expect(dialog.locator("article[data-request-id]")).toHaveAttribute(
+    "data-request-id",
+    history[0].requestId,
+  );
   await expect(
     page.locator(
       `[data-request-id="${history[0].requestId}"] [data-records-result]`,
     ),
-  ).toBeAttached();
+  ).toBeVisible();
   await guard.dispose();
 });
 

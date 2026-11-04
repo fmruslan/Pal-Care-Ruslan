@@ -14,7 +14,7 @@ test("official care evidence remains distinct from sample ownership and missing 
     "https://www.raspberrypi.com/documentation/computers/getting-started.html#shutdown",
   );
   await page
-    .getByRole("button", { name: "Ask North Star about product care" })
+    .getByRole("button", { name: /Ask North Star about product care/ })
     .click();
   await page
     .getByRole("dialog", { name: "North Star", exact: true })

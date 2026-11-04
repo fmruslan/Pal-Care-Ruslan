@@ -22,6 +22,7 @@ import {
   recordsAnswer,
   warrantyRecordsAnswer,
 } from "./service";
+import { ownedFollowupHistory } from "./followup";
 
 export const conversationPlanSchema = z.strictObject({
   task: z.enum([
@@ -65,6 +66,10 @@ export async function answerConversationTurn(options: {
   now?: () => Date;
 }): Promise<CareAnswer> {
   const { input } = options;
+  const history = ownedFollowupHistory(
+    options.history,
+    input.followupRequestId,
+  );
   const referenceDate = (options.now?.() ?? new Date())
     .toISOString()
     .slice(0, 10);
@@ -90,7 +95,7 @@ export async function answerConversationTurn(options: {
     return base;
   const data = await options.load(); // Fail before spending; never fixture fallback.
   const library = querySavedRecords(data, emptyRecordsQuery(referenceDate));
-  const previous = previousRecordsResult(options.history);
+  const previous = previousRecordsResult(history);
   const selected = input.twinId ? findTwin(data, input.twinId) : undefined;
   const plan = conversationPlanSchema.parse(
     await options.interpret(
@@ -117,7 +122,7 @@ export async function answerConversationTurn(options: {
                 })),
             }
           : null,
-        history: options.history.slice(-6).map((t) => ({
+        history: history.slice(-6).map((t) => ({
           question: t.message,
           answer: t.answer.text.slice(0, 800),
           context: t.answer.context
@@ -165,7 +170,7 @@ export async function answerConversationTurn(options: {
         ...live,
         text: "I couldn't map that request safely to the available data tools. Which information should I check?",
       };
-    const recentProduct = options.history.at(-1)?.answer;
+    const recentProduct = history.at(-1)?.answer;
     const warrantyContext =
       selected ??
       (recentProduct?.context?.twinId
@@ -203,7 +208,7 @@ export async function answerConversationTurn(options: {
   );
   if (!search) throw new Error("north_invalid_product_query");
   let candidates = querySavedRecords(data, search).records;
-  const recent = options.history.at(-1)?.answer;
+  const recent = history.at(-1)?.answer;
   const priorContext = recent?.context?.twinId;
   const bound =
     selected ?? (priorContext ? findTwin(data, priorContext) : undefined);
@@ -304,7 +309,7 @@ export async function answerConversationTurn(options: {
         question: input.message,
         topicHint: plan.careQuestion,
         product: { brand: record.product.brand, model: record.product.model },
-        history: options.history
+        history: history
           .filter((t) => t.answer.context?.twinId === record.twin.id)
           .slice(-3)
           .map((t) => ({

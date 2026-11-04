@@ -5,7 +5,6 @@ import {
   ChevronDown,
   FileText,
   LayoutDashboard,
-  ShieldCheck,
   ChartNoAxesCombined,
   Info,
 } from "lucide-react";
@@ -19,6 +18,7 @@ import { Brand } from "./brand";
 import { Button } from "./ui/button";
 import { ThemeSelector } from "./theme-selector";
 import { Badge } from "./ui/badge";
+import { NorthWorkspaceSlot } from "@/components/careos/integrated";
 import { WorkspaceNavigationLink } from "./intelligence/workspace-navigation-link";
 import {
   northReviewPresentation,
@@ -137,27 +137,27 @@ export function Shell({
       <div className="min-w-0">
         {!merchant && (
           <header className="customer-header border-b bg-sidebar">
-            <div className="mx-auto grid max-w-[1440px] grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-5 py-3 sm:px-8 lg:flex lg:min-h-20 lg:gap-10">
+            <div className="customer-header-inner mx-auto max-w-[1280px] px-5 sm:px-8">
               <Brand href="/dashboard" />
-              <div className="col-start-2 row-start-1 lg:order-3 lg:ml-auto">
+              <div className="customer-appearance">
                 <ThemeSelector />
               </div>
               <nav
                 aria-label="Main navigation"
-                className="col-start-1 row-start-2 flex min-w-0 gap-2 lg:order-2"
+                className="customer-primary-nav flex min-w-0 gap-1"
               >
                 {links.map(({ href, label }) => (
                   <WorkspaceNavigationLink
                     key={href}
                     href={href}
                     aria-current={selected === href ? "page" : undefined}
-                    className={`inline-flex min-h-11 items-center border-b-2 px-3 text-sm font-semibold ${selected === href ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+                    className={`inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-semibold transition-colors ${selected === href ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
                   >
                     {label}
                   </WorkspaceNavigationLink>
                 ))}
               </nav>
-              <details className="relative col-start-2 row-start-2 justify-self-end lg:order-4">
+              <details className="customer-explore relative justify-self-end">
                 <summary className="flex min-h-11 cursor-pointer list-none items-center justify-center gap-2 rounded-xl px-3 text-sm font-medium text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
                   Explore
                   <ChevronDown className="size-4" aria-hidden="true" />
@@ -245,16 +245,16 @@ export function Shell({
         )}
         <main
           id="main-content"
-          className="mx-auto max-w-[1280px] break-words px-5 py-4 sm:px-8 sm:py-6"
+          className={`mx-auto max-w-[1280px] break-words px-5 py-4 sm:px-8 sm:py-6 ${merchant ? "" : "customer-main"}`}
         >
           {northReviewPresentation(process.env) && (
-            <aside
+            <details
               aria-label="Private North testing preview"
-              className="mb-5 rounded-xl border border-intelligence-border bg-intelligence p-4 text-sm"
+              className="customer-review-disclosure mb-3 rounded-xl border border-intelligence-border bg-intelligence px-4 text-sm"
             >
-              <p className="font-semibold text-intelligence-foreground">
+              <summary className="min-h-11 cursor-pointer py-3 font-semibold text-intelligence-foreground">
                 North ☆ · Private testing preview :8445
-              </p>
+              </summary>
               <p className="mt-1">
                 {northReviewLivePresentation(process.env) ? (
                   "Conversational AI is configured here. Browser authentication, provider permission and the existing shared allowance are checked for every model call. Without access, North offers only limited saved-record assistance."
@@ -305,37 +305,27 @@ export function Shell({
                   </div>
                 </dl>
               </details>
-            </aside>
+            </details>
           )}
           <div
             role="note"
-            className="demo-notice mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-xl border bg-card px-4 py-2 text-sm text-muted-foreground"
+            className="demo-notice customer-demo-disclosure mb-4 text-sm text-muted-foreground"
           >
-            <span className="inline-flex items-center gap-2">
-              <ShieldCheck
-                className="size-4 shrink-0 text-primary"
-                aria-hidden="true"
-              />
-              <span>
+            <details className="demo-details">
+              <summary className="flex min-h-11 w-fit cursor-pointer list-none items-center gap-2 rounded-lg text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+                <Info className="size-4 shrink-0" aria-hidden="true" />
+                <span>Sandbox demo · fictional records · no real money</span>
+                <ChevronDown className="size-3.5 shrink-0" aria-hidden="true" />
+              </summary>
+              <div className="max-w-2xl rounded-xl border bg-card p-4 text-sm leading-6">
                 <strong className="font-medium text-foreground">
                   Sandbox demo.
                 </strong>{" "}
-                Fictional customer. Sample and verified Sandbox records. No real
-                money.
-              </span>
-            </span>
-            <details className="demo-details relative">
-              <summary className="min-h-9 cursor-pointer list-none py-1 text-primary underline-offset-4 hover:underline [&::-webkit-details-marker]:hidden">
-                <span className="hidden sm:inline">About this demo</span>
-                <span className="inline-flex size-11 items-center justify-center sm:hidden">
-                  <Info className="size-5" aria-hidden="true" />
-                  <span className="sr-only">About this demo</span>
-                </span>
-              </summary>
-              <div className="mt-2 max-w-xl text-sm leading-6">
-                Forma and Hearth products are fictional. The Raspberry Pi 5
-                reference has sample ownership only. Sample records are labeled.
-                Only completed PayPal Sandbox captures are labeled verified.{" "}
+                Fictional customer. Sample and verified Sandbox records remain
+                separate. Forma and Hearth products are fictional. The Raspberry
+                Pi 5 reference has sample ownership only. Sample records are
+                labeled. Only completed PayPal Sandbox captures are labeled
+                verified.{" "}
                 {source === "database"
                   ? "PostgreSQL demo records."
                   : "Bundled preview · database not in use."}{" "}
@@ -345,9 +335,10 @@ export function Shell({
             </details>
           </div>
           {children}
+          {!merchant && <NorthWorkspaceSlot />}
         </main>
         <footer
-          className={`mx-auto flex max-w-[1440px] flex-wrap justify-between gap-3 px-5 pt-3 text-sm leading-6 text-muted-foreground sm:px-8 lg:px-10 ${merchant ? "pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-8" : "pb-[calc(6rem+env(safe-area-inset-bottom))]"}`}
+          className={`mx-auto flex max-w-[1280px] flex-wrap justify-between gap-3 px-5 pt-6 text-xs leading-6 text-muted-foreground sm:px-8 ${merchant ? "pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-8" : "pb-[calc(2rem+env(safe-area-inset-bottom))]"}`}
         >
           <span>Pal Care</span>
           <span>Independent Sandbox demo · No coverage promise</span>

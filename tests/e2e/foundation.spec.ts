@@ -13,7 +13,7 @@ test("public landing page opens customer demo without registration", async ({
     .click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Your purchases, together.",
+    "Your products",
   );
   await expect(page.getByRole("note")).toContainText("Fictional customer");
 });
@@ -47,13 +47,16 @@ test("vault search, filter and empty state work", async ({ page }) => {
   await page.getByRole("link", { name: "Show all purchases" }).first().click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(search).toHaveValue("");
+  await page.getByText("Filters & sort", { exact: true }).click();
   await expect(
     page.getByRole("combobox", { name: "Category", exact: true }),
   ).toHaveValue("all");
   await page
     .getByRole("combobox", { name: "Category", exact: true })
     .selectOption("Kitchen");
-  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Apply filters", exact: true })
+    .click();
   await expect(page.getByRole("status")).toContainText("1 purchase");
   await expect(
     page.getByRole("heading", { name: "Pour-over kettle", exact: true }),
@@ -64,15 +67,43 @@ test("Purchase Twin and downloadable receipt remain explicitly sample-only", asy
   page,
   request,
 }) => {
+  const turns: string[] = [];
+  page.on("request", (request) => {
+    if (
+      request.method() === "POST" &&
+      /\/(turns|interpret|plan)$/.test(new URL(request.url()).pathname)
+    )
+      turns.push(request.url());
+  });
   await page.goto("/vault/00000000-0000-4000-8000-000000000201");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Everyday headphones",
   );
-  await expect(page.getByText("Not connected", { exact: true })).toBeVisible();
+  const passport = page.getByRole("article", {
+    name: "Purchase Twin passport",
+    exact: true,
+  });
   await expect(
-    page.getByText("No live AI model is connected in fixture mode.", {
-      exact: false,
-    }),
+    passport.getByText("Sample amount $149.00", { exact: true }),
+  ).toBeVisible();
+  await expect(passport).toContainText(
+    "Sample Purchase Twin · not a verified PayPal purchase.",
+  );
+  await passport
+    .getByRole("button", {
+      name: "Ask North Star about this purchase",
+      exact: true,
+    })
+    .click();
+  const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
+  await expect(dialog.locator("[data-user-message]")).toHaveCount(0);
+  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog.getByText("Conversation settings", { exact: true }).click();
+  await expect(
+    dialog.getByText(
+      "Demo · no live AI. Clearing never resets usage or removes purchases.",
+      { exact: true },
+    ),
   ).toBeVisible();
   const download = await request.get(
     "/api/documents/00000000-0000-4000-8000-000000000301/download",
@@ -81,6 +112,7 @@ test("Purchase Twin and downloadable receipt remain explicitly sample-only", asy
   expect(download.headers()["content-disposition"]).toContain("attachment");
   expect(download.headers()["content-type"]).toContain("text/plain");
   expect(await download.text()).toContain("No payment was processed.");
+  expect(turns).toEqual([]);
 });
 
 test("merchant workspace is public and has no consequential actions", async ({

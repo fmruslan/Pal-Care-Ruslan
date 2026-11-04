@@ -1,4 +1,25 @@
-import { test, expect, type Route } from "@playwright/test";
+import { test, expect, type Page, type Route } from "@playwright/test";
+
+async function openNorth(page: Page) {
+  const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
+  const restoreOpen = await page.evaluate(() => {
+    try {
+      return (
+        JSON.parse(
+          sessionStorage.getItem("palcare-north-workspace-v1") ?? "null",
+        )?.open === true
+      );
+    } catch {
+      return false;
+    }
+  });
+  if (!restoreOpen && !(await dialog.isVisible())) {
+    await page.getByRole("button", { name: "History", exact: true }).click();
+    await dialog.getByRole("button", { name: "History", exact: true }).click();
+  }
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
 
 test("expired AI leaves saved pages and native analytics useful without bootstrap or scripted fallback", async ({
   page,
@@ -13,16 +34,10 @@ test("expired AI leaves saved pages and native analytics useful without bootstra
   for (const path of ["/dashboard", "/vault", "/documents", "/insights"]) {
     await page.goto(path);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await page
-      .getByRole("button", { name: "Ask North Star", exact: true })
-      .click();
-    const dialog = page.getByRole("dialog", {
-      name: "North Star",
-      exact: true,
-    });
+    const dialog = await openNorth(page);
     await expect(
       dialog.getByText(
-        "AI access expired · saved records remain available in Purchases and Insights",
+        "AI access expired. Saved purchases, documents and Insights remain available.",
         {
           exact: true,
         },
@@ -146,16 +161,10 @@ for (const pending of [
           pending.kind === "care"
             ? `/api/careos/conversations/${original.conversationId}`
             : `/api/intelligence/customer/plan?conversationId=${original.conversationId}`;
-        await page
-          .getByRole("button", { name: "Ask North Star", exact: true })
-          .click();
-        const dialog = page.getByRole("dialog", {
-          name: "North Star",
-          exact: true,
-        });
+        const dialog = await openNorth(page);
         await expect(
           dialog.getByText(
-            "AI access expired · saved records remain available in Purchases and Insights",
+            "AI access expired. Saved purchases, documents and Insights remain available.",
             { exact: true },
           ),
         ).toBeVisible();
@@ -193,13 +202,16 @@ for (const pending of [
           ]),
         ).toEqual([null, null]);
 
-        const options = dialog.locator(
-          'summary[aria-label="North Star options"]',
-        );
+        const options = dialog.getByText("Conversation settings", {
+          exact: true,
+        });
         const clear = dialog.getByRole("button", {
           name: "Clear conversation history",
           exact: true,
         });
+        await dialog
+          .getByRole("button", { name: "History", exact: true })
+          .click();
         await options.click();
         await expect(clear).toBeEnabled();
         await clear.click();
@@ -225,7 +237,7 @@ for (const pending of [
         // Only this exact JSON 404 is confirmed missing for customerPlanApi;
         // denial, a lease, network failure or a generic 404 is not that proof.
         outcome = 404;
-        await options.click();
+        if (!(await clear.isVisible())) await options.click();
         await expect(clear).toBeEnabled();
         await clear.click();
         await expect(dialog.getByRole("alert")).toHaveCount(0);
@@ -257,10 +269,7 @@ test("an already open assistant disables AI work on expiry while provider-free s
   await expect(
     page.getByRole("button", { name: "My Purchases", exact: true }),
   ).toBeEnabled();
-  await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
-    .click();
-  const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
+  const dialog = await openNorth(page);
   const input = dialog.getByRole("textbox", {
     name: "Ask about your purchases",
   });
@@ -274,9 +283,12 @@ test("an already open assistant disables AI work on expiry while provider-free s
   await page.clock.setSystemTime(new Date(Date.now() + 2 * 86400000));
   await page.clock.runFor(1100);
   await expect(
-    dialog.getByText("The AI authorization window has ended.", {
-      exact: false,
-    }),
+    dialog.getByText(
+      "AI access expired. Saved purchases, documents and Insights remain available.",
+      {
+        exact: true,
+      },
+    ),
   ).toBeVisible();
   await expect(input).toBeEditable();
   await input.fill("Show category chart in this workspace");

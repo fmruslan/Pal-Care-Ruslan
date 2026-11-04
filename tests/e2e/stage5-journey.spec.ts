@@ -44,7 +44,7 @@ test("customer journey preserves purchase identity through CareOS, recall, repla
   await expect(
     page.getByRole("button", { name: "Ask North Star", exact: true }),
   ).toBeVisible();
-  // Desktop keeps its dock open across navigation; close it to use the page beneath.
+  // Leave the inline result to continue in the source page's normal flow.
   const close = page.getByRole("button", {
     name: "Close North Star",
     exact: true,

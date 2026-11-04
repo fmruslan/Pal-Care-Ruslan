@@ -66,10 +66,6 @@ for (const width of [375, 430, 1440]) {
       name: "Main navigation",
       exact: true,
     });
-    const launcher = page.getByRole("button", {
-      name: "Ask North Star",
-      exact: true,
-    });
     const dialog = page.getByRole("dialog", {
       name: "North Star",
       exact: true,
@@ -77,7 +73,7 @@ for (const width of [375, 430, 1440]) {
     const draft = "Preserve this draft while the native workspace initializes";
     try {
       await page.goto("/dashboard");
-      await launcher.click();
+      await page.getByRole("button", { name: "History", exact: true }).click();
       await dialog
         .getByLabel("Ask about your purchases", { exact: true })
         .fill(draft);
@@ -96,7 +92,7 @@ for (const width of [375, 430, 1440]) {
         .press("Enter");
       await expect(page).toHaveURL(/\/dashboard\?view=documents$/);
       releaseImport();
-      await launcher.click();
+      await page.getByRole("button", { name: "History", exact: true }).click();
       await expect(
         dialog.getByLabel("Ask about your purchases", { exact: true }),
       ).toHaveValue(draft);

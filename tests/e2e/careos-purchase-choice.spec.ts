@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import type {
   CareContext,
   CareTurn,
@@ -152,7 +152,9 @@ async function transport(page: Page) {
 
 async function open(page: Page) {
   await page.goto(speakerHref);
-  await page.locator(".careos-launcher").click();
+  await page
+    .getByRole("button", { name: "Ask North Star", exact: true })
+    .click();
   const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
   await expect(
     dialog.getByText(
@@ -165,6 +167,33 @@ async function open(page: Page) {
   });
   await expect(composer).toBeEditable();
   return { dialog, composer };
+}
+
+async function selectHistory(
+  dialog: Locator,
+  saved: Conversation,
+  requestId: string,
+) {
+  const turn = saved.turns.find((turn) => turn.requestId === requestId);
+  expect(turn, "the original owned turn remains saved").toBeDefined();
+  // A direct choice deliberately reuses the question text with a new UUID.
+  // Resolve the requested UUID in saved order rather than selecting whichever
+  // same-message result happens to be first without checking its identity.
+  const sameMessage = saved.turns.filter(
+    (candidate) => candidate.message === turn!.message,
+  );
+  const index = sameMessage.findIndex((turn) => turn.requestId === requestId);
+  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  const entries = dialog
+    .getByRole("region", { name: "Previous North results", exact: true })
+    .getByRole("button", { name: turn!.message, exact: true });
+  await expect(entries).toHaveCount(sameMessage.length);
+  await entries.nth(index).click();
+  await expect(dialog.locator("article[data-request-id]")).toHaveAttribute(
+    "data-request-id",
+    requestId,
+  );
+  await expect(dialog.locator("[data-user-message]")).toHaveText(turn!.message);
 }
 
 // Catch accidental browser-local date conversion (the stored dates are UTC).
@@ -224,10 +253,17 @@ test("one direct dated choice creates exactly one scoped follow-up without navig
   expect(followUp.message).toBe(original.message);
   expect(followUp.revision).toBeGreaterThan(original.revision);
   await expect(group).toHaveCount(0);
-  await expect(selection.getByRole("button")).toHaveCount(0);
-  await expect(
-    selection.getByText(inactiveNote, { exact: true }),
-  ).toBeVisible();
+  // Only the active pending follow-up is rendered; the immutable selection
+  // remains available through History, not alongside the new answer.
+  await expect(selection).toHaveCount(0);
+  await expect(dialog.locator("article[data-request-id]")).toHaveCount(1);
+  await expect(dialog.locator("[data-pending-question]")).toHaveAttribute(
+    "data-request-id",
+    followUp.requestId,
+  );
+  await expect(dialog.locator("[data-user-message]")).toHaveText(
+    originalQuestion,
+  );
   await expect(
     dialog.getByRole("link", { name: "Open receipt", exact: true }),
   ).toHaveCount(0);
@@ -247,17 +283,19 @@ test("one direct dated choice creates exactly one scoped follow-up without navig
   await expect(dialog.locator("strong")).toHaveText(
     "Everyday headphones · F-01",
   );
-  await expect(selection.getByRole("button")).toHaveCount(0);
+  await expect(selection).toHaveCount(0);
+  await expect(answer).toHaveAttribute("data-request-id", followUp.requestId);
   expect(state.inputs).toHaveLength(2);
 
   await page.reload();
-  await page.locator(".careos-launcher").click();
+  await expect(dialog).toBeVisible();
   await expect(
     dialog.getByRole("link", { name: "Open receipt", exact: true }),
   ).toHaveAttribute("href", receiptHref);
   await expect(
     dialog.getByRole("region", { name: "Choose a purchase" }),
   ).toHaveCount(0);
+  await selectHistory(dialog, state.saved, original.requestId);
   await expect(
     selection.getByText(inactiveNote, { exact: true }),
   ).toBeVisible();
@@ -269,7 +307,7 @@ test("one direct dated choice creates exactly one scoped follow-up without navig
   expect(state.inputs).toHaveLength(2);
 });
 
-test("a new question retires old choices; summaries expose one primary action and More options (injected UI transport)", async ({
+test("a new question retires old choices; summary actions retain their exact source destinations (injected UI transport)", async ({
   page,
 }) => {
   const state = await transport(page);
@@ -301,10 +339,6 @@ test("a new question retires old choices; summaries expose one primary action an
   await expect(
     summary.getByRole("link", { name: "View purchase", exact: true }),
   ).toHaveAttribute("href", speakerHref);
-  await expect(summary.getByRole("link")).toHaveCount(1);
-  const more = summary.locator("summary").filter({ hasText: /^More options$/ });
-  await expect(more).toBeVisible();
-  await more.click();
   await expect(
     summary.getByRole("link", { name: "Review documents", exact: true }),
   ).toHaveAttribute("href", `${speakerHref}#documents-heading`);
@@ -312,6 +346,7 @@ test("a new question retires old choices; summaries expose one primary action an
     summary.getByRole("link", { name: "Review recorded history", exact: true }),
   ).toHaveAttribute("href", `${speakerHref}#history-heading`);
   await expect(summary.getByRole("link")).toHaveCount(3);
+  await selectHistory(dialog, state.saved, state.inputs[0].requestId);
   await expect(
     selection.getByText(inactiveNote, { exact: true }),
   ).toBeVisible();
@@ -334,10 +369,16 @@ test("dismiss a clarification without changing history, context or the next draf
   await composer.fill("Keep this different question unsent");
   await expect(composer).toHaveValue("Keep this different question unsent");
   await expect(dialog.getByText(inactiveNote, { exact: true })).toBeVisible();
-  await expect(dialog.locator("[data-user-message]")).toHaveText([
-    "Earlier speaker question",
+  await expect(dialog.locator("[data-user-message]")).toHaveText(
     originalQuestion,
-  ]);
+  );
+  await selectHistory(dialog, state.saved, state.saved.turns[0].requestId);
+  await expect(dialog).toContainText(
+    "Legacy speaker answer without purchase choices. Injected UI proof only.",
+  );
+  await selectHistory(dialog, state.saved, state.inputs[0].requestId);
+  await expect(choice).toHaveCount(0);
+  await expect(dialog.getByText(inactiveNote, { exact: true })).toBeVisible();
   await expect(dialog.locator("strong")).toHaveText(
     "Everywhere speaker · F-03",
   );
@@ -372,7 +413,7 @@ test("a lost direct-choice answer keeps its new identity across reload and recov
   ).toBeEnabled();
   await composer.fill("A draft while the answer is uncertain");
   await page.reload();
-  await page.locator(".careos-launcher").click();
+  await expect(dialog).toBeVisible();
   await expect(dialog.locator("[data-pending-question]")).toHaveAttribute(
     "data-request-id",
     chosen.requestId,

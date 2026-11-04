@@ -2,16 +2,16 @@ import {
   ArrowRight,
   ArrowLeft,
   FileText,
-  Search,
+  ChevronRight,
   SlidersHorizontal,
   BookOpen,
 } from "lucide-react";
 import { WorkspaceNavigationLink as Link } from "./intelligence/workspace-navigation-link";
 import { WorkspaceSearchForm } from "./intelligence/workspace-search-form";
+import { NorthSearch, NorthCollection } from "./careos/integrated";
 import { ProductArt } from "./product-art";
 import { PurchaseBadge } from "./vault";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
 import { displayDate, money } from "@/lib/demo/presentation";
 import type { homeLibrary, LibraryPurchase } from "@/lib/demo/library";
 import {
@@ -27,136 +27,123 @@ type Library = ReturnType<typeof homeLibrary>;
 export function LibrarySearch({
   query,
   categories,
+  searchIndex = [],
 }: {
   query: LibraryQuery;
   categories: string[];
+  searchIndex?: string[];
 }) {
-  const filtered = query.source !== "all" || query.documents !== "all";
+  const filtered =
+    query.category !== "all" ||
+    query.source !== "all" ||
+    query.documents !== "all" ||
+    query.sort !== "newest";
   return (
-    <WorkspaceSearchForm
-      role="search"
-      key={libraryHref(query)}
-      className="mb-5 space-y-3"
-    >
-      <label className="sr-only" htmlFor="library-search">
-        Search your library
-      </label>
-      <div className="flex gap-2">
-        <div className="relative min-w-0 flex-1">
-          <Search
-            className="pointer-events-none absolute top-4 left-4 size-5 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <Input
-            id="library-search"
-            name="q"
-            type="search"
-            aria-label="Search products and documents"
-            placeholder="Search products and documents…"
-            defaultValue={query.q}
-            maxLength={128}
-            className="h-13 bg-card pl-12"
-          />
-        </div>
-        <Button type="submit" className="min-h-13 px-4">
-          Search
-        </Button>
-      </div>
-      <div className="flex flex-wrap items-end gap-x-3 gap-y-3">
-        <label className="flex min-w-0 flex-col gap-1 text-xs text-muted-foreground">
-          Category
-          <select
-            name="category"
-            aria-label="Category"
-            defaultValue={query.category}
-            className={selectClass}
-          >
-            <option value="all">All categories</option>
-            {categories.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </label>
-        <details
-          open={filtered || undefined}
-          className="group min-w-0 flex-1 basis-24"
-        >
-          <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl px-2 text-sm font-medium text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
-            <SlidersHorizontal className="size-4" aria-hidden="true" />
-            Filters{filtered ? " · applied" : ""}
-          </summary>
-          <div className="flex flex-wrap gap-3 pt-2">
-            <label className="flex min-w-0 flex-col gap-1 text-xs text-muted-foreground">
-              Sort
-              <select
-                name="sort"
-                aria-label="Sort purchases"
-                defaultValue={query.sort}
-                className={selectClass}
+    <>
+      <NorthSearch
+        key={libraryHref(query)}
+        query={query}
+        searchIndex={searchIndex}
+      />
+      <NorthCollection>
+        <WorkspaceSearchForm key={libraryHref(query)} className="my-3">
+          <input type="hidden" name="q" value={query.q} />
+          <input type="hidden" name="view" value={query.view} />
+          <details className="group min-w-0">
+            <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl text-sm font-medium text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+              <SlidersHorizontal className="size-4" aria-hidden="true" />
+              Filters & sort{filtered ? " · applied" : ""}
+              <ChevronRight
+                className="size-4 group-open:rotate-90"
+                aria-hidden="true"
+              />
+            </summary>
+            <div className="flex flex-wrap items-end gap-3 rounded-2xl border bg-card p-4">
+              <label className="flex min-w-0 flex-col gap-1 text-xs text-muted-foreground">
+                Category
+                <select
+                  name="category"
+                  aria-label="Category"
+                  defaultValue={query.category}
+                  className={selectClass}
+                >
+                  <option value="all">All categories</option>
+                  {categories.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex min-w-0 flex-col gap-1 text-xs text-muted-foreground">
+                Sort
+                <select
+                  name="sort"
+                  aria-label="Sort purchases"
+                  defaultValue={query.sort}
+                  className={selectClass}
+                >
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                  <option value="name">Product name</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                Purchase source
+                <select
+                  name="source"
+                  aria-label="Purchase source"
+                  defaultValue={query.source}
+                  className={selectClass}
+                >
+                  <option value="all">All sources</option>
+                  <option value="sample">Sample</option>
+                  <option value="sandbox">Verified Sandbox</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                Saved documents
+                <select
+                  name="documents"
+                  aria-label="Document availability"
+                  defaultValue={query.documents}
+                  className={selectClass}
+                >
+                  <option value="all">Any availability</option>
+                  <option value="present">With documents</option>
+                  <option value="missing">Without documents</option>
+                </select>
+              </label>
+              <Button type="submit" variant="outline" className="self-end">
+                Apply filters
+              </Button>
+            </div>
+          </details>
+          {(query.q || filtered) && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+              <span className="text-muted-foreground">
+                {[
+                  query.q && `“${query.q}”`,
+                  query.category !== "all" && query.category,
+                  query.source !== "all" &&
+                    `Purchase source: ${query.source === "sandbox" ? "Verified Sandbox" : "Sample"}`,
+                  query.documents !== "all" &&
+                    `${query.documents === "present" ? "With" : "Without"} documents`,
+                  query.sort !== "newest" &&
+                    (query.sort === "oldest" ? "Oldest first" : "Product name"),
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+              <Link
+                href="/dashboard"
+                className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4"
               >
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
-                <option value="name">Product name</option>
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-              Purchase source
-              <select
-                name="source"
-                aria-label="Purchase source"
-                defaultValue={query.source}
-                className={selectClass}
-              >
-                <option value="all">All sources</option>
-                <option value="sample">Sample</option>
-                <option value="sandbox">Verified Sandbox</option>
-              </select>
-            </label>
-            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-              Saved documents
-              <select
-                name="documents"
-                aria-label="Document availability"
-                defaultValue={query.documents}
-                className={selectClass}
-              >
-                <option value="all">Any availability</option>
-                <option value="present">With documents</option>
-                <option value="missing">Without documents</option>
-              </select>
-            </label>
-            <Button type="submit" variant="outline" className="self-end">
-              Apply filters
-            </Button>
-          </div>
-        </details>
-        {!query.q && query.view === "documents" && (
-          <input type="hidden" name="view" value="documents" />
-        )}
-      </div>
-      {(query.q || query.category !== "all" || filtered) && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-          <span className="text-muted-foreground">
-            {[
-              query.q && `“${query.q}”`,
-              query.category !== "all" && query.category,
-              query.source !== "all" &&
-                `Purchase source: ${query.source === "sandbox" ? "Verified Sandbox" : "Sample"}`,
-              query.documents !== "all" &&
-                `${query.documents === "present" ? "With" : "Without"} documents`,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </span>
-          <Link
-            href="/dashboard"
-            className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4"
-          >
-            Clear filters
-          </Link>
-        </div>
-      )}
-    </WorkspaceSearchForm>
+                Clear filters
+              </Link>
+            </div>
+          )}
+        </WorkspaceSearchForm>
+      </NorthCollection>
+    </>
   );
 }
 
@@ -170,26 +157,26 @@ export function LibraryPurchaseCard({
   const href = withLibraryReturn(p.href, from);
   return (
     <article
-      className="library-purchase-card motion-card rounded-2xl border bg-card p-4 shadow-card"
+      className="library-purchase-card motion-card min-w-0 rounded-2xl border bg-card p-3 shadow-card sm:p-4"
       data-purchase-card={p.id}
       data-category={p.category}
     >
       <Link
         href={href}
-        className="library-product-link group grid grid-cols-[5rem_minmax(0,1fr)] items-center gap-4 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring sm:block"
+        className="library-product-link group relative grid grid-cols-[5rem_minmax(0,1fr)] items-center gap-3 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring sm:block"
         aria-label={`View details for ${p.name}, ${displayDate(p.purchasedOn)}, ${p.origin === "sandbox" ? "Verified Sandbox" : "Sample"}`}
       >
         <div className="library-product-art">
           <ProductArt kind={p.illustration ?? "computer"} size="compact" />
         </div>
-        <div className="min-w-0 sm:mt-4">
-          <p className="text-xs text-muted-foreground">
+        <div className="min-w-0 pr-6 sm:mt-4">
+          <p className="text-xs leading-5 text-muted-foreground [overflow-wrap:anywhere]">
             {p.brand} · {p.model}
           </p>
-          <h2 className="mt-1 text-base font-semibold tracking-tight group-hover:text-primary">
+          <h2 className="mt-0.5 text-sm leading-5 font-semibold tracking-tight [overflow-wrap:anywhere] group-hover:text-primary sm:text-base sm:leading-6">
             {p.name}
           </h2>
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm">
             <time className="text-muted-foreground" dateTime={p.purchasedOn}>
               {displayDate(p.purchasedOn)}
             </time>
@@ -199,12 +186,16 @@ export function LibraryPurchaseCard({
                 : money(p.amountMinor)}
             </span>
           </div>
-          <div className="mt-2">
+          <div className="mt-1.5 sm:mt-2">
             <PurchaseBadge origin={p.origin} />
           </div>
         </div>
+        <ChevronRight
+          className="absolute top-1/2 right-0 size-5 -translate-y-1/2 text-muted-foreground group-hover:text-primary sm:top-auto sm:bottom-1 sm:translate-y-0"
+          aria-hidden="true"
+        />
       </Link>
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-2 text-sm">
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-x-2 border-t pt-1 text-xs sm:mt-4 sm:pt-2 sm:text-sm">
         <Link
           href={withLibraryReturn(p.href, from, "#documents")}
           className="inline-flex min-h-11 items-center gap-1.5 text-muted-foreground hover:text-primary"
@@ -306,7 +297,7 @@ export function LibraryResults({
   const from = libraryHref({ ...query, page: library.page });
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b pb-3">
         <p role="status" className="text-sm text-muted-foreground">
           {library.purchaseCount} purchase
           {library.purchaseCount === 1 ? "" : "s"} · {library.documentCount}{" "}
@@ -319,7 +310,7 @@ export function LibraryResults({
               ? "/dashboard"
               : "/dashboard?view=documents"
           }
-          className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary"
+          className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-input bg-card px-3 text-sm font-semibold text-primary hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           {query.view === "documents" ? (
             <>

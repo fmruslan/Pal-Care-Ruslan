@@ -35,10 +35,27 @@ test("a lost customer plan recovers by GET and requires explicit SDK application
     await expect(page.getByTestId("insight-documents-care")).toBeVisible({
       timeout: 20000,
     });
-    await page
-      .getByRole("button", { name: "Explore with North Star", exact: true })
-      .click();
-    return page.getByRole("dialog");
+    const restoreOpen = await page.evaluate(() => {
+      try {
+        return (
+          JSON.parse(
+            sessionStorage.getItem("palcare-north-workspace-v1") ?? "null",
+          )?.open === true
+        );
+      } catch {
+        return false;
+      }
+    });
+    if (!restoreOpen)
+      await page
+        .getByRole("button", { name: "Ask North Star", exact: true })
+        .click();
+    const dialog = page.getByRole("dialog", {
+      name: "North Star",
+      exact: true,
+    });
+    await expect(dialog).toBeVisible();
+    return dialog;
   }
   let dialog = await load();
   await dialog

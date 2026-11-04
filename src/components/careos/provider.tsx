@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname } from "next/navigation";
+import { createPortal } from "react-dom";
 import * as Dialog from "@radix-ui/react-dialog";
 import Link from "next/link";
 import {
@@ -55,14 +56,31 @@ import {
   ownerStatusSchema,
   type OwnerSendState,
 } from "./owner-status";
+import { IntegratedNorthView, type IntegratedNorthState } from "./integrated";
+import {
+  northWorkspaceKey,
+  readNorthWorkspace,
+} from "@/lib/north-presentation";
 
 type AssistantState = {
   select: (context: CareContext | null) => void;
   register: (context: CareContext | null) => void;
   open: () => void;
   ask: (message: string, intent?: Intent, context?: CareContext) => void;
+  integrated?: IntegratedNorthState;
+  setWorkspaceElement: (element: HTMLDivElement | null) => void;
 };
 const AssistantContext = createContext<AssistantState | null>(null);
+function sessionStorageSafe(key: string) {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+export function useOptionalCareOS() {
+  return useContext(AssistantContext);
+}
 export function useCareOS() {
   const value = useContext(AssistantContext);
   if (!value) throw new Error("CareOS host is missing.");
@@ -75,6 +93,7 @@ export function CareOSProvider({
   aiAccessDisabled = false,
   ownerAccess = false,
   conversationalAI = false,
+  integrated = false,
 }: {
   children: ReactNode;
   mode?: "fixture" | "disabled" | "responses" | "subscription" | "unavailable";
@@ -82,6 +101,7 @@ export function CareOSProvider({
   aiAccessDisabled?: boolean;
   ownerAccess?: boolean;
   conversationalAI?: boolean;
+  integrated?: boolean;
 }) {
   const [clock, setClock] = useState(0);
   const aiExpired =
@@ -99,10 +119,21 @@ export function CareOSProvider({
   }, [aiExpiresAt]);
   const pathname = usePathname();
   const visible =
-    /^\/(dashboard|vault|documents|guardian|safety|replacements|insights)(\/|$)/.test(
+    /^\/(dashboard|vault|documents|guardian|safety|replacements|insights|shop|checkout)(\/|$)/.test(
       pathname,
     );
   const [isOpen, setOpen] = useState(false);
+  const [workspaceElement, setWorkspaceElement] =
+    useState<HTMLDivElement | null>(null);
+  const [activeResultId, setActiveResultId] = useState<string | null>(null);
+  const [integratedHistoryOpen, setIntegratedHistoryOpen] = useState(false);
+  const presentationEpoch = useRef(0);
+  const historySelection = useRef(false);
+  const [historySelected, setHistorySelected] = useState(false);
+  const selectHistoryScope = useCallback((value: boolean) => {
+    historySelection.current = value;
+    setHistorySelected(value);
+  }, []);
   const [expanded, setExpanded] = useState(false);
   const [mobile, setMobile] = useState(false);
   const [context, setContext] = useState<CareContext | null>(null);
@@ -126,10 +157,23 @@ export function CareOSProvider({
   const insights = useInsightsControl();
   const registerDeparture = insights.registerDeparture;
   useEffect(
-    () => registerDeparture(() => setRecordsSubmission(null)),
-    [registerDeparture],
+    () =>
+      registerDeparture(() => {
+        presentationEpoch.current++;
+        setRecordsSubmission(null);
+        if (integrated) setOpen(false);
+      }),
+    [registerDeparture, integrated],
   );
   const analytics = pathname === "/insights";
+  useEffect(() => {
+    const depart = () => {
+      presentationEpoch.current++;
+      setRecordsSubmission(null);
+    };
+    window.addEventListener("popstate", depart);
+    return () => window.removeEventListener("popstate", depart);
+  }, []);
   const turns = mergeAssistantTurns(
     [
       ...(regular.conversation?.turns ?? []),
@@ -261,11 +305,11 @@ export function CareOSProvider({
   }, []);
 
   useEffect(() => {
-    if (!isOpen || !visible || expanded) return;
+    if (integrated || !isOpen || !visible || expanded) return;
     document.documentElement.classList.add("careos-reading-space");
     return () =>
       document.documentElement.classList.remove("careos-reading-space");
-  }, [isOpen, visible, expanded]);
+  }, [integrated, isOpen, visible, expanded]);
 
   const updateContext = useCallback((value: CareContext | null) => {
     registered.current = true;
@@ -276,9 +320,18 @@ export function CareOSProvider({
   }, []);
   const register = useCallback(
     (value: CareContext | null) => {
-      if (value && !explicitContext.current) updateContext(value);
+      if (value && !explicitContext.current) {
+        // A newly opened dated product supplies the visible default context;
+        // an inspected library answer must not silently override that context.
+        if (
+          integrated &&
+          JSON.stringify(value) !== JSON.stringify(contextRef.current)
+        )
+          selectHistoryScope(false);
+        updateContext(value);
+      }
     },
-    [updateContext],
+    [updateContext, integrated, selectHistoryScope],
   );
   function loadPresentation() {
     if (loadedPresentation.current) return;
@@ -295,13 +348,41 @@ export function CareOSProvider({
           updateContext(saved.context);
         }
       }
+      if (integrated) {
+        const workspace = readNorthWorkspace(
+          sessionStorage.getItem(northWorkspaceKey),
+        );
+        if (workspace) {
+          setActiveResultId(workspace.id);
+          setOpen(workspace.open);
+          selectHistoryScope(workspace.historySelected);
+        }
+      }
     } catch {
       /* Optional fictional, per-tab presentation hint. */
     }
     setPresentationLoaded(true);
   }
+  useEffect(() => {
+    if (!integrated || !presentationLoaded) return;
+    try {
+      sessionStorage.setItem(
+        northWorkspaceKey,
+        JSON.stringify({
+          version: 1,
+          id: activeResultId,
+          open: isOpen,
+          historySelected,
+        }),
+      );
+    } catch {
+      /* Optional UUID-only hint. */
+    }
+  }, [integrated, presentationLoaded, activeResultId, isOpen, historySelected]);
   function select(value: CareContext | null) {
+    presentationEpoch.current++;
     loadPresentation();
+    selectHistoryScope(false);
     insights.cancelRecords();
     setRecordsSubmission(null);
     explicitContext.current = true;
@@ -341,6 +422,7 @@ export function CareOSProvider({
     presentationLoaded,
   ]);
   async function ask(message: string, intent?: Intent, selected?: CareContext) {
+    const beforeAdmission = presentationEpoch.current;
     loadPresentation();
     if (admitting.current || busy || pending || !message.trim()) return false;
     let liveAdmission = false;
@@ -363,17 +445,30 @@ export function CareOSProvider({
         ));
     if (
       admitting.current ||
+      beforeAdmission !== presentationEpoch.current ||
       (savedRecords
         ? busy || !!pending
         : interactionBlocked || evaluationWindowExpired(aiExpiresAt)) ||
       !message.trim()
     )
       return false;
-    setOpen(true);
     if (selected) select(selected);
-    const bound = contextRef.current;
+    const admittedEpoch = presentationEpoch.current;
+    const viewed =
+      integrated && historySelection.current
+        ? turns.find((turn) => turn.requestId === activeResultId)
+        : undefined;
+    const bound = viewed ? viewed.answer.context : contextRef.current;
     const boundRevision = revision.current;
-    const history = records.conversation?.turns ?? [];
+    const ownedHistory = records.conversation?.turns ?? [];
+    const anchorIndex =
+      integrated && activeResultId
+        ? ownedHistory.findIndex((turn) => turn.requestId === activeResultId)
+        : -1;
+    const followupRequestId =
+      anchorIndex >= 0 ? ownedHistory[anchorIndex].requestId : undefined;
+    const history =
+      anchorIndex >= 0 ? ownedHistory.slice(0, anchorIndex + 1) : ownedHistory;
     const topicStart = history.findLastIndex(
       (t) => t.answer.recordsTopic === "reset",
     );
@@ -406,7 +501,14 @@ export function CareOSProvider({
     try {
       if ((!savedRecords || modelInterpretation) && !(await checkOwnerAccess()))
         return false;
+      if (admittedEpoch !== presentationEpoch.current) return false;
+      setOpen(true);
       const requestId = crypto.randomUUID();
+      if (integrated) {
+        setActiveResultId(requestId);
+        setIntegratedHistoryOpen(false);
+        selectHistoryScope(false);
+      }
       insights.cancelRecords();
       setRecordsSubmission(savedRecords ? requestId : null);
       setSubmittedOrder((prior) => [...prior, requestId]);
@@ -425,12 +527,14 @@ export function CareOSProvider({
             revision: boundRevision,
             message: message.trim(),
             ...(intent ? { intent } : {}),
+            ...(followupRequestId ? { followupRequestId } : {}),
           },
           bound,
           modelInterpretation ? "interpret" : "turns",
           (turn) => {
             if (
               !conversationalAI ||
+              admittedEpoch !== presentationEpoch.current ||
               !turn.answer.conversationPlan ||
               turn.answer.revision !== revision.current
             )
@@ -473,7 +577,10 @@ export function CareOSProvider({
     // records neither reads private AI history nor issues an inference grant.
     void records.restore(false);
     if (conversationalAI) {
-      await checkOwnerAccess();
+      if (await checkOwnerAccess()) {
+        void regular.restore(false);
+        void insights.restore();
+      }
       return;
     }
     if (!(await checkOwnerAccess())) return;
@@ -484,6 +591,112 @@ export function CareOSProvider({
     if (!registered.current && !contextRef.current && previous)
       select(previous);
   }
+  useEffect(() => {
+    if (!integrated) return;
+    // Hydrate optional tab-local hints after the committed page mounts. A frame
+    // is cancelled if the root unmounts; only owned GET recovery can follow.
+    const frame = requestAnimationFrame(() => {
+      loadPresentation();
+      if (readNorthWorkspace(sessionStorageSafe(northWorkspaceKey))?.open)
+        void open();
+    });
+    return () => cancelAnimationFrame(frame);
+    // One-time root bootstrap, not a replay subscription to changing turns.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [integrated]);
+
+  function closeWorkspace() {
+    presentationEpoch.current++;
+    insights.cancelRecords();
+    setRecordsSubmission(null);
+    setOpen(false);
+    if (integrated)
+      requestAnimationFrame(() => {
+        const opener = document.querySelector<HTMLButtonElement>(
+          'button[aria-label="Ask North Star"]',
+        );
+        const target =
+          (opener && !opener.disabled
+            ? opener
+            : document.querySelector<HTMLElement>(
+                "[data-north-search] > div > button",
+              )) ?? document.getElementById("library-search");
+        target?.focus();
+      });
+  }
+  const integratedState: IntegratedNorthState = {
+    isOpen,
+    turns,
+    activeId: activeResultId,
+    historyOpen: integratedHistoryOpen,
+    setHistoryOpen: setIntegratedHistoryOpen,
+    openHistory: () => {
+      setIntegratedHistoryOpen(true);
+      void open();
+    },
+    choose: (id) => {
+      const chosen = turns.find((turn) => turn.requestId === id);
+      if (chosen) {
+        presentationEpoch.current++;
+        selectHistoryScope(true);
+        insights.cancelRecords();
+        setRecordsSubmission(null);
+        setActiveResultId(id);
+        setOpen(true);
+      }
+    },
+    close: closeWorkspace,
+    open: () => void open(),
+    draft,
+    setDraft: (value) => {
+      loadPresentation();
+      setDraft(value);
+      setDismissedChoices((prior) => [
+        ...new Set([
+          ...prior,
+          ...turns
+            .filter((turn) => turn.answer.outcome === "selection")
+            .map((turn) => turn.requestId),
+        ]),
+      ]);
+    },
+    submit,
+    ask: (message) => {
+      const original = message;
+      void ask(message).then((admitted) => {
+        if (admitted)
+          setDraft((current) => (current === original ? "" : current));
+      });
+    },
+    pending,
+    choiceAvailable: !unavailable,
+    busy,
+    blocked: submitBlocked,
+    error,
+    context,
+    select,
+    recordsSubmission,
+    consumeRecords: () => setRecordsSubmission(null),
+    navigate: closeWorkspace,
+    check: () => void check(),
+    clear: () => void clear(),
+    unsent: [...regular.unsent, ...records.unsent],
+    ownerAccess,
+    ownerState,
+    accessMessage: browserMessage,
+    mode,
+    expired: aiExpired,
+    accessDisabled: aiAccessDisabled,
+    onChoice: (message, selected) => {
+      if (unavailable || !selected.twinId) return;
+      void ask(message, undefined, selected);
+    },
+    dismissedChoices,
+    dismissChoice: (id) => setDismissedChoices((prior) => [...prior, id]),
+    recoverable: insights.recoverable,
+    connected: insights.connected,
+    applySaved: () => void insights.applySaved(),
+  };
   function submit() {
     if (!draft.trim() || submitBlocked) return;
     const submitted = draft;
@@ -504,10 +717,20 @@ export function CareOSProvider({
         register,
         open: () => void open(),
         ask: (m, i, c) => void ask(m, i, c),
+        integrated: integrated ? integratedState : undefined,
+        setWorkspaceElement,
       }}
     >
       {children}
-      {visible && (
+      {integrated &&
+        visible &&
+        isOpen &&
+        workspaceElement &&
+        createPortal(
+          <IntegratedNorthView state={integratedState} />,
+          workspaceElement,
+        )}
+      {!integrated && visible && (
         <Dialog.Root
           open={isOpen}
           onOpenChange={(value) => (value ? void open() : setOpen(false))}
@@ -1245,7 +1468,9 @@ export function AskCareOS({
     <Button
       variant="outline"
       aria-label={
-        label?.replace(/CareOS|North ☆/g, ASSISTANT_SPOKEN_NAME) ??
+        label
+          ?.replace(/CareOS|North ☆/g, ASSISTANT_SPOKEN_NAME)
+          .replace(/\bNorth\b(?! Star)/g, ASSISTANT_SPOKEN_NAME) ??
         (!children && context
           ? "Ask North Star about this purchase"
           : undefined)

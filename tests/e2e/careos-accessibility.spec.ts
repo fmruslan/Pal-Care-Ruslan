@@ -4,22 +4,12 @@ import type { Conversation, TurnInput } from "../../src/lib/careos/contracts";
 
 // Scoped assistant regressions with fictional/injected HTTP responses only.
 // Root font enlargement is a text-resize simulation, not browser zoom proof.
-// The fake VisualViewport is not a real software keyboard or real-device test.
+// Keyboard-sized layout viewports are not real software-keyboard/device proof.
 const purchase = "/vault/00000000-0000-4000-8000-000000000201";
 const receipt = "/documents/00000000-0000-4000-8000-000000000301";
 const answerText =
   "Injected accessibility fixture, not a model response. Keep these fictional headphones dry, store them carefully, and use the saved receipt to identify the sample purchase.";
 const questionText = "How do I look after my headphones?";
-const visibleHeight = "--careos-visible-height";
-const keyboardBottom = "--careos-keyboard-bottom";
-
-type ViewportState = { height: number; offsetTop: number; scale: number };
-type ViewportTestWindow = Window & {
-  __careosSetViewport: (
-    state: Partial<ViewportState>,
-    event: "resize" | "scroll",
-  ) => void;
-};
 
 test.use({ viewport: { width: 320, height: 800 } });
 
@@ -97,7 +87,9 @@ async function injectConversation(page: Page) {
 
 async function openAssistant(page: Page) {
   await page.goto(purchase);
-  await page.locator(".careos-launcher").click();
+  await page
+    .getByRole("button", { name: "Ask North Star", exact: true })
+    .click();
   const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
   await expect(dialog.getByText(answerText, { exact: true })).toBeVisible();
   await page.evaluate(async () => {
@@ -123,6 +115,7 @@ async function expectControlFits(
   bottom = 800,
   minimumSize = 44,
 ) {
+  await locator.scrollIntoViewIfNeeded();
   await expect(locator).toBeVisible();
   const geometry = await locator.evaluate((node) => {
     const rect = node.getBoundingClientRect();
@@ -161,6 +154,7 @@ async function expectControlFits(
 }
 
 async function expectUsableTranscript(transcript: Locator, bottom = 800) {
+  await transcript.scrollIntoViewIfNeeded();
   const geometry = await transcript.evaluate((node) => {
     const rect = node.getBoundingClientRect();
     const style = getComputedStyle(node);
@@ -181,14 +175,16 @@ async function expectUsableTranscript(transcript: Locator, bottom = 800) {
     visibleContent,
     `usable transcript excludes vertical padding: ${JSON.stringify(await transcript.evaluate((node) => [...node.parentElement!.children].map((child) => ({ class: child.className, height: child.getBoundingClientRect().height, top: child.getBoundingClientRect().top }))))}`,
   ).toBeGreaterThanOrEqual(80);
-  expect(["auto", "scroll"]).toContain(geometry.overflowY);
-  expect(geometry.scrollHeight).toBeGreaterThan(geometry.clientHeight);
-  await transcript.evaluate((node) => {
-    node.scrollTop = node.scrollHeight;
-  });
-  await expect
-    .poll(() => transcript.evaluate((node) => node.scrollTop))
-    .toBeGreaterThan(0);
+  expect(geometry.scrollHeight).toBeGreaterThanOrEqual(geometry.clientHeight);
+  // Main-content answers use document scrolling, never a fixed-height drawer.
+  // Sources contains hidden list items until disclosed; read the actual answer
+  // bullets through page flow, not a closed source or a drawer scroll viewport.
+  const last = transcript
+    .locator("[data-latest-answer] > ul.list-disc > li")
+    .last();
+  await last.scrollIntoViewIfNeeded();
+  await expect(last).toBeInViewport();
+  await expect(transcript).not.toHaveCSS("position", "fixed");
 }
 
 async function expectNoHorizontalClipping(page: Page, dialog: Locator) {
@@ -267,56 +263,6 @@ async function expectNoHorizontalClipping(page: Page, dialog: Locator) {
   ).toEqual([]);
 }
 
-async function viewportProperties(dialog: Locator) {
-  return dialog.evaluate(
-    (node, properties) =>
-      properties.map((name) => node.style.getPropertyValue(name)),
-    [visibleHeight, keyboardBottom],
-  );
-}
-
-async function installVisualViewport(page: Page) {
-  await page.addInitScript(() => {
-    const state: ViewportState = { height: 800, offsetTop: 0, scale: 1 };
-    const viewport = new EventTarget();
-    Object.defineProperties(viewport, {
-      height: { get: () => state.height },
-      width: { get: () => innerWidth / state.scale },
-      offsetTop: { get: () => state.offsetTop },
-      offsetLeft: { get: () => 0 },
-      pageTop: { get: () => scrollY + state.offsetTop },
-      pageLeft: { get: () => scrollX },
-      scale: { get: () => state.scale },
-    });
-    Object.defineProperty(window, "visualViewport", {
-      configurable: true,
-      value: viewport,
-    });
-    Object.defineProperty(window, "__careosSetViewport", {
-      configurable: true,
-      value: (next: Partial<ViewportState>, event: "resize" | "scroll") => {
-        Object.assign(state, next);
-        viewport.dispatchEvent(new Event(event));
-      },
-    });
-  });
-}
-
-async function setVisualViewport(
-  page: Page,
-  state: Partial<ViewportState>,
-  event: "resize" | "scroll" = "resize",
-) {
-  await page.evaluate(
-    ({ state, event }) =>
-      (window as unknown as ViewportTestWindow).__careosSetViewport(
-        state,
-        event,
-      ),
-    { state, event },
-  );
-}
-
 test("320px assistant has readable body/composer text and reachable 44px primary targets (injected)", async ({
   page,
 }) => {
@@ -340,20 +286,20 @@ test("320px assistant has readable body/composer text and reachable 44px primary
     composer,
     dialog.getByRole("button", { name: "Send to North Star", exact: true }),
     dialog.getByRole("button", { name: "Close North Star", exact: true }),
-    dialog.getByRole("button", { name: "Expand assistant", exact: true }),
-    dialog.locator('summary[aria-label="North Star options"]'),
+    dialog.getByRole("button", { name: "History", exact: true }),
   ])
     await expectControlFits(control);
-  await dialog.locator('summary[aria-label="North Star options"]').click();
+  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog.getByText("Conversation settings", { exact: true }).click();
   await expectControlFits(
     dialog.getByRole("button", {
       name: "Clear conversation history",
       exact: true,
     }),
   );
-  await dialog.locator('summary[aria-label="North Star options"]').click();
+  await dialog.getByRole("button", { name: "History", exact: true }).click();
   const action = dialog.getByRole("link", {
-    name: "Open receipt",
+    name: "View full receipt or document",
     exact: true,
   });
   await action.scrollIntoViewIfNeeded();
@@ -373,9 +319,6 @@ test("200% text enlargement at 320px preserves readable content, controls and a 
   await page.evaluate(() => {
     document.documentElement.style.fontSize = "200%";
   });
-  await dialog
-    .getByRole("button", { name: "Expand assistant", exact: true })
-    .click();
   await composer.fill("Draft");
   expect(await fontSize(page.locator("html"))).toBeGreaterThanOrEqual(32);
   for (let index = 0; index < content.length; index++) {
@@ -392,11 +335,11 @@ test("200% text enlargement at 320px preserves readable content, controls and a 
     composer,
     dialog.getByRole("button", { name: "Send to North Star", exact: true }),
     dialog.getByRole("button", { name: "Close North Star", exact: true }),
-    dialog.getByRole("button", { name: "Compact assistant", exact: true }),
-    dialog.locator('summary[aria-label="North Star options"]'),
+    dialog.getByRole("button", { name: "History", exact: true }),
   ])
     await expectControlFits(control);
-  await dialog.locator('summary[aria-label="North Star options"]').click();
+  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog.getByText("Conversation settings", { exact: true }).click();
   await expectControlFits(
     dialog.getByRole("button", {
       name: "Clear conversation history",
@@ -404,7 +347,7 @@ test("200% text enlargement at 320px preserves readable content, controls and a 
     }),
   );
   await expectNoHorizontalClipping(page, dialog);
-  await dialog.locator('summary[aria-label="North Star options"]').click();
+  await dialog.getByRole("button", { name: "History", exact: true }).click();
   // Optional review artifact only: never a snapshot baseline or live evidence.
   await page.screenshot({
     path: info.outputPath("careos-320-text200-injected.png"),
@@ -413,13 +356,16 @@ test("200% text enlargement at 320px preserves readable content, controls and a 
   expect(state.forbiddenRequests).toEqual([]);
 });
 
-test("keyboard focus remains visible and contained with reduced motion, then returns to the launcher", async ({
+test("keyboard focus remains visible with reduced motion and traverses the nonmodal page", async ({
   page,
 }) => {
   const state = await injectConversation(page);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(purchase);
-  const launcher = page.locator(".careos-launcher");
+  const launcher = page.getByRole("button", {
+    name: "Ask North Star",
+    exact: true,
+  });
   await expectControlFits(launcher);
   await launcher.focus();
   await launcher.press("Enter");
@@ -433,12 +379,15 @@ test("keyboard focus remains visible and contained with reduced motion, then ret
       dialog.evaluate((node) => node.contains(document.activeElement)),
     )
     .toBe(true);
+  await expect(dialog).toHaveAttribute("aria-modal", "false");
+  const close = dialog.getByRole("button", {
+    name: "Close North Star",
+    exact: true,
+  });
+  await close.focus();
   let reachedComposer = false;
-  for (let index = 0; index < 20; index++) {
+  for (let index = 0; index < 30; index++) {
     await page.keyboard.press("Tab");
-    expect(
-      await dialog.evaluate((node) => node.contains(document.activeElement)),
-    ).toBe(true);
     if (await composer.evaluate((node) => node === document.activeElement)) {
       reachedComposer = true;
       break;
@@ -462,12 +411,17 @@ test("keyboard focus remains visible and contained with reduced motion, then ret
     "keyboard focus has a rendered indicator",
   ).toBe(true);
   await composer.fill("An unsent keyboard draft");
-  for (const key of ["Tab", "Tab", "Tab", "Shift+Tab", "Shift+Tab"]) {
-    await page.keyboard.press(key);
-    expect(
-      await dialog.evaluate((node) => node.contains(document.activeElement)),
-    ).toBe(true);
+  let leftWorkspace = false;
+  for (let index = 0; index < 30; index++) {
+    await page.keyboard.press("Tab");
+    if (
+      !(await dialog.evaluate((node) => node.contains(document.activeElement)))
+    ) {
+      leftWorkspace = true;
+      break;
+    }
   }
+  expect(leftWorkspace, "North must not trap page navigation").toBe(true);
   expect(
     await page.evaluate(
       () => matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -488,6 +442,7 @@ test("keyboard focus remains visible and contained with reduced motion, then ret
   await expect(
     dialog.getByRole("region", { name: "North Star conversation" }),
   ).toHaveCSS("scroll-behavior", "auto");
+  await composer.focus();
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(launcher).toBeFocused();
@@ -495,31 +450,17 @@ test("keyboard focus remains visible and contained with reduced motion, then ret
   expect(state.forbiddenRequests).toEqual([]);
 });
 
-test("injected VisualViewport keyboard preserves the composer and reading area; blur, reset and pinch zoom clear overrides", async ({
+test("keyboard-sized viewport keeps page-flow composer, result and recovery controls reachable without losing draft", async ({
   page,
 }) => {
   const state = await injectConversation(page);
-  await installVisualViewport(page);
   const { dialog, composer, transcript } = await openAssistant(page);
   const close = dialog.getByRole("button", {
     name: "Close North Star",
     exact: true,
   });
-  await close.focus();
-  await expect.poll(() => viewportProperties(dialog)).toEqual(["", ""]);
-  await setVisualViewport(page, { height: 450 });
-  await expect.poll(() => viewportProperties(dialog)).toEqual(["", ""]);
   await composer.fill("An unsent keyboard draft");
-  await expect(composer).toBeFocused();
-  await expect
-    .poll(() => viewportProperties(dialog))
-    .toEqual(["450px", "350px"]);
-  const bounds = await dialog.boundingBox();
-  expect(bounds!.y).toBeGreaterThanOrEqual(-1);
-  expect(
-    bounds!.y + bounds!.height,
-    "panel stays above the injected keyboard",
-  ).toBeLessThanOrEqual(451);
+  await page.setViewportSize({ width: 320, height: 450 });
   await expectControlFits(composer, 450);
   await expectControlFits(
     dialog.getByRole("button", { name: "Send to North Star", exact: true }),
@@ -528,43 +469,10 @@ test("injected VisualViewport keyboard preserves the composer and reading area; 
   await expectControlFits(close, 450);
   await expectUsableTranscript(transcript, 450);
   await expectNoHorizontalClipping(page, dialog);
-  expect(
-    await page
-      .locator("html")
-      .evaluate(
-        (node, properties) =>
-          properties.map((name) => node.style.getPropertyValue(name)),
-        [visibleHeight, keyboardBottom],
-      ),
-    "keyboard overrides belong only to the assistant",
-  ).toEqual(["", ""]);
-
-  // A panned visual viewport reports offsetTop through its scroll event.
-  await setVisualViewport(page, { height: 400, offsetTop: 50 }, "scroll");
-  await expect
-    .poll(() => viewportProperties(dialog))
-    .toEqual(["400px", "350px"]);
-  const panned = await dialog.boundingBox();
-  expect(panned!.y).toBeGreaterThanOrEqual(49);
-  expect(panned!.y + panned!.height).toBeLessThanOrEqual(451);
-  await expectControlFits(composer, 450);
-  await expect(composer).toBeFocused();
-
-  await setVisualViewport(page, { height: 450, offsetTop: 0, scale: 2 });
-  await expect.poll(() => viewportProperties(dialog)).toEqual(["", ""]);
-  await expect(composer).toBeFocused();
-  await setVisualViewport(page, { scale: 1 });
-  await expect
-    .poll(() => viewportProperties(dialog))
-    .toEqual(["450px", "350px"]);
   await close.focus();
-  await expect.poll(() => viewportProperties(dialog)).toEqual(["", ""]);
+  await expect(close).toBeFocused();
   await composer.focus();
-  await expect
-    .poll(() => viewportProperties(dialog))
-    .toEqual(["450px", "350px"]);
-  await setVisualViewport(page, { height: 800 });
-  await expect.poll(() => viewportProperties(dialog)).toEqual(["", ""]);
+  await page.setViewportSize({ width: 320, height: 800 });
   await expectControlFits(composer);
   await expectUsableTranscript(transcript);
   await expect(composer).toBeFocused();
@@ -578,9 +486,8 @@ test("assistant-only axe checks use the project's light or dark appearance (inje
 }) => {
   const state = await injectConversation(page);
   const { dialog } = await openAssistant(page);
-  await expect(
-    dialog.getByRole("heading", { name: "North Star", exact: true }),
-  ).toBeVisible();
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAccessibleName("North Star");
   const result = await new AxeBuilder({ page })
     .include(".careos-assistant")
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
@@ -590,47 +497,33 @@ test("assistant-only axe checks use the project's light or dark appearance (inje
   expect(state.forbiddenRequests).toEqual([]);
 });
 
-test("wide compact mode leaves purchase reading space; expand and close restore the page width", async ({
+test("wide North results occupy main-content width in page flow without overlay or reading-space reservation", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   const state = await injectConversation(page);
   const { dialog } = await openAssistant(page);
-  await expect
-    // Sample one layout frame, avoiding two independently waiting WebKit locator
-    // resolutions. Keep readiness and exact rectangles visible in any failure.
-    .poll(() =>
-      page.evaluate(() => {
-        const content = document.querySelector<HTMLElement>("#main-content");
-        const panel = document.querySelector<HTMLElement>(
-          ".careos-assistant[role=dialog]",
-        );
-        if (!content || !panel) return { ready: false, noOverlap: false };
-        const c = content.getBoundingClientRect();
-        const p = panel.getBoundingClientRect();
-        const title = document.getElementById(
-          panel.getAttribute("aria-labelledby") ?? "",
-        );
-        return {
-          ready:
-            document.documentElement.classList.contains(
-              "careos-reading-space",
-            ) &&
-            title?.querySelector(".sr-only")?.textContent?.trim() ===
-              "North Star" &&
-            p.width > 0 &&
-            p.height > 0,
-          noOverlap: c.right <= p.left,
-          content: c.toJSON(),
-          panel: p.toJSON(),
-          viewport: innerWidth,
-        };
-      }),
-    )
-    .toMatchObject({ ready: true, noOverlap: true });
-  await dialog
-    .getByRole("button", { name: "Expand assistant", exact: true })
-    .click();
+  const geometry = await dialog.evaluate((panel) => {
+    const main = panel.closest("#main-content")!;
+    const slot = panel.parentElement!;
+    const p = panel.getBoundingClientRect();
+    const s = slot.getBoundingClientRect();
+    return {
+      insideMain: !!main,
+      position: getComputedStyle(panel).position,
+      width: p.width,
+      slotWidth: s.width,
+    };
+  });
+  expect(geometry.insideMain).toBe(true);
+  expect(["static", "relative"]).toContain(geometry.position);
+  expect(geometry.width).toBeGreaterThan(700);
+  expect(Math.abs(geometry.width - geometry.slotWidth)).toBeLessThanOrEqual(2);
+  await expect(dialog).toHaveAttribute("aria-modal", "false");
+  await expect(page.locator(".careos-overlay")).toHaveCount(0);
+  await expect(
+    dialog.getByRole("button", { name: /^(Expand|Compact) assistant$/ }),
+  ).toHaveCount(0);
   await expect(page.locator("html")).not.toHaveClass(/careos-reading-space/);
   await dialog
     .getByRole("button", { name: "Close North Star", exact: true })

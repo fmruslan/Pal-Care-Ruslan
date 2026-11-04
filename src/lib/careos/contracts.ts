@@ -23,6 +23,9 @@ export const turnSchema = z
     message: z.string().trim().min(1).max(2000),
     intent: intentSchema.optional(),
     example: z.literal("insignia").optional(),
+    // Records follow-ups reference an owned saved turn, never client history.
+    // Keep this optional field last: legacy serialized fingerprints stay intact.
+    followupRequestId: z.uuid().optional(),
   })
   .refine(
     (value) => !(value.example && value.twinId),

@@ -24,6 +24,7 @@ async function noOverflow(page: Page, width: number) {
 }
 
 async function reachable(control: Locator, width: number) {
+  await control.scrollIntoViewIfNeeded();
   await expect(control).toBeVisible();
   const rect = await control.evaluate((node) => {
     const r = node.getBoundingClientRect();
@@ -83,18 +84,16 @@ for (const width of widths) {
       } else await route.continue();
     });
     await page.goto("/dashboard");
-    const activity = page.getByRole("list", {
-      name: "Unified purchase activity",
-    });
-    await expect(activity).toBeVisible();
+    const product = page.locator("[data-purchase-card]").first();
+    await expect(product).toBeVisible();
     // SSR content can be visible before React hydrates. Mutating it then creates
     // a test-induced #418 hydration failure, not a legitimate layout stress.
     // This is a real interactive client-ready control, not a sleep/longer timeout.
     await expect(
       page.getByRole("combobox", { name: "Appearance", exact: true }),
     ).toBeEnabled();
-    await activity
-      .locator("p.break-words")
+    await product
+      .locator("p")
       .first()
       .evaluate((node) => {
         node.textContent = `Layout test source digest · ${"abc01234".repeat(8)}`;

@@ -20,6 +20,7 @@ import {
   recordsRequestAllowed,
 } from "./query";
 import { emptyRecordsQuery } from "./contracts";
+import { ownedFollowupHistory } from "./followup";
 
 const hash = (value: unknown) =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -262,6 +263,10 @@ export async function answerRecordsTurn(options: {
   load: () => Promise<DemoData & { source?: "fixtures" | "database" }>;
   now?: () => Date;
 }): Promise<CareAnswer> {
+  const history = ownedFollowupHistory(
+    options.history,
+    options.input.followupRequestId,
+  );
   const now = (options.now ?? (() => new Date()))();
   if (
     recordsRequestAllowed(options.input.message) &&
@@ -288,7 +293,7 @@ export async function answerRecordsTurn(options: {
       actions: [],
       recordsTopic: "reset",
     };
-  const prior = previousRecordsResult(options.history);
+  const prior = previousRecordsResult(history);
   const resolution = resolveRecordsQuery(
     options.input.message,
     now.toISOString().slice(0, 10),

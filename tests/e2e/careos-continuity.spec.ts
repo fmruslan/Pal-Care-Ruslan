@@ -4,7 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 const forma = "/vault/00000000-0000-4000-8000-000000000201";
 const raspberry = "/vault/00000000-0000-4000-8000-000000000204";
 const launcher = (page: import("@playwright/test").Page) =>
-  page.locator(".careos-launcher");
+  page.getByRole("button", { name: "Ask North Star", exact: true });
 
 test("product switching, refresh and clear preserve useful context without mixing documents", async ({
   page,
@@ -19,9 +19,14 @@ test("product switching, refresh and clear preserve useful context without mixin
     .getByRole("button", { name: "Send to North Star", exact: true })
     .click();
   await expect(
-    dialog.getByRole("link", { name: "Open receipt", exact: true }),
+    dialog.getByRole("link", {
+      name: "View full receipt or document",
+      exact: true,
+    }),
   ).toBeVisible();
+  await dialog.focus();
   await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
   await page.goto(raspberry);
   // Explicit purchase actions replace a prior explicit selection; page defaults
   // alone must not overwrite the context retained by the persistent assistant.
@@ -42,12 +47,24 @@ test("product switching, refresh and clear preserve useful context without mixin
       /Safe shutdown for Raspberry Pi 5 running Raspberry Pi OS/,
     ),
   ).toBeVisible();
-  await expect(dialog.locator("[data-answer-scope]")).toHaveText([
-    "Question scope: Everyday headphones · F-01 · Oct 18, 2026 · Sample · PC-000201",
-    "Question scope: Raspberry Pi 5 · 5 · Oct 7, 2026 · Sample · PC-000204",
-  ]);
+  await expect(dialog.locator("[data-answer-scope]")).toHaveText(
+    "Raspberry Pi 5 · 5 · Oct 7, 2026 · Sample · PC-000204",
+  );
+  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog
+    .getByRole("region", { name: "Previous North results", exact: true })
+    .getByRole("button", { name: "Find receipt", exact: true })
+    .click();
+  await expect(dialog.locator("[data-answer-scope]")).toHaveText(
+    "Everyday headphones · F-01 · Oct 18, 2026 · Sample · PC-000201",
+  );
+  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog
+    .getByRole("region", { name: "Previous North results", exact: true })
+    .getByRole("button", { name: "Product care", exact: true })
+    .click();
   await page.reload();
-  await launcher(page).click();
+  await expect(dialog).toBeVisible();
   await expect(
     dialog.getByText(
       /Safe shutdown for Raspberry Pi 5 running Raspberry Pi OS/,
@@ -62,7 +79,8 @@ test("product switching, refresh and clear preserve useful context without mixin
   await expect(
     dialog.getByText("No receipt is attached to this purchase."),
   ).toBeVisible();
-  await dialog.locator('summary[aria-label="North Star options"]').click();
+  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog.getByText("Conversation settings", { exact: true }).click();
   await dialog
     .getByRole("button", { name: "Clear conversation history", exact: true })
     .click();
@@ -73,29 +91,37 @@ test("product switching, refresh and clear preserve useful context without mixin
   ).toHaveCount(0);
 });
 
-test("briefing actions need no conversation and dismissal is browser-local", async ({
+test("Home document and care navigation need no conversation or automatic question", async ({
   page,
 }) => {
-  await page.goto("/dashboard");
-  const briefing = page.getByRole("region", {
-    name: "A little less to keep track of.",
+  const mutations: string[] = [];
+  page.on("request", (request) => {
+    if (!["GET", "HEAD"].includes(request.method()))
+      mutations.push(request.url());
   });
-  await expect(briefing.getByText(/Prepared from saved records/)).toBeVisible();
-  await briefing
-    .getByRole("button", { name: /Dismiss .*receipt ready/ })
-    .click();
+  await page.goto("/dashboard");
+  await page.getByRole("link", { name: "All documents", exact: true }).click();
+  await expect(page).toHaveURL(/\/dashboard\?view=documents$/);
+  await expect(page.getByTestId("library-documents")).toContainText(
+    "Sample document",
+  );
   await page.reload();
-  await expect(
-    briefing.getByRole("link", { name: "View receipt", exact: true }),
-  ).toHaveCount(0);
-  await briefing
-    .getByRole("link", { name: "Explore product care", exact: true })
+  await page
+    .getByRole("navigation", { name: "Main navigation", exact: true })
+    .getByRole("link", { name: "Home", exact: true })
+    .click();
+  await page
+    .getByRole("link", { name: /^View details for Raspberry Pi 5,/ })
+    .click();
+  await page
+    .getByRole("link", { name: "Explore available guidance", exact: true })
     .click();
   await expect(page).toHaveURL(/\/care$/);
   await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(mutations).toEqual([]);
 });
 
-test("assistant reflows, expands and supports modal keyboard focus without payment requests", async ({
+test("assistant reflows in main content and supports nonmodal keyboard traversal without payment requests", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 800 });
@@ -103,10 +129,10 @@ test("assistant reflows, expands and supports modal keyboard focus without payme
   await page.goto(forma);
   await launcher(page).click();
   const dialog = page.getByRole("dialog");
-  await dialog.getByRole("button", { name: "Expand assistant" }).click();
-  await expect(
-    dialog.getByRole("button", { name: "Compact assistant" }),
-  ).toBeVisible();
+  await expect(dialog).toHaveAttribute("aria-modal", "false");
+  expect(await dialog.evaluate((node) => !!node.closest("#main-content"))).toBe(
+    true,
+  );
   await dialog
     .getByLabel("Ask about your purchases", { exact: true })
     .fill("Can I get a refund?");
@@ -124,6 +150,9 @@ test("assistant reflows, expands and supports modal keyboard focus without payme
         .analyze()
     ).violations,
   ).toEqual([]);
+  await dialog
+    .getByRole("textbox", { name: "Ask about your purchases", exact: true })
+    .focus();
   await page.keyboard.press("Escape");
   await expect(launcher(page)).toBeFocused();
 });
@@ -235,6 +264,7 @@ test("a delayed answer retains its original product after client-side navigation
             name: "Everyday headphones",
             model: "F-01",
             origin: "sample",
+            purchasedOn: "2026-10-18",
           },
           revision: input.revision,
           text: "Receipt result for the original headphones.",
@@ -256,10 +286,14 @@ test("a delayed answer retains its original product after client-side navigation
     .getByRole("button", { name: "Send to North Star", exact: true })
     .click();
   await arrived;
+  // Send is disabled while pending and may no longer own keyboard focus.
+  // Escape is a workspace action, not a global page shortcut.
+  await page.getByRole("dialog").focus();
   await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.getByRole("link", { name: "Back to Home" }).click();
   await page
-    .getByRole("link", { name: "View details for Raspberry Pi 5" })
+    .getByRole("link", { name: /^View details for Raspberry Pi 5,/ })
     .click();
   await launcher(page).click();
   release();
@@ -267,11 +301,9 @@ test("a delayed answer retains its original product after client-side navigation
   await expect(
     dialog.getByText("Raspberry Pi 5 · 5", { exact: true }),
   ).toBeVisible();
-  await expect(
-    dialog
-      .locator("[data-answer-scope]")
-      .filter({ hasText: "Everyday headphones · F-01 · Sample" }),
-  ).toBeVisible();
+  await expect(dialog.locator("[data-answer-scope]")).toHaveText(
+    "Everyday headphones · F-01 · Oct 18, 2026 · Sample · PC-000201",
+  );
   await expect(
     dialog.getByText("Receipt result for the original headphones."),
   ).toBeVisible();

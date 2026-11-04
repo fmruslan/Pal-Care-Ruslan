@@ -90,18 +90,17 @@ test("injected Sol protocol: separate private scopes, actual Studio tools, groun
   await dialog
     .getByRole("button", { name: "Send to North Star", exact: true })
     .click();
-  await expect(
-    dialog.getByText("Live AI · check sources", { exact: true }),
-  ).toBeVisible();
+  await expect(dialog.locator("[data-native-north-result]")).toHaveAttribute(
+    "data-answer-mode",
+    "live",
+  );
   await expect(
     dialog.getByText(supportedInstruction, {
       exact: true,
     }),
   ).toBeVisible();
   await page.reload();
-  await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
-    .click();
+  await expect(dialog).toBeVisible();
   await expect(
     page.getByRole("dialog").getByText(supportedInstruction, { exact: true }),
   ).toBeVisible();

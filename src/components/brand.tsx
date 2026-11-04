@@ -6,17 +6,17 @@ export function Brand({ href = "/" }: { href?: string }) {
     <Link
       href={href}
       aria-label="Pal Care home"
-      className="inline-flex shrink-0 items-center gap-2.5 font-semibold tracking-tight text-foreground"
+      className="palcare-brand inline-flex min-h-11 shrink-0 items-center gap-2.5 font-semibold tracking-tight text-foreground"
     >
       <Image
         src="/icon.svg"
-        width={44}
-        height={44}
+        width={36}
+        height={36}
         alt=""
         unoptimized
         aria-hidden="true"
       />
-      <span className="text-xl font-bold">Pal Care</span>
+      <span className="text-xl font-semibold">Pal Care</span>
     </Link>
   );
 }

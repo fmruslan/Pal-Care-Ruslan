@@ -72,6 +72,7 @@ async function transport(
     persist: true,
     long: false,
     unavailable: false,
+    reads: 0,
   };
   await page.route("**/api/careos/conversations**", async (route) => {
     const request = route.request();
@@ -98,7 +99,10 @@ async function transport(
       saved.turns = [];
       await route.fulfill({ json: { cleared: true } });
     } else {
-      if (request.method() === "GET") await options.restoreGate?.promise;
+      if (request.method() === "GET") {
+        state.reads++;
+        await options.restoreGate?.promise;
+      }
       await route.fulfill({
         status: request.method() === "POST" ? 201 : 200,
         json: saved,
@@ -109,7 +113,9 @@ async function transport(
 }
 async function open(page: Page) {
   await page.goto(forma);
-  await page.locator(".careos-launcher").click();
+  await page
+    .getByRole("button", { name: "Ask North Star", exact: true })
+    .click();
   const dialog = page.getByRole("dialog");
   await expect(
     dialog.getByRole("textbox", {
@@ -154,7 +160,9 @@ test("legacy unsent hello never traps Send or suggestions and can be edited with
     { id, context, originalId },
   );
   await page.reload();
-  await page.locator(".careos-launcher").click();
+  await page
+    .getByRole("button", { name: "Ask North Star", exact: true })
+    .click();
   const dialog = page.getByRole("dialog"),
     composer = dialog.getByLabel("Ask about your purchases", { exact: true });
   await expect(dialog.locator("[data-unsent-question]")).toContainText("hello");
@@ -247,7 +255,9 @@ test("an expired conversation hint does not strand a question that never reached
     );
   }, expired);
   await page.reload();
-  await page.locator(".careos-launcher").click();
+  await page
+    .getByRole("button", { name: "Ask North Star", exact: true })
+    .click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.locator("[data-unsent-question]")).toContainText("hello");
   await dialog
@@ -292,7 +302,7 @@ test("question renders before a held response; Enter, newline, IME and repeat gu
     "Find receipt",
   );
   await expect(
-    dialog.getByText("Preparing your answer…", { exact: true }),
+    dialog.getByText("Preparing your result…", { exact: true }),
   ).toBeVisible();
   await expect(dialog.getByText(/Answer begins here/)).toHaveCount(0);
   await page.screenshot({
@@ -309,25 +319,17 @@ test("question renders before a held response; Enter, newline, IME and repeat gu
   await expect(dialog.locator("[data-user-message]")).toHaveCount(1);
   await expect(composer).toHaveValue("A draft for later");
   await expect(composer).toBeFocused();
-  // ResizeObserver restores following after composer/viewport reflow. Await its
-  // actual postcondition rather than racing it in the response's first frame.
-  await expect
-    .poll(() =>
-      dialog
-        .locator(".careos-transcript")
-        .evaluate(
-          (node) => node.scrollHeight - node.clientHeight - node.scrollTop,
-        ),
-    )
-    .toBeLessThan(24);
+  await composer.scrollIntoViewIfNeeded();
+  await expect(composer).toBeInViewport();
+  await expect(dialog).toHaveAttribute("aria-modal", "false");
 });
 
-test("long atomic answers reveal their beginning, while intentional scroll-up pauses follow", async ({
+test("long atomic answers stay in page flow and prior results can be selected without replay or draft loss", async ({
   page,
 }) => {
   const state = await transport(page, { history: true });
   state.long = true;
-  const { dialog, composer, transcript } = await open(page);
+  const { dialog, composer } = await open(page);
   await composer.fill("A long answer please");
   await composer.press("Enter");
   await state.received.promise;
@@ -335,80 +337,48 @@ test("long atomic answers reveal their beginning, while intentional scroll-up pa
   state.hold.release();
   const latest = dialog.locator("[data-latest-answer]");
   await expect(latest).toBeVisible();
-  await expect
-    .poll(async () =>
-      latest.evaluate(
-        (node) =>
-          node.getBoundingClientRect().top -
-          node.closest(".careos-transcript")!.getBoundingClientRect().top,
-      ),
-    )
-    .toBeGreaterThanOrEqual(14);
-  expect(
-    await latest.evaluate(
-      (node) =>
-        node.getBoundingClientRect().top -
-        node.closest(".careos-transcript")!.getBoundingClientRect().top,
-    ),
-  ).toBeLessThan(20);
+  await latest.locator("p").first().scrollIntoViewIfNeeded();
+  await expect(latest.locator("p").first()).toBeInViewport();
+  await expect(dialog.locator("[data-user-message]")).toHaveText(
+    "A long answer please",
+  );
+  const firstId = state.inputs[0].requestId;
 
   state.hold = gate();
   state.received = gate();
   await composer.fill("Another question while I read");
   await composer.press("Enter");
   await state.received.promise;
-  await transcript.evaluate((node) => {
-    node.scrollTop = 120;
-  });
-  await expect(
-    dialog.getByRole("button", { name: "Jump to latest" }),
-  ).toBeVisible();
-  const before = await transcript.evaluate((node) => node.scrollTop);
   state.hold.release();
   await expect(dialog.locator("[data-pending-question]")).toHaveCount(0);
-  expect(
-    Math.abs((await transcript.evaluate((node) => node.scrollTop)) - before),
-  ).toBeLessThan(3);
-  const jump = dialog.getByRole("button", { name: "Jump to latest" });
-  await jump.focus();
-  await jump.press("Enter");
-  await expect(
-    dialog.getByRole("button", { name: "Jump to latest" }),
-  ).toHaveCount(0);
-  await expect(transcript).toBeFocused();
-  expect(
-    await latest.evaluate(
-      (node) =>
-        node.getBoundingClientRect().top -
-        node.closest(".careos-transcript")!.getBoundingClientRect().top,
-    ),
-  ).toBeLessThan(20);
-  await transcript.evaluate((node) => {
-    node.scrollTop = node.scrollHeight;
-  });
-  await expect
-    .poll(() =>
-      transcript.evaluate(
-        (node) => node.scrollHeight - node.clientHeight - node.scrollTop,
-      ),
-    )
-    .toBeLessThan(2);
-  await composer.fill("Typing must not jump back to the answer start");
-  await expect
-    .poll(() =>
-      transcript.evaluate(
-        (node) => node.scrollHeight - node.clientHeight - node.scrollTop,
-      ),
-    )
-    .toBeLessThan(2);
+  await expect(dialog.locator("[data-user-message]")).toHaveText(
+    "Another question while I read",
+  );
+  await composer.fill("Keep this draft while reviewing a prior answer");
+  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog
+    .getByRole("region", { name: "Previous North results", exact: true })
+    .getByRole("button", { name: "A long answer please", exact: true })
+    .click();
+  await expect(dialog.locator("article[data-request-id]")).toHaveAttribute(
+    "data-request-id",
+    firstId,
+  );
+  await expect(dialog.locator("[data-user-message]")).toHaveText(
+    "A long answer please",
+  );
+  await expect(composer).toHaveValue(
+    "Keep this draft while reviewing a prior answer",
+  );
   await page.keyboard.press("Escape");
-  await page.locator(".careos-launcher").click();
-  expect(
-    await transcript.evaluate(
-      (node) => node.scrollHeight - node.clientHeight - node.scrollTop,
-    ),
-    // Fractional dvh/font geometry can round the restored bottom by 2 CSS pixels.
-  ).toBeLessThanOrEqual(3);
+  await expect(dialog).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Ask North Star", exact: true })
+    .click();
+  await expect(dialog.locator("[data-user-message]")).toHaveText(
+    "A long answer please",
+  );
+  expect(state.inputs).toHaveLength(2);
 });
 
 test("an uncertain request survives reload with its identity, and recovery only reads", async ({
@@ -428,9 +398,10 @@ test("an uncertain request survives reload with its identity, and recovery only 
   await expect(
     dialog.getByRole("button", { name: "Check for saved answer" }),
   ).toBeEnabled();
+  await composer.fill("Keep this draft while the original is uncertain");
   await page.reload();
-  await page.locator(".careos-launcher").click();
   dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
   await expect(dialog.locator("[data-user-message]")).toHaveText(
     original.message,
   );
@@ -438,18 +409,36 @@ test("an uncertain request survives reload with its identity, and recovery only 
     "data-request-id",
     original.requestId,
   );
+  await expect(composer).toHaveValue(
+    "Keep this draft while the original is uncertain",
+  );
   await page.screenshot({
     path: test.info().outputPath("uncertain-recovery.png"),
   });
+  const reads = state.reads;
   await dialog.getByRole("button", { name: "Check for saved answer" }).click();
   await expect(dialog.getByRole("alert")).toContainText("No saved answer yet");
   state.saved.turns.push(turn(original));
   await dialog.getByRole("button", { name: "Check for saved answer" }).click();
   await expect(dialog.locator("[data-pending-question]")).toHaveCount(0);
   await expect(dialog.locator("[data-user-message]")).toHaveCount(1);
-  await expect(
-    dialog.getByRole("region", { name: "North Star conversation" }),
-  ).toBeFocused();
+  await expect(dialog.locator("[data-user-message]")).toHaveText(
+    original.message,
+  );
+  await expect(composer).toHaveValue(
+    "Keep this draft while the original is uncertain",
+  );
+  await expect(dialog.locator("article[data-request-id]")).toHaveAttribute(
+    "data-request-id",
+    original.requestId,
+  );
+  // GET recovery must not reopen a keyboard or steal focus after a late answer.
+  // The composer remains available through a deliberate user action.
+  await expect(composer).not.toBeFocused();
+  await expect(composer).toBeEditable();
+  await composer.focus();
+  await expect(composer).toBeFocused();
+  expect(state.reads).toBeGreaterThan(reads);
   expect(state.inputs).toEqual([original]);
 });
 
@@ -491,9 +480,12 @@ test("clear and submission are guarded while saved history is restoring", async 
     sessionStorage.setItem("palcare-careos-conversation", value);
   }, id);
   await page.goto(forma);
-  await page.locator(".careos-launcher").click();
+  await page
+    .getByRole("button", { name: "Ask North Star", exact: true })
+    .click();
   const dialog = page.getByRole("dialog");
-  await dialog.locator('summary[aria-label="North Star options"]').click();
+  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog.getByText("Conversation settings", { exact: true }).click();
   await expect(
     dialog.getByRole("button", {
       name: "Clear conversation history",
@@ -538,7 +530,12 @@ test("source disclosure keeps focus and reading position through expansion", asy
       excerpt: "Saved source text. ".repeat(80),
     },
   ];
-  const { dialog, transcript } = await open(page);
+  const { dialog } = await open(page);
+  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog
+    .getByRole("region", { name: "Previous North results", exact: true })
+    .getByRole("button", { name: "Older question 1", exact: true })
+    .click();
   const summary = dialog.locator("summary").filter({ hasText: "Sources (1)" });
   await summary.scrollIntoViewIfNeeded();
   await summary.focus();
@@ -553,11 +550,9 @@ test("source disclosure keeps focus and reading position through expansion", asy
         before,
     ),
   ).toBeLessThan(3);
-  const scrollTop = await transcript.evaluate((node) => node.scrollTop);
-  await dialog.getByRole("button", { name: "Expand assistant" }).click();
-  expect(
-    Math.abs((await transcript.evaluate((node) => node.scrollTop)) - scrollTop),
-  ).toBeLessThan(3);
+  await expect(dialog.locator("blockquote")).toContainText(
+    "Saved source text.",
+  );
   expect(state.inputs).toHaveLength(0);
 });
 
@@ -576,7 +571,8 @@ test("denied browser storage keeps the in-memory send and clear path usable", as
   await composer.fill("A question without storage");
   await composer.press("Enter");
   await expect(dialog.getByText(/Answer begins here/)).toBeVisible();
-  await dialog.locator('summary[aria-label="North Star options"]').click();
+  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog.getByText("Conversation settings", { exact: true }).click();
   await dialog
     .getByRole("button", { name: "Clear conversation history", exact: true })
     .click();

@@ -301,9 +301,7 @@ test("current browser auth gates Send and legacy unsent hello recovers without c
   await stop();
   await start(true);
   await page.goto(OWNER_ORIGIN + "/dashboard");
-  await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
-    .click();
+  await page.getByRole("button", { name: "History", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
   const input = dialog.getByRole("textbox", {
     name: "Ask about your purchases",
@@ -383,9 +381,7 @@ test("current browser auth gates Send and legacy unsent hello recovers without c
     ),
   );
   await page.goto(OWNER_ORIGIN + "/dashboard");
-  await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
-    .click();
+  await page.getByRole("button", { name: "History", exact: true }).click();
   await expect(dialog.locator("[data-unsent-question]")).toContainText("hello");
   await expect(dialog.locator("[data-pending-question]")).toHaveCount(0);
   await input.fill("What does North Star do?");

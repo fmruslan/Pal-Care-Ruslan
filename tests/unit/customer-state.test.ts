@@ -232,7 +232,7 @@ describe("validated browser-local customer layouts", () => {
       for (const page of state.pages) {
         const pageId = page.id as InsightPage;
         expect(Object.keys(saved.pages[pageId]).sort()).toEqual(
-          [...defaultCustomerWidgetIds[pageId]].sort(),
+          Object.keys(page.widgets!).sort(),
         );
         expect(
           restored.pages.find((p) => p.id === page.id)?.widgetLayout,

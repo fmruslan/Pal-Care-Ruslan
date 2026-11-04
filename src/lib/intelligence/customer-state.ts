@@ -247,17 +247,28 @@ export function customerReport(compact = false): AgReportState {
             ? "Documents & Care"
             : "Price Adjustments",
       widgets: Object.fromEntries(
-        defaultCustomerWidgetIds[id].map((widgetId) => [
-          widgetId,
-          expectedCustomerWidget(id, widgetId),
-        ]),
+        // Fresh views include the existing native value widgets. They remain
+        // optional extras so validated pre-redesign layouts restore unchanged.
+        [
+          ...defaultCustomerWidgetIds[id],
+          ...(id === "purchases"
+            ? ["extra-sample-value", "extra-sandbox-value"]
+            : []),
+        ].map((widgetId) => [widgetId, expectedCustomerWidget(id, widgetId)]),
       ),
       widgetLayout: {
-        count: position(0, 0, id === "purchases" ? 8 : 6, 10),
+        count: position(
+          0,
+          id === "purchases" ? (compact ? 12 : 6) : 0,
+          id === "purchases" ? 8 : 6,
+          id === "purchases" ? 6 : 10,
+        ),
         ...(id === "purchases"
           ? {
-              categories: position(8, compact ? 10 : 0, 16, 20),
-              grid: position(0, compact ? 30 : 20, 24, 22),
+              "extra-sample-value": position(0, 0, 12, 6),
+              "extra-sandbox-value": position(12, compact ? 6 : 0, 12, 6),
+              categories: position(8, compact ? 18 : 6, 16, 20),
+              grid: position(0, compact ? 38 : 26, 24, 22),
             }
           : {}),
         ...(id === "documents"
@@ -268,7 +279,7 @@ export function customerReport(compact = false): AgReportState {
           : {}),
         evidence: position(
           0,
-          id === "purchases" ? (compact ? 52 : 42) : compact ? 34 : 24,
+          id === "purchases" ? (compact ? 60 : 48) : compact ? 34 : 24,
           24,
           25,
         ),

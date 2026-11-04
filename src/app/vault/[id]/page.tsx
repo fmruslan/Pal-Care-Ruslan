@@ -30,7 +30,6 @@ import { contextOf } from "@/lib/careos/contracts";
 import { Button } from "@/components/ui/button";
 import { getKnowledge } from "@/lib/careos/knowledge-repository";
 import { REFERENCE_PRODUCT } from "@/lib/careos/knowledge";
-import { AssistantName } from "@/components/assistant-name";
 import { getGuardian } from "@/lib/price-guardian/runtime";
 import { GuardianCard } from "@/components/guardian";
 import { GuardianTimeline } from "@/components/guardian-timeline";
@@ -79,7 +78,7 @@ export default async function TwinPage({
       <CareContextRegistration context={contextOf(record)} />
       <Link
         href={from}
-        className="mb-5 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary"
+        className="mb-3 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
         Back to Home
@@ -87,30 +86,27 @@ export default async function TwinPage({
       <article
         id="overview"
         aria-label="Purchase Twin passport"
-        className="passport-frame shadow-card"
+        className="customer-purchase-hero overflow-hidden rounded-2xl border bg-card"
       >
-        <div className="overflow-hidden rounded-[27px] bg-card">
-          <header className="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3 sm:px-7">
-            <span className="inline-flex items-center gap-2 text-sm font-semibold">
-              <Layers2 className="size-5 text-primary" aria-hidden="true" />
+        <div>
+          <header className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5 sm:px-7 sm:pt-6">
+            <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+              <Layers2 className="size-4 text-primary" aria-hidden="true" />
               Purchase Twin
-              <span className="hidden font-normal text-muted-foreground sm:inline">
-                / Your digital product passport
-              </span>
             </span>
             <PurchaseBadge origin={twin.origin} />
           </header>
-          <div className="grid items-center gap-5 p-5 sm:p-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-            <div className="min-w-0 lg:col-start-2 lg:row-start-1">
+          <div className="customer-purchase-identity grid items-center gap-5 p-5 sm:gap-7 sm:p-7">
+            <div className="customer-purchase-art min-w-0">
+              <ProductArt kind={product.illustration} size="compact" />
+            </div>
+            <div className="min-w-0">
               <p className="section-label">
                 {product.brand} · {product.model}
               </p>
-              <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl xl:text-4xl">
+              <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
                 {product.name}
               </h1>
-              <div className="float-right ml-3 size-18 lg:hidden">
-                <ProductArt kind={product.illustration} size="thumbnail" />
-              </div>
               <p className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-sm text-muted-foreground">
                 <time dateTime={twin.purchasedOn}>
                   {displayDate(twin.purchasedOn)}
@@ -120,6 +116,10 @@ export default async function TwinPage({
                     ? "Reference sample · amount unavailable"
                     : `${verified ? "Sandbox" : "Sample"} amount ${money(twin.purchasePriceMinor)}`}
                 </span>
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Fictional merchant ·{" "}
+                {twin.productSnapshot?.merchantName ?? data.merchant.name}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {documents
@@ -134,7 +134,10 @@ export default async function TwinPage({
                       </Link>
                     </Button>
                   ))}
-                <AskCareOS context={contextOf(record)} />
+                <AskCareOS
+                  context={contextOf(record)}
+                  label="Ask North about this purchase"
+                />
                 <Button asChild variant="outline">
                   <Link href={withLibraryReturn(`/vault/${id}/care`, from)}>
                     <BookOpen aria-hidden="true" />
@@ -143,54 +146,17 @@ export default async function TwinPage({
                 </Button>
               </div>
             </div>
-            <div className="relative hidden min-w-0 lg:col-start-1 lg:row-start-1 lg:block">
-              <ProductArt kind={product.illustration} size="compact" />
-              <span className="mt-2 block text-xs font-medium text-intelligence-foreground">
-                {careSources.length
-                  ? "Source-backed care available"
-                  : "Pal Care · Purchase assistance"}
-              </span>
-            </div>
-            <div className="min-w-0 lg:col-span-2">
-              <dl className="grid grid-cols-2 gap-x-5 gap-y-4 border-t pt-4 sm:grid-cols-4">
-                {[
-                  [
-                    verified ? "Sandbox purchase" : "Sample purchase",
-                    displayDate(twin.purchasedOn),
-                  ],
-                  [
-                    verified ? "Sandbox price paid" : "Sample price paid",
-                    reference
-                      ? "Not a purchase · reference sample"
-                      : money(twin.purchasePriceMinor),
-                  ],
-                  [
-                    "Fictional merchant",
-                    twin.productSnapshot?.merchantName ?? data.merchant.name,
-                  ],
-                  [
-                    "Payment verification",
-                    verified
-                      ? "COMPLETED · verified server-side"
-                      : "Not connected",
-                  ],
-                ].map(([label, value]) => (
-                  <div key={label} className="min-w-0">
-                    <dt className="text-sm text-muted-foreground">{label}</dt>
-                    <dd className="mt-1.5 break-words text-sm font-semibold tabular-nums">
-                      {value}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-              <div className="mt-4 rounded-xl bg-secondary px-4 py-3 text-sm leading-6 text-secondary-foreground">
-                {verified
-                  ? "A completed PayPal Sandbox capture was retrieved and validated on the server. The product and customer are fictional; no real money was used."
-                  : "This is a sample Purchase Twin, not a verified PayPal purchase."}
-              </div>
-            </div>
           </div>
-          <div className="passport-divider flex flex-wrap items-center justify-between gap-3 px-5 py-4 sm:px-7">
+          <div className="border-t px-5 py-4 sm:px-7">
+            <p className="text-sm leading-6 text-muted-foreground">
+              {verified
+                ? "COMPLETED · verified server-side. A completed PayPal Sandbox capture was retrieved and validated. Fictional product and customer; no real money."
+                : reference
+                  ? "Reference sample ownership only, not a verified PayPal purchase. Its placeholder amount is not a product price."
+                  : "Sample Purchase Twin · not a verified PayPal purchase."}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 px-5 pb-5 text-xs text-muted-foreground sm:px-7">
             <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
               <FileText className="size-4 text-primary" aria-hidden="true" />
               {documents.length} document{documents.length !== 1 && "s"}{" "}
@@ -205,7 +171,7 @@ export default async function TwinPage({
       </article>
       <nav
         aria-label="Purchase sections"
-        className="my-5 flex flex-wrap gap-2 border-b pb-2 text-sm font-semibold text-primary"
+        className="customer-purchase-jumps my-5 flex flex-wrap gap-1 border-b pb-2 text-sm font-semibold"
       >
         {[
           ["#overview", "Overview"],
@@ -215,7 +181,7 @@ export default async function TwinPage({
           <a
             key={href}
             href={href}
-            className="inline-flex min-h-11 items-center rounded-xl px-3 hover:bg-secondary"
+            className="inline-flex min-h-11 items-center rounded-lg px-3 text-foreground hover:bg-secondary hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             {label}
           </a>
@@ -226,7 +192,7 @@ export default async function TwinPage({
           <GuardianCard item={adjustment} />
         </section>
       )}
-      <div className="mt-8 grid grid-cols-1 items-start gap-7 xl:grid-cols-[1.4fr_1fr]">
+      <div className="customer-purchase-sections mt-6 grid grid-cols-1 items-start gap-7 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <div className="min-w-0">
           <section id="documents" aria-labelledby="documents-heading">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -246,7 +212,7 @@ export default async function TwinPage({
             className="mt-8"
           >
             <h2 id="history-heading" className="section-title mb-5">
-              Care history
+              Care & History
             </h2>
             <PurchaseActivity
               activity={projectActivity(
@@ -285,26 +251,20 @@ export default async function TwinPage({
         <div className="space-y-5">
           <section
             aria-labelledby="care-heading"
-            className="intelligence-wash rounded-3xl border p-6 sm:p-7"
+            className="rounded-2xl border bg-card p-5 sm:p-6"
           >
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-2 text-sm font-semibold text-intelligence-foreground">
-                <AssistantName /> <span>· Purchase guidance</span>
-              </span>
-              <Badge tone="intelligence">Available documents only</Badge>
-            </div>
             <h2
               id="care-heading"
-              className="mt-6 text-2xl font-semibold tracking-tight"
+              className="text-lg font-semibold tracking-tight"
             >
-              A useful next step.
+              Product care
             </h2>
-            <h3 className="mt-5 text-base font-semibold">Product care</h3>
             <p className="mt-3 text-sm leading-7 text-muted-foreground">
               {careSources.length
                 ? "Explore matched manufacturer guidance for this reference product. Ownership is sample-only; documentation has its own source."
                 : `No manufacturer care guide is available for ${product.brand} ${product.model}. North Star can still find your receipt and explain saved purchase details.`}{" "}
-              No live AI model is connected in fixture mode.
+              Guidance availability does not establish warranty or recall
+              status.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               <Button asChild variant="outline">
@@ -315,9 +275,7 @@ export default async function TwinPage({
             </div>
           </section>
           <Card>
-            <h2 className="text-base font-semibold">
-              What we know. What we don’t.
-            </h2>
+            <h2 className="text-base font-semibold">Record coverage</h2>
             <dl className="mt-5 space-y-5">
               {[
                 {

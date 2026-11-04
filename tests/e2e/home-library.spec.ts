@@ -93,6 +93,10 @@ test("All documents is one action away; legacy routes preserve filters and docum
   await expect(page.locator('input[id="library-search"]')).toHaveCount(1);
   await expect(page).toHaveURL(/\/dashboard\?q=kettle&category=Kitchen$/);
   await expect(search(page)).toHaveValue("kettle");
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Filters & sort/ })
+    .click();
   await expect(page.getByLabel("Category", { exact: true })).toHaveValue(
     "Kitchen",
   );
@@ -136,7 +140,7 @@ test("visible product sections, dated receipt, source labels and safe return nav
   ).toContainText("SAMPLE DATA ONLY");
 });
 
-test("North draft and pinned context survive unified search, product, document and Insights navigation without auto-send", async ({
+test("one North field retains drafts until explicit search, while pinned context survives product, document and Insights navigation without auto-send", async ({
   page,
 }) => {
   const turns: string[] = [],
@@ -166,6 +170,7 @@ test("North draft and pinned context survive unified search, product, document a
     .getByRole("button", { name: "Close North Star", exact: true })
     .click();
   await page.getByRole("link", { name: "Back to Home", exact: true }).click();
+  await expect(search(page)).toHaveValue("Retain this Home-library draft");
   await search(page).fill("kettle receipt");
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await page
@@ -174,11 +179,12 @@ test("North draft and pinned context survive unified search, product, document a
     .click();
   await page
     .getByRole("button", {
-      name: "Ask North Star about this purchase",
+      name: "Ask North Star about this document",
       exact: true,
     })
     .click();
-  await expect(composer).toHaveValue("Retain this Home-library draft");
+  await expect(composer).toHaveValue("");
+  await composer.fill("Continue care after the explicit metadata search");
   await expect(dialog.locator(".careos-context strong")).toHaveText(
     "Pour-over kettle · H-02",
   );
@@ -195,7 +201,9 @@ test("North draft and pinned context survive unified search, product, document a
   await page
     .getByRole("button", { name: "Ask North Star", exact: true })
     .click();
-  await expect(composer).toHaveValue("Retain this Home-library draft");
+  await expect(composer).toHaveValue(
+    "Continue care after the explicit metadata search",
+  );
   await expect(dialog.locator(".careos-context strong")).toHaveText(
     "Pour-over kettle · H-02",
   );

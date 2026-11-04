@@ -30,8 +30,12 @@ test("CareOS finds the scoped receipt and stays available during navigation", as
   await expect(
     assistant.getByText("From saved records · no model call"),
   ).toBeVisible();
+  const requestId = await assistant
+    .locator("article[data-request-id]")
+    .getAttribute("data-request-id");
+  expect(requestId).not.toBeNull();
   await assistant
-    .getByRole("link", { name: "Open receipt", exact: true })
+    .getByRole("link", { name: "View full receipt or document", exact: true })
     .click();
   await expect(page).toHaveURL(
     /\/documents\/00000000-0000-4000-8000-000000000301$/,
@@ -43,9 +47,24 @@ test("CareOS finds the scoped receipt and stays available during navigation", as
     await page
       .getByRole("button", { name: "Ask North Star", exact: true })
       .click();
+  // The original document reader is already visible; North must not duplicate
+  // that receipt preview. Its retained answer still exposes the exact source.
   await expect(
-    assistant.getByRole("link", { name: "Open receipt", exact: true }),
-  ).toBeVisible();
+    assistant.getByRole("region", { name: "Receipt and document preview" }),
+  ).toHaveCount(0);
+  await expect(assistant.locator("article[data-request-id]")).toHaveAttribute(
+    "data-request-id",
+    requestId!,
+  );
+  await assistant.locator("summary").filter({ hasText: "Sources (2)" }).click();
+  const source = assistant.locator(
+    `a[href="/documents/00000000-0000-4000-8000-000000000301"]`,
+  );
+  await expect(source).toBeVisible();
+  await expect(source).toHaveAttribute(
+    "href",
+    "/documents/00000000-0000-4000-8000-000000000301",
+  );
   await expect(
     assistant.getByText("From saved records · no model call"),
   ).toBeVisible();
