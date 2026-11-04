@@ -150,11 +150,17 @@ export function CareOSProvider({
       const intent = careIntent.current;
       if (!intent) return;
       const checked = intent.expected.every((expected) => {
-        const card = [
+        const cards = [
           ...document.querySelectorAll<HTMLElement>(
             '[data-ownership-surface="care"]',
           ),
-        ].find((card) => card.dataset.ownershipTwin === expected.twinId);
+        ].filter(
+          (card) =>
+            card.dataset.ownershipTwin === expected.twinId &&
+            card.getClientRects().length > 0 &&
+            !card.closest('[aria-hidden="true"], [hidden]'),
+        );
+        const card = cards.length === 1 ? cards[0] : null;
         return (
           !!card &&
           careHomepagePostcondition(expected, {
@@ -165,7 +171,9 @@ export function CareOSProvider({
             visible:
               card.getClientRects().length > 0 &&
               !card.closest('[aria-hidden="true"], [hidden]') &&
-              !!card.querySelector('[aria-current="step"]'),
+              !!card.querySelector(
+                `[data-care-milestone="${expected.topic}"][aria-current="step"]`,
+              ),
             facts: card.querySelectorAll("[data-care-focus-fact]").length,
           })
         );

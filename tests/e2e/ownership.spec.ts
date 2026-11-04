@@ -18,7 +18,7 @@ test("Care itself shows compact shared pills and SVG milestones, with exact-card
   });
   await page.goto("/dashboard?milestone=delivery");
   await expect(page.locator("[data-ownership-panel]")).toHaveCount(0);
-  const cards = page.locator("[data-care-product]");
+  const cards = page.getByRole("main").locator("[data-care-product]");
   expect(await cards.count()).toBeGreaterThan(0);
   expect(
     new Set(
@@ -43,7 +43,7 @@ test("Care itself shows compact shared pills and SVG milestones, with exact-card
       await card.locator("[data-care-timeline] svg").count(),
     ).toBeGreaterThanOrEqual(5);
   }
-  const card = page.locator(`[data-care-product="${twin}"]`);
+  const card = page.getByRole("main").locator(`[data-care-product="${twin}"]`);
   const delivery = card.locator('[data-care-milestone="delivery"]');
   await delivery.focus();
   await page.keyboard.press("Enter");
@@ -53,12 +53,13 @@ test("Care itself shows compact shared pills and SVG milestones, with exact-card
   await page.keyboard.press("Escape");
   await expect(delivery).toBeFocused();
   const other = cards.last();
+  const otherTwin = (await other.getAttribute("data-care-product"))!;
   const warranty = other.locator('[data-care-milestone="warranty"]');
   await warranty.focus();
   await page.keyboard.press("Enter");
   await expect(page.locator("[data-ownership-panel]")).toHaveAttribute(
     "data-ownership-twin",
-    (await other.getAttribute("data-care-product"))!,
+    otherTwin,
   );
   await page.keyboard.press("Escape");
   await expect(warranty).toBeFocused();
@@ -69,9 +70,9 @@ test("injected North highlights the homepage milestone beside its answer, valida
   page,
 }) => {
   await page.goto("/dashboard");
-  const scope = page.locator(
-    `[data-ownership-surface="care"][data-ownership-twin="${twin}"]`,
-  );
+  const scope = page
+    .getByRole("main")
+    .locator(`[data-ownership-surface="care"][data-ownership-twin="${twin}"]`);
   const revision = (await scope.getAttribute("data-ownership-revision"))!;
   const {
     version: _v,
@@ -128,6 +129,10 @@ test("injected North highlights the homepage milestone beside its answer, valida
   const north = page.getByRole("dialog", { name: "North Star", exact: true });
   await expect(north).toContainText(
     "Visible cards, supporting facts and evidence revisions were checked",
+  );
+  await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Care for what you own.",
   );
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(scope).toHaveAttribute("data-care-focused", "delivery");

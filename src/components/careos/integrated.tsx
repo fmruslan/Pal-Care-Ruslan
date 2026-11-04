@@ -323,7 +323,9 @@ export function IntegratedNorthView({
   state: IntegratedNorthState;
 }) {
   const pathname = usePathname();
-  const collectionPage = ["/dashboard", "/purchases"].includes(pathname);
+  // Care retains its page heading/cards beside North; only Purchases replaces
+  // its collection. Keep one page-level heading through recovery and History.
+  const collectionPage = pathname === "/purchases";
   const QuestionHeading = collectionPage ? "h1" : "h2";
   const historyOpen = s.historyOpen,
     setHistoryOpen = s.setHistoryOpen;
