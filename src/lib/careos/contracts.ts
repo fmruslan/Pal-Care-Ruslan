@@ -56,6 +56,13 @@ export type Evidence = {
   excerpt?: string;
 };
 export type CareAnswer = {
+  /** Server-derived immutable ownership snapshot metadata; never write authority. */
+  ownershipAsOf?: string;
+  ownershipPresentation?: {
+    twinId: string;
+    topic: import("../care/ownership").OwnershipTopic;
+    revision: string;
+  };
   /** Exact server-derived Care selection, retained only in owned saved history. */
   careSelection?: string[];
   /** Retained bounded live tool plan; application facts/identity remain final. */

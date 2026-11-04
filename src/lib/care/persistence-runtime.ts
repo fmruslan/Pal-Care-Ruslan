@@ -5,7 +5,7 @@ import { getEnvironment } from "../config";
 import { emptySavedCare, readSavedCare } from "./store";
 
 /** Default off; no new table query before the separately approved rollout. */
-export async function getSavedCare() {
+export async function getSavedCare(twinId?: string) {
   if (process.env.CARE_RECORDS_ENABLED !== "true") return emptySavedCare();
   const config = getEnvironment();
   if (config.dataSource !== "database")
@@ -17,5 +17,5 @@ export async function getSavedCare() {
   await assertDatabaseAuthority(database.pool, "care_reader", {
     requiredReads: ["care_cases", "care_case_events", "care_watches"],
   });
-  return readSavedCare(database.pool);
+  return readSavedCare(database.pool, twinId);
 }

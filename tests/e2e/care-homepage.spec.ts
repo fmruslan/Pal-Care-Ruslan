@@ -44,12 +44,20 @@ test("price card opens exact purchase comparison and working return draft withou
     .locator(`[data-care-card="price:${headphones}"]`)
     .getByRole("link", { name: "Compare prices" })
     .click();
-  await expect(page).toHaveURL(new RegExp(`/care/${headphones}#price$`));
-  await expect(page.locator("#price")).toContainText("$149.00");
-  await expect(page.locator("#price")).toContainText("$129.00");
-  await expect(page.locator("#price")).toContainText(
-    "Price watches are not active",
+  await expect(page).toHaveURL(
+    new RegExp(`/vault/${headphones}\\?milestone=price$`),
   );
+  const evidence = page.getByRole("dialog", {
+    name: "Price comparison",
+    exact: true,
+  });
+  await expect(evidence).toContainText("$149.00");
+  await expect(evidence).toContainText("$129.00");
+  await expect(evidence).toContainText("not continuous monitoring");
+  await evidence
+    .getByRole("button", { name: "Close ownership evidence", exact: true })
+    .click();
+  await page.locator('[data-ownership-milestone="returns"]').click();
   await page
     .getByRole("button", { name: "Prepare return message", exact: true })
     .click();
@@ -62,6 +70,10 @@ test("price card opens exact purchase comparison and working return draft withou
     .getByRole("button", { name: "Discard draft", exact: true })
     .click();
   await expect(draft).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Close ownership evidence", exact: true })
+    .click();
+  await page.goto(`/care/${headphones}`); // Existing direct Care URLs remain supported.
   await expect(page.locator("#refunds")).toContainText("No verified refund");
   await expect(page.locator("#warranty")).toContainText(
     "No verified warranty expiration date",

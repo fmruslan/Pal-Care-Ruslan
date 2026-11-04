@@ -406,6 +406,52 @@ test("actual restricted Care logins persist manual timelines/warranties and dail
     assert.equal(saved.warranties[0].expiresOn, expiresOn);
     assert.equal(saved.warranties[0].evidence.kind, "manual");
     assert.equal(saved.watches[0].state, "paused");
+    // Exact product detail uses the same restricted reader without depending on
+    // the bounded library. Its timeline/North projection preserves manual origin.
+    assert.deepEqual(await readSavedCare(reader, twinId), saved);
+    const otherCare = await readSavedCare(
+      reader,
+      "00000000-0000-4000-8000-000000000202",
+    );
+    assert.deepEqual(otherCare, {
+      returns: [],
+      warranties: [],
+      watches: [],
+      complete: true,
+    });
+    await assert.rejects(readSavedCare(reader, "not-a-twin"));
+    const { careFeed } = await import("../../src/lib/care/model");
+    const { careStatusAnswer } = await import("../../src/lib/care/answer");
+    const { demoData } = await import("../../src/lib/demo/fixtures");
+    const { emptyOverview } =
+      await import("../../src/lib/price-guardian/projections");
+    const projected = careFeed({
+      data: demoData,
+      guardian: emptyOverview(),
+      knowledge: [],
+      activity: { items: [], unavailable: [] },
+      savedCare: saved,
+      now: new Date(),
+    });
+    const ownership = projected.ownership.find((v) => v.twinId === twinId)!;
+    assert.equal(
+      ownership.facts.find((f) => f.topic === "warranty")!.date,
+      expiresOn,
+    );
+    assert.equal(
+      ownership.facts.find((f) => f.topic === "warranty")!.verified,
+      false,
+    );
+    assert.ok(
+      careStatusAnswer(projected, 0, [twinId], "warranty").steps.some((text) =>
+        text.includes(expiresOn),
+      ),
+    );
+    assert.ok(
+      ownership.history
+        .filter((f) => f.topic === "returns")
+        .every((f) => f.provenance === "Reported by you"),
+    );
     assert.equal(await pauseWatches(worker, false), 1);
     assert.equal(
       (await checkDueWatches(worker)).checked,

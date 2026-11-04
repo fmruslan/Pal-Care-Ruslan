@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import * as Dialog from "@radix-ui/react-dialog";
 import Link from "next/link";
@@ -69,6 +69,11 @@ import {
   northWorkspaceKey,
   readNorthWorkspace,
 } from "@/lib/north-presentation";
+import {
+  ownershipPostcondition,
+  ownershipPresentationTarget,
+  type OwnershipPresentation,
+} from "@/lib/care/ownership-presentation";
 
 type AssistantState = {
   select: (context: CareContext | null) => void;
@@ -126,6 +131,62 @@ export function CareOSProvider({
     };
   }, [aiExpiresAt]);
   const pathname = usePathname();
+  const router = useRouter();
+  const ownershipIntent = useRef<{
+    expected: OwnershipPresentation;
+    requestId: string;
+  } | null>(null);
+  const [ownershipNotice, setOwnershipNotice] = useState("");
+  const [ownershipNoticeFor, setOwnershipNoticeFor] = useState<string | null>(
+    null,
+  );
+  useEffect(() => {
+    const verify = () => {
+      const intent = ownershipIntent.current;
+      if (!intent) return;
+      const panel = document.querySelector<HTMLElement>(
+        "[data-ownership-panel]",
+      );
+      if (!panel) return;
+      const actual = {
+        pathname: window.location.pathname,
+        milestone: new URLSearchParams(window.location.search).get("milestone"),
+        twinId: panel.dataset.ownershipTwin,
+        topic: panel.dataset.ownershipTopic,
+        revision: panel.dataset.ownershipRevision,
+        open: panel.dataset.state === "open",
+        visible:
+          panel.getClientRects().length > 0 &&
+          !panel.closest('[aria-hidden="true"]'),
+        facts: panel.querySelectorAll("[data-ownership-fact]").length,
+      };
+      if (ownershipPostcondition(intent.expected, actual)) {
+        setOwnershipNoticeFor(intent.requestId);
+        setOwnershipNotice(
+          `Opened ${intent.expected.topic} evidence for the exact purchase. Current route, visible milestone and evidence revision were checked.`,
+        );
+        ownershipIntent.current = null;
+      } else if (
+        actual.pathname === `/vault/${intent.expected.twinId}` &&
+        actual.milestone === intent.expected.topic
+      ) {
+        setOwnershipNoticeFor(intent.requestId);
+        setOwnershipNotice(
+          "Ownership evidence changed or the requested milestone could not be verified. Review the current records; no status or financial change was made.",
+        );
+        ownershipIntent.current = null;
+      }
+    };
+    const depart = () => {
+      ownershipIntent.current = null;
+    };
+    window.addEventListener("palcare-ownership-visible", verify);
+    window.addEventListener("popstate", depart);
+    return () => {
+      window.removeEventListener("palcare-ownership-visible", verify);
+      window.removeEventListener("popstate", depart);
+    };
+  }, []);
   const visible =
     /^\/(dashboard|purchases|care|vault|documents|guardian|safety|replacements|insights|shop|checkout)(\/|$)/.test(
       pathname,
@@ -168,6 +229,7 @@ export function CareOSProvider({
   useEffect(
     () =>
       registerDeparture(() => {
+        ownershipIntent.current = null;
         presentationEpoch.current++;
         setRecordsSubmission(null);
         setReturnFocusRequested(false);
@@ -561,6 +623,8 @@ export function CareOSProvider({
       setRecordsSubmission(savedRecords ? requestId : null);
       setSubmittedOrder((prior) => [...prior, requestId]);
       setDiscoveryNotice("");
+      setOwnershipNotice("");
+      setOwnershipNoticeFor(null);
       setDismissedChoices((prior) => [
         ...prior,
         ...turns
@@ -581,20 +645,41 @@ export function CareOSProvider({
           modelInterpretation ? "interpret" : "turns",
           (turn) => {
             if (
-              !conversationalAI ||
               admittedEpoch !== presentationEpoch.current ||
               !turn.answer.conversationPlan ||
               turn.answer.revision !== revision.current
             )
               return;
             if (
-              turn.answer.context ||
-              (turn.answer.questionScope === "library" &&
-                turn.answer.conversationPlan.relation === "fresh")
+              conversationalAI &&
+              (turn.answer.context ||
+                (turn.answer.questionScope === "library" &&
+                  turn.answer.conversationPlan.relation === "fresh"))
             ) {
               explicitContext.current = true;
               setContextExplicit(true);
               updateContext(turn.answer.context);
+            }
+            if (
+              turn.answer.ownershipPresentation &&
+              !historySelection.current
+            ) {
+              const expected = turn.answer.ownershipPresentation;
+              if (expected.twinId !== turn.answer.context?.twinId) return;
+              const href = ownershipPresentationTarget(expected);
+              ownershipIntent.current = { expected, requestId: turn.requestId };
+              setOwnershipNotice("");
+              setRecordsSubmission(null);
+              setOpen(false);
+              if (
+                `${window.location.pathname}${window.location.search}` === href
+              )
+                window.dispatchEvent(
+                  new CustomEvent("palcare-open-ownership", {
+                    detail: expected,
+                  }),
+                );
+              else router.push(href);
             }
           },
         );
@@ -655,6 +740,7 @@ export function CareOSProvider({
   }, [integrated]);
 
   function closeWorkspace() {
+    ownershipIntent.current = null;
     presentationEpoch.current++;
     insights.cancelRecords();
     setRecordsSubmission(null);
@@ -690,6 +776,8 @@ export function CareOSProvider({
   }, [integrated, isOpen, returnFocusRequested]);
   const integratedState: IntegratedNorthState = {
     isOpen,
+    ownershipNotice,
+    ownershipNoticeFor,
     turns,
     activeId: activeResultId,
     historyOpen: integratedHistoryOpen,

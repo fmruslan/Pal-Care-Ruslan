@@ -110,7 +110,7 @@ describe("Care read-only domain", () => {
     expect(item.provenance).toContain("not continuous monitoring");
     expect(item.verified).toBe(false);
     expect(item.group).toBe("action");
-    expect(item.action.href).toBe(`/care/${id(201)}#price`);
+    expect(item.action.href).toBe(`/vault/${id(201)}?milestone=price`);
     expect(result.items.some((i) => i.kind === "return")).toBe(false);
     expect(result.tracking.warranties).toContain("No verified");
   });
@@ -196,8 +196,12 @@ describe("Care read-only domain", () => {
       const answer = careStatusAnswer(feed(), 0, [id(201)], topic);
       expect(answer.outcome).toBe("missing");
       expect(answer.text).toContain("No ");
-      expect(answer.steps).toEqual([]);
-      expect(answer.actions[0].href).toMatch(/^\/care\//);
+      expect(answer.steps.join(" ")).toMatch(
+        /No (?:confirmed|supported|verified)|not refund evidence/,
+      );
+      expect(answer.actions[0].href).toBe(
+        `/vault/${id(201)}?milestone=${topic}`,
+      );
     },
   );
   it("North cannot turn incomplete evidence into an all-clear", () => {
@@ -537,7 +541,7 @@ describe("North model-planned Care tool", () => {
     });
     expect(answer.context?.twinId).toBe(id(202));
     expect(answer.text).toContain("nothing is submitted");
-    expect(answer.actions[0].href).toBe(`/care/${id(202)}#returns`);
+    expect(answer.actions[0].href).toBe(`/vault/${id(202)}?milestone=returns`);
   });
   it("does not narrow a fresh broad Care question to an old selected purchase", async () => {
     const { options } = setup();

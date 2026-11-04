@@ -2,6 +2,7 @@ import type { CareAnswer } from "../careos/contracts";
 import type { CareFeed } from "./model";
 import { careDetailHref } from "./model";
 import { evidenceLabel } from "./contracts";
+import { ownershipHref, ownershipTopic } from "./ownership";
 
 /** Same server-derived facts as Care cards. No model-written statuses/amounts. */
 export function careStatusAnswer(
@@ -10,6 +11,111 @@ export function careStatusAnswer(
   ids: string[],
   topic: string,
 ): CareAnswer {
+  const open = topic.startsWith("open_");
+  const requested = open ? topic.slice(5) : topic;
+  const normalized = requested === "payment" ? "purchase" : requested;
+  const selected = feed.ownership.filter((v) => ids.includes(v.twinId));
+  if (
+    ownershipTopic(normalized) ||
+    (normalized === "summary" && selected.length === 1)
+  ) {
+    const scoped =
+      selected.length > 1 && ["price", "refunds"].includes(normalized)
+        ? selected.filter((view) =>
+            view.facts.some(
+              (fact) =>
+                (fact.topic === normalized ||
+                  (normalized === "price" && fact.topic === "watch")) &&
+                !["unknown", "unavailable"].includes(fact.state),
+            ),
+          )
+        : selected;
+    const purchases = feed.purchases.filter((p) =>
+      scoped.some((view) => view.twinId === p.id),
+    );
+    const matching = scoped.flatMap((view) =>
+      view.facts
+        .filter(
+          (fact) =>
+            normalized === "summary" ||
+            fact.topic === normalized ||
+            (normalized === "price" &&
+              ["price-window", "watch"].includes(fact.topic)) ||
+            (normalized === "returns" && fact.topic === "return-window"),
+        )
+        .sort(
+          (a, b) =>
+            Number(b.topic === normalized) - Number(a.topic === normalized),
+        )
+        .map((fact) => ({
+          fact,
+          view,
+          purchase: purchases.find((p) => p.id === view.twinId)!,
+        })),
+    );
+    const known = matching.some(
+      ({ fact }) => !["unknown", "unavailable"].includes(fact.state),
+    );
+    const unavailable = selected.some(
+      (view) => !view.complete || view.unavailable.length > 0,
+    );
+    const target = ownershipTopic(normalized);
+    const single = purchases.length === 1 ? purchases[0] : null;
+    const sources = matching
+      .flatMap(({ fact }) => fact.sources)
+      .concat(
+        purchases.flatMap((p) =>
+          p.documentLinks.map((d) => ({ label: d.title, href: d.href })),
+        ),
+      );
+    return {
+      careSelection: purchases.map((p) => p.id),
+      ownershipAsOf: feed.observedAt,
+      ...(open && selected.length === 1 && target && matching.length
+        ? {
+            ownershipPresentation: {
+              twinId: selected[0].twinId,
+              topic: target,
+              revision: selected[0].revision,
+            },
+          }
+        : {}),
+      outcome: unavailable ? "unavailable" : known ? "answered" : "missing",
+      mode: "deterministic",
+      revision,
+      questionScope: single ? "purchase" : "library",
+      context: single
+        ? {
+            twinId: single.id,
+            name: single.name,
+            model: single.model,
+            origin: single.origin,
+            purchasedOn: single.purchasedOn,
+          }
+        : null,
+      text: `${known ? "Here is what the shared ownership records show." : "No verified outcome or deadline is established in the available evidence."}${unavailable ? " Some evidence is unavailable or incomplete; absence is not confirmed." : ""}${normalized === "returns" ? " I can help prepare a return enquiry; nothing is submitted." : ""} These are source-linked facts, not permission to send requests or money.`,
+      steps: matching
+        .slice(0, 16)
+        .map(
+          ({ fact, purchase }) =>
+            `${purchase.name} (${purchase.purchasedOn}) — ${fact.title}: ${fact.status}. ${fact.detail} ${fact.provenance}.`,
+        ),
+      sources: [
+        ...new Map(sources.map((source) => [source.href, source])).values(),
+      ]
+        .slice(0, 12)
+        .map((source, index) => ({
+          id: `ownership-source-${index}`,
+          title: source.label,
+          label: "Source-linked ownership evidence · see individual provenance",
+          href: source.href,
+        })),
+      actions: purchases.slice(0, 4).map((p) => ({
+        label: `Review ${normalized === "summary" ? "ownership" : normalized} · ${p.name}`,
+        href: ownershipHref(p.id, target ?? "purchase"),
+      })),
+    };
+  }
   const purchases = feed.purchases.filter((p) => ids.includes(p.id));
   const items = feed.items.filter(
     (item) =>
@@ -66,6 +172,7 @@ export function careStatusAnswer(
           : [];
   const hasFacts = items.length > 0 || recorded.length > 0;
   return {
+    ownershipAsOf: feed.observedAt,
     careSelection: ["summary", "attention", "price", "refunds"].includes(topic)
       ? [
           ...new Set([

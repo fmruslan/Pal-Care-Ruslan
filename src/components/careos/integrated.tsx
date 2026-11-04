@@ -22,6 +22,8 @@ import { ownerSendMessage, type OwnerSendState } from "./owner-status";
 
 export type IntegratedNorthState = {
   isOpen: boolean;
+  ownershipNotice: string;
+  ownershipNoticeFor: string | null;
   turns: CareTurn[];
   activeId: string | null;
   historyOpen: boolean;
@@ -694,6 +696,25 @@ export function IntegratedNorthView({
                     Return to Insights to apply saved view
                   </Link>
                 ))}
+              {answer!.ownershipAsOf && (
+                <p className="text-xs leading-6 text-muted-foreground">
+                  Ownership answer as of{" "}
+                  <time dateTime={answer!.ownershipAsOf}>
+                    {displayDate(answer!.ownershipAsOf!)}
+                  </time>
+                  . Earlier answers keep their original evidence; open the
+                  milestone or ask again for current saved facts.
+                </p>
+              )}
+              {s.ownershipNotice &&
+                s.ownershipNoticeFor === active.requestId && (
+                  <p
+                    role="status"
+                    className="text-sm leading-6 text-intelligence-foreground"
+                  >
+                    {s.ownershipNotice}
+                  </p>
+                )}
               {!!answer!.sources.length && (
                 <details className="rounded-xl border bg-card px-4 text-sm">
                   <summary className="min-h-11 cursor-pointer py-3">

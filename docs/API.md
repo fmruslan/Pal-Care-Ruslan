@@ -1,5 +1,13 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
+## Ownership milestones — candidate under verification
+
+`/vault/{twinId}?milestone={topic}` opens an exact saved-product milestone. Allowlisted topics: `purchase`, `shipment`, `delivery`, `price`, `price-window`, `return-window`, `returns`, `refunds`, `warranty`, `safety`, `watch`. Invalid values grant no data/write/command authority. Existing Twin, document and `/care/{id}#...` links remain supported. **No mutation/provider endpoint is added.**
+
+The shared read projection includes source-labeled facts, unknown/unavailable states, bounded history, `asOf` and a non-security content revision. Loads, saved-record refresh and milestone clicks issue no model/financial/external-polling request. Existing catalog monitoring stays separately bounded.
+
+North's current `aftercare` task gains ownership topics; `productAction=open_{topic}` proposes presentation only. Server-derived exact Twin/topic/revision becomes `ownershipPresentation`; fresh submission/navigation generations and actual route/open-visible-panel/revision postconditions gate success. Historical/recovered answers never auto-execute it. `ownershipAsOf` labels the original immutable answer; it neither rewrites history nor replenishes accounting. Unknown dispatch keeps its original UUID and GET-only recovery. [Scope and activation boundaries](OWNERSHIP-TIMELINE-PLAN.md).
+
 ## Care homepage contract — implementation under verification
 
 - `/` opens `/dashboard` (Care). `/purchases` retains unified product/document metadata search; legacy `/dashboard` URLs carrying library query fields normalize to Purchases. `/vault` and `/documents` list redirects retain supported scope. Exact dated Twin/document/download URLs stay unchanged. `/about` retains the informational landing page.

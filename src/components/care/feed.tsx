@@ -4,6 +4,7 @@ import { ProductArt } from "../product-art";
 import { Button } from "../ui/button";
 import { displayDate } from "@/lib/demo/presentation";
 import type { CareFeed, CareItem } from "@/lib/care/model";
+import { OwnershipIcon } from "./ownership";
 
 function CareCard({ item }: { item: CareItem }) {
   const p = item.purchase;
@@ -31,6 +32,18 @@ function CareCard({ item }: { item: CareItem }) {
         >
           {item.verified && (
             <Check className="size-4 shrink-0" aria-hidden="true" />
+          )}
+          {!item.verified && (
+            <OwnershipIcon
+              topic={
+                item.kind === "return"
+                  ? "returns"
+                  : item.kind === "refund"
+                    ? "refunds"
+                    : item.kind
+              }
+              className="size-4 shrink-0 text-primary"
+            />
           )}
           {item.status}
         </p>
@@ -113,6 +126,34 @@ export function CareFeedView({
       )}
       {!shown.length && (
         <section className="rounded-2xl border bg-card px-6 py-10 text-center">
+          <svg
+            viewBox="0 0 80 48"
+            className="mx-auto mb-4 h-12 w-20 text-primary"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M8 25h64M22 12v26m36-26v26"
+              stroke="currentColor"
+              strokeOpacity=".3"
+              strokeWidth="2"
+            />
+            <circle
+              cx="40"
+              cy="25"
+              r="13"
+              className="fill-card"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+            <path
+              d="m34 25 4 4 8-9"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
           <h2 className="text-lg font-semibold">
             {completed
               ? "No completed care tasks recorded."

@@ -8,6 +8,7 @@ import type { PurchaseActivity } from "../careos/activity";
 import type { GuardianOverview } from "../price-guardian/contracts";
 import type { SavedCare } from "./store";
 import { evidenceLabel, returnTimeline, warrantyDeadline } from "./contracts";
+import { ownershipHref, ownershipView } from "./ownership";
 
 export type CareItem = {
   id: string;
@@ -27,7 +28,9 @@ export type CareItem = {
 };
 
 export function careDetailHref(twinId: string, topic = "overview") {
-  return `/care/${twinId}${topic === "overview" ? "" : `#${topic}`}`;
+  return ["price", "returns", "refunds", "warranty"].includes(topic)
+    ? ownershipHref(twinId, topic)
+    : `/care/${twinId}`;
 }
 
 /** Pure projection. Loading Care does not dispatch AI, jobs or payment requests. */
@@ -65,7 +68,13 @@ export function careFeed(options: {
     const base = { purchase: p, evidence, verified: false };
     const returns = returnTimeline(p.id, options.savedCare?.returns ?? []);
     for (const caseId of new Set(returns.map((r) => r.caseId))) {
-      const last = returns.filter((r) => r.caseId === caseId).at(-1)!;
+      const last = returns
+        .filter(
+          (r) =>
+            r.caseId === caseId && r.evidence.effectiveOn <= at.slice(0, 10),
+        )
+        .at(-1);
+      if (!last) continue;
       if (["cancelled", "rejected"].includes(last.state)) continue;
       items.push({
         ...base,
@@ -82,7 +91,7 @@ export function careFeed(options: {
             ? "Return message prepared · not sent"
             : `Return ${last.state} · ${evidenceLabel(last.evidence).toLowerCase()}`,
         detail:
-          "Only recorded milestones are shown. Return progress does not establish a refund or merchant approval beyond its stated evidence.",
+          "Only recorded milestones are shown. No refund is inferred. Return progress does not establish a refund or merchant approval beyond its stated evidence.",
         provenance: evidenceLabel(last.evidence),
         at: last.evidence.recordedAt,
         priority: 2,
@@ -105,7 +114,7 @@ export function careFeed(options: {
           id: `warranty:${p.id}`,
           kind: "warranty",
           group: "action",
-          status: `Recorded warranty date in ${warranty.days} days · ${evidenceLabel(warranty.evidence).toLowerCase()}`,
+          status: `Recorded warranty date ${warranty.days === 0 ? "is today" : `in ${warranty.days} days`} · ${evidenceLabel(warranty.evidence).toLowerCase()}`,
           detail: `${warranty.expiresOn} · ${warranty.basis}. This record does not establish real coverage for fictional goods.`,
           provenance: evidenceLabel(warranty.evidence),
           at: warranty.evidence.recordedAt,
@@ -296,7 +305,32 @@ export function careFeed(options: {
         action: { label: "Read care guidance", href: `/vault/${p.id}/care` },
       });
   }
+  const unavailable = [
+    ...new Set([...(options.unavailable ?? []), ...projection.unavailable]),
+  ];
+  const savedCare = options.savedCare ?? {
+    returns: [],
+    warranties: [],
+    watches: [],
+    complete: true,
+  };
+  const ownership = purchases.map((purchase) =>
+    ownershipView({
+      purchase,
+      data,
+      saved: savedCare,
+      findings: items,
+      asOf: at,
+      unavailable,
+      complete: library.complete,
+      activity,
+      guardian,
+      adjustmentIds: projection.purchases.find((p) => p.id === purchase.id)
+        ?.adjustmentIds,
+    }),
+  );
   return {
+    ownership,
     savedCare: options.savedCare ?? {
       returns: [],
       warranties: [],
@@ -310,9 +344,7 @@ export function careFeed(options: {
         b.at.localeCompare(a.at) ||
         a.id.localeCompare(b.id),
     ),
-    unavailable: [
-      ...new Set([...(options.unavailable ?? []), ...projection.unavailable]),
-    ],
+    unavailable,
     complete: library.complete && (options.savedCare?.complete ?? true),
     source: data.source ?? "fixtures",
     searchIndex: library.searchIndex,

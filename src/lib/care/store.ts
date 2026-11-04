@@ -220,18 +220,22 @@ export async function checkDueWatches(pool: Pool) {
 }
 
 /** Read-only, bounded and strict. Unparseable evidence never becomes a fact. */
-export async function readSavedCare(pool: Pool): Promise<SavedCare> {
+export async function readSavedCare(
+  pool: Pool,
+  twinId?: string,
+): Promise<SavedCare> {
+  if (twinId !== undefined) z.uuid().parse(twinId);
   const result = emptySavedCare();
   const rows = (
     await pool.query(
-      "select e.*,e.effective_on::text as effective_date,c.kind from care_case_events e join care_cases c on c.id=e.case_id and c.twin_id=e.twin_id join purchase_twins t on t.id=e.twin_id where t.customer_id=$1 and t.merchant_id=$2 order by e.recorded_at desc,e.id desc limit 1001",
-      [CUSTOMER_ID, MERCHANT_ID],
+      "select e.*,e.effective_on::text as effective_date,c.kind from care_case_events e join care_cases c on c.id=e.case_id and c.twin_id=e.twin_id join purchase_twins t on t.id=e.twin_id where t.customer_id=$1 and t.merchant_id=$2 and ($3::uuid is null or t.id=$3) order by e.recorded_at desc,e.id desc limit 1001",
+      [CUSTOMER_ID, MERCHANT_ID, twinId ?? null],
     )
   ).rows;
   const watchRows = (
     await pool.query(
-      "select w.* from care_watches w join purchase_twins t on t.id=w.twin_id where t.customer_id=$1 and t.merchant_id=$2 order by w.created_at desc,w.id desc limit 1001",
-      [CUSTOMER_ID, MERCHANT_ID],
+      "select w.* from care_watches w join purchase_twins t on t.id=w.twin_id where t.customer_id=$1 and t.merchant_id=$2 and ($3::uuid is null or t.id=$3) order by w.created_at desc,w.id desc limit 1001",
+      [CUSTOMER_ID, MERCHANT_ID, twinId ?? null],
     )
   ).rows;
   result.complete = rows.length <= 1000 && watchRows.length <= 1000;

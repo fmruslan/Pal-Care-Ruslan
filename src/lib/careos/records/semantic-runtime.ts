@@ -5,7 +5,7 @@ import { PostgresStore } from "../postgres-store";
 import { assertStandingOwner, standingOwnerMode } from "../standing-runtime";
 import { SubscriptionProvider } from "../subscription/provider";
 import { TURN_DEADLINE_MS } from "../model-policy";
-import { getSavedRecordsData } from "../../demo/repository";
+import { getDemoData, getSavedRecordsData } from "../../demo/repository";
 import { recordsRuntime } from "./runtime";
 import { answerSemanticRecordsTurn } from "./semantic-service";
 import {
@@ -64,6 +64,7 @@ export async function answerAuthorizedRecords(
       input,
       history,
       load: getSavedRecordsData,
+      loadSelected: getDemoData,
       knowledge: getKnowledge,
       care: getCareFeed,
       model: provider,
@@ -77,7 +78,7 @@ export async function answerAuthorizedRecords(
             conversationPlanSchema,
             "north_conversation_v1",
             timeout,
-            `${CONVERSATION_INSTRUCTIONS}\naftercare: use this read-only task for proactive Care findings, price comparisons/watches, returns or refund progress. productAction is attention, price, returns, refunds, warranty or summary. For prepare-return requests use aftercare/returns: the application offers an editable draft, never sends it. Broad requests have blank productSearch and fresh relation, resolving requested library filters; specific products retain exact dated ownership and disambiguation. These tools share the same evidence as Care cards. The server determines whether saved progress, manual warranty dates or an actually checked watch exists; never assume availability or activity. Manual reports do not establish external verification, warranty coverage or financial status. Keep product actions summary/receipt/documents/manual for the product task.`,
+            `${CONVERSATION_INSTRUCTIONS}\naftercare: use this read-only ownership task for current payment, shipment/delivery, return deadlines/progress, refund evidence, price differences/watches, warranty dates and recall/safety questions. productAction is payment, shipment, delivery, return-window, price-window, returns, refunds, warranty, price, safety, attention or summary. Where is my order/has it arrived uses delivery; can I still return uses returns with the recorded return-window. For an explicit request to OPEN/SHOW/HIGHLIGHT a milestone, select the corresponding open_ action (open_delivery, open_warranty, open_returns, open_return-window, open_price, open_price-window, open_safety, open_refunds, open_purchase or open_watch); this only proposes presentation, not status changes. Do not auto-open for an ordinary factual question. Prepare requests use returns/refunds/warranty/price; the application offers an editable unsent enquiry, never sends it. Broad requests have blank productSearch and fresh relation, resolving requested library filters; specific products retain exact dated ownership/disambiguation. These tools share the timeline and Care evidence, not AI-generated statuses. The server determines actual availability; manual reports do not establish external verification, coverage or financial status. The existing fictional goods do not ship; a merchant-added tracking number would not prove carrier movement/delivery. Recall coverage is limited, never a safety all-clear. Keep product actions summary/receipt/documents/manual for product facts.`,
           )
         ).value;
       },

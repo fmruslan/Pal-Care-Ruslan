@@ -1,19 +1,19 @@
 import "server-only";
 import { cache } from "react";
-import { getSavedRecordsData } from "../demo/repository";
+import { getDemoData, getSavedRecordsData } from "../demo/repository";
 import { getKnowledge } from "../careos/knowledge-repository";
 import { getPurchaseActivity } from "../careos/activity-repository";
 import { getGuardian } from "../price-guardian/runtime";
 import { careFeed } from "./model";
 import { getSavedCare } from "./persistence-runtime";
 
-export const getCareFeed = cache(async () => {
-  const data = await getSavedRecordsData(); // Required records fail visibly.
+export const getCareFeed = cache(async (twinId?: string) => {
+  const data = twinId ? await getDemoData(twinId) : await getSavedRecordsData(); // Exact detail never depends on the list window.
   const [knowledge, guardian, activity, savedCare] = await Promise.allSettled([
     getKnowledge(),
-    getGuardian(),
-    getPurchaseActivity(data),
-    getSavedCare(),
+    getGuardian(twinId),
+    getPurchaseActivity(data, twinId),
+    getSavedCare(twinId),
   ]);
   return careFeed({
     data,

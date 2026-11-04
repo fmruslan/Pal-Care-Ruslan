@@ -22,6 +22,7 @@ import { GuardianCard } from "@/components/guardian";
 import { GuardianTimeline } from "@/components/guardian-timeline";
 import { getSavedCare } from "@/lib/care/persistence-runtime";
 import { evidenceLabel, returnTimeline } from "@/lib/care/contracts";
+import { getCareFeed } from "@/lib/care/repository";
 
 export const metadata = { title: "Product care details" };
 export default async function CareDetails({
@@ -49,7 +50,11 @@ export default async function CareDetails({
   );
   const returns = events.filter((e) => e.kind === "return");
   const policies = documents.filter((d) => d.kind === "policy");
-  const saved = await getSavedCare().catch(() => null);
+  const saved = await getSavedCare(id).catch(() => null);
+  const ownership = await getCareFeed(id).then(
+    (feed) => feed.ownership.find((v) => v.twinId === id),
+    () => undefined,
+  );
   const milestones = returnTimeline(id, saved?.returns ?? []);
   const warranties = saved?.warranties.filter((r) => r.twinId === id) ?? [];
   const watches = saved?.watches.filter((r) => r.twinId === id) ?? [];
@@ -216,9 +221,11 @@ export default async function CareDetails({
             Return progress
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            No verified return request, carrier tracking or merchant acceptance
-            is connected to this purchase. Fictional goods do not ship. There is
-            no confirmed return deadline.
+            {ownership?.facts
+              .filter((f) => ["returns", "return-window"].includes(f.topic))
+              .map((f) => f.detail)
+              .join(" ") ??
+              "Return evidence is unavailable. No return status or deadline was inferred."}
           </p>
           {milestones.length > 0 && (
             <ol
@@ -315,9 +322,8 @@ export default async function CareDetails({
             Warranty information
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            No verified warranty expiration date is recorded. A purchase date,
-            return reminder or payment verification does not establish warranty
-            coverage. Fictional demo goods have no real warranty.
+            {ownership?.facts.find((f) => f.topic === "warranty")?.detail ??
+              "Warranty evidence is unavailable. No coverage or date was inferred."}
           </p>
           {warranties.map((warranty) => (
             <div

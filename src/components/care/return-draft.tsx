@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Button } from "../ui/button";
 
 /** An editable preparation tool, not a return request or merchant write. */
@@ -10,13 +10,16 @@ export function ReturnDraft({
   purchasedOn,
   origin,
   receipt,
+  topic = "return",
 }: {
   name: string;
   model: string;
   purchasedOn: string;
   origin: string;
   receipt: string | null;
+  topic?: "return" | "refund" | "warranty" | "price adjustment";
 }) {
+  const fieldId = useId();
   const [draft, setDraft] = useState("");
   const [status, setStatus] = useState("");
   return (
@@ -24,7 +27,7 @@ export function ReturnDraft({
       <h3 className="font-semibold">Prepare your next step</h3>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">
         Prepare a message using this exact purchase. This does not submit a
-        return, contact a merchant or establish eligibility. Use fictional
+        request, contact a merchant or establish eligibility. Use fictional
         information only.
       </p>
       {!draft ? (
@@ -33,22 +36,19 @@ export function ReturnDraft({
           className="mt-3"
           onClick={() =>
             setDraft(
-              `Hello, I would like to check the return options for ${name} (${model}), purchased on ${purchasedOn}.\n\nRecord: ${origin === "sandbox" ? "PayPal Sandbox purchase of fictional goods" : "fictional sample purchase"}.${receipt ? " A saved receipt is available in Pal Care." : " No receipt is available in the saved records."}\n\nPlease confirm the applicable policy, eligibility and any required next steps. No return approval or refund is assumed.\n\nReason for enquiry: [add your reason]`,
+              `Hello, I would like to check the ${topic} options for ${name} (${model}), purchased on ${purchasedOn}.\n\nRecord: ${origin === "sandbox" ? "PayPal Sandbox purchase of fictional goods" : "fictional sample purchase"}.${receipt ? " A saved receipt is available in Pal Care." : " No receipt is available in the saved records."}\n\nPlease confirm the applicable policy, eligibility and any required next steps. No return approval, coverage or refund is assumed.\n\nReason for enquiry: [add your reason]`,
             )
           }
         >
-          Prepare return message
+          Prepare {topic} message
         </Button>
       ) : (
         <>
-          <label
-            htmlFor="return-draft"
-            className="mt-4 block text-sm font-semibold"
-          >
-            Editable return enquiry · not sent
+          <label htmlFor={fieldId} className="mt-4 block text-sm font-semibold">
+            Editable {topic} enquiry · not sent
           </label>
           <textarea
-            id="return-draft"
+            id={fieldId}
             rows={10}
             maxLength={4000}
             value={draft}
