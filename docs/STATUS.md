@@ -1,5 +1,13 @@
 # Implementation status
 
+## Release visual-reference stabilization — application source unchanged
+
+**Implemented:** the assistant-specific care snapshot now captures the complete settled inline North section after pending work clears and the composer draft is empty, rather than an unrelated full-page scroll offset after asynchronous completion. Existing page-flow, strict clipping, reading-position, focus and source assertions remain; screenshot tolerance, test timeouts and retries are unchanged. Application source remains **`6f15a5ad938af6156bd1a9ffcbd4822c49a8c1f7e29cc6204fdb5f0dd0060de4`**.
+
+**Verified — isolated:** **6 fixture reference-generation + 6 database comparison + 3 repeated fixture desktop + 3 repeated database desktop checks pass (18 total)**. All six complete North references were directly reviewed; context, bullets, Sources, composer and return action are visible. Retained release comparison **35 passed / one desktop-Light database screenshot mismatch** was a page-scroll offset difference, not missing or changed care content; its original actual/diff/trace remains at `/tmp/opencode/palcare-integrated-north/retained-release-visual-database`. The earlier final source lint/types/**1,361 units**/build and **14/14 injected protocol/recovery** checks still describe this unchanged application source.
+
+**Incomplete:** full final local verification and all three exact-commit CI jobs for the follow-up candidate, genuine North and new private HTTPS acceptance. Candidate `3ecdf4427d5a60c62623759ddc206fe4abeb8e60` was pushed; its CI is a retained candidate run, not acceptance of this subsequent test/reference correction. **Blocked:** no routine approval blocker; release remains gated. **Next:** push the stabilized references, verify the exact follow-up commit and tested build, then perform the existing bounded live/HTTPS operation with scoped cleanup and application-only rollback. No new live browser or model call has occurred; the frozen old private release remains in service.
+
 ## Final candidate heading/recovery correction — isolated checks pass; release pending
 
 **Implemented:** Home's inline empty, missing-result and pending states now retain a level-one heading without changing the visual layout. This closes the empty-workspace accessibility gap exposed by the injected expired-care Clear regression. Request identity, expired-access guards and owned DELETE recovery are unchanged.

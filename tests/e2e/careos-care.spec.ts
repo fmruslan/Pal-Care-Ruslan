@@ -32,7 +32,22 @@ test("official care evidence remains distinct from sample ownership and missing 
       .getByText(/Safe shutdown for Raspberry Pi 5 running Raspberry Pi OS/),
   ).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
-  await expect(page).toHaveScreenshot("assistant.png");
+  const assistant = page.getByRole("dialog", {
+    name: "North Star",
+    exact: true,
+  });
+  await expect(assistant.locator("[data-pending-question]")).toHaveCount(0);
+  await expect(
+    assistant.getByRole("textbox", {
+      name: "Ask about your purchases",
+      exact: true,
+    }),
+  ).toHaveValue("");
+  // North now uses document flow. Capture its complete settled section rather
+  // than an unrelated page-scroll offset selected during an async answer.
+  // Page placement, clipping, source anchoring and focus have separate strict
+  // accessibility/continuity coverage; do not mask or relax the pixel tolerance.
+  await expect(assistant).toHaveScreenshot("assistant.png");
   await page.keyboard.press("Escape");
   await page.goto("/vault/00000000-0000-4000-8000-000000000201/care");
   await expect(
