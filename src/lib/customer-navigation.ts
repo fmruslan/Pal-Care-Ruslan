@@ -1,6 +1,7 @@
 /** Presentation-only destinations shared by desktop and mobile navigation. */
 export const customerNavigation = [
-  { href: "/dashboard", label: "Home" },
+  { href: "/dashboard", label: "Care" },
+  { href: "/purchases", label: "Purchases" },
   { href: "/insights", label: "Insights" },
 ] as const;
 
@@ -12,7 +13,8 @@ export const customerExploreNavigation = [
 ] as const;
 
 export function customerSection(path: string) {
-  if (/^\/(vault|documents)(\/|$)/.test(path)) return customerNavigation[0];
+  if (/^\/care(\/|$)/.test(path)) return customerNavigation[0];
+  if (/^\/(vault|documents)(\/|$)/.test(path)) return customerNavigation[1];
   return customerNavigation.find(
     ({ href }) => path === href || path.startsWith(`${href}/`),
   );

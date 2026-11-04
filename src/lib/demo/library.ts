@@ -144,6 +144,7 @@ export function homeLibrary(data: DemoData, query: LibraryQuery) {
   const page = Math.min(query.page, pages);
   const start = (page - 1) * LIBRARY_PAGE_SIZE;
   return {
+    allPurchases: purchases,
     searchIndex: purchases.map(
       (p) =>
         `${p.name} ${p.brand} ${p.model} ${p.category} ${p.documents.map((d) => `${d.title} ${d.kind}`).join(" ")}`,

@@ -14,7 +14,7 @@ export default async function Documents({
   const query = parseLibraryQuery(await searchParams);
   if (!query.valid)
     redirect(
-      "/dashboard?view=documents&source=unsupported",
+      "/purchases?view=documents&source=unsupported",
       RedirectType.replace,
     );
   redirect(

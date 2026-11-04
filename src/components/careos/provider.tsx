@@ -127,7 +127,7 @@ export function CareOSProvider({
   }, [aiExpiresAt]);
   const pathname = usePathname();
   const visible =
-    /^\/(dashboard|vault|documents|guardian|safety|replacements|insights|shop|checkout)(\/|$)/.test(
+    /^\/(dashboard|purchases|care|vault|documents|guardian|safety|replacements|insights|shop|checkout)(\/|$)/.test(
       pathname,
     );
   const [isOpen, setOpen] = useState(false);

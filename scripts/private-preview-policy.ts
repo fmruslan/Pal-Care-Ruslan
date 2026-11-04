@@ -30,6 +30,14 @@ export function privatePreviewEnvironment(
   sessionRecord: unknown,
 ) {
   const urls = restrictedRuntimeUrls(source);
+  if (source.CARE_RECORDS_ENABLED === "true") {
+    const care = new URL(source.CARE_READER_DATABASE_URL ?? "");
+    if (
+      !["postgres:", "postgresql:"].includes(care.protocol) ||
+      !["127.0.0.1", "localhost"].includes(care.hostname)
+    )
+      throw Error("care_reader_configuration_invalid");
+  }
   const app = application.safeParse(appRecord);
   const session = sessionSchema.safeParse(sessionRecord);
   const valid =
@@ -49,6 +57,14 @@ export function privatePreviewEnvironment(
     PALCARE_NORTH_MAIN_ENABLED: "true",
     DEMO_DATA_SOURCE: "database",
     DATABASE_URL: urls.reader,
+    // Prepared only. Exact rollout approval/configuration is still required.
+    CARE_RECORDS_ENABLED:
+      source.CARE_RECORDS_ENABLED === "true" ? "true" : "false",
+    ...(source.CARE_RECORDS_ENABLED === "true"
+      ? { CARE_READER_DATABASE_URL: source.CARE_READER_DATABASE_URL }
+      : {}),
+    CARE_WATCH_SCHEDULE_ENABLED:
+      source.CARE_WATCH_SCHEDULE_ENABLED === "true" ? "true" : "false",
     CAREOS_DATABASE_URL: urls.careos,
     CAREOS_PROVIDER: "subscription",
     CAREOS_MODEL: "gpt-6.1-sol",

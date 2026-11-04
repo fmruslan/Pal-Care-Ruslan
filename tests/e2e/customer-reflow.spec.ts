@@ -6,7 +6,8 @@ import AxeBuilder from "@axe-core/playwright";
 const widths = [320, 375, 390, 430, 834, 1440];
 const destinations = [
   ["Insights", "/insights"],
-  ["Home", "/dashboard"],
+  ["Care", "/dashboard"],
+  ["Purchases", "/purchases"],
 ] as const;
 
 async function noOverflow(page: Page, width: number) {
@@ -83,7 +84,7 @@ for (const width of widths) {
         });
       } else await route.continue();
     });
-    await page.goto("/dashboard");
+    await page.goto("/purchases");
     const product = page.locator("[data-purchase-card]").first();
     await expect(product).toBeVisible();
     // SSR content can be visible before React hydrates. Mutating it then creates

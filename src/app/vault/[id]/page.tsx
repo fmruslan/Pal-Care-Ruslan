@@ -81,7 +81,7 @@ export default async function TwinPage({
         className="mb-3 inline-flex min-h-11 items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
-        Back to Home
+        Back to Purchases
       </Link>
       <article
         id="overview"
@@ -144,6 +144,12 @@ export default async function TwinPage({
                     Product care
                   </Link>
                 </Button>
+                <Link
+                  href={`/care/${id}`}
+                  className="inline-flex min-h-11 items-center text-sm font-semibold text-primary"
+                >
+                  Prices, returns & warranty
+                </Link>
               </div>
             </div>
           </div>

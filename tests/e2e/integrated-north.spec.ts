@@ -97,7 +97,7 @@ for (const kind of ["care", "records", "Insights"] as const) {
         });
       },
     );
-    await page.goto("/dashboard");
+    await page.goto("/purchases");
     await expect(field(page)).toHaveValue("Keep this new question unsent");
     await expect(north(page)).toHaveCount(0);
     const envelope = await page.evaluate(
@@ -131,7 +131,7 @@ for (const kind of ["care", "records", "Insights"] as const) {
     await page.getByRole("button", { name: "Search", exact: true }).click();
     await expect(page).toHaveURL(
       (url) =>
-        url.pathname === "/dashboard" &&
+        url.pathname === "/purchases" &&
         url.searchParams.get("q") === "Headphones",
     );
     expect(posts).toEqual([]);
@@ -171,7 +171,7 @@ test("calm collection has one integrated field, collapsed filters and a first-sc
   page.on("request", (r) => {
     if (!["GET", "HEAD"].includes(r.method())) writes.push(r.url());
   });
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Your products",
   );
@@ -188,7 +188,7 @@ test("calm collection has one integrated field, collapsed filters and a first-sc
     page
       .getByRole("navigation", { name: "Main navigation", exact: true })
       .getByRole("link"),
-  ).toHaveText(["Home", "Insights"]);
+  ).toHaveText(["Care", "Purchases", "Insights"]);
   await expect(
     page.getByRole("combobox", { name: "Category", exact: true }),
   ).not.toBeVisible();
@@ -233,7 +233,7 @@ test("receipt → totals → Audio → native chart → exact product care → p
     .click();
   await page
     .getByRole("navigation", { name: "Main navigation", exact: true })
-    .getByRole("link", { name: "Home", exact: true })
+    .getByRole("link", { name: "Purchases", exact: true })
     .click();
   await field(page).fill("Find receipt");
   await page
@@ -326,7 +326,7 @@ test("receipt → totals → Audio → native chart → exact product care → p
 test("History selection anchors a new follow-up to the selected owned result, not a later category", async ({
   page,
 }) => {
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   await page
     .getByRole("button", { name: "Ask North Star", exact: true })
     .click();
@@ -379,7 +379,7 @@ test("History selection anchors a new follow-up to the selected owned result, no
 test("full-width results, draft and owned History survive reload without automatic turn or chart replay", async ({
   page,
 }) => {
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   await page
     .getByRole("button", { name: "Ask North Star", exact: true })
     .click();
@@ -499,7 +499,7 @@ test("ordinary result lists and controls reflow at 320px and 200% text without a
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 900 });
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   await page
     .getByRole("button", { name: "Ask North Star", exact: true })
     .click();
@@ -521,12 +521,12 @@ test("ordinary result lists and controls reflow at 320px and 200% text without a
   await expect(composer).toBeFocused();
   await page
     .getByRole("navigation", { name: "Main navigation", exact: true })
-    .getByRole("link", { name: "Home", exact: true })
+    .getByRole("link", { name: "Purchases", exact: true })
     .focus();
   await expect(
     page
       .getByRole("navigation", { name: "Main navigation", exact: true })
-      .getByRole("link", { name: "Home", exact: true }),
+      .getByRole("link", { name: "Purchases", exact: true }),
   ).toBeFocused();
   expect(
     (
@@ -566,7 +566,7 @@ test("secondary customer pages offer the same inline North without financial dis
     .fill("Keep this secondary-page draft");
   await page
     .getByRole("navigation", { name: "Main navigation", exact: true })
-    .getByRole("link", { name: "Home", exact: true })
+    .getByRole("link", { name: "Purchases", exact: true })
     .click();
   await expect(north(page)).not.toBeVisible();
   await expect(field(page)).toHaveValue("Keep this secondary-page draft");
@@ -583,7 +583,7 @@ test("secondary customer pages offer the same inline North without financial dis
 test("literal search remains provider-free during a pending answer and late chart work cannot hijack it", async ({
   page,
 }) => {
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   await page
     .getByRole("button", { name: "Ask North Star", exact: true })
     .click();
@@ -624,7 +624,7 @@ test("literal search remains provider-free during a pending answer and late char
     await field(page).press("Enter");
     await expect(page).toHaveURL(
       (url) =>
-        url.pathname === "/dashboard" &&
+        url.pathname === "/purchases" &&
         url.searchParams.get("q") === "Headphones",
     );
     await expect(page.locator("[data-purchase-card]")).toHaveCount(1);
@@ -645,7 +645,7 @@ test("literal search remains provider-free during a pending answer and late char
     );
     await expect(page).toHaveURL(
       (url) =>
-        url.pathname === "/dashboard" &&
+        url.pathname === "/purchases" &&
         url.searchParams.get("q") === "Headphones",
     );
     await expect(page.getByTestId("customer-studio")).toHaveCount(0);

@@ -61,31 +61,31 @@ export function libraryHref(
     ["page", String(value.page), "1"],
   ])
     if (item !== fallback) params.set(key, item);
-  return `/dashboard${params.size ? `?${params}` : ""}`;
+  return `/purchases${params.size ? `?${params}` : ""}`;
 }
 
 export function libraryReturn(value: string | string[] | undefined) {
-  if (typeof value !== "string" || value.length > 1024) return "/dashboard";
+  if (typeof value !== "string" || value.length > 1024) return "/purchases";
   try {
     const url = new URL(value, "https://palcare.invalid");
     if (
       url.origin !== "https://palcare.invalid" ||
-      url.pathname !== "/dashboard"
+      !["/dashboard", "/purchases"].includes(url.pathname)
     )
-      return "/dashboard";
+      return "/purchases";
     const params: LibraryParams = {};
     for (const key of url.searchParams.keys()) {
       const values = url.searchParams.getAll(key);
       params[key] = values.length === 1 ? values[0] : values;
     }
     const query = parseLibraryQuery(params);
-    return query.valid ? libraryHref(query) : "/dashboard";
+    return query.valid ? libraryHref(query) : "/purchases";
   } catch {
-    return "/dashboard";
+    return "/purchases";
   }
 }
 
 export function withLibraryReturn(path: string, from: string, hash = "") {
   const safe = libraryReturn(from);
-  return `${path}${safe === "/dashboard" ? "" : `?from=${encodeURIComponent(safe)}`}${hash}`;
+  return `${path}${safe === "/purchases" ? "" : `?from=${encodeURIComponent(safe)}`}${hash}`;
 }

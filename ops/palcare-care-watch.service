@@ -1,0 +1,21 @@
+# PROPOSED ONLY. Do not install/enable before exact owner approval and verification.
+[Unit]
+Description=Pal Care bounded fictional-catalog watch checker
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/bigrus/projects/palcare
+EnvironmentFile=%h/.config/palcare-care/watch.env
+ExecStart=/usr/bin/node --import tsx scripts/care-worker-container.ts
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+InaccessiblePaths=%h/.config/palcare-standing-owner %h/.config/palcare-chatgpt-pilot /home/bigrus/projects/palcare/.env.local
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+IPAddressDeny=any
+IPAddressAllow=localhost
+UMask=0077
+RuntimeDirectory=palcare-care
+RuntimeDirectoryMode=0700
+TimeoutStartSec=60

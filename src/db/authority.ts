@@ -2,10 +2,41 @@ import type { Pool, PoolClient } from "pg";
 
 // One policy per capability, never one all-powerful application role.
 export type DatabaseCapability =
-  "reader" | "careos" | "checkout" | "guardian" | "discovery" | "recall";
+  | "reader"
+  | "careos"
+  | "checkout"
+  | "guardian"
+  | "discovery"
+  | "recall"
+  | "care_reader"
+  | "care_reporter"
+  | "care_worker";
 type Grants = Record<string, string[]>;
 export const runtimeGrants: Record<DatabaseCapability, Grants> = {
   reader: {},
+  care_reader: {},
+  care_reporter: {
+    care_cases: ["INSERT:id", "INSERT:twin_id", "INSERT:kind"],
+    care_case_events: [
+      "INSERT:id",
+      "INSERT:case_id",
+      "INSERT:twin_id",
+      "INSERT:revision",
+      "INSERT:state",
+      "INSERT:source_reference",
+      "INSERT:effective_on",
+      "INSERT:facts",
+    ],
+    care_watches: ["INSERT:id", "INSERT:twin_id", "INSERT:expires_at"],
+  },
+  care_worker: {
+    care_watches: [
+      "UPDATE:state",
+      "UPDATE:last_checked_at",
+      "UPDATE:next_check_at",
+      "UPDATE:observed_minor",
+    ],
+  },
   careos: Object.fromEntries(
     [
       "care_conversations",
@@ -53,6 +84,30 @@ export const runtimeGrants: Record<DatabaseCapability, Grants> = {
   },
 };
 export const runtimeReads: Record<DatabaseCapability, string[]> = {
+  care_reader: [
+    "purchase_twins",
+    "care_cases",
+    "care_case_events",
+    "care_watches",
+  ],
+  care_reporter: [
+    "demo_customers",
+    "merchants",
+    "products",
+    "purchase_twins",
+    "care_cases",
+    "care_case_events",
+    "care_watches",
+  ],
+  care_worker: [
+    "demo_customers",
+    "merchants",
+    "products",
+    "purchase_twins",
+    "care_cases",
+    "care_case_events",
+    "care_watches",
+  ],
   reader: [
     "demo_customers",
     "merchants",

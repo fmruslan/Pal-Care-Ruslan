@@ -1,0 +1,11 @@
+# PROPOSED ONLY. Each watch is due at most once/day; timer only sweeps hourly.
+[Unit]
+Description=Hourly due-work sweep for Pal Care catalog watches
+
+[Timer]
+OnCalendar=hourly
+Persistent=false
+Unit=palcare-care-watch.service
+
+[Install]
+WantedBy=timers.target

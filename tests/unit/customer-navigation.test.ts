@@ -1,7 +1,8 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import Landing from "../../src/app/page";
+import Landing from "../../src/app/about/page";
+import Home from "../../src/app/page";
 import { Shell } from "../../src/components/shell";
 import {
   customerExploreNavigation,
@@ -43,9 +44,10 @@ function renderShell(active = "/dashboard", merchant = false) {
 }
 
 describe("customer navigation contract", () => {
-  it("has exactly Home and Insights in that order", () => {
+  it("has exactly Care, Purchases and Insights in that order", () => {
     expect(customerNavigation).toEqual([
-      { href: "/dashboard", label: "Home" },
+      { href: "/dashboard", label: "Care" },
+      { href: "/purchases", label: "Purchases" },
       { href: "/insights", label: "Insights" },
     ]);
   });
@@ -65,8 +67,8 @@ describe("customer navigation contract", () => {
 
   it("keeps nested pages in their section without matching unrelated prefixes", () => {
     for (const path of ["/vault/purchase-id", "/vault/purchase-id/care"])
-      expect(customerSection(path)?.href).toBe("/dashboard");
-    expect(customerSection("/documents/document-id")?.href).toBe("/dashboard");
+      expect(customerSection(path)?.href).toBe("/purchases");
+    expect(customerSection("/documents/document-id")?.href).toBe("/purchases");
     expect(customerSection("/insights/detail")?.href).toBe("/insights");
     for (const path of ["/vaulted", "/insights-extra", "/shop", "/merchant"])
       expect(customerSection(path)).toBeUndefined();
@@ -75,12 +77,12 @@ describe("customer navigation contract", () => {
         navigationLinks(renderShell("/documents/document-id"), region)
           .filter(({ current }) => current)
           .map(({ href }) => href),
-      ).toEqual(["/dashboard"]);
+      ).toEqual(["/purchases"]);
   });
 
   it("keeps secondary destinations behind a native keyboard-accessible disclosure", () => {
     const markup = renderShell();
-    expect(markup).toMatch(/<details\b[^>]*><summary\b[^>]*>Explore/);
+    expect(markup).toMatch(/<details\b[^>]*><summary\b[^>]*>[\s\S]*?Explore/);
     expect(
       navigationLinks(markup, "More to explore").map(({ href, label }) => ({
         href,
@@ -124,5 +126,8 @@ describe("customer navigation contract", () => {
       "real AI is available only in the authorized private preview",
     );
     expect(text).not.toContain("AI and monitoring are not active yet");
+  });
+  it("opens Care rather than the marketing page by default", () => {
+    expect(() => Home()).toThrow("NEXT_REDIRECT");
   });
 });

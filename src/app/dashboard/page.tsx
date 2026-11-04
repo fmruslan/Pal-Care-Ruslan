@@ -1,42 +1,51 @@
-import { getSavedRecordsData } from "@/lib/demo/repository";
+import { redirect } from "next/navigation";
 import { Shell } from "@/components/shell";
-import { LibrarySearch, LibraryResults } from "@/components/home-library";
-import { NorthCollection } from "@/components/careos/integrated";
-import { homeLibrary } from "@/lib/demo/library";
+import { NorthCollection, NorthSearch } from "@/components/careos/integrated";
+import { CareFeedView, CareFilters } from "@/components/care/feed";
+import { getCareFeed } from "@/lib/care/repository";
 import {
+  libraryHref,
   parseLibraryQuery,
   type LibraryParams,
 } from "@/lib/library-navigation";
 
-export const metadata = { title: "Home · Your library" };
-export default async function Dashboard({
+export const metadata = { title: "Care · Pal Care" };
+export default async function Care({
   searchParams,
 }: {
   searchParams?: Promise<LibraryParams>;
 }) {
-  const data = await getSavedRecordsData();
-  const query = parseLibraryQuery((await searchParams) ?? {});
-  const library = homeLibrary(data, query);
-  const searchIndex = library.searchIndex;
+  const params = (await searchParams) ?? {};
+  // Old Home library URLs keep their filters; plain /dashboard is now Care.
+  if (
+    ["q", "view", "category", "source", "documents", "sort", "page"].some(
+      (key) => params[key] !== undefined,
+    )
+  ) {
+    const query = parseLibraryQuery(params);
+    redirect(
+      query.valid ? libraryHref(query) : "/purchases?source=unsupported",
+    );
+  }
+  const feed = await getCareFeed();
   return (
-    <Shell active="/dashboard" source={data.source}>
+    <Shell active="/dashboard" source={feed.source}>
       <NorthCollection>
-        <div className="mb-5 max-w-3xl sm:mb-7">
-          <h1 className="text-[clamp(1.75rem,3vw,2.25rem)] leading-tight font-semibold tracking-tight">
-            Your products
-          </h1>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Everything you own, all cared for.
-          </p>
-        </div>
+        <h1 className="mb-6 text-[clamp(1.75rem,3vw,2.25rem)] leading-tight font-semibold tracking-tight">
+          Care for what you own.
+        </h1>
       </NorthCollection>
-      <LibrarySearch
-        query={query}
-        categories={library.categories}
-        searchIndex={searchIndex}
+      <NorthSearch
+        query={parseLibraryQuery({})}
+        searchIndex={feed.searchIndex}
+        footer={<CareFilters completed={params.status === "completed"} />}
       />
       <NorthCollection>
-        <LibraryResults library={library} query={query} />
+        <CareFeedView
+          feed={feed}
+          completed={params.status === "completed"}
+          filters={false}
+        />
       </NorthCollection>
     </Shell>
   );

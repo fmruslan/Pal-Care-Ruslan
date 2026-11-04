@@ -142,7 +142,7 @@ export function TwinList({
 
 export function DocumentList({
   documents,
-  from = "/dashboard",
+  from = "/purchases",
 }: {
   documents: CareDocument[];
   from?: string;

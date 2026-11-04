@@ -134,7 +134,7 @@ export function LibrarySearch({
                   .join(" · ")}
               </span>
               <Link
-                href="/dashboard"
+                href="/purchases"
                 className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4"
               >
                 Clear filters
@@ -307,8 +307,8 @@ export function LibraryResults({
         <Link
           href={
             query.view === "documents"
-              ? "/dashboard"
-              : "/dashboard?view=documents"
+              ? "/purchases"
+              : "/purchases?view=documents"
           }
           className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-input bg-card px-3 text-sm font-semibold text-primary hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
@@ -432,7 +432,7 @@ function LibraryEmpty({ label }: { label: string }) {
           : "Try another search, or return to all saved purchases. Missing documents and manufacturer manuals aren’t automatically supplied."}
       </p>
       <Link
-        href="/dashboard"
+        href="/purchases"
         className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary"
       >
         Show all purchases

@@ -1,4 +1,13 @@
 /* Customer presentation only. Shared semantic colors, theme and Studio stay authoritative. */
+.care-product-art {
+  max-width: 4.5rem;
+  width: 100%;
+}
+.care-product-art [data-product-art] {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
 .north-inline-workspace textarea:focus-visible,
 .north-unified-search:focus-within {
   outline: 2px solid var(--intelligence-foreground);
@@ -39,7 +48,7 @@
 }
 .customer-header .customer-header-inner {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 0.375rem 0.75rem;
   padding-block: 0.75rem;
@@ -63,15 +72,15 @@
 }
 
 .customer-header .customer-primary-nav {
-  grid-column: 1;
+  grid-column: 1 / -1;
   grid-row: 2;
   flex-wrap: wrap;
   order: initial;
 }
 
 .customer-header .customer-explore {
-  grid-column: 2;
-  grid-row: 2;
+  grid-column: 3;
+  grid-row: 1;
   order: initial;
 }
 
@@ -189,7 +198,12 @@
 
 @media (max-width: 23rem) {
   .customer-header .customer-header-inner {
+    grid-template-columns: minmax(0, 1fr) auto;
     column-gap: 0.5rem;
+  }
+  .customer-header .customer-explore {
+    grid-column: 1 / -1;
+    grid-row: 3;
   }
 
   .customer-header .palcare-brand {
@@ -204,6 +218,29 @@
   .customer-header .customer-appearance > label {
     gap: 0.25rem;
     padding-inline: 0.5rem;
+  }
+}
+
+/* Allow controls to wrap by their actual text size, not a px breakpoint that
+   assumes the default root font. WebKit's enlarged native select is wider. */
+@media (max-width: 639px) {
+  .customer-header .customer-header-inner {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .customer-header .palcare-brand {
+    order: 1;
+    flex: 1;
+  }
+  .customer-header .customer-appearance {
+    order: 2;
+  }
+  .customer-header .customer-explore {
+    order: 3;
+  }
+  .customer-header .customer-primary-nav {
+    order: 4;
+    flex: 1 1 100%;
   }
 }
 

@@ -9,16 +9,20 @@ const search = (page: import("@playwright/test").Page) =>
     exact: true,
   });
 
-test("product-first Home has two visible header destinations and an actionable product on the first mobile screen", async ({
+test("product-first Purchases retains three visible header destinations and an actionable product on the first mobile screen", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 664 });
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   const nav = page.getByRole("navigation", {
     name: "Main navigation",
     exact: true,
   });
-  await expect(nav.getByRole("link")).toHaveText(["Home", "Insights"]);
+  await expect(nav.getByRole("link")).toHaveText([
+    "Care",
+    "Purchases",
+    "Insights",
+  ]);
   await expect(nav).toBeVisible();
   await expect(
     page.getByRole("navigation", { name: "Mobile navigation", exact: true }),
@@ -27,7 +31,21 @@ test("product-first Home has two visible header destinations and an actionable p
   const open = product.locator(".library-product-link");
   await expect(open).toBeVisible();
   const box = await open.boundingBox();
-  expect(box!.y + box!.height).toBeLessThan(664);
+  const geometry = await page.evaluate(() =>
+    [
+      ".customer-header",
+      "h1",
+      "[data-north-search]",
+      "[data-testid='library-results']",
+      "[data-purchase-card]",
+      ".library-product-link",
+    ].map((selector) => {
+      const element = document.querySelector(selector);
+      const r = element?.getBoundingClientRect();
+      return { selector, y: r?.y, height: r?.height };
+    }),
+  );
+  expect(box!.y + box!.height, JSON.stringify(geometry)).toBeLessThan(664);
   await expect(product.locator("[data-product-art]")).toBeVisible();
   expect((await open.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   await expect(
@@ -42,7 +60,7 @@ test("unified search opens the exact receipt directly and restores search state 
   page.on("request", (r) => {
     if (r.method() !== "GET" && r.method() !== "HEAD") forbidden.push(r.url());
   });
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   await search(page).fill("kettle receipt");
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page.getByRole("status")).toContainText(
@@ -63,7 +81,9 @@ test("unified search opens the exact receipt directly and restores search state 
   await page
     .locator(`[data-purchase-card="${kettle}"] .library-product-link`)
     .click();
-  await page.getByRole("link", { name: "Back to Home", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Back to Purchases", exact: true })
+    .click();
   await expect(search(page)).toHaveValue("kettle receipt");
   expect(forbidden).toEqual([]);
 });
@@ -72,9 +92,9 @@ test("All documents is one action away; legacy routes preserve filters and docum
   page,
   request,
 }) => {
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   await page.getByRole("link", { name: "All documents", exact: true }).click();
-  await expect(page).toHaveURL(/\/dashboard\?view=documents$/);
+  await expect(page).toHaveURL(/\/purchases\?view=documents$/);
   await expect(
     page.getByRole("heading", { name: "All documents", exact: true }),
   ).toBeVisible();
@@ -91,7 +111,7 @@ test("All documents is one action away; legacy routes preserve filters and docum
     page.getByRole("combobox", { name: "Appearance", exact: true }),
   ).toBeEnabled();
   await expect(page.locator('input[id="library-search"]')).toHaveCount(1);
-  await expect(page).toHaveURL(/\/dashboard\?q=kettle&category=Kitchen$/);
+  await expect(page).toHaveURL(/\/purchases\?q=kettle&category=Kitchen$/);
   await expect(search(page)).toHaveValue("kettle");
   await page
     .locator("summary")
@@ -105,7 +125,7 @@ test("All documents is one action away; legacy routes preserve filters and docum
     page.getByRole("combobox", { name: "Appearance", exact: true }),
   ).toBeEnabled();
   await expect(page.locator('input[id="library-search"]')).toHaveCount(1);
-  await expect(page).toHaveURL(/\/dashboard\?view=documents$/);
+  await expect(page).toHaveURL(/\/purchases\?view=documents$/);
   expect(
     (await request.get(`/api/documents/${receipt}/download`)).status(),
   ).toBe(200);
@@ -118,8 +138,8 @@ test("visible product sections, dated receipt, source labels and safe return nav
     `/vault/${kettle}?from=${encodeURIComponent("https://evil.test/dashboard")}`,
   );
   await expect(
-    page.getByRole("link", { name: "Back to Home", exact: true }),
-  ).toHaveAttribute("href", "/dashboard");
+    page.getByRole("link", { name: "Back to Purchases", exact: true }),
+  ).toHaveAttribute("href", "/purchases");
   const nav = page.getByRole("navigation", {
     name: "Purchase sections",
     exact: true,
@@ -169,7 +189,9 @@ test("one North field retains drafts until explicit search, while pinned context
   await dialog
     .getByRole("button", { name: "Close North Star", exact: true })
     .click();
-  await page.getByRole("link", { name: "Back to Home", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Back to Purchases", exact: true })
+    .click();
   await expect(search(page)).toHaveValue("Retain this Home-library draft");
   await search(page).fill("kettle receipt");
   await page.getByRole("button", { name: "Search", exact: true }).click();
@@ -216,8 +238,8 @@ test("library, product and document reflow at 320px and 200% text with keyboard-
 }) => {
   await page.setViewportSize({ width: 320, height: 900 });
   for (const path of [
-    "/dashboard",
-    "/dashboard?view=documents",
+    "/purchases",
+    "/purchases?view=documents",
     `/vault/${kettle}`,
     `/documents/${receipt}`,
   ]) {
@@ -235,9 +257,9 @@ test("library, product and document reflow at 320px and 200% text with keyboard-
       name: "Main navigation",
       exact: true,
     });
-    await nav.getByRole("link", { name: "Home", exact: true }).focus();
+    await nav.getByRole("link", { name: "Purchases", exact: true }).focus();
     await expect(
-      nav.getByRole("link", { name: "Home", exact: true }),
+      nav.getByRole("link", { name: "Purchases", exact: true }),
     ).toBeFocused();
     const axe = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])

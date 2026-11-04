@@ -56,6 +56,8 @@ export type Evidence = {
   excerpt?: string;
 };
 export type CareAnswer = {
+  /** Exact server-derived Care selection, retained only in owned saved history. */
+  careSelection?: string[];
   /** Retained bounded live tool plan; application facts/identity remain final. */
   conversationPlan?: import("./records/conversation-service").ConversationPlan;
   /** Application-computed saved-record result; never model-supplied facts. */

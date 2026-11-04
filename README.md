@@ -1,5 +1,7 @@
 # Pal Care
 
+**Care homepage — approved, implementation in progress; not deployed.** The new **Care / Purchases / Insights** experience opens Care by default, with minimal evidence-backed action cards, product-specific aftercare details and integrated North. The product/document library moves to Purchases; exact dated records and native Insights remain. The [exact persistence/permission scope](docs/CARE-PERSISTENCE-APPROVAL.md) is now approved **after remaining gates**, not yet activated. [Approved plan](docs/CARE-HOMEPAGE-PLAN.md) · [current verification and remaining gates](docs/STATUS.md). The earlier release checkpoints below retain their historical scope; they do not accept Care.
+
 **Latest checkpoint:** admission/accessibility corrections pass lint/types/**1,361 units**/build and the connected desktop/mobile journey in fixture and dedicated-database modes. Earlier focused Guardian/access/recovery checks also pass within their recorded source scope. Full exact-commit CI, 15-stage final local verification, genuine North and new private deployment remain pending; failed candidates are preserved, not superseded by isolated passes. [Current implementation and evidence](docs/STATUS.md).
 
 **Focused evidence:** settled merchant compatibility passes **6/6** Firefox/WebKit checks with unchanged accessibility thresholds; injected recovery passes **14/14**, not live AI. Home receipt heading order is corrected and verified by the connected journey's explicit heading/axe checks. No new exact-commit CI pass or deployment. [Latest evidence](docs/STATUS.md).

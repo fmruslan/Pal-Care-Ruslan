@@ -14,6 +14,6 @@ export default async function Vault({
   const query = parseLibraryQuery(await searchParams);
   // Preserve malformed state for Home's explicit unsupported-filter message.
   if (!query.valid)
-    redirect("/dashboard?source=unsupported", RedirectType.replace);
+    redirect("/purchases?source=unsupported", RedirectType.replace);
   redirect(libraryHref(query), RedirectType.replace);
 }

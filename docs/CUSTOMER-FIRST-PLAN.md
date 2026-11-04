@@ -1,5 +1,7 @@
 # Customer-first capability plan
 
+**Latest owner-approved C refinement:** [Care homepage](CARE-HOMEPAGE-PLAN.md), **Care / Purchases / Insights**, replaces the earlier Home / Insights navigation below. Reuse accepted A/B foundations; deliver the evidence-backed feed and supported aftercare actions, then satisfy D/E gates. Full test/fix/commit/push/exact-commit CI and automatic rollback-protected private 8444 delivery are approved, not new schema/credential/worker or financial authority. [Exact persistence proposal](CARE-PERSISTENCE-APPROVAL.md) remains separately gated. Earlier release evidence/timestamps remain historical, not acceptance of Care.
+
 **Owner-approved navigation refinement, 2026-11-03:** [ADR 0012](adr/0012-home-library-navigation.md) and the [Home library redesign](HOME-LIBRARY-UX-PLAN.md) replace the four-destination/sidebar requirement with **Home / Insights**. Full implementation, relevant verification, commit/push, exact-commit CI, rollback-protected automatic private 8444 deployment and HTTPS smoke checks are authorized without another routine approval. The separate 200-case campaign remains independently incomplete, not a prerequisite for this navigation slice; focused North continuity/function verification is required. This does not waive the A–E capability sequence, evidence requirements or financial/provider/public boundaries. STATUS records implementation and deployment truth.
 
 ## Purpose and decision rule

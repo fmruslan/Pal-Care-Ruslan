@@ -11,8 +11,8 @@ import type { GuardianOverview } from "../../src/lib/price-guardian/contracts";
 // These are real local SDK/browser checks with scripted planning, not model or
 // PayPal acceptance. The existing config supplies fixtures or a dedicated test DB.
 const dataSource = process.env.E2E_DATA_SOURCE ?? "fixtures";
-const primaryLabels = ["Home", "Insights"];
-const primaryPaths = ["/dashboard", "/insights"];
+const primaryLabels = ["Care", "Purchases", "Insights"];
+const primaryPaths = ["/dashboard", "/purchases", "/insights"];
 const headphoneId = "00000000-0000-4000-8000-000000000201";
 const piId = "00000000-0000-4000-8000-000000000204";
 
@@ -310,7 +310,7 @@ const usd = (minor: number) =>
     minor / 100,
   );
 
-test("customer navigation keeps two visible destinations and secondary exploration", async ({
+test("customer navigation keeps three visible destinations and secondary exploration", async ({
   page,
 }) => {
   await page.goto("/dashboard");

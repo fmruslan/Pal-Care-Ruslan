@@ -72,7 +72,7 @@ for (const width of [375, 430, 1440]) {
     });
     const draft = "Preserve this draft while the native workspace initializes";
     try {
-      await page.goto("/dashboard");
+      await page.goto("/purchases");
       await page.getByRole("button", { name: "History", exact: true }).click();
       await dialog
         .getByLabel("Ask about your purchases", { exact: true })
@@ -85,12 +85,14 @@ for (const width of [375, 430, 1440]) {
       await expect(page).toHaveURL(/\/insights$/);
       await importRequested;
       expect(held).toBe(true);
-      await nav.getByRole("link", { name: "Home", exact: true }).press("Enter");
-      await expect(page).toHaveURL(/\/dashboard$/);
+      await nav
+        .getByRole("link", { name: "Purchases", exact: true })
+        .press("Enter");
+      await expect(page).toHaveURL(/\/purchases$/);
       await page
         .getByRole("link", { name: "All documents", exact: true })
         .press("Enter");
-      await expect(page).toHaveURL(/\/dashboard\?view=documents$/);
+      await expect(page).toHaveURL(/\/purchases\?view=documents$/);
       releaseImport();
       await page.getByRole("button", { name: "History", exact: true }).click();
       await expect(
@@ -104,12 +106,14 @@ for (const width of [375, 430, 1440]) {
         page.getByRole("button", { name: "My Purchases", exact: true }),
       ).toBeEnabled({ timeout: 20000 });
       await expect(page.getByTestId("insight-documents-care")).toBeVisible();
-      await nav.getByRole("link", { name: "Home", exact: true }).press("Enter");
-      await expect(page).toHaveURL(/\/dashboard$/);
+      await nav
+        .getByRole("link", { name: "Purchases", exact: true })
+        .press("Enter");
+      await expect(page).toHaveURL(/\/purchases$/);
       await page
         .getByRole("link", { name: "All documents", exact: true })
         .press("Enter");
-      await expect(page).toHaveURL(/\/dashboard\?view=documents$/);
+      await expect(page).toHaveURL(/\/purchases\?view=documents$/);
       expect(errors).toEqual([]);
       expect(prohibited).toEqual([]);
     } finally {

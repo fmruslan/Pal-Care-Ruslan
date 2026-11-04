@@ -5,6 +5,8 @@ import {
   ChevronDown,
   FileText,
   LayoutDashboard,
+  Package,
+  MoreHorizontal,
   ChartNoAxesCombined,
   Info,
 } from "lucide-react";
@@ -27,6 +29,7 @@ import {
 
 const customerIcons = {
   "/dashboard": LayoutDashboard,
+  "/purchases": Package,
   "/insights": ChartNoAxesCombined,
 };
 
@@ -151,16 +154,23 @@ export function Shell({
                     key={href}
                     href={href}
                     aria-current={selected === href ? "page" : undefined}
-                    className={`inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-semibold transition-colors ${selected === href ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+                    className={`inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-semibold transition-colors sm:px-4 ${selected === href ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
                   >
                     {label}
                   </WorkspaceNavigationLink>
                 ))}
               </nav>
               <details className="customer-explore relative justify-self-end">
-                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-center gap-2 rounded-xl px-3 text-sm font-medium text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
-                  Explore
-                  <ChevronDown className="size-4" aria-hidden="true" />
+                <summary className="flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center gap-2 rounded-xl px-3 text-sm font-medium text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+                  <span className="sr-only sm:not-sr-only">Explore</span>
+                  <MoreHorizontal
+                    className="size-4 sm:hidden"
+                    aria-hidden="true"
+                  />
+                  <ChevronDown
+                    className="hidden size-4 sm:block"
+                    aria-hidden="true"
+                  />
                 </summary>
                 <nav
                   aria-label="More to explore"

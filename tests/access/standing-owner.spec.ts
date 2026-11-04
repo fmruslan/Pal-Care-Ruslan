@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
 import { PilotFiles } from "../../src/lib/careos/subscription/files";
+import { isolatedCareEnvironment } from "../helpers/isolated-care-environment";
 import {
   StandingOwner,
   OWNER_COOKIE,
@@ -31,6 +32,7 @@ async function start(standingLive = false) {
     {
       stdio: "ignore",
       env: {
+        ...isolatedCareEnvironment,
         PATH: process.env.PATH,
         HOME: home,
         NODE_ENV: "production",
@@ -269,7 +271,8 @@ test("owner settings replace testing requests without making saved records depen
     page.getByRole("button", { name: /copy|request testing|renew/i }),
   ).toHaveCount(0);
   for (const [path, heading] of [
-    ["/dashboard", "Your products"],
+    ["/dashboard", "Care for what you own."],
+    ["/purchases", "Your products"],
     ["/vault", "Your products"],
     ["/documents", "Your products"],
     ["/insights", "Insights"],

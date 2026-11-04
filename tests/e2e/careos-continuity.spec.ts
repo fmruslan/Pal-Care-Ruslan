@@ -99,16 +99,16 @@ test("Home document and care navigation need no conversation or automatic questi
     if (!["GET", "HEAD"].includes(request.method()))
       mutations.push(request.url());
   });
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   await page.getByRole("link", { name: "All documents", exact: true }).click();
-  await expect(page).toHaveURL(/\/dashboard\?view=documents$/);
+  await expect(page).toHaveURL(/\/purchases\?view=documents$/);
   await expect(page.getByTestId("library-documents")).toContainText(
     "Sample document",
   );
   await page.reload();
   await page
     .getByRole("navigation", { name: "Main navigation", exact: true })
-    .getByRole("link", { name: "Home", exact: true })
+    .getByRole("link", { name: "Purchases", exact: true })
     .click();
   await page
     .getByRole("link", { name: /^View details for Raspberry Pi 5,/ })
@@ -291,7 +291,7 @@ test("a delayed answer retains its original product after client-side navigation
   await page.getByRole("dialog").focus();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);
-  await page.getByRole("link", { name: "Back to Home" }).click();
+  await page.getByRole("link", { name: "Back to Purchases" }).click();
   await page
     .getByRole("link", { name: /^View details for Raspberry Pi 5,/ })
     .click();

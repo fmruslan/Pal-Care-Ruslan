@@ -17,7 +17,7 @@ async function open(page: Page) {
     }
   });
   if (!restoreOpen && !(await dialog.isVisible())) {
-    if (new URL(page.url()).pathname === "/dashboard") {
+    if (["/dashboard", "/purchases"].includes(new URL(page.url()).pathname)) {
       await page.getByRole("button", { name: "History", exact: true }).click();
       await dialog
         .getByRole("button", { name: "History", exact: true })
@@ -97,7 +97,7 @@ test("actual saved records → bullets → totals → category/date follow-up re
     }
     return route.continue();
   });
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   const dialog = await open(page);
   const first = await ask(page, "Show my purchases");
   expect(first.turn.answer.recordsResult?.records).toHaveLength(4);
@@ -167,7 +167,7 @@ test("North opens library-first and what have I bought returns linked results wi
     }
     return route.continue();
   });
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   const dialog = await open(page);
   await expect(dialog).toBeVisible();
   await expect(dialog).toHaveAccessibleName("North Star");
@@ -203,7 +203,7 @@ test("enlarged narrow-screen text keeps result and composer reachable in page fl
       posts.push(new URL(request.url()).pathname);
   });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   const dialog = await open(page);
   await ask(page, "Show my sample purchases");
   const submittedPosts = [...posts];
@@ -306,8 +306,26 @@ test("enlarged narrow-screen text keeps result and composer reachable in page fl
   await expectControlInViewport(context);
   await expect(input).toHaveValue(draft);
   await expect(dialog).toHaveAttribute("aria-modal", "false");
+  const overflow = await page.evaluate(() =>
+    [...document.querySelectorAll("header *, main *")]
+      .flatMap((el) => {
+        const box = el.getBoundingClientRect();
+        return box.width && box.right > 391
+          ? [
+              {
+                tag: el.tagName,
+                class: el.className,
+                right: box.right,
+                text: el.textContent?.slice(0, 80),
+              },
+            ]
+          : [];
+      })
+      .slice(0, 20),
+  );
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
+    JSON.stringify(overflow),
   ).toBeLessThanOrEqual(391);
   expect(
     posts,
@@ -320,7 +338,7 @@ test("comparison plus table retrieves prior-period evidence; a plain total keeps
 }) => {
   // A separate short scenario respects the real six-turn/minute owner guard;
   // neither quota nor conversation cookies are reset inside a scenario.
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   await open(page);
   const first = await ask(
     page,
@@ -370,7 +388,7 @@ test("leaving before a chart response keeps the late saved answer without reopen
     },
   );
   try {
-    await page.goto("/dashboard");
+    await page.goto("/purchases");
     const dialog = await open(page);
     await ask(page, "Show my purchases");
     const response = page.waitForResponse(
@@ -401,12 +419,14 @@ test("leaving before a chart response keeps the late saved answer without reopen
       name: "Main navigation",
       exact: true,
     });
-    await nav.getByRole("link", { name: "Home", exact: true }).press("Enter");
-    await expect(page).toHaveURL(/\/dashboard$/);
+    await nav
+      .getByRole("link", { name: "Purchases", exact: true })
+      .press("Enter");
+    await expect(page).toHaveURL(/\/purchases$/);
     await page
       .getByRole("link", { name: "All documents", exact: true })
       .press("Enter");
-    await expect(page).toHaveURL(/\/dashboard\?view=documents$/);
+    await expect(page).toHaveURL(/\/purchases\?view=documents$/);
     await expect(
       page.getByRole("heading", {
         level: 1,
@@ -438,7 +458,7 @@ test("leaving before a chart response keeps the late saved answer without reopen
           requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
         ),
     );
-    await expect(page).toHaveURL(/\/dashboard\?view=documents$/);
+    await expect(page).toHaveURL(/\/purchases\?view=documents$/);
     await expect(article.getByRole("status")).toContainText(
       "not yet confirmed",
     );
@@ -456,7 +476,7 @@ test("records remain available with private AI endpoints denied; owned cookies c
   await page.route("**/api/careos/conversations**", (r) =>
     r.fulfill({ status: 403, json: { error: "careos_owner_signin_required" } }),
   );
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   await open(page);
   const result = await ask(page, "Find purchases with receipts");
   expect(
@@ -520,7 +540,7 @@ test("records remain available with private AI endpoints denied; owned cookies c
 test("record timeline and draft restore by owned GET after reload and navigation without turn replay", async ({
   page,
 }) => {
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   let dialog = await open(page);
   const first = await ask(page, "Show my purchases");
   const composer = dialog.getByRole("textbox", {
@@ -645,7 +665,7 @@ test("a newly submitted chart follow-up opens the one Insights workspace and exe
 }, info) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   let dialog = await open(page);
   const first = await ask(page, "Show my purchases");
   const total = await ask(page, "What is the recorded total for those?");
@@ -763,7 +783,7 @@ test("a newly submitted chart follow-up opens the one Insights workspace and exe
 test("reopening a completed chart preserves manual native filters and still permits exact-product care without chart replay", async ({
   page,
 }) => {
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   let dialog = await open(page);
   const first = await ask(page, "Show my purchases");
   const chart = await ask(page, "Show that by category as a chart");
@@ -859,7 +879,7 @@ test("reopening a completed chart preserves manual native filters and still perm
 test("formatting plus receipt refinement changes the actual linked list, while an unresolved qualifier is clarified", async ({
   page,
 }) => {
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   await open(page);
   await ask(page, "Show my purchases");
   const receipts = await ask(page, "Put those in a list with receipts");
@@ -885,7 +905,7 @@ test("formatting plus receipt refinement changes the actual linked list, while a
 test("document and priced predicates produce a desktop table or narrow linked cards with exact document links, without granting model access", async ({
   page,
 }) => {
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   await open(page);
   const result = await ask(
     page,
@@ -963,7 +983,7 @@ test("document and priced predicates produce a desktop table or narrow linked ca
 test("care follow-up stays with the exact product; explicit analysis and short formatting resume the retained library result", async ({
   page,
 }) => {
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   let dialog = await open(page);
   const library = await ask(page, "Show my purchases");
   await library.article

@@ -1,4 +1,5 @@
 import { spawn, execFile, type ChildProcess } from "node:child_process";
+import { isolatedCareEnvironment } from "../helpers/isolated-care-environment";
 import { createHash } from "node:crypto";
 import { once } from "node:events";
 import { mkdtemp, rm } from "node:fs/promises";
@@ -56,6 +57,7 @@ async function start(expiresAt = new Date(Date.now() + 3600000).toISOString()) {
     {
       stdio: "ignore",
       env: {
+        ...isolatedCareEnvironment,
         PATH: process.env.PATH,
         HOME: home,
         NODE_ENV: "production",

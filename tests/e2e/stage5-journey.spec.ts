@@ -13,8 +13,14 @@ test("customer journey preserves purchase identity through CareOS, recall, repla
     name: "Main navigation",
     exact: true,
   });
-  await expect(navigation.getByRole("link")).toHaveText(["Home", "Insights"]);
-  await expect(navigation.locator('[aria-current="page"]')).toHaveText("Home");
+  await expect(navigation.getByRole("link")).toHaveText([
+    "Care",
+    "Purchases",
+    "Insights",
+  ]);
+  await expect(navigation.locator('[aria-current="page"]')).toHaveText(
+    "Purchases",
+  );
   await expect(page.locator('a[href^="/merchant"]')).toHaveCount(0);
   const activity = page.getByRole("list", {
     name: "Unified purchase activity",

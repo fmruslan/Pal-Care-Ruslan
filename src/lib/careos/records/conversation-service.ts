@@ -23,11 +23,14 @@ import {
   warrantyRecordsAnswer,
 } from "./service";
 import { ownedFollowupHistory } from "./followup";
+import type { CareFeed } from "../../care/model";
+import { careStatusAnswer } from "../../care/answer";
 
 export const conversationPlanSchema = z.strictObject({
   task: z.enum([
     "records",
     "warranty",
+    "aftercare",
     "product",
     "care",
     "clarification",
@@ -40,7 +43,17 @@ export const conversationPlanSchema = z.strictObject({
     .strictObject({ from: z.iso.date(), to: z.iso.date() })
     .nullable(),
   productSearch: z.string().max(120),
-  productAction: z.enum(["summary", "receipt", "documents", "manual"]),
+  productAction: z.enum([
+    "summary",
+    "receipt",
+    "documents",
+    "manual",
+    "attention",
+    "price",
+    "returns",
+    "refunds",
+    "warranty",
+  ]),
   careQuestion: z.string().max(400),
   clarification: z.string().max(300),
 });
@@ -59,6 +72,7 @@ export async function answerConversationTurn(options: {
   load: () => Promise<DemoData & { source?: "fixtures" | "database" }>;
   interpret: (payload: string) => Promise<unknown>;
   knowledge: () => Promise<KnowledgeSource[]>;
+  care?: () => Promise<CareFeed>;
   model: CareModel;
   call: <T>(
     work: (signal: AbortSignal) => Promise<ModelResult<T>>,
@@ -188,11 +202,37 @@ export async function answerConversationTurn(options: {
             ...data,
             twins: data.twins.filter((t) => t.id === warrantyContext.twin.id),
           }
-        : data,
+        : plan.relation === "followup" && recentProduct?.careSelection
+          ? {
+              ...data,
+              twins: data.twins.filter((t) =>
+                recentProduct.careSelection!.includes(t.id),
+              ),
+            }
+          : data,
       query,
       undefined,
       plan.task === "records" ? (plan.comparison ?? undefined) : undefined,
     );
+    if (plan.task === "warranty" && options.care) {
+      const care = await options.care();
+      if (
+        !care.complete ||
+        care.savedCare.warranties.some((r) =>
+          result.records.some((p) => p.id === r.twinId),
+        )
+      )
+        return {
+          ...careStatusAnswer(
+            care,
+            input.revision,
+            result.records.map((p) => p.id),
+            "warranty",
+          ),
+          mode: "live",
+          conversationPlan: plan,
+        };
+    }
     return {
       ...(plan.task === "warranty"
         ? warrantyRecordsAnswer(result, input.revision)
@@ -214,17 +254,35 @@ export async function answerConversationTurn(options: {
     selected ?? (priorContext ? findTwin(data, priorContext) : undefined);
   if (
     (plan.relation === "selected" ||
-      !plan.productSearch ||
+      (!plan.productSearch && plan.task !== "aftercare") ||
       (plan.relation === "followup" &&
         recent?.questionScope === "purchase" &&
         recent.outcome !== "selection")) &&
     bound
   )
     candidates = candidates.filter((r) => r.id === bound.twin.id);
+  else if (plan.relation === "followup" && recent?.careSelection)
+    candidates = candidates.filter((r) => recent.careSelection!.includes(r.id));
   else if (plan.relation === "followup" && previous)
     candidates = candidates.filter((r) =>
       previous.records.some((p) => p.id === r.id),
     );
+  if (
+    plan.task === "aftercare" &&
+    options.care &&
+    (!plan.productSearch || candidates.length === 1)
+  ) {
+    return {
+      ...careStatusAnswer(
+        await options.care(),
+        input.revision,
+        candidates.map((p) => p.id),
+        plan.productAction,
+      ),
+      mode: "live",
+      conversationPlan: plan,
+    };
+  }
   if (candidates.length !== 1)
     return {
       ...purchaseSelection(data, input, (r) =>
@@ -238,9 +296,30 @@ export async function answerConversationTurn(options: {
     };
   const record = findTwin(data, candidates[0].id)!;
   const scoped = { ...input, twinId: record.twin.id };
-  if (plan.task === "product" && plan.productAction !== "manual")
+  if (
+    plan.task === "aftercare" ||
+    (plan.task === "product" &&
+      !["summary", "receipt", "documents", "manual"].includes(
+        plan.productAction,
+      ))
+  )
     return {
-      ...deterministicAnswer(data, scoped, plan.productAction),
+      ...live,
+      outcome: "unavailable",
+      context: contextOf(record),
+      questionScope: "purchase",
+      text: "That Care tool is unavailable. No tracking, return request or financial action was performed.",
+    };
+  if (
+    plan.task === "product" &&
+    ["summary", "receipt", "documents"].includes(plan.productAction)
+  )
+    return {
+      ...deterministicAnswer(
+        data,
+        scoped,
+        plan.productAction as "summary" | "receipt" | "documents",
+      ),
       mode: "live",
       questionScope: "purchase",
       conversationPlan: plan,

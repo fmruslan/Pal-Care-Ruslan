@@ -115,7 +115,7 @@ async function openNorth(page: Page, expectedAlert?: string) {
   if (!restoreOpen && !(await dialog.isVisible())) {
     // Home's star submits the unified field; History is the read-only opener
     // when a retained draft is present. Neither restore nor history can replay.
-    if (new URL(page.url()).pathname === "/dashboard") {
+    if (["/dashboard", "/purchases"].includes(new URL(page.url()).pathname)) {
       await page.getByRole("button", { name: "History", exact: true }).click();
       await dialog
         .getByRole("button", { name: "History", exact: true })
@@ -242,7 +242,7 @@ async function navigate(page: Page, label: string, path: string) {
   });
   await navigation
     .getByRole("link", {
-      name: label === "All documents" ? "Home" : label,
+      name: label === "All documents" ? "Purchases" : label,
       exact: true,
     })
     .click();
@@ -259,7 +259,7 @@ test("new inline North opens with library context and an editable draft but no a
   page,
 }) => {
   const log = requestLog(page);
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   const { dialog, composer } = await openNorth(page);
   await expect(dialog.locator(".careos-context strong")).toHaveText(
     "All saved purchases",
@@ -319,7 +319,7 @@ for (const retirement of ["dismiss", "change context"] as const) {
     page,
   }) => {
     const log = requestLog(page);
-    await page.goto("/dashboard");
+    await page.goto("/purchases");
     const { dialog, composer } = await openNorth(page);
     const turn = await sendCare(page, dialog, "Find receipt");
     expect(turn.answer.outcome).toBe("selection");
@@ -360,7 +360,7 @@ test("North identity uses a silent outlined star, neutral shell and violet acces
   page,
 }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   const { dialog, composer, transcript } = await openNorth(page);
   const heading = dialog.locator("header > div").first();
   await expect(heading).toBeVisible();
@@ -432,7 +432,7 @@ test("cancel an accidental searchable context picker without messages, navigatio
   page,
 }) => {
   const log = requestLog(page);
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   const { dialog, composer } = await openNorth(page);
   const turn = await sendCare(page, dialog, "What does North Star do?");
   await composer.fill("Keep this question while I look");
@@ -461,7 +461,7 @@ test("cancel an accidental searchable context picker without messages, navigatio
   await expect(dialog.locator(".careos-context strong")).toHaveText(
     "All saved purchases",
   );
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page).toHaveURL(/\/purchases$/);
   expect(log.mutations()).toEqual(before);
   await dialog
     .getByRole("button", { name: "Change context", exact: true })
@@ -505,7 +505,9 @@ test("explicitly choosing the identical implicit purchase persists across anothe
   await dialog
     .getByRole("button", { name: "Close North Star", exact: true })
     .click();
-  await page.getByRole("link", { name: "Back to Home", exact: true }).click();
+  await page
+    .getByRole("link", { name: "Back to Purchases", exact: true })
+    .click();
   await page
     .getByRole("link", { name: /^View details for Raspberry Pi 5,/ })
     .click();
@@ -532,7 +534,7 @@ test("search and directly change/remove persistent purchase context without subm
   page,
 }) => {
   const log = requestLog(page);
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   const { dialog, composer } = await openNorth(page);
   const prior = await sendCare(page, dialog, "What does North Star do?");
   await composer.fill("A draft that context controls cannot consume");
@@ -546,7 +548,7 @@ test("search and directly change/remove persistent purchase context without subm
   await expect(dialog.getByRole("button", { name: /continue/i })).toHaveCount(
     0,
   );
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page).toHaveURL(/\/purchases$/);
   expect(log.requests).toContain("GET /api/careos/context");
   expect(log.mutations()).toEqual(before);
   await dialog
@@ -568,7 +570,7 @@ test("search and directly change/remove persistent purchase context without subm
   );
   await expect(priorAnswer.locator("[data-answer-scope]")).toHaveCount(0);
   expect(log.mutations()).toEqual(before);
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page).toHaveURL(/\/purchases$/);
 });
 
 test("a supported library query returns computed records, never a selected item's price, and keeps exact context for care", async ({
@@ -642,14 +644,14 @@ test("owned result history and draft survive navigation, Insights, return and cl
   page,
 }) => {
   const log = requestLog(page);
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   let opened = await openNorth(page);
   await chooseHeadphones(page, opened.dialog);
   const care = await sendCare(page, opened.dialog, "Find receipt");
   await opened.composer.fill("Keep this cross-page draft");
   for (const [label, path] of [
-    ["Home", "/dashboard"],
-    ["All documents", "/dashboard?view=documents"],
+    ["Purchases", "/purchases"],
+    ["All documents", "/purchases?view=documents"],
     ["Insights", "/insights"],
   ]) {
     await navigate(page, label, path);
@@ -716,7 +718,7 @@ test("owned result history and draft survive navigation, Insights, return and cl
   expect(log.mutations()).toEqual(mutations);
   expect(log.bootstraps()).toEqual(bootstraps);
   expect(log.modelWork()).toEqual(modelWork);
-  await navigate(page, "Home", "/dashboard");
+  await navigate(page, "Purchases", "/purchases");
   opened = await openNorth(page);
   await expect(opened.composer).toHaveValue(
     "Retain this after the Insights answer",
@@ -879,6 +881,15 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
       });
   });
   await page.goto("/insights");
+  // Wait for the root's initial presentation commit before installing the saved
+  // tab fixture. Otherwise its queued bootstrap can overwrite the injected order.
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => !!sessionStorage.getItem("palcare-careos-interaction-v1"),
+      ),
+    )
+    .toBe(true);
   await page.evaluate(
     ({ careId, planId, order, context }) => {
       sessionStorage.setItem("palcare-careos-conversation", careId);
@@ -960,6 +971,16 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
       "data-request-id",
       last.requestId,
     );
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            JSON.parse(
+              sessionStorage.getItem("palcare-north-workspace-v1") ?? "null",
+            )?.id,
+        ),
+      )
+      .toBe(last.requestId);
     expect(
       log.requests.filter(
         (entry) => entry === "GET /api/intelligence/customer/plan",
@@ -969,6 +990,16 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
     await dialog
       .getByRole("button", { name: "Close North Star", exact: true })
       .click();
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            JSON.parse(
+              sessionStorage.getItem("palcare-north-workspace-v1") ?? "null",
+            )?.open,
+        ),
+      )
+      .toBe(false);
     await expect(
       page.getByRole("button", { name: "My Purchases", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
@@ -1136,7 +1167,7 @@ test("an uncertain Insights plan blocks new sends until GET recovery, then offer
     },
     { careId, planId, requestId, context: headphoneContext },
   );
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   await expect(
     page.getByRole("searchbox", {
       name: "Search products and documents",
@@ -1266,7 +1297,7 @@ test("an uncertain Insights plan blocks new sends until GET recovery, then offer
       exact: true,
     }),
   ).toBeVisible();
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page).toHaveURL(/\/purchases$/);
   expect(log.mutations()).toEqual([
     `POST /api/careos/conversations/${careId}/turns`,
   ]);

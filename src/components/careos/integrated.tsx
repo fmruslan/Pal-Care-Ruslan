@@ -74,7 +74,7 @@ export function NorthWorkspaceSlot() {
       />
       {assistant?.integrated &&
         !assistant.integrated.isOpen &&
-        pathname !== "/dashboard" && (
+        !["/dashboard", "/purchases"].includes(pathname) && (
           <div className="my-5 flex flex-wrap items-center gap-3">
             <Button
               variant="intelligence"
@@ -105,9 +105,11 @@ export function NorthCollection({ children }: { children: ReactNode }) {
 export function NorthSearch({
   query,
   searchIndex,
+  footer,
 }: {
   query: LibraryQuery;
   searchIndex: string[];
+  footer?: ReactNode;
 }) {
   const assistant = useOptionalCareOS();
   const north = assistant?.integrated;
@@ -213,7 +215,14 @@ export function NorthSearch({
           open History to check it; nothing is resent automatically.
         </p>
       )}
-      <div className="flex justify-end">
+      <div
+        className={
+          footer
+            ? "mt-3 flex flex-wrap items-center justify-between gap-2"
+            : "flex justify-end"
+        }
+      >
+        {footer}
         <button
           type="button"
           className="inline-flex min-h-11 items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
@@ -309,7 +318,8 @@ export function IntegratedNorthView({
   state: IntegratedNorthState;
 }) {
   const pathname = usePathname();
-  const QuestionHeading = pathname === "/dashboard" ? "h1" : "h2";
+  const collectionPage = ["/dashboard", "/purchases"].includes(pathname);
+  const QuestionHeading = collectionPage ? "h1" : "h2";
   const historyOpen = s.historyOpen,
     setHistoryOpen = s.setHistoryOpen;
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -589,7 +599,7 @@ export function IntegratedNorthView({
               {doc && doc.href !== pathname && (
                 <DocumentPreview
                   key={doc.href}
-                  headingLevel={pathname === "/dashboard" ? 2 : 3}
+                  headingLevel={collectionPage ? 2 : 3}
                   href={doc.href}
                   title={doc.title}
                   label={doc.label}
@@ -598,7 +608,7 @@ export function IntegratedNorthView({
               {answer!.recordsResult && (
                 <RecordsResultView
                   key={active.requestId}
-                  headingLevel={pathname === "/dashboard" ? 2 : 3}
+                  headingLevel={collectionPage ? 2 : 3}
                   presentation="inline"
                   result={answer!.recordsResult}
                   autoApply={s.recordsSubmission === active.requestId}

@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { once } from "node:events";
 import { setTimeout } from "node:timers/promises";
 import { test } from "node:test";
+import { isolatedCareEnvironment } from "../helpers/isolated-care-environment";
 
 test(
   "production server reports an unavailable database without fixture fallback or credential disclosure",
@@ -21,6 +22,7 @@ test(
       {
         env: {
           ...process.env,
+          ...isolatedCareEnvironment,
           MIGRATION_DATABASE_URL: "",
           ADMIN_DATABASE_URL: "",
           OPERATOR_DATABASE_URL: "",

@@ -13,6 +13,9 @@ export function readinessPlan(env: Record<string, string | undefined>) {
     env.ADMIN_DATABASE_URL ||
     env.OPERATOR_DATABASE_URL ||
     env.LOCAL_POSTGRES_PASSWORD ||
+    env.CARE_REPORTER_DATABASE_URL ||
+    env.CARE_WATCH_DATABASE_URL ||
+    env.CARE_HOST_WRITES_ENABLED === "true" ||
     !validAppOrigin(env.APP_ORIGIN)
   )
     throw new Error("Invalid runtime isolation/origin");
@@ -47,6 +50,19 @@ export function readinessPlan(env: Record<string, string | undefined>) {
     );
   } else if (env.DEMO_DATA_SOURCE && env.DEMO_DATA_SOURCE !== "fixtures")
     throw new Error("Invalid data source");
+  if (env.CARE_RECORDS_ENABLED === "true") {
+    if (env.DEMO_DATA_SOURCE !== "database")
+      throw Error("Care persistence requires database mode");
+    requirements.push({
+      capability: "care_reader",
+      url: runtimeWriterUrl("CARE_READER_DATABASE_URL", env),
+    });
+  }
+  if (
+    env.CARE_WATCH_SCHEDULE_ENABLED === "true" &&
+    env.CARE_RECORDS_ENABLED !== "true"
+  )
+    throw Error("Watch schedule requires Care records");
   if (env.PAYPAL_CHECKOUT_ENABLED === "true") {
     const checkout = parseCheckoutConfig(env);
     if (!checkout.enabled) throw new Error("Invalid checkout configuration");
@@ -76,6 +92,14 @@ export function readinessPlan(env: Record<string, string | undefined>) {
     requirements,
     features: {
       careos: care.mode,
+      careTracking:
+        env.CARE_RECORDS_ENABLED === "true"
+          ? "configured-read-only"
+          : "disabled",
+      catalogWatches:
+        env.CARE_WATCH_SCHEDULE_ENABLED === "true"
+          ? "configured-check-evidence-required"
+          : "disabled",
       checkout:
         env.PAYPAL_CHECKOUT_ENABLED === "true"
           ? "configured-not-provider-verified"

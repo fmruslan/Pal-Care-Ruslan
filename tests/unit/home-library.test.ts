@@ -255,7 +255,7 @@ describe("bounded library URLs", () => {
     ["/dashboard", "/merchant"],
     "/dashboard?q=a&q=b",
   ])("rejects unsafe or ambiguous return targets %s", (value) => {
-    expect(libraryReturn(value)).toBe("/dashboard");
+    expect(libraryReturn(value)).toBe("/purchases");
   });
   it("normalizes punctuation and accents without interpreting executable input", () => {
     expect(libraryWords("Réceipts / H-02")).toEqual(["receipt", "h", "02"]);

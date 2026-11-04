@@ -21,7 +21,7 @@ test("purchase details use the existing assistant, keep drafts across appearance
     )
       remoteFonts.push(request.url());
   });
-  await page.goto("/dashboard");
+  await page.goto("/purchases");
   await expect(page.locator("[data-purchase-card]")).toHaveCount(4);
   await page
     .getByRole("link", { name: /^View details for Everyday headphones,/ })
@@ -186,7 +186,7 @@ test("blocked local storage falls back to System without breaking the app", asyn
     "system",
   );
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Your products",
+    "Care for what you own.",
   );
 });
 
@@ -261,7 +261,7 @@ test("keyboard theme selection, reduced motion and mobile navigation remain acce
       () => matchMedia("(prefers-reduced-motion: reduce)").matches,
     ),
   ).toBe(true);
-  const card = page.locator(".motion-card").first();
+  const card = page.locator(".care-action-card").first();
   expect(
     await card.evaluate((element) =>
       getComputedStyle(element)
@@ -275,7 +275,11 @@ test("keyboard theme selection, reduced motion and mobile navigation remain acce
       exact: true,
     });
     await expect(nav).toBeVisible();
-    await expect(nav.getByRole("link")).toHaveText(["Home", "Insights"]);
+    await expect(nav.getByRole("link")).toHaveText([
+      "Care",
+      "Purchases",
+      "Insights",
+    ]);
     for (const link of await nav.getByRole("link").all()) {
       const box = await link.boundingBox();
       expect(box!.height).toBeGreaterThanOrEqual(44);
@@ -284,11 +288,11 @@ test("keyboard theme selection, reduced motion and mobile navigation remain acce
     await nav.getByRole("link", { name: "Insights", exact: true }).click();
     await expect(page).toHaveURL(/\/insights$/);
     await expect(nav.locator('[aria-current="page"]')).toHaveText("Insights");
-    await nav.getByRole("link", { name: "Home", exact: true }).click();
+    await nav.getByRole("link", { name: "Purchases", exact: true }).click();
     await page
       .getByRole("link", { name: "All documents", exact: true })
       .click();
-    await expect(page).toHaveURL(/\/dashboard\?view=documents$/);
+    await expect(page).toHaveURL(/\/purchases\?view=documents$/);
   }
   expect(
     await page.evaluate(
@@ -316,6 +320,8 @@ test("large text and narrow reflow do not cause page overflow", async ({
 for (const [name, path] of [
   ["home", "/"],
   ["dashboard", "/dashboard"],
+  ["purchases", "/purchases"],
+  ["about", "/about"],
   ["insights", "/insights"],
   ["passport", twin],
   ["shop", "/shop"],

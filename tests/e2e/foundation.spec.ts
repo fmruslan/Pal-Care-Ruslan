@@ -1,17 +1,18 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-test("public landing page opens customer demo without registration", async ({
+test("default Care opens the customer library without registration", async ({
   page,
 }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(
-    "Everything you own.",
+    "Care for what you own.",
   );
   await page
-    .getByRole("link", { name: "Explore Pal Care", exact: true })
+    .getByRole("navigation", { name: "Main navigation", exact: true })
+    .getByRole("link", { name: "Purchases", exact: true })
     .click();
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page).toHaveURL(/\/purchases$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Your products",
   );
@@ -45,7 +46,7 @@ test("vault search, filter and empty state work", async ({ page }) => {
     }),
   ).toBeVisible();
   await page.getByRole("link", { name: "Show all purchases" }).first().click();
-  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page).toHaveURL(/\/purchases$/);
   await expect(search).toHaveValue("");
   await page.getByText("Filters & sort", { exact: true }).click();
   await expect(
@@ -180,6 +181,9 @@ test("health endpoints and security headers are present", async ({
 for (const path of [
   "/",
   "/dashboard",
+  "/purchases",
+  "/care/00000000-0000-4000-8000-000000000201",
+  "/about",
   "/vault",
   "/documents",
   "/merchant",

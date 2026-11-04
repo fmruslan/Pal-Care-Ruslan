@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { testRuntimeRoles } from "../tests/helpers/runtime-roles";
 import { solTestScope } from "../tests/helpers/sol-scopes";
 import "./environment";
+import { isolatedCareEnvironment } from "../tests/helpers/isolated-care-environment";
 const port = process.argv[2];
 if (!port || !/^\d{4,5}$/.test(port) || ["3000", "55432"].includes(port))
   throw new Error("Explicit isolated test port required");
@@ -31,6 +32,7 @@ const child = spawn(
   {
     stdio: "inherit",
     env: {
+      ...isolatedCareEnvironment,
       PATH: process.env.PATH,
       HOME: process.env.HOME,
       NODE_ENV: "production",

@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { testRuntimeRoles } from "../tests/helpers/runtime-roles";
 import "./environment";
 import { assertBuild } from "./workspace.mjs";
+import { isolatedCareEnvironment } from "../tests/helpers/isolated-care-environment";
 assertBuild();
 const port = process.argv[2];
 if (!port || !/^\d{4,5}$/.test(port))
@@ -24,6 +25,7 @@ const child = spawn(
     stdio: "inherit",
     env: {
       ...process.env,
+      ...isolatedCareEnvironment,
       MIGRATION_DATABASE_URL: "",
       ADMIN_DATABASE_URL: "",
       OPERATOR_DATABASE_URL: "",

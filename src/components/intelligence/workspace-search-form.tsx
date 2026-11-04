@@ -9,5 +9,5 @@ export function WorkspaceSearchForm(
   props: Omit<ComponentProps<typeof Form>, "onSubmit" | "action">,
 ) {
   const departure = useWorkspaceDeparture();
-  return <Form {...props} action="/dashboard" onSubmit={() => departure?.()} />;
+  return <Form {...props} action="/purchases" onSubmit={() => departure?.()} />;
 }

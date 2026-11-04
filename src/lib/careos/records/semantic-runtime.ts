@@ -22,6 +22,7 @@ import {
 } from "./conversation-service";
 import { getKnowledge } from "../knowledge-repository";
 import { ownedFollowupHistory } from "./followup";
+import { getCareFeed } from "../../care/repository";
 
 export async function assertRecordsModelAccess() {
   const { config } = careRuntime();
@@ -64,6 +65,7 @@ export async function answerAuthorizedRecords(
       history,
       load: getSavedRecordsData,
       knowledge: getKnowledge,
+      care: getCareFeed,
       model: provider,
       call: async (work) => (await work(timeout)).value,
       interpret: async (payload) => {
@@ -75,7 +77,7 @@ export async function answerAuthorizedRecords(
             conversationPlanSchema,
             "north_conversation_v1",
             timeout,
-            CONVERSATION_INSTRUCTIONS,
+            `${CONVERSATION_INSTRUCTIONS}\naftercare: use this read-only task for proactive Care findings, price comparisons/watches, returns or refund progress. productAction is attention, price, returns, refunds, warranty or summary. For prepare-return requests use aftercare/returns: the application offers an editable draft, never sends it. Broad requests have blank productSearch and fresh relation, resolving requested library filters; specific products retain exact dated ownership and disambiguation. These tools share the same evidence as Care cards. The server determines whether saved progress, manual warranty dates or an actually checked watch exists; never assume availability or activity. Manual reports do not establish external verification, warranty coverage or financial status. Keep product actions summary/receipt/documents/manual for the product task.`,
           )
         ).value;
       },
