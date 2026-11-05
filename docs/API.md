@@ -1,6 +1,8 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
-## All-purchase Care / automatic price protection — candidate, release pending
+## All-purchase Care / automatic price protection — deployed 40f3187
+
+All three exact-commit CI jobs, approved additive activation, post-schema rollback and actual private HTTPS acceptance passed. [Release evidence and limits](evidence/CARE-PRICE-PROTECTION-RELEASE.md). The surface below is implemented; it grants no general research, new provider or financial authority.
 
 - `GET /dashboard` defaults to **All purchases**; `status=attention|watching|completed` selects the corresponding read-only subset. Unknown statuses default to all. Each saved purchase appears once; quiet ownership is not a completed task. The shared ownership `price` fact now describes protection, not generic price comparison; original dated Twin/document links and milestone topics remain compatible.
 - `GET /care/{twinUuid}#price` shows the same current saved policy/source/deadline/check/opportunity facts, original legacy catalog checks separately, and editable unsent preparation. No merchant request, refund or job is dispatched by loading the page or preparing a draft.

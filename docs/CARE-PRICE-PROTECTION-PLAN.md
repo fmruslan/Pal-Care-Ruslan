@@ -1,5 +1,7 @@
 # All-purchase Care and automatic price protection
 
+**Actual activation completed:** release **40f3187**, all three exact-commit CI jobs, actual restricted-role/isolation checks, post-additive-schema rollback and private HTTPS acceptance passed. The selected exact migration, two independent restricted logins and bounded timer are activated; original records/credentials/accounting and root 0016 are preserved. Five actual purchases have unavailable policy evidence, not invented eligibility or opportunities. [Release evidence and limits](evidence/CARE-PRICE-PROTECTION-RELEASE.md). The conditional approval/preparation history below is retained, not another activation request.
+
 ## Approved customer outcome / selected gate
 
 Implement the owner's combined correction as capability **C** on existing A/B, followed by **D** integrated functional/database/accessibility acceptance and **E** exact-commit CI, verified rollback and private 8444 deployment. Approval covers implementation, tests, commit/push and private release, not new application DDL, credentials, worker/model/financial authority. [STATUS](STATUS.md) remains implementation truth.
