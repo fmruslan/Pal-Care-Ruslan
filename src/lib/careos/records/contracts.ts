@@ -1,6 +1,15 @@
 import { z } from "zod";
 
 export const RECORDS_LIMIT = 1000;
+export const RECORD_CATEGORIES = [
+  "Audio",
+  "Computing",
+  "Kitchen",
+  "Clothing",
+  "Home",
+  "Books",
+  "Games",
+] as const;
 export const dateSchema = z.iso.date();
 export const recordsQuerySchema = z
   .strictObject({
@@ -9,7 +18,9 @@ export const recordsQuerySchema = z
     format: z.enum(["cards", "bullets", "table", "chart"]),
     from: dateSchema.nullable(),
     to: dateSchema.nullable(),
-    categories: z.array(z.enum(["Audio", "Computing", "Kitchen"])).max(3),
+    categories: z
+      .array(z.enum(RECORD_CATEGORIES))
+      .max(RECORD_CATEGORIES.length),
     origin: z.enum(["all", "sample", "sandbox"]),
     receipt: z.enum(["any", "present", "missing"]),
     document: z.enum(["any", "present", "missing"]).default("any"),

@@ -193,7 +193,240 @@ export function ProductArt({
               strokeLinecap="round"
             />
           </>
-        ) : (
+        ) : kind === "refrigerator" ? (
+          <>
+            <path d="m190 29 23 15v133l-23 11Z" fill="var(--art-edge)" />
+            <rect
+              x="88"
+              y="24"
+              width="106"
+              height="160"
+              rx="12"
+              fill="var(--art-body)"
+              stroke="var(--art-edge)"
+              strokeWidth="3"
+            />
+            <path
+              d="M89 79h104M96 31h89"
+              stroke="var(--art-highlight)"
+              strokeWidth="3"
+            />
+            <path
+              d="M104 46v20m0 30v42"
+              stroke="var(--art-edge)"
+              strokeWidth="6"
+              strokeLinecap="round"
+            />
+            <path
+              d="M111 33h69v136h-69"
+              stroke="var(--art-highlight)"
+              opacity=".4"
+              strokeWidth="5"
+            />
+            <rect
+              x="99"
+              y="182"
+              width="13"
+              height="5"
+              rx="2"
+              fill="var(--art-edge)"
+            />
+            <rect
+              x="174"
+              y="182"
+              width="13"
+              height="5"
+              rx="2"
+              fill="var(--art-edge)"
+            />
+          </>
+        ) : kind === "boots" ? (
+          <>
+            <path
+              d="M143 46h48l3 74c2 15 32 11 42 30l-3 19h-94l-13-17 13-46Z"
+              fill="var(--art-alt)"
+              stroke="var(--art-edge)"
+              strokeWidth="3"
+            />
+            <path
+              d="M73 54h54l-2 74c4 15 38 9 47 29l-3 22H61l-9-17 15-47Z"
+              fill="var(--art-body)"
+              stroke="var(--art-edge)"
+              strokeWidth="3"
+            />
+            <path
+              d="m70 65 47-2m-45 13 45-2M62 162h108m-31-8h96"
+              stroke="var(--art-edge)"
+              strokeWidth="7"
+            />
+            <path
+              d="m81 88 24 7-25 8 24 7-25 9 24 6"
+              stroke="var(--art-highlight)"
+              strokeWidth="4"
+              strokeLinecap="round"
+            />
+            <path
+              d="M63 150c23-12 32-16 56-10m34-68 26 5m-26 8 26 5m-26 8 26 5"
+              stroke="var(--art-highlight)"
+              strokeWidth="2"
+              strokeDasharray="3 3"
+            />
+          </>
+        ) : kind === "mattress" ? (
+          <>
+            <path
+              d="m39 110 74-55 132 40-69 57Z"
+              fill="var(--art-highlight)"
+              stroke="var(--art-edge)"
+              strokeWidth="3"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M39 110v35l137 42 69-57V95l-69 57Z"
+              fill="var(--art-body)"
+              stroke="var(--art-edge)"
+              strokeWidth="3"
+              strokeLinejoin="round"
+            />
+            <path
+              d="m39 124 137 43 69-57M176 153v33"
+              stroke="var(--art-alt)"
+              strokeWidth="4"
+            />
+            <path
+              d="m75 98 133 40M94 83l132 40m-98-64-70 56m105-46-70 57m105-47-70 58"
+              stroke="var(--art-body)"
+              strokeWidth="2"
+              opacity=".7"
+            />
+            <rect
+              x="91"
+              y="143"
+              width="31"
+              height="10"
+              rx="3"
+              fill="var(--art-highlight)"
+              transform="rotate(17 91 143)"
+            />
+          </>
+        ) : kind === "book" ? (
+          <>
+            <path
+              d="m85 31 117 16v128L85 158Z"
+              fill="var(--art-edge)"
+              stroke="var(--art-edge)"
+              strokeWidth="4"
+              strokeLinejoin="round"
+            />
+            <path
+              d="m85 158 117 17-11 12-115-18Z"
+              fill="var(--art-highlight)"
+              stroke="var(--art-edge)"
+              strokeWidth="3"
+            />
+            <path
+              d="m76 42 116 16v129L76 170Z"
+              fill="var(--art-body)"
+              stroke="var(--art-edge)"
+              strokeWidth="3"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M88 47v122m14-96 63 9m-63 3 42 7"
+              stroke="var(--art-highlight)"
+              strokeWidth="3"
+            />
+            <circle cx="144" cy="126" r="26" fill="var(--art-alt)" />
+            <path
+              d="m117 143 50-34m-50 22 42 20"
+              stroke="var(--art-highlight)"
+              strokeWidth="3"
+            />
+          </>
+        ) : kind === "phone" ? (
+          <>
+            <rect
+              x="88"
+              y="20"
+              width="91"
+              height="169"
+              rx="20"
+              fill="var(--art-edge)"
+              transform="rotate(-8 88 20)"
+            />
+            <rect
+              x="96"
+              y="28"
+              width="77"
+              height="153"
+              rx="16"
+              fill="var(--art-body)"
+              transform="rotate(-8 96 28)"
+            />
+            <path
+              d="m106 123 51-50 28 65-57 41Z"
+              fill="var(--art-alt)"
+              opacity=".8"
+            />
+            <path
+              d="m103 72 45 28-35 45"
+              stroke="var(--art-highlight)"
+              strokeWidth="9"
+              opacity=".65"
+            />
+            <rect
+              x="119"
+              y="33"
+              width="33"
+              height="8"
+              rx="4"
+              fill="var(--art-edge)"
+              transform="rotate(-8 119 33)"
+            />
+            <path
+              d="m139 171 21-3"
+              stroke="var(--art-highlight)"
+              strokeWidth="3"
+              strokeLinecap="round"
+            />
+          </>
+        ) : kind === "game" ? (
+          <>
+            <path
+              d="m99 33 94 12v133l-94-12Z"
+              fill="var(--art-edge)"
+              stroke="var(--art-edge)"
+              strokeWidth="3"
+            />
+            <path
+              d="m88 42 94 12v133l-94-12Z"
+              fill="var(--art-body)"
+              stroke="var(--art-edge)"
+              strokeWidth="3"
+            />
+            <path d="m97 68 76 9v74l-76-9Z" fill="var(--art-alt)" />
+            <path
+              d="m101 133 25-33 12 14 16-23 16 49Z"
+              fill="var(--art-highlight)"
+            />
+            <path
+              d="m101 54 26 4m-25 99 66 8"
+              stroke="var(--art-highlight)"
+              strokeWidth="4"
+            />
+            <path
+              d="M57 160c4-24 14-32 30-21h33c15-11 26-3 30 21l-2 15c-5 10-16 0-23-10H83c-7 10-18 20-24 10Z"
+              fill="var(--art-edge)"
+            />
+            <path
+              d="M76 148v15m-7-8h15"
+              stroke="var(--art-highlight)"
+              strokeWidth="3"
+            />
+            <circle cx="129" cy="152" r="3" fill="var(--art-highlight)" />
+            <circle cx="136" cy="159" r="3" fill="var(--art-highlight)" />
+          </>
+        ) : kind === "speaker" ? (
           <>
             <path
               d="M139 44v-8c0-12 19-12 19 0v16"
@@ -256,6 +489,17 @@ export function ProductArt({
               strokeLinecap="round"
             />
           </>
+        ) : (
+          <rect
+            x="90"
+            y="55"
+            width="100"
+            height="112"
+            rx="18"
+            fill="var(--art-body)"
+            stroke="var(--art-edge)"
+            strokeWidth="3"
+          />
         )}
       </svg>
     </div>

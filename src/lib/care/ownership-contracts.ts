@@ -14,6 +14,8 @@ export const ownershipTopics = [
 ] as const;
 export type OwnershipTopic = (typeof ownershipTopics)[number];
 export type OwnershipFact = {
+  summary?: string;
+  simulation?: { packId: string; scenarioId: string; asOf: string };
   id: string;
   topic: OwnershipTopic;
   title: string;
@@ -35,6 +37,8 @@ export type OwnershipFact = {
   action?: { label: string; href: string };
 };
 export type OwnershipView = {
+  simulation?: OwnershipFact["simulation"];
+  recordedFacts?: OwnershipFact[];
   twinId: string;
   purchase: {
     name: string;

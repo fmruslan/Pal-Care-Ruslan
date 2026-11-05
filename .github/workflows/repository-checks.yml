@@ -133,6 +133,10 @@ jobs:
         run: pnpm exec node scripts/workspace.mjs run test:integration tsx --test --test-concurrency=1 --test-name-pattern='purchase → policy discovery' tests/integration/price-protection.test.ts
         env:
           PALCARE_PROTECTION_BROWSER_JOURNEY: "true"
+      - name: Ten-product Care and retail-reference accessibility journeys (fictional fixtures, no provider calls)
+        run: pnpm exec playwright test --config=playwright.demo-care.config.ts
+        env:
+          E2E_PORT: "3110"
       - name: Private owner pairing, browser persistence and expiry (isolated fixture, no inference)
         run: pnpm exec playwright test --config=playwright.access.config.ts
       - name: Firefox and WebKit essential journeys (emulation, not real-device certification)

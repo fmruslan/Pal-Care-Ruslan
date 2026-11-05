@@ -47,7 +47,7 @@ export function matchingRecords(records: SavedRecord[], query: RecordsQuery) {
       (!query.to || r.purchasedOn <= query.to) &&
       (!query.categories.length ||
         query.categories.includes(
-          r.category as "Audio" | "Computing" | "Kitchen",
+          r.category as RecordsQuery["categories"][number],
         )) &&
       (query.origin === "all" || r.origin === query.origin) &&
       (query.receipt === "any" ||

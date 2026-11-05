@@ -73,6 +73,12 @@ export function readinessPlan(env: Record<string, string | undefined>) {
       url: runtimeWriterUrl("CARE_PROTECTION_READER_DATABASE_URL", env),
     });
   }
+  if (env.CARE_DEMO_ENABLED === "true" && env.DEMO_DATA_SOURCE === "database") {
+    requirements.push({
+      capability: "demo_care_reader",
+      url: runtimeWriterUrl("CARE_DEMO_READER_DATABASE_URL", env),
+    });
+  }
   if (
     env.CARE_PROTECTION_SCHEDULE_ENABLED === "true" &&
     env.CARE_PROTECTION_ENABLED !== "true"
@@ -106,6 +112,9 @@ export function readinessPlan(env: Record<string, string | undefined>) {
   return {
     requirements,
     features: {
+      ...(env.CARE_DEMO_ENABLED === "true"
+        ? { demoCare: "configured-simulated-and-dated-retail-evidence" }
+        : {}),
       careos: care.mode,
       priceProtection:
         env.CARE_PROTECTION_ENABLED === "true"

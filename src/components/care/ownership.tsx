@@ -500,6 +500,7 @@ export function OwnershipSummary({
   ).filter(
     (fact) =>
       !secondary ||
+      !!view.simulation ||
       careMilestoneTopics.includes(fact.topic) ||
       fact.topic === focused ||
       (["returns", "refunds"].includes(fact.topic) &&
@@ -545,7 +546,11 @@ export function OwnershipSummary({
                 data-care-milestone={fact.topic}
                 data-milestone-state={fact.state}
                 data-milestone-verified={fact.verified}
-                aria-label={`${careMilestoneLabel(fact)}: ${fact.status}${fact.date ? `, ${displayDate(fact.date)}` : ""}`}
+                aria-label={
+                  secondary && view.simulation
+                    ? undefined
+                    : `${careMilestoneLabel(fact)}: ${fact.status}${fact.date ? `, ${displayDate(fact.date)}` : ""}`
+                }
                 aria-current={
                   (focused ?? view.pill.topic) === fact.topic
                     ? "step"
@@ -558,13 +563,13 @@ export function OwnershipSummary({
                 }
                 aria-haspopup="dialog"
                 onClick={(event) => show(fact.topic, event.currentTarget)}
-                className={`relative flex w-full flex-col items-center rounded-lg px-1 pb-1 text-center text-[10px] [overflow-wrap:normal] hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring ${secondary ? "min-h-8 leading-3 text-muted-foreground" : "min-h-[3.75rem] leading-4 sm:text-[11px]"} ${focused === fact.topic ? "bg-intelligence text-intelligence-foreground" : ""}`}
+                className={`relative flex w-full flex-col items-center rounded-lg px-1 pb-1 text-center text-[10px] [overflow-wrap:normal] hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring ${secondary ? `${view.simulation ? "min-h-11" : "min-h-8"} leading-3 text-muted-foreground` : "min-h-[3.75rem] leading-4 sm:text-[11px]"} ${focused === fact.topic ? "bg-intelligence text-intelligence-foreground" : ""}`}
               >
                 <span
                   className={`relative flex items-center justify-center rounded-full border ${secondary ? `size-3 ${fact.state === "recorded" ? "bg-primary" : "bg-card"}` : "size-5 bg-card"} ${view.pill.topic === fact.topic ? "ring-2 ring-primary/30 ring-offset-1 ring-offset-card" : ""} ${fact.state === "recorded" ? "border-primary text-primary" : fact.state === "upcoming" || fact.state === "attention" ? "border-intelligence-foreground text-intelligence-foreground" : "border-muted-foreground text-muted-foreground"} ${["unknown", "unavailable", "not-applicable"].includes(fact.state) ? "border-dashed" : ""}`}
                 >
                   {!secondary &&
-                    (fact.state === "recorded" ? (
+                    (fact.state === "recorded" && !fact.simulation ? (
                       <Check className="size-3" aria-hidden="true" />
                     ) : fact.state === "expired" ? (
                       <X className="size-3" aria-hidden="true" />
@@ -608,6 +613,7 @@ export function OwnershipSummary({
                         : "text-muted-foreground"
                     }
                   >
+                    {view.simulation ? " " : ""}
                     {fact.date
                       ? displayDate(fact.date)
                       : careMilestoneState(fact)}
@@ -617,6 +623,9 @@ export function OwnershipSummary({
                   <span className="text-muted-foreground">
                     {careMilestoneState(fact)}
                   </span>
+                )}
+                {secondary && view.simulation && (
+                  <span className="sr-only"> {fact.status}</span>
                 )}
               </button>
             </li>

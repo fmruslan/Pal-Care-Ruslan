@@ -26,6 +26,7 @@ if (!Number.isInteger(port) || port < 1024 || port > 65535)
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  testIgnore: "care-ten-products.spec.ts",
   outputDir: `test-results/${dataSource}`,
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),

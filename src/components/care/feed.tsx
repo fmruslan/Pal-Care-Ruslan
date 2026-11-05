@@ -21,11 +21,30 @@ function CareCard({
   view,
   protection,
   quiet,
-}: ReturnType<typeof careProductCards>[number]) {
+  members,
+  headingLevel = 3,
+}: ReturnType<typeof careProductCards>[number] & { headingLevel?: 2 | 3 }) {
+  const Heading = headingLevel === 2 ? "h2" : "h3";
   const p = item.purchase;
-  const update = findings.length ? item.status : protection.label;
-  const action =
-    item.group === "action"
+  const simulated = view?.facts.find((f) => f.simulation);
+  const update = simulated
+    ? (simulated.summary ?? simulated.status)
+    : findings.length
+      ? item.status
+      : protection.label;
+  const action = simulated
+    ? {
+        label:
+          simulated.topic === "safety"
+            ? "Review notice"
+            : simulated.topic === "delivery"
+              ? "Track demo delivery"
+              : simulated.topic === "warranty"
+                ? "View terms"
+                : "Review example",
+        href: simulated.action!.href,
+      }
+    : item.group === "action"
       ? item.action
       : protection.monitoring
         ? { label: "Protection details", href: `/care/${p.id}#price` }
@@ -38,20 +57,24 @@ function CareCard({
         data-care-product={p.id}
         data-care-quiet={quiet}
       >
-        <div className="grid min-w-0 grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1 sm:grid-cols-[3rem_minmax(0,1fr)_auto]">
-          <div className="care-product-art min-w-0 [&>div]:size-10 [&_svg]:h-10 [&_svg]:w-12 sm:row-span-2 sm:self-center sm:[&>div]:size-12">
+        <div
+          className={`grid min-w-0 items-start gap-x-3 gap-y-1 ${simulated ? "grid-cols-[3.25rem_minmax(0,1fr)] sm:grid-cols-[4rem_minmax(0,1fr)_auto]" : "grid-cols-[2.5rem_minmax(0,1fr)] sm:grid-cols-[3rem_minmax(0,1fr)_auto]"}`}
+        >
+          <div
+            className={`care-product-art min-w-0 sm:row-span-2 sm:self-center ${simulated ? "[&>div]:size-13 [&_svg]:h-13 [&_svg]:w-16 sm:[&>div]:size-16 sm:[&_svg]:h-16 sm:[&_svg]:w-20" : "[&>div]:size-10 [&_svg]:h-10 [&_svg]:w-12 sm:[&>div]:size-12"}`}
+          >
             <ProductArt kind={p.illustration ?? "computer"} size="thumbnail" />
           </div>
           <div className="flex min-w-0 flex-wrap items-start justify-between gap-x-3 gap-y-1 sm:col-span-2">
             <div className="min-w-0">
-              <h3 className="text-sm font-semibold">
+              <Heading className="text-sm font-semibold">
                 <Link
                   href={p.href}
                   className="hover:text-primary hover:underline"
                 >
                   {p.name}
                 </Link>
-              </h3>
+              </Heading>
               <p className="text-xs leading-5 text-muted-foreground">
                 <time dateTime={p.purchasedOn}>
                   {displayDate(p.purchasedOn)}
@@ -60,7 +83,7 @@ function CareCard({
                 {p.origin === "sandbox"
                   ? "Sandbox purchase"
                   : "Sample purchase"}{" "}
-                · {p.model}
+                {simulated ? "" : ` · ${p.model}`}
               </p>
             </div>
             <OwnershipPill compact />
@@ -76,7 +99,9 @@ function CareCard({
                 : ""}
             </p>
             <details className="min-w-0 text-xs text-muted-foreground">
-              <summary className="inline-flex min-h-8 cursor-pointer items-center gap-1 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+              <summary
+                className={`inline-flex ${simulated ? "min-h-11" : "min-h-8"} cursor-pointer items-center gap-1 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
+              >
                 <Info className="size-3" aria-hidden="true" />
                 Evidence
               </summary>
@@ -105,14 +130,42 @@ function CareCard({
             </details>
             <Link
               href={action.href}
-              className={`inline-flex min-h-8 max-w-full items-center gap-1 rounded-lg text-xs font-semibold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${item.group === "action" ? "underline underline-offset-4" : ""}`}
+              className={`inline-flex ${simulated ? "min-h-11" : "min-h-8"} max-w-full items-center gap-1 rounded-lg text-xs font-semibold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${item.group === "action" ? "underline underline-offset-4" : ""}`}
             >
               {action.label}
               <ArrowRight className="size-3.5" aria-hidden="true" />
             </Link>
           </div>
         </div>
-        <div className="mt-2 border-t border-border/60 pt-2">
+        {members.length > 1 && (
+          <details className="mt-1 text-xs text-muted-foreground">
+            <summary className="inline-flex min-h-11 cursor-pointer items-center">
+              {members.length} dated purchases · select receipt/history
+            </summary>
+            <ul>
+              {members.map((member) => (
+                <li key={member.id}>
+                  <Link
+                    className="inline-flex min-h-11 items-center text-primary underline"
+                    href={member.href}
+                  >
+                    {displayDate(member.purchasedOn)} ·{" "}
+                    {member.origin === "sandbox"
+                      ? "Verified Sandbox payment"
+                      : "Sample purchase"}{" "}
+                    ·{" "}
+                    {member.amountMinor === null
+                      ? "Amount unavailable"
+                      : money(member.amountMinor)}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+        <div
+          className={`${simulated ? "mt-1 pt-1" : "mt-2 pt-2"} border-t border-border/60`}
+        >
           <OwnershipSummary
             topic={item.group === "action" ? careItemTopic(item) : "price"}
             secondary
@@ -142,6 +195,22 @@ export function CareFeedView({
   return (
     <>
       <CareCollectionRefresh />
+      {feed.demoAsOf && (
+        <p className="mb-3 text-xs leading-5 text-muted-foreground">
+          {careProductCards(feed).length} products ·{" "}
+          {
+            feed.protections.filter(
+              (p) =>
+                p.policyVerified &&
+                p.deadline &&
+                Date.parse(p.deadline) > Date.parse(feed.observedAt),
+            ).length
+          }{" "}
+          active verified windows · {careProductCards(feed, "attention").length}{" "}
+          need attention. Simulated examples as of {displayDate(feed.demoAsOf)};
+          simulated coverage is not verified.
+        </p>
+      )}
       {filters && (
         <div className="mb-5">
           <CareFilters filter={selected} feed={feed} />
@@ -215,28 +284,39 @@ export function CareFeedView({
           </Link>
         </section>
       )}
-      {(["action", "tracking", "completed"] as const).map((group) => {
-        const cards = shown.filter((card) => card.group === group);
-        if (!cards.length) return null;
-        const title =
-          group === "action"
-            ? "Needs attention"
-            : group === "tracking"
-              ? "Being cared for"
-              : "Completed";
-        return (
-          <section key={group} aria-label={title} className="mb-5">
-            <h2 className="mb-2 text-xs font-semibold text-muted-foreground">
-              {title}
-            </h2>
-            <div className="space-y-2">
-              {cards.map((card) => (
-                <CareCard key={card.item.purchase.id} {...card} />
-              ))}
-            </div>
-          </section>
-        );
-      })}
+      {feed.demoAsOf ? (
+        <section
+          aria-label="Your products"
+          className="grid min-w-0 grid-cols-1 items-stretch gap-3 min-[1050px]:grid-cols-2 [&>div]:h-full [&>div>article]:h-full"
+        >
+          {shown.map((card) => (
+            <CareCard key={card.item.purchase.id} {...card} headingLevel={2} />
+          ))}
+        </section>
+      ) : (
+        (["action", "tracking", "completed"] as const).map((group) => {
+          const cards = shown.filter((card) => card.group === group);
+          if (!cards.length) return null;
+          const title =
+            group === "action"
+              ? "Needs attention"
+              : group === "tracking"
+                ? "Being cared for"
+                : "Completed";
+          return (
+            <section key={group} aria-label={title} className="mb-5">
+              <h2 className="mb-2 text-xs font-semibold text-muted-foreground">
+                {title}
+              </h2>
+              <div className="space-y-2">
+                {cards.map((card) => (
+                  <CareCard key={card.item.purchase.id} {...card} />
+                ))}
+              </div>
+            </section>
+          );
+        })
+      )}
       <details className="mt-5 text-xs text-muted-foreground">
         <summary className="inline-flex min-h-8 cursor-pointer items-center">
           About your Care coverage
@@ -280,6 +360,7 @@ export function CareFilters({
           ["all", "All purchases"],
           ["attention", "Needs attention"],
           ["watching", "Watching"],
+          ...(feed?.demoAsOf ? [["protected", "Protected"] as const] : []),
           ["completed", "Completed"],
         ] as const
       ).map(([value, label]) => (
@@ -289,8 +370,12 @@ export function CareFilters({
           aria-current={selected === value ? "page" : undefined}
           className={`inline-flex min-h-9 items-center rounded-full border px-3 text-xs font-semibold ${selected === value ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card text-muted-foreground hover:text-foreground"}`}
         >
-          {label}
-          {value === "all" && feed ? ` (${feed.purchases.length})` : ""}
+          {value === "all" && feed?.demoAsOf ? "All products" : label}
+          {feed?.demoAsOf
+            ? ` (${careProductCards(feed, value).length})`
+            : value === "all" && feed
+              ? ` (${feed.purchases.length})`
+              : ""}
         </Link>
       ))}
     </nav>

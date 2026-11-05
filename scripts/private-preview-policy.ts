@@ -30,6 +30,14 @@ export function privatePreviewEnvironment(
   sessionRecord: unknown,
 ) {
   const urls = restrictedRuntimeUrls(source);
+  if (source.CARE_DEMO_ENABLED === "true") {
+    const demo = new URL(source.CARE_DEMO_READER_DATABASE_URL ?? "");
+    if (
+      !["postgres:", "postgresql:"].includes(demo.protocol) ||
+      !["127.0.0.1", "localhost"].includes(demo.hostname)
+    )
+      throw Error("demo_reader_configuration_invalid");
+  }
   if (source.CARE_RECORDS_ENABLED === "true") {
     const care = new URL(source.CARE_READER_DATABASE_URL ?? "");
     if (
@@ -67,6 +75,10 @@ export function privatePreviewEnvironment(
     PALCARE_NORTH_MAIN_ENABLED: "true",
     DEMO_DATA_SOURCE: "database",
     DATABASE_URL: urls.reader,
+    CARE_DEMO_ENABLED: source.CARE_DEMO_ENABLED === "true" ? "true" : "false",
+    ...(source.CARE_DEMO_ENABLED === "true"
+      ? { CARE_DEMO_READER_DATABASE_URL: source.CARE_DEMO_READER_DATABASE_URL }
+      : {}),
     // Prepared only. Exact rollout approval/configuration is still required.
     CARE_RECORDS_ENABLED:
       source.CARE_RECORDS_ENABLED === "true" ? "true" : "false",

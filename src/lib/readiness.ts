@@ -9,6 +9,7 @@ import { subscriptionSession } from "./careos/subscription/session";
 import { persistentPrivatePreview } from "./private-preview";
 import { evaluationAccessStatus } from "./careos/evaluation-access";
 import { standingOwnerMode } from "./careos/standing-runtime";
+import { getDemoCarePack } from "./care/demo/runtime";
 const state = globalThis as unknown as {
   readiness?: { key: string; until: number; work: Promise<void> };
 };
@@ -39,9 +40,12 @@ export async function readiness() {
     const work = Promise.all(
       plan.requirements.map(async (requirement) => {
         const { pool } = runtimeDatabase(requirement.url, {
-          readOnly: ["reader", "care_reader", "protection_reader"].includes(
-            requirement.capability,
-          ),
+          readOnly: [
+            "reader",
+            "care_reader",
+            "protection_reader",
+            "demo_care_reader",
+          ].includes(requirement.capability),
         });
         await assertDatabaseAuthority(pool, requirement.capability);
         if (
@@ -65,6 +69,7 @@ export async function readiness() {
     });
   }
   await state.readiness.work;
+  if (process.env.CARE_DEMO_ENABLED === "true") await getDemoCarePack();
   if (config.dataSource === "database") {
     const { pool } = runtimeDatabase(config.databaseUrl!, { readOnly: true });
     const seed = await pool.query(

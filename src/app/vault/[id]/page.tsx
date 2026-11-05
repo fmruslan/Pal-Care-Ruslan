@@ -37,6 +37,8 @@ import { getSafety, getTwinRecallHistory } from "@/lib/safety/runtime";
 import { assess } from "@/lib/safety/service";
 import { SafetyCard } from "@/components/safety-card";
 import { getCareFeed } from "@/lib/care/repository";
+import { RetailPrice } from "@/components/care/retail-price";
+import { retailReferences } from "@/lib/care/demo/model";
 import {
   OwnershipScope,
   OwnershipPill,
@@ -69,6 +71,7 @@ export default async function TwinPage({
   );
   const verified = twin.origin === "sandbox";
   const reference = product.id === REFERENCE_PRODUCT;
+  const retail = retailReferences(data).find((r) => r.productId === product.id);
   const adjustment = (await getGuardian(twin.id)).cases.find(
     (c) => c.twinId === twin.id,
   );
@@ -190,6 +193,13 @@ export default async function TwinPage({
           </div>
         </article>
         <OwnershipTimeline />
+        {retail && (
+          <RetailPrice
+            reference={retail}
+            amountMinor={reference ? null : twin.purchasePriceMinor}
+            origin={twin.origin}
+          />
+        )}
         <nav
           aria-label="Purchase sections"
           className="customer-purchase-jumps my-5 flex flex-wrap gap-1 border-b pb-2 text-sm font-semibold"

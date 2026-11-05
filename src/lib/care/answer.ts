@@ -4,6 +4,7 @@ import { careDetailHref } from "./model";
 import { evidenceLabel } from "./contracts";
 import { ownershipHref, ownershipTopic } from "./ownership";
 import { careProductCards, careItemTopic } from "./summary";
+import { demoEvidenceAnswer } from "./demo/answer";
 
 /** Same server-derived facts as Care cards. No model-written statuses/amounts. */
 export function careStatusAnswer(
@@ -15,6 +16,8 @@ export function careStatusAnswer(
   const open = topic.startsWith("open_");
   const requested = open ? topic.slice(5) : topic;
   const normalized = requested === "payment" ? "purchase" : requested;
+  const demoAnswer = demoEvidenceAnswer(feed, revision, ids, normalized);
+  if (demoAnswer) return demoAnswer;
   const selected = feed.ownership.filter((v) => ids.includes(v.twinId));
   const homepage = careProductCards(feed, false);
   const careHighlights = selected
@@ -41,7 +44,18 @@ export function careStatusAnswer(
                 !["unknown", "unavailable"].includes(fact.state),
             ),
           )
-        : selected;
+        : selected.length > 1 &&
+            ["return-window", "warranty"].includes(normalized)
+          ? selected.filter((view) =>
+              view.facts.some(
+                (fact) =>
+                  fact.topic === normalized &&
+                  !["unknown", "unavailable", "not-applicable"].includes(
+                    fact.state,
+                  ),
+              ),
+            )
+          : selected;
     const purchases = feed.purchases.filter((p) =>
       scoped.some((view) => view.twinId === p.id),
     );

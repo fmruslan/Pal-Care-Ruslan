@@ -3,6 +3,7 @@ import { customerRequestAllowed } from "../../intelligence/customer-commands";
 import {
   emptyRecordsQuery,
   recordsQuerySchema,
+  RECORD_CATEGORIES,
   type RecordsQuery,
 } from "./contracts";
 
@@ -15,7 +16,7 @@ export const recordsInterpretationSchema = z.strictObject({
   format: z.enum(["cards", "bullets", "table", "chart"]),
   from: z.string().max(10).nullable(),
   to: z.string().max(10).nullable(),
-  categories: z.array(z.enum(["Audio", "Computing", "Kitchen"])).max(3),
+  categories: z.array(z.enum(RECORD_CATEGORIES)).max(RECORD_CATEGORIES.length),
   origin: z.enum(["all", "sample", "sandbox"]),
   receipt: z.enum(["any", "present", "missing"]),
   document: z.enum(["any", "present", "missing"]),

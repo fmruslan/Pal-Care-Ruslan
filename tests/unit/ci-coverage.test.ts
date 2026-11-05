@@ -79,6 +79,7 @@ describe("mandatory CI workload isolation", () => {
       "pnpm build",
       browserInstall,
       "pnpm exec node scripts/workspace.mjs run test:integration tsx --test --test-concurrency=1 --test-name-pattern='purchase → policy discovery' tests/integration/price-protection.test.ts",
+      "pnpm exec playwright test --config=playwright.demo-care.config.ts",
       "pnpm exec playwright test --config=playwright.access.config.ts",
       "pnpm test:compat",
       "pnpm exec playwright test --config=playwright.sol.config.ts",

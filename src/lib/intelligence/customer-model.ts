@@ -13,12 +13,23 @@ import { emptyOverview, summarize } from "../price-guardian/projections";
 import { recordedDataset, type IntelligenceDataset } from "./model";
 
 export type CustomerPurchase = {
+  productId?: string;
   id: string;
   name: string;
   model: string;
   category: string;
   /** Decorative, known catalog artwork only; never a remote image URL. */
-  illustration?: "headphones" | "kettle" | "speaker" | "computer";
+  illustration?:
+    | "headphones"
+    | "kettle"
+    | "speaker"
+    | "computer"
+    | "refrigerator"
+    | "boots"
+    | "mattress"
+    | "book"
+    | "phone"
+    | "game";
   purchasedOn: string;
   origin: "sample" | "sandbox";
   amountMinor: number | null;
@@ -361,11 +372,23 @@ export function customerDataset(
     const receipt = docs.find((doc) => doc.kind === "receipt");
     return {
       id: twin.id,
+      productId: twin.productId,
       name: product.name,
       model: product.model,
       category: product.category,
       illustration: (
-        ["headphones", "kettle", "speaker", "computer"] as const
+        [
+          "headphones",
+          "kettle",
+          "speaker",
+          "computer",
+          "refrigerator",
+          "boots",
+          "mattress",
+          "book",
+          "phone",
+          "game",
+        ] as const
       ).find((kind) => kind === product.illustration),
       purchasedOn: twin.purchasedOn,
       origin: twin.origin as "sample" | "sandbox",

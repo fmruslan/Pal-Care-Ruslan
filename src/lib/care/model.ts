@@ -17,12 +17,20 @@ import {
 } from "./protection/contracts";
 import { protectionView, type ProtectionInput } from "./protection/model";
 import { validatePolicy, guardianRules } from "../price-guardian/policy";
+import { retailReferences, withDemoOwnership } from "./demo/model";
 
 export type CareItem = {
   id: string;
   purchase: LibraryPurchase;
   kind:
-    "price" | "refund" | "return" | "care" | "safety" | "warranty" | "watch";
+    | "price"
+    | "refund"
+    | "return"
+    | "care"
+    | "safety"
+    | "warranty"
+    | "watch"
+    | "delivery";
   group: "action" | "tracking" | "completed";
   status: string;
   detail: string;
@@ -365,22 +373,56 @@ export function careFeed(options: {
     complete: true,
   };
   const ownership = purchases.map((purchase) =>
-    ownershipView({
-      purchase,
+    withDemoOwnership(
+      ownershipView({
+        purchase,
+        data,
+        saved: savedCare,
+        findings: items,
+        asOf: at,
+        unavailable,
+        complete: library.complete,
+        activity,
+        guardian,
+        adjustmentIds: projection.purchases.find((p) => p.id === purchase.id)
+          ?.adjustmentIds,
+        protection: protections.find((value) => value.twinId === purchase.id),
+      }),
       data,
-      saved: savedCare,
-      findings: items,
-      asOf: at,
-      unavailable,
-      complete: library.complete,
-      activity,
-      guardian,
-      adjustmentIds: projection.purchases.find((p) => p.id === purchase.id)
-        ?.adjustmentIds,
-      protection: protections.find((value) => value.twinId === purchase.id),
-    }),
+    ),
   );
+  for (const view of ownership) {
+    const fact = view.facts.find((f) => f.simulation);
+    const purchase = purchases.find((p) => p.id === view.twinId);
+    if (!fact || !purchase) continue;
+    items.push({
+      id: fact.id,
+      purchase,
+      kind:
+        fact.topic === "return-window"
+          ? "return"
+          : fact.topic === "warranty"
+            ? "warranty"
+            : fact.topic === "delivery"
+              ? "delivery"
+              : fact.topic === "safety"
+                ? "safety"
+                : "price",
+      group: fact.state === "attention" ? "action" : "tracking",
+      status: fact.status,
+      detail: fact.detail,
+      provenance: fact.provenance,
+      at: fact.simulation!.asOf,
+      verified: false,
+      priority:
+        fact.topic === "safety" ? 0 : fact.topic === "return-window" ? 1 : 3,
+      action: fact.action!,
+      evidence: fact.sources,
+    });
+  }
   return {
+    retailReferences: retailReferences(data, new Date(at)),
+    demoAsOf: data.demoCare?.asOf ?? null,
     ownership,
     protections,
     savedCare: options.savedCare ?? {

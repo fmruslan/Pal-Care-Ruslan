@@ -16,7 +16,7 @@ import {
   recordsInterpretationSchema,
   RECORDS_INTERPRETATION_VERSION,
 } from "./interpretation";
-import { emptyRecordsQuery } from "./contracts";
+import { emptyRecordsQuery, RECORD_CATEGORIES } from "./contracts";
 import { ownedFollowupHistory } from "./followup";
 
 /** The caller must enforce private inference permission and durable accounting.
@@ -86,7 +86,7 @@ export async function answerSemanticRecordsTurn(options: {
       timezone: "UTC",
       contextScope: continuation ? "followup" : "fresh",
       previousQuery: continuation ? (previous?.query ?? null) : null,
-      categories: ["Audio", "Computing", "Kitchen"],
+      categories: RECORD_CATEGORIES,
       catalogueHints: catalogue.slice(0, 12),
       catalogueHintsComplete:
         catalogue.length <= 12 && library.coverage.complete,

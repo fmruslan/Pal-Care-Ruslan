@@ -3,6 +3,7 @@ import type { Pool, PoolClient } from "pg";
 // One policy per capability, never one all-powerful application role.
 export type DatabaseCapability =
   | "reader"
+  | "demo_care_reader"
   | "careos"
   | "checkout"
   | "guardian"
@@ -15,6 +16,7 @@ export type DatabaseCapability =
   | "protection_worker";
 type Grants = Record<string, string[]>;
 export const runtimeGrants: Record<DatabaseCapability, Grants> = {
+  demo_care_reader: {},
   reader: {},
   care_reader: {},
   protection_reader: {},
@@ -110,6 +112,7 @@ export const runtimeGrants: Record<DatabaseCapability, Grants> = {
   },
 };
 export const runtimeReads: Record<DatabaseCapability, string[]> = {
+  demo_care_reader: ["care_demo_packs", "care_demo_evidence"],
   protection_reader: [
     "care_protection_inputs",
     "care_protection_jobs",

@@ -37,6 +37,9 @@ try {
   for (const [capability, url] of [
     ["reader", env.DATABASE_URL],
     ["careos", env.CAREOS_DATABASE_URL],
+    ...(env.CARE_DEMO_ENABLED === "true"
+      ? [["demo_care_reader", env.CARE_DEMO_READER_DATABASE_URL] as const]
+      : []),
     ...(env.CARE_PROTECTION_ENABLED === "true"
       ? [
           [

@@ -7,6 +7,8 @@ import { assertDatabaseAuthority } from "../../db/authority";
 import { readDemoData } from "../../db/read-demo";
 import { demoData } from "./fixtures";
 import { recordIdSchema } from "./presentation";
+import { withTenProductFixtures } from "../care/demo/catalog";
+import { getDemoCarePack } from "../care/demo/runtime";
 
 const globalDatabase = globalThis as unknown as {
   palcareDatabase?: ReturnType<typeof createDatabase>;
@@ -21,22 +23,24 @@ export const getDemoData = cache(
       throw new Error("Invalid record scope.");
     await connection(); // Never pre-render a database-backed page during a build.
     const config = getEnvironment();
+    const demoCare = await getDemoCarePack();
     if (config.dataSource === "fixtures") {
+      const fixtures = demoCare ? withTenProductFixtures(demoData) : demoData;
       const selected =
         twinId ??
         (documentId
-          ? demoData.documents.find((d) => d.id === documentId)?.twinId
+          ? fixtures.documents.find((d) => d.id === documentId)?.twinId
           : undefined);
       const twins =
         twinId || documentId
-          ? demoData.twins.filter((t) => t.id === selected)
-          : demoData.twins;
+          ? fixtures.twins.filter((t) => t.id === selected)
+          : fixtures.twins;
       const ids = new Set(twins.map((t) => t.id));
       return {
-        ...demoData,
+        ...fixtures,
         twins,
-        documents: demoData.documents.filter((d) => ids.has(d.twinId)),
-        events: demoData.events.filter((e) => ids.has(e.twinId)),
+        documents: fixtures.documents.filter((d) => ids.has(d.twinId)),
+        events: fixtures.events.filter((e) => ids.has(e.twinId)),
         source: "fixtures" as const,
       };
     }
@@ -60,6 +64,7 @@ export const getDemoData = cache(
         },
       );
       return {
+        demoCare,
         ...(await readDemoData(
           globalDatabase.palcareDatabase.db,
           twinId || documentId ? { twinId, documentId } : undefined,
@@ -91,8 +96,12 @@ export async function getCareData(twinId: string | null) {
 export async function getSavedRecordsData() {
   await connection();
   const config = getEnvironment();
+  const demoCare = await getDemoCarePack();
   if (config.dataSource === "fixtures")
-    return { ...demoData, source: "fixtures" as const };
+    return {
+      ...(demoCare ? withTenProductFixtures(demoData) : demoData),
+      source: "fixtures" as const,
+    };
   const database = createDatabase(config.databaseUrl!, { readOnly: true });
   try {
     await assertDatabaseAuthority(database.pool, "reader", {
@@ -106,6 +115,7 @@ export async function getSavedRecordsData() {
       ],
     });
     return {
+      demoCare,
       ...(await readDemoData(database.db, { library: true })),
       source: "database" as const,
     };

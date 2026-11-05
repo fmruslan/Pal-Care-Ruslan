@@ -1,6 +1,7 @@
 import {
   emptyRecordsQuery,
   recordsQuerySchema,
+  RECORD_CATEGORIES,
   type RecordsQuery,
 } from "./contracts";
 import {
@@ -285,8 +286,8 @@ export function resolveRecordsQuery(
         "Which period should I compare? Try ‘Compare last month with the previous month’.",
     };
 
-  const categories = (["Audio", "Computing", "Kitchen"] as const).filter(
-    (category) => new RegExp(`\\b${category}\\b`, "i").test(s),
+  const categories = RECORD_CATEGORIES.filter((category) =>
+    new RegExp(`\\b${category}\\b`, "i").test(s),
   );
   if (/\belectronics\b/.test(s)) categories.push("Audio", "Computing");
   if (categories.length) query.categories = [...new Set(categories)];
@@ -298,7 +299,7 @@ export function resolveRecordsQuery(
   )
     return {
       clarification:
-        "Which category? Saved categories are Audio, Computing and Kitchen; Electronics means Audio + Computing.",
+        "Which category? Supported categories are Audio, Computing, Kitchen, Clothing, Home, Books and Games; Electronics means Audio + Computing.",
     };
   if (/\bsample\b/.test(s) && /\b(?:sandbox|verified|paypal)\b/.test(s))
     query.origin = "all";

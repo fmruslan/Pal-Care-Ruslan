@@ -26,6 +26,16 @@ export function careMilestones(
   view: OwnershipView,
   focus?: OwnershipTopic | null,
 ) {
+  if (view.simulation) {
+    const selected = new Set<OwnershipTopic>([
+      "purchase",
+      view.pill.topic,
+      ...(focus ? [focus] : []),
+    ]);
+    return view.facts
+      .filter((f) => selected.has(f.topic))
+      .filter((f, i, rows) => rows.findIndex((r) => r.topic === f.topic) === i);
+  }
   const topics = new Set(careMilestoneTopics);
   topics.add(view.pill.topic);
   for (const fact of view.facts) {
@@ -90,17 +100,17 @@ export function careNextWindow(view: OwnershipView) {
       )[0] ?? null
   );
 }
-export type CareFilter = "all" | "attention" | "watching" | "completed";
+export type CareFilter =
+  "all" | "attention" | "watching" | "protected" | "completed";
 export function parseCareFilter(value: unknown): CareFilter {
-  return ["attention", "watching", "completed"].includes(String(value))
+  return ["attention", "watching", "protected", "completed"].includes(
+    String(value),
+  )
     ? (value as CareFilter)
     : "all";
 }
 /** All saved identities once; completed means a resolved action, not ownership. */
-export function careProductCards(
-  feed: CareFeed,
-  filter: CareFilter | boolean = "all",
-) {
+function purchaseCards(feed: CareFeed, filter: CareFilter | boolean = "all") {
   const selected =
     typeof filter === "boolean" ? (filter ? "completed" : "all") : filter;
   const rank = { action: 0, tracking: 1, completed: 2 };
@@ -182,6 +192,95 @@ export function careProductCards(
         b.item.purchase.purchasedOn.localeCompare(
           a.item.purchase.purchasedOn,
         ) ||
+        a.item.purchase.id.localeCompare(b.item.purchase.id),
+    );
+}
+
+/** Product presentation grouping never merges dated financial/coverage facts. */
+export function careProductCards(
+  feed: CareFeed,
+  filter: CareFilter | boolean = "all",
+) {
+  const selected =
+    typeof filter === "boolean" ? (filter ? "completed" : "all") : filter;
+  if (!feed.demoAsOf && selected !== "protected") {
+    return purchaseCards(feed, selected).map((card) => ({
+      ...card,
+      members: [card.item.purchase],
+    }));
+  }
+  const all = purchaseCards(feed, "all").map((card) => {
+    const fact = card.view?.facts.find((f) => f.simulation);
+    const actualAction = card.group === "action";
+    return {
+      ...card,
+      item:
+        fact && !actualAction
+          ? {
+              ...card.item,
+              status: fact.status,
+              detail: fact.detail,
+              group:
+                fact.state === "attention"
+                  ? ("action" as const)
+                  : ("tracking" as const),
+              action: fact.action!,
+              evidence: fact.sources,
+            }
+          : card.item,
+      group: fact?.state === "attention" ? ("action" as const) : card.group,
+    };
+  });
+  const matches = (card: (typeof all)[number]) =>
+    selected === "all" ||
+    (selected === "attention" && card.group === "action") ||
+    (selected === "completed" && card.group === "completed") ||
+    (selected === "watching" &&
+      (card.protection.monitoring ||
+        (!!card.view?.simulation &&
+          card.view.pill.label === "Monitoring · simulated"))) ||
+    (selected === "protected" &&
+      ((card.protection.policyVerified &&
+        !!card.protection.deadline &&
+        Date.parse(card.protection.deadline) > Date.parse(feed.observedAt)) ||
+        card.view?.facts.some(
+          (f) =>
+            f.topic === "warranty" && f.simulation && f.state === "recorded",
+        )));
+  const groups = new Map<string, typeof all>();
+  for (const card of all) {
+    const p = card.item.purchase;
+    const product = feed.purchases.find((row) => row.id === p.id)!;
+    // Group only within the enabled curated demo, by exact brand/model/category.
+    // Distinct snapshotted variants remain separate even if names look similar.
+    const key =
+      feed.demoAsOf && product.productId
+        ? JSON.stringify([
+            product.productId,
+            product.brand,
+            p.model,
+            p.category,
+            p.name,
+          ])
+        : p.id;
+    groups.set(key, [...(groups.get(key) ?? []), card]);
+  }
+  return [...groups.values()]
+    .flatMap((members) => {
+      const matching = members.filter(matches);
+      if (!matching.length) return [];
+      const card = [...matching].sort(
+        (a, b) =>
+          Number(b.group === "action") - Number(a.group === "action") ||
+          Number(!!b.view?.simulation) - Number(!!a.view?.simulation) ||
+          a.item.purchase.id.localeCompare(b.item.purchase.id),
+      )[0];
+      return [{ ...card, members: members.map((m) => m.item.purchase) }];
+    })
+    .sort(
+      (a, b) =>
+        Number(b.group === "action") - Number(a.group === "action") ||
+        a.item.priority - b.item.priority ||
         a.item.purchase.id.localeCompare(b.item.purchase.id),
     );
 }
