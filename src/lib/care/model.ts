@@ -18,8 +18,10 @@ import {
 import { protectionView, type ProtectionInput } from "./protection/model";
 import { validatePolicy, guardianRules } from "../price-guardian/policy";
 import { retailReferences, withDemoOwnership } from "./demo/model";
+import { withConsumerDemoOwnership } from "./demo/consumer-evidence";
 
 export type CareItem = {
+  topic?: import("./ownership-contracts").OwnershipTopic;
   id: string;
   purchase: LibraryPurchase;
   kind:
@@ -373,21 +375,24 @@ export function careFeed(options: {
     complete: true,
   };
   const ownership = purchases.map((purchase) =>
-    withDemoOwnership(
-      ownershipView({
-        purchase,
+    withConsumerDemoOwnership(
+      withDemoOwnership(
+        ownershipView({
+          purchase,
+          data,
+          saved: savedCare,
+          findings: items,
+          asOf: at,
+          unavailable,
+          complete: library.complete,
+          activity,
+          guardian,
+          adjustmentIds: projection.purchases.find((p) => p.id === purchase.id)
+            ?.adjustmentIds,
+          protection: protections.find((value) => value.twinId === purchase.id),
+        }),
         data,
-        saved: savedCare,
-        findings: items,
-        asOf: at,
-        unavailable,
-        complete: library.complete,
-        activity,
-        guardian,
-        adjustmentIds: projection.purchases.find((p) => p.id === purchase.id)
-          ?.adjustmentIds,
-        protection: protections.find((value) => value.twinId === purchase.id),
-      }),
+      ),
       data,
     ),
   );
@@ -397,6 +402,7 @@ export function careFeed(options: {
     if (!fact || !purchase) continue;
     items.push({
       id: fact.id,
+      topic: fact.topic,
       purchase,
       kind:
         fact.topic === "return-window"
@@ -407,8 +413,16 @@ export function careFeed(options: {
               ? "delivery"
               : fact.topic === "safety"
                 ? "safety"
-                : "price",
-      group: fact.state === "attention" ? "action" : "tracking",
+                : fact.topic === "returns"
+                  ? "return"
+                  : fact.topic === "refunds"
+                    ? "refund"
+                    : "price",
+      group: fact.demoCompletion
+        ? "completed"
+        : fact.state === "attention"
+          ? "action"
+          : "tracking",
       status: fact.status,
       detail: fact.detail,
       provenance: fact.provenance,

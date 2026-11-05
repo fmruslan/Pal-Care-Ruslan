@@ -40,6 +40,7 @@ export async function demoCareBrowserJourney(
         DATABASE_URL: roles.urls.reader,
         CAREOS_DATABASE_URL: roles.urls.careos,
         CARE_DEMO_ENABLED: "true",
+        CARE_CONSUMER_SCENARIOS_ENABLED: data.consumerDemo ? "true" : "false",
         CARE_DEMO_READER_DATABASE_URL: readerUrl,
         APP_ORIGIN: origin,
         CAREOS_PROVIDER: "fixture",
@@ -107,7 +108,7 @@ export async function demoCareBrowserJourney(
       );
       await headphones
         .locator("summary")
-        .filter({ hasText: "2 dated purchases" })
+        .filter({ hasText: "2 purchases · receipts & history" })
         .click();
       const members = data.twins.filter(
         (t) => t.productId === "00000000-0000-4000-8000-000000000101",

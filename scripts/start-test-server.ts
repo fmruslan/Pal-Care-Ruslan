@@ -26,6 +26,10 @@ const child = spawn(
     env: {
       ...process.env,
       ...isolatedCareEnvironment,
+      CARE_CONSUMER_SCENARIOS_ENABLED:
+        process.env.E2E_CONSUMER_SCENARIOS_ENABLED === "true"
+          ? "true"
+          : "false",
       CARE_DEMO_ENABLED:
         process.env.E2E_DEMO_CARE_ENABLED === "true" ? "true" : "false",
       CARE_DEMO_READER_DATABASE_URL:

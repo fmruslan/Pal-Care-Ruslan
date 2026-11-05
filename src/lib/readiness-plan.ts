@@ -23,6 +23,11 @@ export function readinessPlan(env: Record<string, string | undefined>) {
     throw new Error("Invalid runtime isolation/origin");
   const care = parseCareConfig(env);
   if (
+    env.CARE_CONSUMER_SCENARIOS_ENABLED === "true" &&
+    env.CARE_DEMO_ENABLED !== "true"
+  )
+    throw Error("consumer_demo_requires_saved_pack");
+  if (
     !persistentPrivatePreview(env) &&
     (care.mode === "responses" || care.mode === "subscription")
   )

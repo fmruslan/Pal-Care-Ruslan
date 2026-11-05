@@ -9,6 +9,14 @@ import { demoData } from "./fixtures";
 import { recordIdSchema } from "./presentation";
 import { withTenProductFixtures } from "../care/demo/catalog";
 import { getDemoCarePack } from "../care/demo/runtime";
+import { withConsumerDemoFixtures } from "../care/demo/consumer-evidence";
+
+function consumerDemoEnabled() {
+  const enabled = process.env.CARE_CONSUMER_SCENARIOS_ENABLED === "true";
+  if (enabled && process.env.CARE_DEMO_ENABLED !== "true")
+    throw Error("consumer_demo_requires_saved_pack");
+  return enabled;
+}
 
 const globalDatabase = globalThis as unknown as {
   palcareDatabase?: ReturnType<typeof createDatabase>;
@@ -24,8 +32,10 @@ export const getDemoData = cache(
     await connection(); // Never pre-render a database-backed page during a build.
     const config = getEnvironment();
     const demoCare = await getDemoCarePack();
+    const consumerDemo = consumerDemoEnabled();
     if (config.dataSource === "fixtures") {
-      const fixtures = demoCare ? withTenProductFixtures(demoData) : demoData;
+      const base = demoCare ? withTenProductFixtures(demoData) : demoData;
+      const fixtures = consumerDemo ? withConsumerDemoFixtures(base) : base;
       const selected =
         twinId ??
         (documentId
@@ -64,6 +74,7 @@ export const getDemoData = cache(
         },
       );
       return {
+        consumerDemo,
         demoCare,
         ...(await readDemoData(
           globalDatabase.palcareDatabase.db,
@@ -97,9 +108,14 @@ export async function getSavedRecordsData() {
   await connection();
   const config = getEnvironment();
   const demoCare = await getDemoCarePack();
+  const consumerDemo = consumerDemoEnabled();
   if (config.dataSource === "fixtures")
     return {
-      ...(demoCare ? withTenProductFixtures(demoData) : demoData),
+      ...(consumerDemo
+        ? withConsumerDemoFixtures(withTenProductFixtures(demoData))
+        : demoCare
+          ? withTenProductFixtures(demoData)
+          : demoData),
       source: "fixtures" as const,
     };
   const database = createDatabase(config.databaseUrl!, { readOnly: true });
@@ -115,6 +131,7 @@ export async function getSavedRecordsData() {
       ],
     });
     return {
+      consumerDemo,
       demoCare,
       ...(await readDemoData(database.db, { library: true })),
       source: "database" as const,

@@ -25,6 +25,10 @@ import { emptyOverview } from "../../src/lib/price-guardian/projections";
 import { CheckoutService } from "../../src/lib/commerce/service";
 import { FakePayPal, testConfig } from "../helpers/paypal-fixture";
 import { demoCareBrowserJourney } from "../helpers/demo-care-browser-journey";
+import {
+  consumerDemoDocuments,
+  assertConsumerDemoDocuments,
+} from "../../src/lib/care/demo/consumer-evidence";
 import "../../scripts/environment";
 
 const url = process.env.TEST_DATABASE_URL;
@@ -185,6 +189,66 @@ test("selected demo lane and atomic seed repeat; actual restricted reader drives
       /permission denied/,
     );
     const demoCare = await readDemoCarePack(reader);
+    const originalDocuments = (
+      await database.pool.query(
+        "select id,md5(to_jsonb(d)::text) hash from documents d order by id",
+      )
+    ).rows;
+    const consumerSql = await readFile(
+      "drizzle/consumer-care/0020_consumer_demo_documents.sql",
+      "utf8",
+    );
+    const collisionClient = await database.pool.connect();
+    try {
+      await collisionClient.query("begin");
+      const doc = consumerDemoDocuments[0];
+      await collisionClient.query(
+        "insert into documents(id,twin_id,kind,origin,title,content) values($1,$2,'care-card','sample',$3,'conflicting source')",
+        [doc.id, doc.twinId, doc.title],
+      );
+      await assert.rejects(
+        collisionClient.query(consumerSql),
+        /consumer_demo_document_conflict/,
+      );
+      await collisionClient.query("rollback");
+    } finally {
+      collisionClient.release();
+    }
+    assert.equal(
+      (await database.pool.query("select count(*)::int n from documents"))
+        .rows[0].n,
+      originalDocuments.length,
+    );
+    await migrate(database.db, {
+      migrationsFolder: "drizzle/consumer-care",
+      migrationsTable: "__care_consumer_migrations",
+    });
+    assert.deepEqual(
+      (
+        await database.pool.query(
+          "select hash,created_at from drizzle.__drizzle_migrations order by id",
+        )
+      ).rows,
+      history,
+    );
+    await migrate(database.db, {
+      migrationsFolder: "drizzle/consumer-care",
+      migrationsTable: "__care_consumer_migrations",
+    });
+    assert.equal(
+      (await database.pool.query("select count(*)::int n from documents"))
+        .rows[0].n,
+      originalDocuments.length + 3,
+    );
+    assert.deepEqual(
+      (
+        await database.pool.query(
+          "select id,md5(to_jsonb(d)::text) hash from documents d where id=any($1::uuid[]) order by id",
+          [originalDocuments.map((d) => d.id)],
+        )
+      ).rows,
+      originalDocuments,
+    );
     if (process.env.PALCARE_DEMO_BROWSER_JOURNEY === "true") {
       // Synthetic provider only, never seed fake verified purchases into the app.
       const checkout = new CheckoutService(
@@ -205,7 +269,11 @@ test("selected demo lane and atomic seed repeat; actual restricted reader drives
         "completed",
       );
     }
-    const saved = await readDemoData(database.db, { library: true });
+    const saved = {
+      ...(await readDemoData(database.db, { library: true })),
+      consumerDemo: true,
+    };
+    assertConsumerDemoDocuments({ ...saved, demoCare });
     const feed = careFeed({
       data: { ...saved, demoCare },
       knowledge: [],
@@ -214,6 +282,16 @@ test("selected demo lane and atomic seed repeat; actual restricted reader drives
       now: new Date("2026-11-05T12:00:00Z"),
     });
     assert.equal(careProductCards(feed).length, 10);
+    assert.equal(careProductCards(feed, "completed").length, 1);
+    assert.equal(careProductCards(feed, "attention").length, 5);
+    assert.equal(
+      (
+        await database.pool.query(
+          "select count(*)::int n from guardian_refunds",
+        )
+      ).rows[0].n,
+      0,
+    );
     const answer = careStatusAnswer(
       feed,
       1,

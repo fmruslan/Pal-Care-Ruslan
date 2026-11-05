@@ -14,6 +14,13 @@ export const ownershipTopics = [
 ] as const;
 export type OwnershipTopic = (typeof ownershipTopics)[number];
 export type OwnershipFact = {
+  consumer?: {
+    status: string;
+    summary: string;
+    action: string;
+    nextStep: string;
+  };
+  demoCompletion?: true;
   summary?: string;
   simulation?: { packId: string; scenarioId: string; asOf: string };
   id: string;

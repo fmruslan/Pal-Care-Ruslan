@@ -63,6 +63,12 @@ export function careStatusAnswer(
       view.facts
         .filter(
           (fact) =>
+            normalized !== "summary" ||
+            !view.simulation ||
+            fact.topic === view.pill.topic,
+        )
+        .filter(
+          (fact) =>
             normalized === "summary" ||
             fact.topic === normalized ||
             (normalized === "price" &&
@@ -120,12 +126,15 @@ export function careStatusAnswer(
             purchasedOn: single.purchasedOn,
           }
         : null,
-      text: `${known ? "Here is what the shared ownership records show." : "No verified outcome or deadline is established in the available evidence."}${unavailable ? " Some evidence is unavailable or incomplete; absence is not confirmed." : ""}${normalized === "returns" ? " I can help prepare a return enquiry; nothing is submitted." : ""} These are source-linked facts, not permission to send requests or money.`,
+      text: matching.some(({ fact }) => fact.consumer)
+        ? `Here's what's happening and what you can do next. Events marked Demo are fictional, shown as of ${feed.demoAsOf}; no real delivery, coverage or refund is confirmed.${unavailable ? " Some information is unavailable." : ""}`
+        : `${known ? "Here is what the shared ownership records show." : "No verified outcome or deadline is established in the available evidence."}${unavailable ? " Some evidence is unavailable or incomplete; absence is not confirmed." : ""}${normalized === "returns" ? " I can help prepare a return enquiry; nothing is submitted." : ""} These are source-linked facts, not permission to send requests or money.`,
       steps: matching
         .slice(0, 16)
-        .map(
-          ({ fact, purchase }) =>
-            `${purchase.name} (${purchase.purchasedOn}) — ${fact.title}: ${fact.status}. ${fact.detail} ${fact.provenance}.`,
+        .map(({ fact, purchase }) =>
+          fact.consumer
+            ? `${purchase.name} (${purchase.purchasedOn}) — ${fact.consumer.status} · Demo. ${fact.consumer.summary} Next: ${fact.consumer.nextStep}${fact.topic === "safety" ? " No official recall match is established." : ""}`
+            : `${purchase.name} (${purchase.purchasedOn}) — ${fact.title}: ${fact.status}. ${fact.detail} ${fact.provenance}.`,
         ),
       sources: [
         ...new Map(sources.map((source) => [source.href, source])).values(),
@@ -138,8 +147,11 @@ export function careStatusAnswer(
           href: source.href,
         })),
       actions: purchases.slice(0, 4).map((p) => ({
-        label: `Review ${normalized === "summary" ? "ownership" : normalized} · ${p.name}`,
-        href: ownershipHref(p.id, target ?? "purchase"),
+        label: `${matching.find(({ view, fact }) => view.twinId === p.id && fact.consumer)?.fact.consumer?.action ?? `Review ${normalized === "summary" ? "ownership" : normalized}`} · ${p.name}`,
+        href:
+          matching.find(
+            ({ view, fact }) => view.twinId === p.id && fact.consumer,
+          )?.fact.action?.href ?? ownershipHref(p.id, target ?? "purchase"),
       })),
     };
   }
@@ -199,6 +211,10 @@ export function careStatusAnswer(
               )
           : [];
   const hasFacts = items.length > 0 || recorded.length > 0;
+  const consumerFor = (item: (typeof items)[number]) =>
+    feed.ownership
+      .find((v) => v.twinId === item.purchase.id)
+      ?.facts.find((f) => f.id === item.id && f.consumer);
   return {
     ownershipAsOf: feed.observedAt,
     ...(careHighlights.length
@@ -240,7 +256,9 @@ export function careStatusAnswer(
           }
         : null,
     text: hasFacts
-      ? `Here is what your available Care records show. ${feed.unavailable.length || !feed.complete ? "Some evidence is unavailable or incomplete. " : ""}These are source-linked findings, not permission to make financial changes.`
+      ? items.some(consumerFor)
+        ? "Here's what needs a look and what you can do next. Demo events are fictional; their sources and conditions are available in the details. No real financial action was performed."
+        : `Here is what your available Care records show. ${feed.unavailable.length || !feed.complete ? "Some evidence is unavailable or incomplete. " : ""}These are source-linked findings, not permission to make financial changes.`
       : `${gaps}${feed.unavailable.length || !feed.complete ? " Some evidence is unavailable or incomplete, so absence is not confirmed." : ""}`,
     steps: recorded.length
       ? [
@@ -251,24 +269,35 @@ export function careStatusAnswer(
         ]
       : items
           .slice(0, 8)
-          .map(
-            (item) =>
-              `${item.purchase.name} (${item.purchase.purchasedOn}) — ${item.status}. ${item.detail} ${item.provenance}.`,
+          .map((item) =>
+            consumerFor(item)
+              ? `${item.purchase.name} (${item.purchase.purchasedOn}) — ${consumerFor(item)!.consumer!.status} · Demo. ${consumerFor(item)!.consumer!.summary} Next: ${consumerFor(item)!.consumer!.nextStep}`
+              : `${item.purchase.name} (${item.purchase.purchasedOn}) — ${item.status}. ${item.detail} ${item.provenance}.`,
           ),
-    sources: purchases.slice(0, 8).flatMap((p) =>
-      p.documentLinks.slice(0, 2).map((d) => ({
-        id: d.href.split("/").at(-1)!,
-        title: d.title,
-        label:
-          d.origin === "sample"
-            ? "Sample document"
-            : "Verified Sandbox receipt",
-        href: d.href,
-      })),
-    ),
+    sources: [
+      ...items.flatMap((item) =>
+        (consumerFor(item)?.sources ?? []).map((source) => ({
+          id: `${item.id}:${source.href}`,
+          title: source.label,
+          label: "Demo source · fictional scenario",
+          href: source.href,
+        })),
+      ),
+      ...purchases.slice(0, 8).flatMap((p) =>
+        p.documentLinks.slice(0, 2).map((d) => ({
+          id: d.href.split("/").at(-1)!,
+          title: d.title,
+          label:
+            d.origin === "sample"
+              ? "Sample document"
+              : "Verified Sandbox receipt",
+          href: d.href,
+        })),
+      ),
+    ].slice(0, 12),
     actions: items.length
       ? items.slice(0, 4).map((item) => ({
-          label: `${item.action.label} · ${item.purchase.name}`,
+          label: `${consumerFor(item)?.consumer?.action ?? item.action.label} · ${item.purchase.name}`,
           href: item.action.href,
         }))
       : purchases.slice(0, 4).map((p) => ({

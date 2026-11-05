@@ -82,7 +82,18 @@ export function OwnershipIcon({
 function FactDetails({ fact }: { fact: OwnershipFact }) {
   return (
     <div className="space-y-3" data-ownership-fact={fact.id}>
-      <p className="font-semibold">{fact.status}</p>
+      <p className="font-semibold">
+        {fact.consumer?.status ?? fact.status}
+        {fact.simulation && fact.consumer ? " · Demo" : ""}
+      </p>
+      {fact.consumer && (
+        <>
+          <p className="text-base leading-7">{fact.consumer.summary}</p>
+          <p className="text-sm leading-7">
+            <strong>Next step:</strong> {fact.consumer.nextStep}
+          </p>
+        </>
+      )}
       <p className="text-sm leading-7 text-muted-foreground">{fact.detail}</p>
       <p className="text-xs leading-6 text-muted-foreground">
         {fact.provenance}
@@ -113,7 +124,7 @@ function FactDetails({ fact }: { fact: OwnershipFact }) {
       {fact.action && (
         <Button asChild variant="outline">
           <Link href={fact.action.href}>
-            {fact.action.label}
+            {fact.consumer?.action ?? fact.action.label}
             <ArrowRight aria-hidden="true" />
           </Link>
         </Button>
@@ -290,11 +301,14 @@ function ConnectedOwnershipScope({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <Dialog.Title className="text-xl font-semibold">
-                  {facts[0]?.title ?? "Ownership evidence"}
+                  {facts[0]?.consumer?.status ??
+                    facts[0]?.title ??
+                    "Ownership evidence"}
                 </Dialog.Title>
                 <Dialog.Description className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Your recorded facts and their sources. Payment, delivery,
-                  returns and safety remain independent.
+                  {facts.some((f) => f.simulation)
+                    ? "Demo event · fictional purchase-care information. Review the source and conditions below; this is not a real delivery, coverage or payment outcome."
+                    : "Your recorded facts and their sources. Payment, delivery, returns and safety remain independent."}
                 </Dialog.Description>
               </div>
               <Dialog.Close asChild>
@@ -440,24 +454,51 @@ export function OwnershipPill({ compact = false }: { compact?: boolean }) {
       </span>
     );
   const { view, show } = journey;
+  const fact = view.facts.find((f) => f.topic === view.pill.topic);
   return (
     <button
       data-ownership-pill
       data-ownership-twin={view.twinId}
       aria-haspopup="dialog"
       onClick={(event) => show(view.pill.topic, event.currentTarget)}
-      className={`inline-flex min-h-11 max-w-full items-center rounded-full border ${compact ? "gap-1.5 px-2.5 py-1 text-[11px] [overflow-wrap:normal] sm:text-xs" : "gap-2 px-4 py-2 text-sm"} text-left font-semibold transition-colors motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${view.pill.verified ? "border-success/30 bg-success-surface text-success" : view.pill.attention ? "border-warning/40 bg-warning-surface text-warning" : "border-primary/30 bg-secondary text-foreground"}`}
+      className={`inline-flex min-h-11 max-w-full flex-wrap items-center rounded-full border ${fact?.consumer ? "gap-2 px-3 py-1.5 text-sm" : compact ? "gap-1.5 px-2.5 py-1 text-[11px] [overflow-wrap:normal] sm:text-xs" : "gap-2 px-4 py-2 text-sm"} text-left font-semibold transition-colors motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${view.pill.verified ? "border-success/30 bg-success-surface text-success" : view.pill.attention ? "border-warning/40 bg-warning-surface text-warning" : "border-primary/30 bg-secondary text-foreground"}`}
     >
       {view.pill.verified ? (
         <Check className="size-4 shrink-0" aria-hidden="true" />
       ) : (
         <OwnershipIcon topic={view.pill.topic} className="size-4 shrink-0" />
       )}
-      <span>{view.pill.label}</span>
+      <span>{fact?.consumer?.status ?? view.pill.label}</span>
+      {fact?.consumer && fact.simulation && (
+        <span
+          className="rounded-full border border-current/25 px-2 py-0.5 text-xs font-medium"
+          data-care-demo
+        >
+          Demo
+        </span>
+      )}
       <ChevronDown
         className={`${compact ? "hidden sm:block" : ""} size-4 shrink-0`}
         aria-hidden="true"
       />
+    </button>
+  );
+}
+
+export function OwnershipPrimaryAction() {
+  const journey = useJourney();
+  if (!journey) return null;
+  const { view, show } = journey;
+  const fact = view.facts.find((f) => f.topic === view.pill.topic);
+  return (
+    <button
+      className="inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      aria-haspopup="dialog"
+      data-care-primary-action
+      onClick={(event) => show(view.pill.topic, event.currentTarget)}
+    >
+      {fact?.consumer?.action ?? "View details"}
+      <ArrowRight className="size-4" aria-hidden="true" />
     </button>
   );
 }
@@ -563,7 +604,7 @@ export function OwnershipSummary({
                 }
                 aria-haspopup="dialog"
                 onClick={(event) => show(fact.topic, event.currentTarget)}
-                className={`relative flex w-full flex-col items-center rounded-lg px-1 pb-1 text-center text-[10px] [overflow-wrap:normal] hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring ${secondary ? `${view.simulation ? "min-h-11" : "min-h-8"} leading-3 text-muted-foreground` : "min-h-[3.75rem] leading-4 sm:text-[11px]"} ${focused === fact.topic ? "bg-intelligence text-intelligence-foreground" : ""}`}
+                className={`relative flex w-full flex-col items-center rounded-lg px-1 pb-1 text-center ${secondary && view.simulation ? "text-xs" : "text-[10px]"} [overflow-wrap:normal] hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring ${secondary ? `${view.simulation ? "min-h-11 leading-4" : "min-h-8 leading-3"} text-muted-foreground` : "min-h-[3.75rem] leading-4 sm:text-[11px]"} ${focused === fact.topic ? "bg-intelligence text-intelligence-foreground" : ""}`}
               >
                 <span
                   className={`relative flex items-center justify-center rounded-full border ${secondary ? `size-3 ${fact.state === "recorded" ? "bg-primary" : "bg-card"}` : "size-5 bg-card"} ${view.pill.topic === fact.topic ? "ring-2 ring-primary/30 ring-offset-1 ring-offset-card" : ""} ${fact.state === "recorded" ? "border-primary text-primary" : fact.state === "upcoming" || fact.state === "attention" ? "border-intelligence-foreground text-intelligence-foreground" : "border-muted-foreground text-muted-foreground"} ${["unknown", "unavailable", "not-applicable"].includes(fact.state) ? "border-dashed" : ""}`}
@@ -602,7 +643,8 @@ export function OwnershipSummary({
                   </span>
                 )}
                 {(!secondary ||
-                  (fact.date &&
+                  (!view.simulation &&
+                    fact.date &&
                     ["price-window", "return-window", "warranty"].includes(
                       fact.topic,
                     ))) && (
@@ -625,7 +667,11 @@ export function OwnershipSummary({
                   </span>
                 )}
                 {secondary && view.simulation && (
-                  <span className="sr-only"> {fact.status}</span>
+                  <span className="sr-only">
+                    {" "}
+                    {fact.consumer?.status ?? fact.status}
+                    {fact.date ? ` ${displayDate(fact.date)}` : ""}
+                  </span>
                 )}
               </button>
             </li>

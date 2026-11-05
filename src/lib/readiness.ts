@@ -10,6 +10,8 @@ import { persistentPrivatePreview } from "./private-preview";
 import { evaluationAccessStatus } from "./careos/evaluation-access";
 import { standingOwnerMode } from "./careos/standing-runtime";
 import { getDemoCarePack } from "./care/demo/runtime";
+import { getSavedRecordsData } from "./demo/repository";
+import { assertConsumerDemoDocuments } from "./care/demo/consumer-evidence";
 const state = globalThis as unknown as {
   readiness?: { key: string; until: number; work: Promise<void> };
 };
@@ -70,6 +72,8 @@ export async function readiness() {
   }
   await state.readiness.work;
   if (process.env.CARE_DEMO_ENABLED === "true") await getDemoCarePack();
+  if (process.env.CARE_CONSUMER_SCENARIOS_ENABLED === "true")
+    assertConsumerDemoDocuments(await getSavedRecordsData());
   if (config.dataSource === "database") {
     const { pool } = runtimeDatabase(config.databaseUrl!, { readOnly: true });
     const seed = await pool.query(

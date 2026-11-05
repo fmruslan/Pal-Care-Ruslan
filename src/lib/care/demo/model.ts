@@ -3,6 +3,7 @@ import { findTwin, money } from "../../demo/presentation";
 import type { OwnershipFact, OwnershipView } from "../ownership-contracts";
 import { evidenceHash } from "../protection/model";
 import { referenceSource as officialRecallExample } from "../../safety/reference";
+import { consumerScenario } from "./consumer";
 import {
   demoPackSchema,
   demoScenarioSchema,
@@ -164,6 +165,7 @@ export function withDemoOwnership(
             ? `${s.terms} Example expiration ${s.endsAt}, exclusive.`
             : s.terms;
   const fact: OwnershipFact = {
+    consumer: consumerScenario(s, active, ending),
     summary:
       s.kind === "safety"
         ? "No official recall match established. Review exact identifiers."

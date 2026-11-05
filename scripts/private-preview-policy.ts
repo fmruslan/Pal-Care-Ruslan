@@ -88,6 +88,8 @@ export function privatePreviewEnvironment(
     DEMO_DATA_SOURCE: "database",
     DATABASE_URL: urls.reader,
     CARE_DEMO_ENABLED: source.CARE_DEMO_ENABLED === "true" ? "true" : "false",
+    CARE_CONSUMER_SCENARIOS_ENABLED:
+      source.CARE_CONSUMER_SCENARIOS_ENABLED === "true" ? "true" : "false",
     ...(source.CARE_DEMO_ENABLED === "true"
       ? { CARE_DEMO_READER_DATABASE_URL: source.CARE_DEMO_READER_DATABASE_URL }
       : {}),

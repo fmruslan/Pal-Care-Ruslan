@@ -1,5 +1,9 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
+## Consumer Care presentation — candidate, activation gated
+
+No new HTTP endpoint, cookie, provider or financial permission. Optional `OwnershipFact.consumer` carries natural status/summary/action/next-step presentation while preserving technical facts, provenance and `verified=false`. North derives guidance and source links from the same saved situation; explicit topics retain correct card highlighting. Demo-only completion never enters verified refund totals. `CARE_CONSUMER_SCENARIOS_ENABLED` defaults off, requires `CARE_DEMO_ENABLED=true`, exact sample documents and existing sample purchase bindings, and fails visibly on missing/altered evidence. Only fixture tests may expand bundled documents; database reads never substitute them. The separately approved three-insert `drizzle/consumer-care` lane remains unapplied until release gates. [Approval](CARE-CONSUMER-POLISH-APPROVAL.md) · [actual status](STATUS.md).
+
 ## All-purchase Care / automatic price protection — deployed 40f3187
 
 All three exact-commit CI jobs, approved additive activation, post-schema rollback and actual private HTTPS acceptance passed. [Release evidence and limits](evidence/CARE-PRICE-PROTECTION-RELEASE.md). The surface below is implemented; it grants no general research, new provider or financial authority.

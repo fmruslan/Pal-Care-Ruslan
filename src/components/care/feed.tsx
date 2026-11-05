@@ -13,7 +13,88 @@ import {
   OwnershipPill,
   OwnershipSummary,
   CareCollectionRefresh,
+  OwnershipPrimaryAction,
 } from "./ownership";
+
+type ProductCard = ReturnType<typeof careProductCards>[number];
+function ConsumerCareCard({ item, view, members }: ProductCard) {
+  const p = item.purchase;
+  const fact = view!.facts.find(
+    (f) => f.topic === view!.pill.topic && f.consumer,
+  )!;
+  return (
+    <OwnershipScope view={view} surface="care">
+      <article
+        className="care-action-card flex h-full min-w-0 flex-col rounded-2xl border bg-card p-4 shadow-sm [overflow-wrap:anywhere] sm:p-5"
+        data-care-card={item.id}
+        data-care-product={p.id}
+        data-care-consumer
+      >
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="care-product-art shrink-0 [&>div]:size-16 [&_svg]:h-16 [&_svg]:w-20 sm:[&>div]:size-18 sm:[&_svg]:h-18 sm:[&_svg]:w-22">
+            <ProductArt kind={p.illustration ?? "computer"} size="thumbnail" />
+          </div>
+          <div className="min-w-0">
+            <h2 className="text-lg leading-6 font-semibold">
+              <Link
+                href={p.href}
+                className="hover:text-primary hover:underline"
+              >
+                {p.name}
+              </Link>
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              {p.amountMinor === null ? "Added" : "Purchased"}{" "}
+              <time dateTime={p.purchasedOn}>{displayDate(p.purchasedOn)}</time>{" "}
+              ·{" "}
+              {p.amountMinor === null
+                ? "Price not added"
+                : money(p.amountMinor)}
+            </p>
+          </div>
+        </div>
+        <div className="mt-3">
+          <OwnershipPill compact />
+        </div>
+        <p className="mt-2 text-[0.9375rem] leading-6 text-foreground">
+          {fact.consumer!.summary}
+        </p>
+        {members.length > 1 && (
+          <details className="mt-1 text-sm text-muted-foreground">
+            <summary className="inline-flex min-h-11 cursor-pointer items-center rounded-lg focus-visible:outline-2 focus-visible:outline-ring">
+              {members.length} purchases · receipts & history
+            </summary>
+            <ul className="space-y-1">
+              {members.map((member) => (
+                <li key={member.id}>
+                  <Link
+                    className="inline-flex min-h-11 items-center text-primary underline"
+                    href={member.href}
+                  >
+                    {displayDate(member.purchasedOn)} ·{" "}
+                    {member.origin === "sandbox"
+                      ? "Verified Sandbox payment"
+                      : "Demo purchase"}{" "}
+                    ·{" "}
+                    {member.amountMinor === null
+                      ? "Price not added"
+                      : money(member.amountMinor)}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+        <div className="mt-auto pt-3">
+          <OwnershipSummary topic={fact.topic} secondary />
+          <div className="mt-2 border-t pt-2">
+            <OwnershipPrimaryAction />
+          </div>
+        </div>
+      </article>
+    </OwnershipScope>
+  );
+}
 
 function CareCard({
   item,
@@ -27,6 +108,18 @@ function CareCard({
   const Heading = headingLevel === 2 ? "h2" : "h3";
   const p = item.purchase;
   const simulated = view?.facts.find((f) => f.simulation);
+  if (view?.facts.some((f) => f.topic === view.pill.topic && f.consumer))
+    return (
+      <ConsumerCareCard
+        item={item}
+        findings={findings}
+        view={view}
+        protection={protection}
+        quiet={quiet}
+        members={members}
+        group={item.group}
+      />
+    );
   const update = simulated
     ? (simulated.summary ?? simulated.status)
     : findings.length
@@ -196,19 +289,16 @@ export function CareFeedView({
     <>
       <CareCollectionRefresh />
       {feed.demoAsOf && (
-        <p className="mb-3 text-xs leading-5 text-muted-foreground">
-          {careProductCards(feed).length} products ·{" "}
-          {
-            feed.protections.filter(
-              (p) =>
-                p.policyVerified &&
-                p.deadline &&
-                Date.parse(p.deadline) > Date.parse(feed.observedAt),
-            ).length
-          }{" "}
-          active verified windows · {careProductCards(feed, "attention").length}{" "}
-          need attention. Simulated examples as of {displayDate(feed.demoAsOf)};
-          simulated coverage is not verified.
+        <p
+          className="mb-3 text-sm leading-6 text-muted-foreground"
+          data-care-demo-disclosure
+        >
+          <span className="font-semibold text-foreground">
+            Demo collection.
+          </span>{" "}
+          Events marked Demo are fictional, shown as of{" "}
+          {displayDate(feed.demoAsOf)}. Details explain each source; no real
+          delivery, coverage or refund is promised.
         </p>
       )}
       {filters && (
@@ -327,8 +417,9 @@ export function CareFeedView({
             monitoring.
           </li>
           <li>
-            Watching requires a verified applicable policy/window, a supported
-            source, an actual schedule and fresh successful checks.
+            {feed.demoAsOf
+              ? "Demo watches preview fictional price checks; they are not live external tracking. Real monitoring needs an applicable policy, supported source, schedule and recent successful checks."
+              : "Watching requires a verified applicable policy/window, a supported source, an actual schedule and fresh successful checks."}
           </li>
           <li>{feed.tracking.watches}</li>
           <li>{feed.tracking.returns}</li>
@@ -368,7 +459,7 @@ export function CareFilters({
           key={value}
           href={value === "all" ? "/dashboard" : `/dashboard?status=${value}`}
           aria-current={selected === value ? "page" : undefined}
-          className={`inline-flex min-h-9 items-center rounded-full border px-3 text-xs font-semibold ${selected === value ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card text-muted-foreground hover:text-foreground"}`}
+          className={`inline-flex ${feed?.demoAsOf ? "min-h-11 text-sm" : "min-h-9 text-xs"} items-center rounded-full border px-3 font-semibold ${selected === value ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card text-muted-foreground hover:text-foreground"}`}
         >
           {value === "all" && feed?.demoAsOf ? "All products" : label}
           {feed?.demoAsOf

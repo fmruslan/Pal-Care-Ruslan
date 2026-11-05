@@ -52,7 +52,7 @@ describe("ten-product evidence and price separation", () => {
     },
   );
   it.each([
-    ["What needs my attention?", "attention", "", "Simulated notice"],
+    ["What needs my attention?", "attention", "", "Safety check needed"],
     [
       "What is my refrigerator's retail reference price?",
       "retail-reference",
@@ -75,13 +75,13 @@ describe("ten-product evidence and price separation", () => {
       "Is my refrigerator still under warranty?",
       "warranty",
       "Refrigerator",
-      "Extended warranty",
+      "Warranty coverage",
     ],
     [
       "What's happening with my kettle delivery?",
       "delivery",
       "kettle",
-      "Fictional delivery sequence",
+      "This Demo has no live carrier connection",
     ],
     [
       "Can I get a price adjustment for my Raspberry Pi?",

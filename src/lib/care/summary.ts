@@ -13,6 +13,7 @@ export const careMilestoneTopics: OwnershipTopic[] = [
   "warranty",
 ];
 export function careItemTopic(item: CareItem): OwnershipTopic {
+  if (item.topic) return item.topic;
   return item.kind === "return"
     ? "returns"
     : item.kind === "refund"
@@ -29,12 +30,31 @@ export function careMilestones(
   if (view.simulation) {
     const selected = new Set<OwnershipTopic>([
       "purchase",
+      "price",
+      ...(view.pill.topic === "returns" ? [] : ["return-window" as const]),
+      "warranty",
       view.pill.topic,
       ...(focus ? [focus] : []),
     ]);
-    return view.facts
-      .filter((f) => selected.has(f.topic))
-      .filter((f, i, rows) => rows.findIndex((r) => r.topic === f.topic) === i);
+    const order: OwnershipTopic[] = [
+      "purchase",
+      "delivery",
+      "price",
+      "price-window",
+      "return-window",
+      "returns",
+      "refunds",
+      "warranty",
+      "safety",
+      "watch",
+      "shipment",
+    ];
+    return order.flatMap((topic) => {
+      const fact = selected.has(topic)
+        ? view.facts.find((f) => f.topic === topic)
+        : undefined;
+      return fact ? [fact] : [];
+    });
   }
   const topics = new Set(careMilestoneTopics);
   topics.add(view.pill.topic);
@@ -220,8 +240,9 @@ export function careProductCards(
               ...card.item,
               status: fact.status,
               detail: fact.detail,
-              group:
-                fact.state === "attention"
+              group: fact.demoCompletion
+                ? ("completed" as const)
+                : fact.state === "attention"
                   ? ("action" as const)
                   : ("tracking" as const),
               action: fact.action!,

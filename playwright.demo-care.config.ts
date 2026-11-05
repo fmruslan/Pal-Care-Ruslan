@@ -16,6 +16,7 @@ export default defineConfig({
       ...server.env,
       DEMO_DATA_SOURCE: "fixtures",
       E2E_DEMO_CARE_ENABLED: "true",
+      E2E_CONSUMER_SCENARIOS_ENABLED: "true",
     },
   },
 });

@@ -284,6 +284,7 @@ export type PurchaseTwin = typeof purchaseTwins.$inferSelect;
 export type CareDocument = typeof documents.$inferSelect;
 export type CareEvent = typeof careEvents.$inferSelect;
 export type DemoData = {
+  consumerDemo?: boolean;
   /** Separately loaded and validated; absent on legacy records, never a fallback. */
   demoCare?: import("../lib/care/demo/contracts").DemoCarePack;
   customer: typeof customers.$inferSelect;

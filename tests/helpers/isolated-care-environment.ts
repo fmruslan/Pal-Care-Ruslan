@@ -2,6 +2,7 @@
  * Ordinary suites must never query application tracking or inherit its writers. */
 export const isolatedCareEnvironment = {
   CARE_DEMO_ENABLED: "false",
+  CARE_CONSUMER_SCENARIOS_ENABLED: "false",
   CARE_DEMO_READER_DATABASE_URL: "",
   PAYPAL_SHOWCASE_ENABLED: "false",
   PAYPAL_SHOWCASE_REQUEST_ID: "",
