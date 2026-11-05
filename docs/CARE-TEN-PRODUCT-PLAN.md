@@ -1,6 +1,6 @@
 # Ten products, ten useful Care examples — approval proposal
 
-**Status: owner approved the design and grouped headphones histories; candidate implementation is under verification, not deployed.** The owner subsequently added distinct fictional amounts for the six new purchases, dated real retail references for all ten products and a separately authorized genuine PayPal Sandbox showcase. [Retail research](evidence/CARE-RETAIL-REFERENCES.md) and [exact new persistence packet](CARE-TEN-PRODUCT-PERSISTENCE-APPROVAL.md) extend this plan; no historical amount is overwritten and a lower reference never establishes eligibility. New database/financial/browser authority remains separately gated. [STATUS](STATUS.md) records actual results; **40f3187** remains the recorded live baseline. The original proposal wording below retains its planning scope.
+**Status: ten-product application deployed privately; remaining genuine/financial/owner acceptance is incomplete.** [Actual release receipt](evidence/CARE-TEN-PRODUCT-RELEASE.md) records exact source CI, approved persistence/reader, post-schema rollback and HTTPS checks. Distinct fictional amounts, dated retail references and grouped original headphones histories are live. The new genuine game capture has not run; a missing restricted checkout credential and buyer prerequisites remain separately gated. [STATUS](STATUS.md) remains implementation truth. The original proposal wording below retains its planning scope, not a claim that every acceptance item is complete.
 
 ## 1. Customer outcome and delivery gate
 

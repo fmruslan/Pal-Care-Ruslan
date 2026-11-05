@@ -15,6 +15,8 @@
 
 ## Gates and exclusions
 
+**Actual release preflight:** the ten-product application is live, but only reader/CareOS/Care/protection logins exist in the application environment. Historical protected seller credentials are present; **no independent checkout login/URL exists**. Do not substitute a bootstrap/general database URL or infer a new writer from this transaction approval. The additional exact writer-credential/grant approval required below and buyer participation/balance confirmation remain unresolved. No new PayPal call has run. [Actual release evidence](evidence/CARE-TEN-PRODUCT-RELEASE.md).
+
 Owner approval of this exact operation, bounded scope implementation/tests, exact-commit CI, actual existing seller/buyer readiness and explicit buyer balance confirmation are required before dispatch. Relevant private financial-writer/startup authority must be verified without widening its original grants; any additional grant/migration would need a separate exact packet. The new sample-data migration alone cannot enable checkout.
 
 No refund, production credentials/money, policy activation, additional transaction, public write authority, shared AI allowance change or account/billing activation is included. Existing pending eCheck remains unchanged and cannot be retried as a way to complete this showcase.

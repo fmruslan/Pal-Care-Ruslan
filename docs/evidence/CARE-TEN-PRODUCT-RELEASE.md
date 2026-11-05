@@ -1,0 +1,45 @@
+# Ten-product Care — private release
+
+## Implemented
+
+Application source **`fc3abdde0b944ade80f9176fd5999628d1410775`**, source hash **`9d57a0d1f36dab763ae9676e741b5230229b4bd41db0a5795f393421ae214967`**, build **`q3pxE8NHh0uFL0IJRoJLR`** was promoted to **https://greatbison.tail9e8802.ts.net:8444/dashboard** after the exact three-job CI and approved additive activation. Subsequent documentation-only receipts require their own build provenance/CI; they do not change this source's acceptance results.
+
+The live database contains **ten products / eleven dated purchase records**: six newly added samples, the four original sample records and the separate genuine historical Sandbox headphones purchase. Care groups the two headphones histories without combining receipts, amounts or coverage. Six new sample amounts, original SVG art, two-column desktop/single-column mobile cards, five counted filters, saved simulated scenarios and ten separately dated retail-reference snapshots are enabled. Pi ownership remains unpriced, not a $0 purchase. Comparable references are explicit; no snapshot establishes a historical drop, policy eligibility, coverage or savings.
+
+## Verified — exact source CI and isolated acceptance
+
+[Run **41979965421**](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/41979965421), exact source SHA above, all three mandatory jobs succeeded:
+
+| Job | Elapsed | Results |
+| --- | --- | --- |
+| Foundation — fixtures | 21m04s | lint/format/types, 1,478 units, 128 PostgreSQL, build, offline/failure checks, 972 browsers |
+| Foundation — database | 21m43s | same foundation checks, 972 browsers, six injected Guardian flows |
+| Native acceptance | 16m28s | 128 PostgreSQL, build, protection journey, 16 ten-product browsers, database-to-DOM/North journey, 33 access, 181 compatibility passes plus one existing-retry flaky result, 14 injected Sol/tool checks |
+
+The WebKit-emulated-mobile receipt/search/Back case first timed out on a disabled Search button and passed its already configured retry. This is retained as **one flaky**, not 182 clean first-attempt passes or real-device certification. No retry, threshold, job time bound or mandatory coverage was relaxed. Original run **41976721939** failed native integration at 120/121 because the new artifact-parent directory was absent; both foundation jobs subsequently succeeded (20m44s fixtures / 14m57s database). Explicit parent creation fixed that runner assumption.
+
+Local integrated verification additionally passed 16 focused browsers, 36 existing Care/navigation/History/draft/accessibility regressions and the actual restricted-database → Next → DOM journey on desktop-light/mobile-dark. North transport in those tests is injected, not genuine interpretation. Synthetic PayPal doubles in disposable test databases are not application or provider evidence.
+
+## Verified — actual persistence, rollback and HTTPS
+
+- Applied only approved selected `drizzle/demo-care` SQL **`59fa5bdff64b2ee2aab42c368347a46d0a795d001e74fb7dfb260b0fc2f38d60`** and canonical manifest **`8547872fb79656e88885dac0e35493687cb0ef6e5b2f4aaf06dc2807c9203782`**: six products, six sample Twins, 16 sample documents, one pack and 20 structured evidence rows. Root 0016 remains pending; the original root journal is unchanged.
+- Provisioned only the separately approved independent demo reader, with the exact reviewed grants and expiry **2026-12-04T20:18:12.252Z**. Its actual login passes the capability inspector/required reads; checkout reads, updates and DDL are denied. No existing grant, password or membership was changed.
+- Preserved original rows across **17 static source tables**, all **30 original roles**, **118 original public objects' ownership/ACLs**, original memberships and root migration journal. Original `.env.local` bytes remain an exact prefix; only the approved demo reader/enable keys were appended. No new worker or financial/provider flag was activated.
+- Historical rollback assets were absent, and the old service was crash-looping before recovery. Under the owner's additional exact restoration approval, rebuilt **40f3187** from an immutable archive in a pinned Node 22.23.4 non-root/read-only/network-disabled build container. The unchanged workspace guard ran inside the isolated archive; no primary branch/worktree or guard was changed. Source hash matches the historical **`552cabdfa0bb47b8f74e0aee90b1aff10ed799a116fd99e7886b4a5db4816097`**; reconstructed build ID **`gtiSuO-86NQdvAr8Pt9vR`** is explicitly new, not the missing original binary.
+- Reconstructed snapshot integrity checks cover **48,095 files** and retained dependency symlinks; mutable Next response/cache data is not compiled-asset evidence. Actual restart/readiness and desktop/mobile HTTPS passed with current original authority. After additive schema/data, **the old release restarted again**, HTTPS-readied, displayed all eleven Purchases records and preserved the original USD 129.00 verified headphones detail. No database/credential/accounting snapshot was restored.
+- Removed only this task's continuity drop-in and restored the original primary launcher for promotion. Actual HTTPS desktop-light/mobile-dark checks passed: **10 Care cards, 11 Purchases records, two original headphones links, both original amounts, all five filter counts, refrigerator USD 1,199.00 / USD 1,099.00 and Pi unavailable purchase / USD 175.00 reference**, native Insights route, Axe/reflow, zero page errors, dispatched writes or external/model/financial requests. Counts: All 10 / attention 4 / watching 1 / protected 3 / completed 0. Simulated protection never becomes verified protection.
+
+The recovery process retained three operational failures: executable bits were initially removed from copied dependency binaries; a private launcher assumed outdated CommonJS/export paths; and a subsequent restart detected newly generated icon response-cache files as asset additions. Executable permissions/package resolution and the narrow mutable-cache inventory classification were corrected. Compiled source/assets, DB authority and original evidence were not weakened or rewritten. The initial read-only preservation probe also assumed every table had an `id`; canonical complete-row hashes corrected that probe before any application mutation.
+
+## Verified — bounded genuine North; incomplete remainder
+
+The owner-approved disposable browser was paired once, explicitly approved and finished against the existing standing policy. One genuine Sol/medium question returned the actual **11-record** saved dataset, **Sample USD 2,942.94** (nine priced / one excluded unpriced record) and **Verified Sandbox USD 129.00**. The ordinary token refresh used the existing provider grant; no policy, allowance or historical journal was renewed/reset.
+
+The harness then looked for the header search field after navigation while the conversation UI had changed, and stopped before sending its second question. Its unawaited response waiter also reported page closure during cleanup. **The browser was revoked in `finally`; it was not replaced.** Actual accounting moved **271 → 272 / 300 reserved**, **29 → 28 remaining**, with the **one historical unknown unchanged** and no new unknown. This proves one real totals response, not eight-question retail/eligibility/care/native-chart acceptance. Per-response text-only match probes did not find amounts because the authoritative amounts were in `recordsResult.totals`; they are retained, not silently scored as prose matches.
+
+## Incomplete / blocked / next
+
+- Owner subjective and real-device review; seven remaining genuine North checks and fresh native-chart/source-care acceptance are not completed. A replacement disposable browser needs a separate exact decision; no identity is rotated to continue the revoked campaign.
+- The single USD 64.99 game create/capture is **approved after gates but not executed**. Buyer participation and sufficient Sandbox USD balance remain unconfirmed. Protected historical seller credentials exist, but **no independent application checkout login/URL exists**; the general/bootstrap URL must never substitute. The financial packet explicitly requires a separate exact credential/grant approval for that missing writer. No new financial credential/grant or PayPal request was created.
+- Existing historical Sandbox capture remains genuine; all six added purchases remain fictional samples. No new verified game payment, refund, confirmed recall, real merchant warranty, external price tracker or live retail feed is claimed.
+- Next: owner tests the live private site; separately resolve the missing restricted checkout credential and factual buyer prerequisites before the already bounded experiment. Any further genuine browser uses existing actual allowance only after its separate exact browser approval. Credential/worker stop December 4 does not guarantee judge access through **December 15**. Conservative submission cutoff remains **November 12, 2026, 12:00 PM PST**.

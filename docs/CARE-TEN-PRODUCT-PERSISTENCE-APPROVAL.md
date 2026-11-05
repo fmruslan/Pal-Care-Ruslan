@@ -1,6 +1,6 @@
 # Ten-product Care — exact new persistence approval
 
-**Owner approved after remaining gates; not applied.** The owner explicitly selected **Approve after gates** for the exact SQL/data/grant/operator identities below, six purchases, 16 documents, two evidence tables and one restricted reader. This does not waive CI, preservation, actual-permission or verified-rollback gates. This packet is separate from the already activated Care/protection permissions. Current application evidence remains in [STATUS](STATUS.md).
+**Owner approved after gates; applied and independently verified.** The owner explicitly selected **Approve after gates** for the exact SQL/data/grant/operator identities below, six purchases, 16 documents, two evidence tables and one restricted reader. Exact source CI, original-evidence preservation, actual restricted permissions and post-schema rollback passed before private activation. [Release receipt](evidence/CARE-TEN-PRODUCT-RELEASE.md). This packet is separate from Care/protection permissions and does not grant the missing checkout credential or any financial dispatch.
 
 ## Requested scope
 
