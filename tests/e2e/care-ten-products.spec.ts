@@ -21,6 +21,8 @@ test("30-day calendar queries the real Studio engine and opens the exact dated T
     `${today}/${last}`,
   );
   await expect(panel.locator(".ag-studio-layout")).toBeVisible();
+  // The vendor notice remains present and readable even in its fading state.
+  await expect(panel.locator(".ag-studio-watermark")).toHaveCSS("opacity", "1");
   await expect(panel.getByText(/Today ·/)).toBeVisible();
   let links = panel.locator("[data-care-calendar-event]");
   // The immutable Demo dates must age out honestly. Still exercise exact

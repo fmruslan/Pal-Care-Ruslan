@@ -1,4 +1,12 @@
 /* Customer presentation only. Shared semantic colors, theme and Studio stay authoritative. */
+/* Keep the SDK's notice, logo, wording and display lifetime intact. While it is
+   shown, don't let its default opacity/fade make the trial text unreadable. */
+.care-calendar-studio .ag-studio-watermark {
+  opacity: 1 !important;
+  color: var(--foreground);
+  background-color: var(--card);
+}
+
 .care-product-art {
   max-width: 4.5rem;
   width: 100%;

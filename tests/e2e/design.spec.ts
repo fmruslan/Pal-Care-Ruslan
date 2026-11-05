@@ -354,6 +354,10 @@ for (const [name, path] of [
       await expect(
         page.locator('[data-care-calendar-engine="verified"]'),
       ).toBeVisible({ timeout: 20000 });
+      // Observe the SDK's own five-second notice lifecycle; never hide/mask it.
+      await expect(
+        page.locator(".care-calendar-studio .ag-studio-watermark"),
+      ).toBeHidden({ timeout: 10000 });
     }
     await expect(page).toHaveScreenshot(
       name === "insights" && dataSource === "database"
