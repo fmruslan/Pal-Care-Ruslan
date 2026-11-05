@@ -1,6 +1,6 @@
 # Consumer Care polish — exact additive Demo-document decision
 
-**Owner selected Approve after gates; not applied.** The owner approved the exact SQL/manifest/operator/plan identities below for three fictional source documents, after relevant tests, exact-commit CI, preservation and verified application rollback. Presentation work proceeds independently. No real financial or merchant operation is authorized.
+**Owner selected Approve after gates; applied after gates.** The exact SQL/manifest/operator/plan identities below added three fictional source documents after relevant tests, exact-commit CI, preservation and verified application rollback. [Execution evidence](evidence/CARE-CONSUMER-POLISH-RELEASE.md) records the source SHA, private deployment and limitations. No real financial or merchant operation is authorized.
 
 ## Exact new saved scope
 

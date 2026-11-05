@@ -1,8 +1,8 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
-## Consumer Care presentation — candidate, activation gated
+## Consumer Care presentation — deployed source 122a55f
 
-No new HTTP endpoint, cookie, provider or financial permission. Optional `OwnershipFact.consumer` carries natural status/summary/action/next-step presentation while preserving technical facts, provenance and `verified=false`. North derives guidance and source links from the same saved situation; explicit topics retain correct card highlighting. Demo-only completion never enters verified refund totals. `CARE_CONSUMER_SCENARIOS_ENABLED` defaults off, requires `CARE_DEMO_ENABLED=true`, exact sample documents and existing sample purchase bindings, and fails visibly on missing/altered evidence. Only fixture tests may expand bundled documents; database reads never substitute them. The separately approved three-insert `drizzle/consumer-care` lane remains unapplied until release gates. [Approval](CARE-CONSUMER-POLISH-APPROVAL.md) · [actual status](STATUS.md).
+No new HTTP endpoint, cookie, provider or financial permission. Optional `OwnershipFact.consumer` carries natural status/summary/action/next-step presentation while preserving technical facts, provenance and `verified=false`. North derives guidance and source links from the same saved situation; explicit topics retain correct card highlighting. Demo-only completion never enters verified refund totals. `CARE_CONSUMER_SCENARIOS_ENABLED` defaults off, requires `CARE_DEMO_ENABLED=true`, exact sample documents and existing sample purchase bindings, and fails visibly on missing/altered evidence. Only fixture tests may expand bundled documents; database reads never substitute them. The separately approved three-insert `drizzle/consumer-care` lane is applied and its read-only flag enabled on private 8444 after exact-source CI, preservation and post-data rollback gates. [Approval](CARE-CONSUMER-POLISH-APPROVAL.md) · [actual status](STATUS.md).
 
 ## All-purchase Care / automatic price protection — deployed 40f3187
 
