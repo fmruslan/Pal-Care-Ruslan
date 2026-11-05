@@ -101,6 +101,9 @@ export async function demoCareBrowserJourney(
           : route.abort(),
       );
       await page.goto(origin + "/dashboard");
+      await expect(
+        page.locator('[data-care-calendar-engine="verified"]'),
+      ).toBeVisible({ timeout: 20000 });
       const main = page.getByRole("main");
       await expect(main.locator("[data-care-product]")).toHaveCount(10);
       const headphones = main.locator(
@@ -144,8 +147,10 @@ export async function demoCareBrowserJourney(
           const answer = careStatusAnswer(
             feed,
             input.revision,
-            ["00000000-0000-4000-8000-000000000205"],
-            "retail-reference",
+            turns === 1
+              ? ["00000000-0000-4000-8000-000000000205"]
+              : feed.purchases.map((p) => p.id),
+            turns === 1 ? "retail-reference" : "upcoming-care",
           );
           await route.fulfill({
             json: {
@@ -172,6 +177,20 @@ export async function demoCareBrowserJourney(
       await expect(north).toContainText("$1,099.00");
       await expect(north).toContainText("$1,199.00");
       await expect(north).toContainText("not live prices");
+      await north
+        .getByRole("button", { name: "Close North Star", exact: true })
+        .click();
+      await page
+        .getByRole("searchbox", {
+          name: "Search products and documents",
+          exact: true,
+        })
+        .fill("What's coming up in my next 30 days?");
+      await page
+        .getByRole("button", { name: "Ask North Star", exact: true })
+        .click();
+      await expect(north).toContainText("Your next 30 days");
+      await expect(north).toContainText("0 verified Sandbox");
       const request = await north
         .locator("[data-request-id]")
         .last()
@@ -189,12 +208,37 @@ export async function demoCareBrowserJourney(
         await expect(
           north.locator(`[data-request-id="${request}"]`),
         ).toBeVisible();
+        await expect(north).toContainText("Your next 30 days");
+        await expect(
+          north.getByRole("region", {
+            name: "Receipt and document preview",
+            exact: true,
+          }),
+        ).toHaveCount(0);
+        await north
+          .getByRole("region", { name: "Previous North results", exact: true })
+          .getByRole("button", {
+            name: "What is my refrigerator's retail reference price?",
+            exact: true,
+          })
+          .click();
         await expect(north).toContainText("$1,099.00");
+        await north
+          .getByRole("button", { name: "History", exact: true })
+          .click();
+        await north
+          .getByRole("region", { name: "Previous North results", exact: true })
+          .getByRole("button", {
+            name: "What's coming up in my next 30 days?",
+            exact: true,
+          })
+          .click();
+        await expect(north).toContainText("Your next 30 days");
         await north
           .getByRole("button", { name: "Close North Star", exact: true })
           .click();
       }
-      expect(turns).toBe(1);
+      expect(turns).toBe(2);
       expect(forbidden).toEqual([]);
       await page.screenshot({
         path: `test-results/demo-care-database/${profile}.png`,

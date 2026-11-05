@@ -1,6 +1,165 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
+test("30-day calendar queries the real Studio engine and opens the exact dated Twin/evidence", async ({
+  page,
+}) => {
+  await page.goto("/dashboard");
+  const panel = page.getByRole("region", {
+    name: "Your next 30 days",
+    exact: true,
+  });
+  await expect(
+    panel.locator('[data-care-calendar-engine="verified"]'),
+  ).toBeVisible({ timeout: 20000 });
+  const today = new Date().toISOString().slice(0, 10),
+    last = new Date(Date.parse(today) + 30 * 86400000)
+      .toISOString()
+      .slice(0, 10);
+  await expect(panel).toHaveAttribute(
+    "data-care-calendar-range",
+    `${today}/${last}`,
+  );
+  await expect(panel.locator(".ag-studio-layout")).toBeVisible();
+  await expect(panel.getByText(/Today ·/)).toBeVisible();
+  let links = panel.locator("[data-care-calendar-event]");
+  // The immutable Demo dates must age out honestly. Still exercise exact
+  // navigation through the full saved timeline when the rolling window is empty.
+  if ((await links.count()) === 0) {
+    await expect(panel.locator("[data-care-calendar-empty]")).toBeVisible();
+    await panel
+      .getByRole("link", { name: "View all care events", exact: true })
+      .click();
+    const all = page.getByRole("region", {
+      name: "All care events",
+      exact: true,
+    });
+    await expect(
+      all.locator('[data-care-calendar-engine="verified"]'),
+    ).toBeVisible({ timeout: 20000 });
+    links = all
+      .getByRole("list", { name: "All saved Care events", exact: true })
+      .locator('a[href*="milestone=return-window"]');
+  }
+  const href = await links.first().getAttribute("href");
+  expect(href).toMatch(
+    /^\/vault\/[a-f0-9-]+\?milestone=(return-window|price|warranty|delivery)&careEvent=.+$/,
+  );
+  await links.first().click();
+  await expect(page).toHaveURL(new RegExp(href!.replaceAll("?", "\\?")));
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByRole("dialog")).toContainText("Demo");
+  const factId = new URL(href!, "http://test.local").searchParams.get(
+    "careEvent",
+  )!;
+  await expect(
+    page.getByRole("dialog").locator(`[data-ownership-fact="${factId}"]`),
+  ).toHaveCount(1);
+  await expect(
+    page.getByRole("dialog").locator(`[data-ownership-fact="${factId}"]`),
+  ).toBeVisible();
+  await page.goBack();
+  await page.goto("/dashboard");
+  await expect(
+    panel.locator('[data-care-calendar-engine="verified"]'),
+  ).toBeVisible({ timeout: 20000 });
+  await expect(
+    page.getByRole("main").locator("[data-care-product]"),
+  ).toHaveCount(10);
+});
+
+test("View all opens Insights native grid and timeline with real evidence filtering and exact row read-back", async ({
+  page,
+}) => {
+  await page.goto("/dashboard");
+  await page
+    .getByRole("link", { name: "View all care events", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/insights\?view=care-events#care-events$/);
+  const panel = page.getByRole("region", {
+    name: "All care events",
+    exact: true,
+  });
+  await expect(
+    panel.locator('[data-care-calendar-engine="verified"]'),
+  ).toBeVisible({ timeout: 20000 });
+  await expect(panel.locator(".ag-root")).toBeVisible({ timeout: 20000 });
+  await expect(
+    panel.getByRole("columnheader", { name: /Product/ }),
+  ).toBeVisible();
+  await expect(
+    panel.getByText(/Warranty expiration/, { exact: true }).first(),
+  ).toBeVisible();
+  await panel
+    .getByRole("combobox", { name: "Event evidence" })
+    .selectOption("Verified Sandbox");
+  await expect(panel.locator("[data-care-event-counts]")).toContainText(
+    "0 Demo · 0 verified Sandbox · 0 recorded",
+  );
+  await expect(panel.locator("[data-care-calendar-engine]")).toHaveAttribute(
+    "data-care-calendar-ids",
+    "",
+  );
+  await expect(panel.locator("[data-care-calendar-empty]")).toBeVisible();
+  await expect(panel.locator(".ag-center-cols-container .ag-row")).toHaveCount(
+    0,
+  );
+  await panel
+    .getByRole("combobox", { name: "Event evidence" })
+    .selectOption("Demo");
+  await expect(
+    panel.locator("[data-care-calendar-engine]"),
+  ).not.toHaveAttribute("data-care-calendar-ids", "");
+  await expect(
+    page.getByRole("region", {
+      name: "Interactive purchase workspace",
+      exact: true,
+    }),
+  ).toBeVisible();
+});
+
+test("calendar scrolls inside its panel at 320px/200% text without page overflow and retains keyboard links", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/dashboard");
+  const panel = page.getByRole("region", {
+    name: "Your next 30 days",
+    exact: true,
+  });
+  await expect(
+    panel.locator('[data-care-calendar-engine="verified"]'),
+  ).toBeVisible({ timeout: 20000 });
+  await page.evaluate(() => {
+    document.documentElement.style.fontSize = "200%";
+  });
+  const scroll = panel.getByRole("region", {
+    name: "30-day Care calendar, scroll horizontally",
+    exact: true,
+  });
+  await scroll.focus();
+  await expect(scroll).toBeFocused();
+  expect(await scroll.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(
+    true,
+  );
+  await page.keyboard.press("ArrowRight");
+  await panel
+    .getByRole("button", { name: "Next dates →", exact: true })
+    .click();
+  expect(await scroll.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
+  await panel.getByRole("button", { name: "Today", exact: true }).click();
+  expect(await scroll.evaluate((el) => el.scrollLeft)).toBe(0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  expect(
+    (await new AxeBuilder({ page }).include("#next-30-days").analyze())
+      .violations,
+  ).toEqual([]);
+});
+
 test("consumer cards use readable type, one primary action and a Demo label beside each fictional event", async ({
   page,
 }) => {
@@ -30,7 +189,7 @@ test("consumer cards use readable type, one primary action and a Demo label besi
       0,
     );
   }
-  await expect(page.getByRole("main")).not.toContainText("0 verified");
+  await expect(page.getByRole("main")).not.toContainText("0 verified windows");
 });
 
 test("saved Demo price, return-progress and refund sources open useful next steps without dispatching anything", async ({
@@ -139,6 +298,9 @@ test("ten persisted-fixture products use a compact responsive grid, real filters
   ).toBe(true);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   expect(writes).toEqual([]);
+  await expect(
+    page.locator('[data-care-calendar-engine="verified"]'),
+  ).toBeVisible({ timeout: 20000 });
   await page.screenshot({
     path: info.outputPath("ten-products.png"),
     fullPage: true,

@@ -23,6 +23,13 @@ test("Care is the default and has three calm destinations, factual cards and no 
   ).toHaveText(["Care", "Purchases", "Insights"]);
   await expect(page.locator("[data-north-search]")).toHaveCount(1);
   const main = page.getByRole("main");
+  const calendar = page.getByRole("region", {
+    name: "Your next 30 days",
+    exact: true,
+  });
+  await expect(
+    calendar.locator('[data-care-calendar-engine="verified"]'),
+  ).toBeVisible({ timeout: 20000 });
   const card = main.locator(`[data-care-product="${headphones}"]`);
   await expect(main.locator("[data-care-product]")).toHaveCount(4);
   await expect(
@@ -45,7 +52,18 @@ test("Care is the default and has three calm destinations, factual cards and no 
     .first()
     .getByRole("link", { name: "Details", exact: true })
     .boundingBox();
-  expect(action!.y + action!.height).toBeLessThan(664);
+  const calendarBox = (await calendar.boundingBox())!;
+  const calendarMargin = await calendar.evaluate((el) =>
+    parseFloat(getComputedStyle(el).marginBottom),
+  );
+  // The owner added the calendar above the cards. Preserve the original
+  // action-density budget after subtracting only that new, measured section.
+  expect(
+    action!.y + action!.height - calendarBox.height - calendarMargin,
+  ).toBeLessThan(664);
+  expect(
+    (await main.locator("[data-care-product]").first().boundingBox())!.y,
+  ).toBeGreaterThanOrEqual(calendarBox.y + calendarBox.height);
   expect((await card.boundingBox())!.height).toBeLessThan(210);
   expect(
     (await card.locator("[data-care-timeline]").boundingBox())!.height,

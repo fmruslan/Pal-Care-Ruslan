@@ -5,6 +5,7 @@ import { evidenceLabel } from "./contracts";
 import { ownershipHref, ownershipTopic } from "./ownership";
 import { careProductCards, careItemTopic } from "./summary";
 import { demoEvidenceAnswer } from "./demo/answer";
+import { careCalendar, upcomingCareEvents, careEventCounts } from "./calendar";
 
 /** Same server-derived facts as Care cards. No model-written statuses/amounts. */
 export function careStatusAnswer(
@@ -16,6 +17,60 @@ export function careStatusAnswer(
   const open = topic.startsWith("open_");
   const requested = open ? topic.slice(5) : topic;
   const normalized = requested === "payment" ? "purchase" : requested;
+  if (normalized === "upcoming-care") {
+    const calendar = careCalendar(feed),
+      events = upcomingCareEvents(calendar).filter((e) =>
+        ids.includes(e.twinId),
+      ),
+      counts = careEventCounts(events);
+    const single =
+      ids.length === 1
+        ? feed.purchases.find((p) => p.id === ids[0])
+        : undefined;
+    return {
+      careCalendarRange: {
+        from: calendar.today,
+        toExclusive: calendar.endExclusive,
+      },
+      outcome: calendar.complete ? "answered" : "unavailable",
+      mode: "deterministic",
+      revision,
+      questionScope: single ? "purchase" : "library",
+      context: single
+        ? {
+            twinId: single.id,
+            name: single.name,
+            model: single.model,
+            origin: single.origin,
+            purchasedOn: single.purchasedOn,
+          }
+        : null,
+      text: `Your next 30 days (${calendar.today} through ${calendar.days[29]}, UTC): ${events.length} dated Care events — ${counts.demo} Demo, ${counts.verified} verified Sandbox, ${counts.recorded} recorded but unverified. ${events.length ? "Demo events remain fictional; delivery dates are estimates, not confirmed delivery." : "No dated events are saved in this window. Missing dates are not inferred; this is not a coverage or safety all-clear."}${calendar.complete ? "" : " Some Care evidence is unavailable; this may be incomplete."}`,
+      steps: events
+        .slice(0, 16)
+        .map((e) => `${e.product} — ${e.kind}: ${e.day} · ${e.evidence}.`),
+      sources: events.slice(0, 12).flatMap((e) =>
+        e.sources.slice(0, 1).map((s) => ({
+          id: `${e.id}:${s.href}`,
+          title: s.label,
+          label: e.evidence,
+          href: s.href,
+        })),
+      ),
+      actions: [
+        ...events.slice(0, 7).map((e) => ({
+          label: `${e.product} · ${e.kind} · ${e.day}`,
+          href: e.href,
+        })),
+        {
+          label: "View all care events",
+          href: "/insights?view=care-events#care-events",
+        },
+      ],
+      careSelection: [...new Set(events.map((e) => e.twinId))],
+      ownershipAsOf: feed.observedAt,
+    };
+  }
   const demoAnswer = demoEvidenceAnswer(feed, revision, ids, normalized);
   if (demoAnswer) return demoAnswer;
   const selected = feed.ownership.filter((v) => ids.includes(v.twinId));

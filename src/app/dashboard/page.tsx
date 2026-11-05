@@ -1,4 +1,8 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { CareCalendarPanel } from "@/components/care/calendar";
+import { careCalendar } from "@/lib/care/calendar";
+import { studioEvaluationAllowed } from "@/lib/intelligence/access";
 import { Shell } from "@/components/shell";
 import { NorthCollection, NorthSearch } from "@/components/careos/integrated";
 import { CareFeedView, CareFilters } from "@/components/care/feed";
@@ -29,6 +33,10 @@ export default async function Care({
     );
   }
   const feed = await getCareFeed();
+  const studioAllowed = studioEvaluationAllowed(
+    process.env,
+    (await headers()).get("host") ?? "",
+  );
   const filter = parseCareFilter(params.status);
   return (
     <Shell active="/dashboard" source={feed.source}>
@@ -43,6 +51,10 @@ export default async function Care({
         footer={<CareFilters filter={filter} feed={feed} />}
       />
       <NorthCollection>
+        <CareCalendarPanel
+          calendar={careCalendar(feed)}
+          studioAllowed={studioAllowed}
+        />
         <CareFeedView feed={feed} filter={filter} filters={false} />
       </NorthCollection>
     </Shell>

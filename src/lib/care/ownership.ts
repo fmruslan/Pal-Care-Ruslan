@@ -374,6 +374,17 @@ export function ownershipView(options: {
   for (const event of record.events.filter((e) => e.kind !== "purchase"))
     history.push({
       ...base("purchase", "Saved event", event.title, event.description),
+      ...(event.kind === "care"
+        ? {
+            calendarKind: "care-reminder" as const,
+            sources: [
+              {
+                label: "Saved care history",
+                href: `/vault/${p.id}#history-heading`,
+              },
+            ],
+          }
+        : {}),
       id: `purchase-event:${event.id}`,
       date: event.occurredOn,
       recordedAt: null,

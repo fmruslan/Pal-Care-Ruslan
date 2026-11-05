@@ -4,9 +4,17 @@ import { PageHeading } from "@/components/page-heading";
 import { CustomerWorkspace } from "@/components/intelligence/customer-workspace";
 import { getCustomerIntelligence } from "@/lib/intelligence/customer-repository";
 import { studioEvaluationAllowed } from "@/lib/intelligence/access";
+import { CareCalendarPanel } from "@/components/care/calendar";
+import { careCalendar } from "@/lib/care/calendar";
+import { getCareFeed } from "@/lib/care/repository";
 
 export const metadata = { title: "Personal Purchase Intelligence" };
-export default async function InsightsPage() {
+export default async function InsightsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ view?: string }>;
+}) {
+  const showCalendar = (await searchParams)?.view === "care-events";
   const [dataset, h] = await Promise.all([
     getCustomerIntelligence(),
     headers(),
@@ -24,6 +32,13 @@ export default async function InsightsPage() {
         title="Insights"
         description="Explore your saved purchases, documents and recorded price adjustments."
       />
+      {showCalendar && (
+        <CareCalendarPanel
+          calendar={careCalendar(await getCareFeed())}
+          studioAllowed={allowed}
+          all
+        />
+      )}
       <CustomerWorkspace
         dataset={dataset}
         studioAllowed={allowed}

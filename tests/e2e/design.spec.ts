@@ -350,10 +350,23 @@ for (const [name, path] of [
           .first(),
       ).toBeVisible({ timeout: 20_000 });
     }
+    if (name === "home" || name === "dashboard") {
+      await expect(
+        page.locator('[data-care-calendar-engine="verified"]'),
+      ).toBeVisible({ timeout: 20000 });
+    }
     await expect(page).toHaveScreenshot(
       name === "insights" && dataSource === "database"
         ? "insights-database.png"
         : `${name}.png`,
+      // Rolling UTC text changes daily. Only those date labels are masked;
+      // widget geometry, native rendering, event behavior and thresholds remain tested.
+      {
+        mask:
+          name === "home" || name === "dashboard"
+            ? [page.locator("[data-care-calendar-dates]")]
+            : [],
+      },
     );
     await page.screenshot({
       path: `test-results/${dataSource}/design/${test.info().project.name}-${name}-full.png`,

@@ -162,30 +162,49 @@ function ConnectedOwnershipScope({
   const scope = useRef<HTMLDivElement>(null);
   const [focused, setFocused] = useState<OwnershipTopic | null>(null);
   const [selected, setSelected] = useState<OwnershipTopic | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const opener = useRef<HTMLElement | null>(null);
   const params = useSearchParams();
   const requested =
     surface === "product" ? ownershipTopic(params.get("milestone")) : null;
+  const requestedEvent = surface === "product" ? params.get("careEvent") : null;
+  const linkedEvent =
+    requestedEvent && requested
+      ? [...view.facts, ...view.history].find(
+          (f) => f.id === requestedEvent && f.topic === requested,
+        )
+      : undefined;
   const router = useRouter();
   const [refreshing, refresh] = useTransition();
   const previousRevision = useRef(view.revision);
   const [changed, setChanged] = useState(false);
   const topic = selected ?? view.pill.topic;
-  const facts = view.facts.filter((f) => f.topic === topic);
-  const selectedKey = `${view.twinId}:${requested ?? ""}`;
+  const facts = selectedEvent
+    ? [...view.facts, ...view.history].filter(
+        (f, i, rows) =>
+          f.id === selectedEvent &&
+          f.topic === topic &&
+          rows.findIndex((r) => r.id === f.id) === i,
+      )
+    : view.facts.filter((f) => f.topic === topic);
+  const selectedKey = `${view.twinId}:${requested ?? ""}:${linkedEvent?.id ?? ""}`;
   const lastLink = useRef("");
   useEffect(() => {
     if (lastLink.current === selectedKey) return;
     const frame = requestAnimationFrame(() => {
       lastLink.current = selectedKey;
-      if (requested && view.facts.some((f) => f.topic === requested)) {
+      if (
+        requested &&
+        (linkedEvent || view.facts.some((f) => f.topic === requested))
+      ) {
         setSelected(requested);
+        setSelectedEvent(linkedEvent?.id ?? null);
         setOpen(true);
       }
     });
     return () => cancelAnimationFrame(frame);
-  }, [selectedKey, requested, view.facts]);
+  }, [selectedKey, requested, view.facts, linkedEvent]);
   useEffect(() => {
     if (previousRevision.current !== view.revision) {
       previousRevision.current = view.revision;
@@ -250,6 +269,7 @@ function ConnectedOwnershipScope({
         view.facts.some((f) => f.topic === target)
       ) {
         setSelected(target);
+        setSelectedEvent(null);
         setOpen(true);
       }
     };
@@ -260,6 +280,7 @@ function ConnectedOwnershipScope({
     if (target && !target.closest("[data-ownership-panel]"))
       opener.current = target;
     setSelected(value);
+    setSelectedEvent(null);
     setOpen(true);
   };
   return (

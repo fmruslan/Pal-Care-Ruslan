@@ -340,7 +340,9 @@ export function IntegratedNorthView({
   const PendingHeading = active ? "h2" : QuestionHeading;
   const unavailableResult = !!s.activeId && !active && !s.pending && !s.busy;
   const answer = active?.answer;
-  const doc = answer?.sources.find((source) => documentPreviewId(source.href));
+  const doc = answer?.careCalendarRange
+    ? undefined
+    : answer?.sources.find((source) => documentPreviewId(source.href));
   useEffect(() => {
     root.current?.scrollIntoView({ block: "start", behavior: "instant" });
   }, []);

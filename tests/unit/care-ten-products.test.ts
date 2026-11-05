@@ -52,6 +52,12 @@ describe("ten-product evidence and price separation", () => {
     },
   );
   it.each([
+    [
+      "What's coming up in my next 30 days?",
+      "upcoming-care",
+      "",
+      "Return deadline",
+    ],
     ["What needs my attention?", "attention", "", "Safety check needed"],
     [
       "What is my refrigerator's retail reference price?",

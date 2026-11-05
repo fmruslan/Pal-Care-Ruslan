@@ -56,6 +56,7 @@ export type Evidence = {
   excerpt?: string;
 };
 export type CareAnswer = {
+  careCalendarRange?: { from: string; toExclusive: string };
   /** Server-derived immutable ownership snapshot metadata; never write authority. */
   ownershipAsOf?: string;
   /** Server-resolved homepage highlights, presentation only; History never replays. */

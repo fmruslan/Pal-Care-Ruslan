@@ -14,6 +14,7 @@ export const ownershipTopics = [
 ] as const;
 export type OwnershipTopic = (typeof ownershipTopics)[number];
 export type OwnershipFact = {
+  calendarKind?: "care-reminder";
   consumer?: {
     status: string;
     summary: string;
