@@ -1,6 +1,14 @@
 /** Override dotenv/Next's project-file loading after a private Care rollout.
  * Ordinary suites must never query application tracking or inherit its writers. */
 export const isolatedCareEnvironment = {
+  CARE_DEMO_ENABLED: "false",
+  CARE_DEMO_READER_DATABASE_URL: "",
+  PAYPAL_SHOWCASE_ENABLED: "false",
+  PAYPAL_SHOWCASE_REQUEST_ID: "",
+  PAYPAL_SHOWCASE_SESSION_HASH: "",
+  PAYPAL_SHOWCASE_BALANCE_CONFIRMED: "false",
+  PAYPAL_SHOWCASE_STARTS_AT: "",
+  PAYPAL_SHOWCASE_ENDS_AT: "",
   CARE_RECORDS_ENABLED: "false",
   CARE_WATCH_SCHEDULE_ENABLED: "false",
   CARE_READER_DATABASE_URL: "",

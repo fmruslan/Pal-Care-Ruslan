@@ -1,6 +1,6 @@
 # One new genuine Sandbox showcase — separate approval proposal
 
-**Not authorized or executed.** Existing genuine Sandbox headphones capture/receipt remains preserved; it already demonstrates payment integration, but it is not a new capture for the ten-product update. No production money or seeded PayPal verification is proposed.
+**Owner approved one after gates; not executed.** The owner explicitly selected **Approve one after gates** for the exact experiment below. Buyer participation/sufficient-balance confirmation and actual credential/runtime readiness remain separate factual prerequisites. Existing genuine Sandbox headphones capture/receipt remains preserved; it is not a new capture for the ten-product update. No production money or seeded PayPal verification is authorized.
 
 ## Exact proposed operation
 
@@ -9,7 +9,7 @@
 - Reserved new application request UUID: **`8972bc61-9d98-4d01-b9b8-64c5ef8678e3`**. This is not a PayPal transaction ID. Bind it to the single originating anonymous checkout-session digest before dispatch; neither can be rotated to bypass a failure. Original headphones/eCheck requests, keys, deadlines, identities and policy bindings are untouched.
 - Prepare a narrowly allowlisted showcase scope on the existing checkout service only after approval: game UUID + USD 6499 minor units + USD + quantity one + originating browser/session + reserved request UUID. No catalog-wide checkout, amount override, broadened financial cap or automatic sample conversion.
 - Maximum **one create POST and one capture POST**, with existing durable keys/attempt markers and SDK automatic retries off. Buyer approval uses PayPal's Sandbox redirect. Independently retrieve and validate Orders v2 plus Payments v2 evidence before exactly-once Twin/receipt/event creation. No Guardian policy/price-adjustment eligibility attaches to the game.
-- At most **three retrieval-only reconciliation cycles** if needed, retaining the original pinned order/capture and all rate/lease/global limits. Ambiguous creation/capture stops further POSTs; pending/failed/declined remains honest. No second purchase/request or capture-ID substitution.
+- At most **three retrieval-only reconciliation cycles** if needed after the initial payment-check cycle, retaining the original pinned order/capture and all rate/lease/global limits. Repeated unapproved returns also consume this lifetime cap; changing the UTC rate bucket cannot reset it. Ambiguous creation/capture stops further POSTs; pending/failed/declined remains honest. No second purchase/request or capture-ID substitution.
 - Effective execution window: at most **two hours from the separately recorded ready/balance-confirmed start**, with no extension/reset; existing service limits can only narrow it. Stop immediately on denial, insufficient balance, accounting ambiguity, identity/amount mismatch or expiry. Disable the new create/capture scope after its single result or stop condition.
 - A completed capture creates **one additional verified Sandbox Twin**, never rewrites the fictional game sample. The game card groups the two dated histories like headphones: ten product cards, then twelve saved purchase records if this experiment completes. All spending remains separated by Sample and Verified Sandbox.
 
@@ -19,4 +19,4 @@ Owner approval of this exact operation, bounded scope implementation/tests, exac
 
 No refund, production credentials/money, policy activation, additional transaction, public write authority, shared AI allowance change or account/billing activation is included. Existing pending eCheck remains unchanged and cannot be retried as a way to complete this showcase.
 
-**Owner decision:** approve this one bounded USD 64.99 Sandbox experiment after gates, or defer new financial operations and retain only the existing verified capture as historical proof. Buyer participation/balance confirmation remains a separate factual prerequisite even after approval.
+**Owner decision recorded:** **Approve one after gates** for this bounded USD 64.99 Sandbox experiment. Buyer participation/balance confirmation remains a separate factual prerequisite. Default-off preparation and injected tests are not provider acceptance; [STATUS](STATUS.md) records actual execution and blockers.

@@ -23,6 +23,11 @@ import {
 } from "./contracts";
 import type { CheckoutConfig } from "./config";
 import type { PayPalGateway } from "./paypal";
+import {
+  assertShowcaseScope,
+  SHOWCASE_REQUEST_ID,
+  SHOWCASE_PRODUCT_ID,
+} from "./showcase";
 import { checkoutHasExpired } from "./expiry";
 import { checkoutPromise, bindPromise } from "../price-guardian/checkout";
 import {
@@ -60,7 +65,7 @@ export class CheckoutService {
     private paypal: PayPalGateway,
     private config: Pick<
       CheckoutConfig,
-      "origin" | "merchantId" | "immediateTest"
+      "origin" | "merchantId" | "immediateTest" | "showcase"
     > & { guardianPolicyEnabled?: boolean },
   ) {}
 
@@ -105,6 +110,14 @@ export class CheckoutService {
     const parsed = startCheckoutSchema.safeParse(input);
     if (!parsed.success) throw new CheckoutError("invalid_request", 400);
     const { productId, requestId, offerHash } = parsed.data;
+    const showcase = this.config.showcase;
+    if (
+      showcase ||
+      requestId === SHOWCASE_REQUEST_ID ||
+      productId === SHOWCASE_PRODUCT_ID
+    )
+      assertShowcaseScope(showcase, { productId, requestId, sessionHash });
+    let inserted = false;
     const id = await this.db.transaction(async (tx) => {
       // Small DB-only transaction. Never hold locks over a provider network call.
       await tx.execute(
@@ -140,7 +153,10 @@ export class CheckoutService {
         )
           throw new CheckoutError("sandbox_test_not_authorized", 403);
       }
-      if (!demoData.products.some((product) => product.id === productId))
+      if (
+        !demoData.products.some((product) => product.id === productId) &&
+        !(showcase && productId === SHOWCASE_PRODUCT_ID)
+      )
         throw new CheckoutError("invalid_product", 400);
       const [product] = await tx
         .select()
@@ -157,12 +173,21 @@ export class CheckoutService {
         merchantName: merchant?.name,
       });
       if (!snapshot.success) throw new CheckoutError("invalid_product", 400);
-      const promise = await checkoutPromise(
-        tx,
-        snapshot.data,
-        this.config.guardianPolicyEnabled === true,
-        offerHash,
-      );
+      if (showcase)
+        assertShowcaseScope(showcase, {
+          productId,
+          requestId,
+          sessionHash,
+          amountMinor: snapshot.data.priceMinor,
+        });
+      const promise = showcase
+        ? null
+        : await checkoutPromise(
+            tx,
+            snapshot.data,
+            this.config.guardianPolicyEnabled === true,
+            offerHash,
+          );
       if (
         immediateTest &&
         snapshot.data.priceMinor !== IMMEDIATE_TEST_AMOUNT_MINOR
@@ -180,21 +205,26 @@ export class CheckoutService {
         product: snapshot.data,
         policy: promise ?? demoMerchantPolicy,
         ...(promise ? { createdAt: sql`clock_timestamp()` } : {}),
-        paymentMethodPreference: immediateTest
-          ? "IMMEDIATE_PAYMENT_REQUIRED"
-          : null,
+        paymentMethodPreference:
+          immediateTest || showcase ? "IMMEDIATE_PAYMENT_REQUIRED" : null,
         returnOrigin: this.config.origin,
         expectedPayeeId: this.config.merchantId,
         amountMinor: snapshot.data.priceMinor,
         currency: "USD",
         createKey: randomUUID(),
         captureKey: randomUUID(),
-        expiresAt: new Date(Date.now() + 2 * 3600_000).toISOString(),
+        expiresAt: showcase
+          ? showcase.endsAt
+          : new Date(Date.now() + 2 * 3600_000).toISOString(),
       });
+      inserted = true;
       if (promise) await bindPromise(tx, id);
       return id;
     });
     const current = await this.view(id, sessionHash);
+    // Order insertion is the durable one-create reservation. Even a crash before
+    // dispatch never permits a second POST for this reserved showcase identity.
+    if (showcase && !inserted) return current;
     if (!["creating", "create_unknown"].includes(current.state)) return current;
     const lease = await this.claim(id, sessionHash);
     try {
@@ -202,6 +232,12 @@ export class CheckoutService {
         return await this.view(id, sessionHash);
       if (Date.now() >= new Date(lease.order.expiresAt).getTime())
         throw new CheckoutError("checkout_expired");
+      if (showcase)
+        assertShowcaseScope(showcase, {
+          ...lease.order,
+          sessionHash,
+          amountMinor: lease.order.amountMinor,
+        });
       const created = approvalLink(await this.paypal.create(lease.order));
       await this.update(id, lease.token, {
         providerOrderId: created.id,
@@ -308,17 +344,76 @@ export class CheckoutService {
       return current;
     if (!allowFirstCapture && !current.captureAttempted)
       throw new CheckoutError("capture_not_attempted");
+    const [scopeOrder] = await this.db
+      .select()
+      .from(checkoutOrders)
+      .where(eq(checkoutOrders.id, id));
+    if (
+      scopeOrder.requestId === SHOWCASE_REQUEST_ID ||
+      (this.config.showcase &&
+        !scopeOrder.captureAttemptedAt &&
+        allowFirstCapture)
+    )
+      assertShowcaseScope(this.config.showcase, {
+        ...scopeOrder,
+        sessionHash,
+        amountMinor: scopeOrder.amountMinor,
+      });
     const lease = await this.claim(id, sessionHash);
     const order = lease.order;
     let attempted = Boolean(order.captureAttemptedAt);
+    const checkShowcase = () => {
+      if (order.requestId !== SHOWCASE_REQUEST_ID) return;
+      assertShowcaseScope(this.config.showcase, {
+        ...order,
+        sessionHash,
+        amountMinor: order.amountMinor,
+      });
+      if (
+        Date.parse(order.expiresAt) !==
+          Date.parse(this.config.showcase!.endsAt) ||
+        Date.parse(order.createdAt) < Date.parse(this.config.showcase!.startsAt)
+      )
+        throw new CheckoutError("sandbox_test_not_authorized", 403);
+    };
     try {
       if (["completed", "cancelled", "failed", "review"].includes(order.state))
         return await this.view(id, sessionHash);
       if (checkoutHasExpired({ ...order, captureAttempted: attempted }))
         return await this.view(id, sessionHash);
+      if (order.requestId === SHOWCASE_REQUEST_ID) {
+        checkShowcase();
+        await this.db.transaction(async (tx) => {
+          // Exactly one initial payment-check cycle. Every later cycle consumes
+          // the same lifetime recovery cap, including repeated unapproved returns.
+          const initial = await tx
+            .insert(checkoutRateLimits)
+            .values({
+              key: `showcase:payment:${SHOWCASE_REQUEST_ID}`,
+              count: 1,
+            })
+            .onConflictDoNothing()
+            .returning();
+          if (initial.length && !attempted && allowFirstCapture) return;
+          const rows = await tx
+            .insert(checkoutRateLimits)
+            .values({
+              key: `showcase:reconcile:${SHOWCASE_REQUEST_ID}`,
+              count: 1,
+            })
+            .onConflictDoUpdate({
+              target: checkoutRateLimits.key,
+              set: { count: sql`${checkoutRateLimits.count}+1` },
+              setWhere: sql`${checkoutRateLimits.count}<3`,
+            })
+            .returning();
+          if (!rows.length) throw new CheckoutError("demo_limit_reached", 429);
+        });
+      }
       if (!order.providerOrderId) throw new CheckoutError("order_not_created");
       if (!allowFirstCapture && !attempted)
         throw new CheckoutError("capture_not_attempted");
+      checkShowcase();
       let result = inspectOrderCapture(
         await this.paypal.retrieve(order.providerOrderId),
         order,
@@ -338,7 +433,9 @@ export class CheckoutService {
           captureAttemptedAt: new Date().toISOString(),
         });
         attempted = true;
+        checkShowcase();
         await this.paypal.capture(order.providerOrderId, order.captureKey);
+        checkShowcase();
         result = inspectOrderCapture(
           await this.paypal.retrieve(order.providerOrderId),
           order,
@@ -353,6 +450,7 @@ export class CheckoutService {
           result.capture.id;
         if (!order.observedCaptureId)
           await this.update(id, lease.token, { observedCaptureId: captureId });
+        checkShowcase();
         const observed = inspectCaptureStatus(
           await this.paypal.retrieveCapture(captureId),
           order,

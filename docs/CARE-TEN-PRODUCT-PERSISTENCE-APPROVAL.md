@@ -1,6 +1,6 @@
 # Ten-product Care — exact new persistence approval
 
-**Prepared, not applied.** Approval of the design/retail research is not permission to migrate the application or provision credentials. This packet is separate from the already activated Care/protection permissions. Current application evidence remains in [STATUS](STATUS.md).
+**Owner approved after remaining gates; not applied.** The owner explicitly selected **Approve after gates** for the exact SQL/data/grant/operator identities below, six purchases, 16 documents, two evidence tables and one restricted reader. This does not waive CI, preservation, actual-permission or verified-rollback gates. This packet is separate from the already activated Care/protection permissions. Current application evidence remains in [STATUS](STATUS.md).
 
 ## Requested scope
 
@@ -48,4 +48,4 @@ The Pi retains its original unavailable purchase amount; its explicitly hypothet
 
 No new worker/timer, general research connector, carrier integration, live retail scraping, recall ingestion, account/billing/license activation, refund/adjustment, production money, additional AI allowance or public exposure. A new PayPal Sandbox create/capture needs its [own exact approval](PAYPAL-TEN-PRODUCT-SHOWCASE-APPROVAL.md); this migration cannot grant it. Old exact approvals are unchanged.
 
-**Owner decision requested:** approve this exact additive schema/data scope and one restricted reader **after remaining gates**, or request changes. Any change to SQL, canonical manifest, grants or scope requires refreshed hashes before activation.
+**Owner decision recorded:** **Approve after gates** for this exact additive schema/data scope and one restricted reader. Any change to SQL, canonical manifest, grants or scope requires refreshed hashes before activation.

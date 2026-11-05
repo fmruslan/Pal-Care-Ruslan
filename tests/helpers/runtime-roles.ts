@@ -41,6 +41,9 @@ export async function testRuntimeRoles(url: string) {
         `create role ${role} login password '${password}' noinherit nosuperuser nocreatedb nocreaterole noreplication nobypassrls`,
       );
       roles.push(role);
+      await admin.query(
+        `grant connect on database "${databaseName}" to ${role}`,
+      );
       await admin.query(`grant usage on schema public to ${role}`);
       for (const table of runtimeReads[capability].filter((t) =>
         existing.has(t),

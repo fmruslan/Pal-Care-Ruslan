@@ -22,6 +22,9 @@ import { careFeed } from "../../src/lib/care/model";
 import { careProductCards } from "../../src/lib/care/summary";
 import { careStatusAnswer } from "../../src/lib/care/answer";
 import { emptyOverview } from "../../src/lib/price-guardian/projections";
+import { CheckoutService } from "../../src/lib/commerce/service";
+import { FakePayPal, testConfig } from "../helpers/paypal-fixture";
+import { demoCareBrowserJourney } from "../helpers/demo-care-browser-journey";
 import "../../scripts/environment";
 
 const url = process.env.TEST_DATABASE_URL;
@@ -42,6 +45,7 @@ test("selected demo lane and atomic seed repeat; actual restricted reader drives
   const admin = new Pool({ connectionString: url, max: 1 });
   const target = new URL(url);
   target.pathname = `/${name}`;
+  await mkdir("/tmp/opencode", { recursive: true });
   const folder = await mkdtemp("/tmp/opencode/demo-care-lane-");
   let database: ReturnType<typeof createDatabase> | undefined;
   let reader: Pool | undefined;
@@ -181,6 +185,26 @@ test("selected demo lane and atomic seed repeat; actual restricted reader drives
       /permission denied/,
     );
     const demoCare = await readDemoCarePack(reader);
+    if (process.env.PALCARE_DEMO_BROWSER_JOURNEY === "true") {
+      // Synthetic provider only, never seed fake verified purchases into the app.
+      const checkout = new CheckoutService(
+        database.db,
+        new FakePayPal(),
+        testConfig,
+      );
+      const session = randomBytes(32).toString("hex");
+      const order = await checkout.start(
+        {
+          productId: "00000000-0000-4000-8000-000000000101",
+          requestId: randomUUID(),
+        },
+        session,
+      );
+      assert.equal(
+        (await checkout.capture(order.id, session)).state,
+        "completed",
+      );
+    }
     const saved = await readDemoData(database.db, { library: true });
     const feed = careFeed({
       data: { ...saved, demoCare },
@@ -198,6 +222,13 @@ test("selected demo lane and atomic seed repeat; actual restricted reader drives
     );
     assert.ok(answer.steps.some((s) => s.includes("$1,099.00")));
     assert.ok(answer.text.includes("never establishes"));
+    if (process.env.PALCARE_DEMO_BROWSER_JOURNEY === "true")
+      await demoCareBrowserJourney(
+        target.toString(),
+        restricted.toString(),
+        { ...saved, demoCare },
+        feed,
+      );
     // Missing evidence is visible failure, not fixture replacement.
     await database.pool.query(
       "alter table care_demo_evidence disable trigger care_demo_evidence_guard",

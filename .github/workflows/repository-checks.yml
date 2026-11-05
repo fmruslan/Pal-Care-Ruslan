@@ -137,6 +137,10 @@ jobs:
         run: pnpm exec playwright test --config=playwright.demo-care.config.ts
         env:
           E2E_PORT: "3110"
+      - name: Ten-product saved database to DOM and North continuity (isolated database and injected transport)
+        run: pnpm exec node scripts/workspace.mjs run test:integration tsx --test tests/integration/care-ten-products.test.ts
+        env:
+          PALCARE_DEMO_BROWSER_JOURNEY: "true"
       - name: Private owner pairing, browser persistence and expiry (isolated fixture, no inference)
         run: pnpm exec playwright test --config=playwright.access.config.ts
       - name: Firefox and WebKit essential journeys (emulation, not real-device certification)

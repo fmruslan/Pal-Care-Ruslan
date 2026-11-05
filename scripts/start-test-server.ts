@@ -26,6 +26,12 @@ const child = spawn(
     env: {
       ...process.env,
       ...isolatedCareEnvironment,
+      CARE_DEMO_ENABLED:
+        process.env.E2E_DEMO_CARE_ENABLED === "true" ? "true" : "false",
+      CARE_DEMO_READER_DATABASE_URL:
+        process.env.E2E_DEMO_CARE_ENABLED === "true"
+          ? (roles?.urls.demo_care_reader ?? "")
+          : "",
       MIGRATION_DATABASE_URL: "",
       ADMIN_DATABASE_URL: "",
       OPERATOR_DATABASE_URL: "",

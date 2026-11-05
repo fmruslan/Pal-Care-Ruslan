@@ -6,6 +6,7 @@ import {
 } from "../src/lib/careos/subscription/session";
 import { restrictedRuntimeUrls } from "../src/lib/careos/subscription/runtime-policy";
 import { privateHttpsOrigin } from "../src/lib/private-preview-origin";
+import { parseCheckoutConfig } from "../src/lib/commerce/config";
 
 export const previewOrigin = "http://127.0.0.1:3002";
 
@@ -30,6 +31,17 @@ export function privatePreviewEnvironment(
   sessionRecord: unknown,
 ) {
   const urls = restrictedRuntimeUrls(source);
+  const showcase =
+    source.PAYPAL_SHOWCASE_ENABLED === "true"
+      ? parseCheckoutConfig({ ...source, APP_ORIGIN: privateHttpsOrigin })
+      : null;
+  if (showcase && (!showcase.enabled || !showcase.showcase))
+    throw Error("showcase_configuration_invalid");
+  if (
+    showcase?.enabled &&
+    !["127.0.0.1", "localhost"].includes(new URL(showcase.databaseUrl).hostname)
+  )
+    throw Error("showcase_database_not_private");
   if (source.CARE_DEMO_ENABLED === "true") {
     const demo = new URL(source.CARE_DEMO_READER_DATABASE_URL ?? "");
     if (
@@ -118,6 +130,24 @@ export function privatePreviewEnvironment(
       : "0".repeat(64),
     CAREOS_STUDIO_ACCESS_HASH: valid ? hash(app.data.studio) : "1".repeat(64),
     PAYPAL_CHECKOUT_ENABLED: "false",
+    ...(showcase?.enabled && showcase.showcase
+      ? {
+          PAYPAL_CHECKOUT_ENABLED: "true",
+          PAYPAL_ENVIRONMENT: "sandbox",
+          PAYPAL_CLIENT_ID: showcase.clientId,
+          PAYPAL_CLIENT_SECRET: showcase.clientSecret,
+          PAYPAL_MERCHANT_ID: showcase.merchantId,
+          CHECKOUT_DATABASE_URL: showcase.databaseUrl,
+          PAYPAL_SHOWCASE_ENABLED: "true",
+          PAYPAL_SHOWCASE_REQUEST_ID: showcase.showcase.requestId,
+          PAYPAL_SHOWCASE_SESSION_HASH: showcase.showcase.sessionHash,
+          PAYPAL_SHOWCASE_BALANCE_CONFIRMED: String(
+            showcase.showcase.balanceConfirmed,
+          ),
+          PAYPAL_SHOWCASE_STARTS_AT: showcase.showcase.startsAt,
+          PAYPAL_SHOWCASE_ENDS_AT: showcase.showcase.endsAt,
+        }
+      : {}),
     GUARDIAN_OPERATIONS_ENABLED: "false",
     GUARDIAN_REFUNDS_ENABLED: "false",
     GUARDIAN_PROVIDER_READS_ENABLED: "false",

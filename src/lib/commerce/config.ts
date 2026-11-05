@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { databaseUrlSchema } from "../config";
 import { IMMEDIATE_TEST_PRODUCT_ID } from "./contracts";
+import { SHOWCASE_PRODUCT_ID, showcaseScopeSchema } from "./showcase";
 
 const immediateTestSchema = z.object({
   requestId: z.uuid(),
@@ -45,6 +46,7 @@ export function parseCheckoutConfig(env: Record<string, string | undefined>) {
       merchantId: z.string().regex(/^[A-Z0-9]{13}$/),
       source: z.literal("database"),
       immediateTest: immediateTestSchema.optional(),
+      showcase: showcaseScopeSchema.optional(),
     })
     .safeParse({
       origin: env.APP_ORIGIN,
@@ -61,8 +63,19 @@ export function parseCheckoutConfig(env: Record<string, string | undefined>) {
             balanceConfirmed: env.PAYPAL_IMMEDIATE_TEST_BALANCE_CONFIRMED,
           }
         : undefined,
+      showcase:
+        env.PAYPAL_SHOWCASE_ENABLED === "true"
+          ? {
+              requestId: env.PAYPAL_SHOWCASE_REQUEST_ID,
+              sessionHash: env.PAYPAL_SHOWCASE_SESSION_HASH,
+              balanceConfirmed:
+                env.PAYPAL_SHOWCASE_BALANCE_CONFIRMED === "true",
+              startsAt: env.PAYPAL_SHOWCASE_STARTS_AT,
+              endsAt: env.PAYPAL_SHOWCASE_ENDS_AT,
+            }
+          : undefined,
     });
-  if (!parsed.success)
+  if (!parsed.success || (parsed.data.immediateTest && parsed.data.showcase))
     return {
       enabled: false as const,
       reason:
@@ -91,6 +104,23 @@ export function checkoutAvailability(
     approvedRequestId: null as string | null,
   };
   if (!config.enabled) return { ...availability, reason: config.reason };
+  if (config.showcase) {
+    const s = config.showcase;
+    const valid =
+      s.balanceConfirmed &&
+      ownerSessionHash === s.sessionHash &&
+      Date.now() >= Date.parse(s.startsAt) &&
+      Date.now() < Date.parse(s.endsAt);
+    return {
+      ...availability,
+      enabled: valid,
+      allowedProductId: valid ? SHOWCASE_PRODUCT_ID : null,
+      approvedRequestId: valid ? s.requestId : null,
+      reason: valid
+        ? "One approved USD 64.99 Sandbox game purchase; no real money."
+        : "The single Sandbox showcase is paused, expired or reserved for its originating browser.",
+    };
+  }
   if (!config.immediateTest)
     return {
       ...availability,

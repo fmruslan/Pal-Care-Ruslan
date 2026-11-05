@@ -15,7 +15,7 @@ export default defineConfig({
     env: {
       ...server.env,
       DEMO_DATA_SOURCE: "fixtures",
-      CARE_DEMO_ENABLED: "true",
+      E2E_DEMO_CARE_ENABLED: "true",
     },
   },
 });
