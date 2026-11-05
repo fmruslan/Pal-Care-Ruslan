@@ -39,7 +39,9 @@ export async function readiness() {
     const work = Promise.all(
       plan.requirements.map(async (requirement) => {
         const { pool } = runtimeDatabase(requirement.url, {
-          readOnly: ["reader", "care_reader"].includes(requirement.capability),
+          readOnly: ["reader", "care_reader", "protection_reader"].includes(
+            requirement.capability,
+          ),
         });
         await assertDatabaseAuthority(pool, requirement.capability);
         if (

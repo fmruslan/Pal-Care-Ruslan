@@ -11,6 +11,7 @@ export function ReturnDraft({
   origin,
   receipt,
   topic = "return",
+  evidenceSummary,
 }: {
   name: string;
   model: string;
@@ -18,6 +19,7 @@ export function ReturnDraft({
   origin: string;
   receipt: string | null;
   topic?: "return" | "refund" | "warranty" | "price adjustment";
+  evidenceSummary?: string;
 }) {
   const fieldId = useId();
   const [draft, setDraft] = useState("");
@@ -36,7 +38,7 @@ export function ReturnDraft({
           className="mt-3"
           onClick={() =>
             setDraft(
-              `Hello, I would like to check the ${topic} options for ${name} (${model}), purchased on ${purchasedOn}.\n\nRecord: ${origin === "sandbox" ? "PayPal Sandbox purchase of fictional goods" : "fictional sample purchase"}.${receipt ? " A saved receipt is available in Pal Care." : " No receipt is available in the saved records."}\n\nPlease confirm the applicable policy, eligibility and any required next steps. No return approval, coverage or refund is assumed.\n\nReason for enquiry: [add your reason]`,
+              `Hello, I would like to check the ${topic} options for ${name} (${model}), purchased on ${purchasedOn}.\n\nRecord: ${origin === "sandbox" ? "PayPal Sandbox purchase of fictional goods" : "fictional sample purchase"}.${receipt ? " A saved receipt is available in Pal Care." : " No receipt is available in the saved records."}${evidenceSummary ? `\n\nSaved evidence (please verify): ${evidenceSummary.slice(0, 2000)}` : ""}\n\nPlease confirm the applicable policy, eligibility and any required next steps. No return approval, coverage or refund is assumed.\n\nReason for enquiry: [add your reason]`,
             )
           }
         >

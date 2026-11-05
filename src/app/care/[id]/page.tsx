@@ -36,13 +36,6 @@ export default async function CareDetails({
   const record = findTwin(data, id);
   if (!record) notFound();
   const { twin, product, documents, events } = record;
-  const catalog = data.products.find(
-    (p) =>
-      p.id === product.id &&
-      p.merchantId === twin.merchantId &&
-      p.model === product.model &&
-      p.brand === product.brand,
-  );
   const receipt = documents.find((d) => d.kind === "receipt");
   const guardian = await getGuardian(id).then(
     (value) => value.cases,
@@ -51,10 +44,9 @@ export default async function CareDetails({
   const returns = events.filter((e) => e.kind === "return");
   const policies = documents.filter((d) => d.kind === "policy");
   const saved = await getSavedCare(id).catch(() => null);
-  const ownership = await getCareFeed(id).then(
-    (feed) => feed.ownership.find((v) => v.twinId === id),
-    () => undefined,
-  );
+  const feed = await getCareFeed(id).catch(() => undefined);
+  const ownership = feed?.ownership.find((v) => v.twinId === id);
+  const protection = feed?.protections.find((v) => v.twinId === id);
   const milestones = returnTimeline(id, saved?.returns ?? []);
   const warranties = saved?.warranties.filter((r) => r.twinId === id) ?? [];
   const watches = saved?.watches.filter((r) => r.twinId === id) ?? [];
@@ -99,7 +91,7 @@ export default async function CareDetails({
         className="my-6 flex flex-wrap gap-x-5 gap-y-1 border-b pb-3 text-sm font-semibold"
       >
         {[
-          ["price", "Prices"],
+          ["price", "Price protection"],
           ["returns", "Returns"],
           ["refunds", "Refunds"],
           ["warranty", "Warranty"],
@@ -130,79 +122,88 @@ export default async function CareDetails({
           className="scroll-mt-6 rounded-2xl border bg-card p-5 sm:p-6"
         >
           <h2 id="price-heading" className="text-lg font-semibold">
-            Price comparison
+            Price protection
           </h2>
-          <dl className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div>
-              <dt className="text-sm text-muted-foreground">
-                {twin.origin === "sample"
-                  ? "Original sample amount"
-                  : "Paid in Sandbox"}
-              </dt>
-              <dd className="mt-1 text-lg font-semibold">
-                {twin.purchasePriceMinor > 0
-                  ? money(twin.purchasePriceMinor)
-                  : "Reference amount unavailable"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-sm text-muted-foreground">
-                Current fictional merchant catalog
-              </dt>
-              <dd className="mt-1 text-lg font-semibold">
-                {catalog && twin.purchasePriceMinor > 0
-                  ? money(catalog.priceMinor)
-                  : "No comparable price available"}
-              </dd>
-            </div>
-          </dl>
-          <p className="mt-4 text-sm leading-6 text-muted-foreground">
-            {data.merchant.name} · same model and variant only. Read on this
-            visit, not a historical price observation or continuous monitoring.
-            A price difference does not establish refund eligibility. Existing
-            demo-v1 purchases are not retroactively covered by the later price
-            promise.
+          <p className="mt-3 font-semibold">
+            {protection?.label ?? "Protection not verified"}
           </p>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            {watches.length
-              ? "Saved watch details below reflect recorded checks, not real-time market monitoring. The private operator can pause one or all watches, or disable the checker completely."
-              : process.env.CARE_RECORDS_ENABLED === "true"
-                ? "No watch is available in these loaded records. Incomplete or unavailable records do not establish that monitoring is inactive."
-                : "Price watches are not active. Scheduled checking and durable watch preferences require the separately approved worker and write capability; no watch was created."}
+            {ownership?.facts.find((f) => f.topic === "price")?.detail ??
+              "Protection evidence is unavailable. No policy window, monitoring or eligibility was assumed."}
           </p>
-          {watches.map((watch) => (
-            <dl
-              key={watch.id}
-              className="mt-4 space-y-2 text-sm text-muted-foreground"
-            >
-              <div>
-                <dt className="font-semibold text-foreground">
-                  Recorded watch state
-                </dt>
-                <dd>{watch.state} · fixed fictional catalog only</dd>
-              </div>
-              <div>
-                <dt>Last successful check</dt>
-                <dd>{watch.lastCheckedAt ?? "Not recorded"}</dd>
-              </div>
-              <div>
-                <dt>Last recorded catalog price</dt>
-                <dd>
-                  {watch.observedMinor === null
-                    ? "Not recorded"
-                    : money(watch.observedMinor)}
-                </dd>
-              </div>
-              <div>
-                <dt>Next check due</dt>
-                <dd>{watch.nextCheckAt ?? "Not scheduled"}</dd>
-              </div>
-              <div>
-                <dt>Expiry</dt>
-                <dd>{watch.expiresAt}</dd>
-              </div>
-            </dl>
-          ))}
+          {protection?.deadline && (
+            <p className="mt-3 text-sm">
+              Recorded exclusive deadline:{" "}
+              <time dateTime={protection.deadline}>
+                {displayDate(protection.deadline)}
+              </time>
+            </p>
+          )}
+          {protection?.sources.length ? (
+            <ul className="mt-3">
+              {protection.sources.map((source) => (
+                <li key={source.href}>
+                  <Link
+                    className="inline-flex min-h-11 items-center text-sm text-primary underline"
+                    href={source.href}
+                  >
+                    {source.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Review the original policy below or ask North which evidence is
+              missing. No universal retailer policy is assumed.
+            </p>
+          )}
+          <details className="mt-3">
+            <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold">
+              Existing catalog check evidence · separate from verified
+              protection
+            </summary>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              {watches.length
+                ? "Saved watch details below reflect recorded checks, not real-time market monitoring. The private operator can pause one or all watches, or disable the checker completely."
+                : process.env.CARE_RECORDS_ENABLED === "true"
+                  ? "No watch is available in these loaded records. Incomplete or unavailable records do not establish that monitoring is inactive."
+                  : "Price watches are not active. Scheduled checking and durable watch preferences require the separately approved worker and write capability; no watch was created."}
+            </p>
+            {watches.map((watch) => (
+              <dl
+                key={watch.id}
+                className="mt-4 space-y-2 text-sm text-muted-foreground"
+              >
+                <div>
+                  <dt className="font-semibold text-foreground">
+                    Recorded watch state
+                  </dt>
+                  <dd>{watch.state} · fixed fictional catalog only</dd>
+                </div>
+                <div>
+                  <dt>Last successful check</dt>
+                  <dd>{watch.lastCheckedAt ?? "Not recorded"}</dd>
+                </div>
+                <div>
+                  <dt>Last recorded catalog price</dt>
+                  <dd>
+                    {watch.observedMinor === null
+                      ? "Not recorded"
+                      : money(watch.observedMinor)}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Next check due</dt>
+                  <dd>{watch.nextCheckAt ?? "Not scheduled"}</dd>
+                </div>
+                <div>
+                  <dt>Expiry</dt>
+                  <dd>{watch.expiresAt}</dd>
+                </div>
+              </dl>
+            ))}
+          </details>
           {receipt && (
             <Link
               href={`/documents/${receipt.id}`}
@@ -211,6 +212,17 @@ export default async function CareDetails({
               View original receipt
             </Link>
           )}
+          <ReturnDraft
+            name={product.name}
+            model={product.model}
+            purchasedOn={twin.purchasedOn}
+            origin={twin.origin}
+            receipt={receipt ? `/documents/${receipt.id}` : null}
+            topic="price adjustment"
+            evidenceSummary={
+              ownership?.facts.find((f) => f.topic === "price")?.detail
+            }
+          />
         </section>
         <section
           id="returns"

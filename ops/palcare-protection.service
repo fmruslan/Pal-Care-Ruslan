@@ -1,0 +1,12 @@
+[Unit]
+Description=Pal Care bounded evidence-backed price-protection check
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/bigrus/projects/palcare
+EnvironmentFile=%h/.config/palcare-protection/worker.env
+ExecStart=/usr/bin/node --import /home/bigrus/projects/palcare/node_modules/tsx/dist/loader.mjs scripts/protection-worker-container.ts
+TimeoutStartSec=55
+UMask=0077
+NoNewPrivileges=yes

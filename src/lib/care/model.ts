@@ -9,6 +9,14 @@ import type { GuardianOverview } from "../price-guardian/contracts";
 import type { SavedCare } from "./store";
 import { evidenceLabel, returnTimeline, warrantyDeadline } from "./contracts";
 import { ownershipHref, ownershipView } from "./ownership";
+import {
+  emptyProtection,
+  protectionLabels,
+  type SavedProtection,
+  type ProtectionView,
+} from "./protection/contracts";
+import { protectionView, type ProtectionInput } from "./protection/model";
+import { validatePolicy, guardianRules } from "../price-guardian/policy";
 
 export type CareItem = {
   id: string;
@@ -44,6 +52,11 @@ export function careFeed(options: {
   savedCare?: SavedCare;
   persistenceEnabled?: boolean;
   scheduled?: boolean;
+  protection?: {
+    saved: SavedProtection;
+    inputs: ProtectionInput[];
+    scheduled: boolean;
+  };
 }) {
   const { data, knowledge, guardian, activity } = options;
   const library = homeLibrary(data, parseLibraryQuery({}));
@@ -58,6 +71,61 @@ export function careFeed(options: {
   const purchases = library.allPurchases;
   const items: CareItem[] = [];
   const at = (options.now ?? new Date()).toISOString();
+  const protections = purchases.map((p) => {
+    const base = protectionView(
+      p.id,
+      options.protection?.saved ?? emptyProtection(),
+      {
+        now: new Date(at),
+        scheduled: options.protection?.scheduled ?? false,
+        input: options.protection?.inputs.find(
+          (input) => input.twinId === p.id,
+        ),
+      },
+    );
+    const validated = projection.purchases.find((row) => row.id === p.id);
+    const cases =
+      guardian?.cases.filter(
+        (c) =>
+          c.twinId === p.id &&
+          validated?.adjustmentIds.includes(c.id) &&
+          validatePolicy(guardianRules, c.policyTerms, c.policyHash),
+      ) ?? [];
+    const record = cases[0];
+    if (
+      record &&
+      cases.length === 1 &&
+      Number.isFinite(Date.parse(record.expiresAt))
+    ) {
+      const adjustment = projection.adjustments.facts.find(
+        (f) => f.id === record.id,
+      );
+      const state =
+        adjustment?.stage === "Verified"
+          ? "confirmed"
+          : record.state === "pending" && record.attemptedAt
+            ? "requested"
+            : Date.parse(at) >= Date.parse(record.expiresAt)
+              ? "expired"
+              : "verified";
+      return {
+        ...base,
+        state,
+        label: protectionLabels[state],
+        deadline: record.expiresAt,
+        policyVerified: true,
+        detail: `Original validated ${record.policyVersion} merchant policy. Recorded initial adjustment dispatch deadline ${record.expiresAt}, exclusive, under the purchase-bound 14 × 24-hour promise. Recorded merchant adjustment: ${record.state}. ${adjustment?.stage === "Verified" ? "Independent Sandbox refund evidence confirms the recorded adjustment, not a full purchase refund." : "This saved merchant workflow is not confirmed savings or permission to submit a request/refund."}`,
+        sources: [
+          ...base.sources,
+          {
+            label: "Original recorded adjustment and policy",
+            href: `/guardian/${record.id}`,
+          },
+        ],
+      } as ProtectionView;
+    }
+    return base;
+  });
   for (const p of purchases) {
     const validated = projection.purchases.find((row) => row.id === p.id);
     if (!validated) continue;
@@ -150,19 +218,27 @@ export function careFeed(options: {
         fresh &&
         watch.nextCheckAt &&
         Date.parse(watch.nextCheckAt) > Date.parse(at) &&
-        watch.observedMinor !== null;
+        watch.observedMinor !== null &&
+        Number.isSafeInteger(watch.observedMinor) &&
+        watch.observedMinor > 0 &&
+        watch.observedMinor <= 20000 &&
+        data.twins.some(
+          (t) => t.id === p.id && t.productId === guardianRules.productId,
+        ) &&
+        p.brand === guardianRules.brand &&
+        p.model === guardianRules.model;
       items.push({
         ...base,
         id: `watch:${watch.id}`,
         kind: "watch",
-        group: active ? "tracking" : "action",
+        group: "tracking",
         status: active
           ? "Daily catalog watch · last check recorded"
           : watch.state === "error"
             ? "Catalog check needs review"
             : "Saved watch · monitoring not confirmed",
         detail: active
-          ? `Last successful check ${watch.lastCheckedAt}. Next due ${watch.nextCheckAt}. Fixed fictional catalog only, not real-time market monitoring.`
+          ? `Last successful check ${watch.lastCheckedAt}: ${money(watch.observedMinor!)}. Next due ${watch.nextCheckAt}. Fixed fictional catalog only, not real-time market monitoring. A catalog observation is not a verified price-change event or adjustment eligibility.`
           : "An active schedule and a recent successful check are required before this watch can say it is monitoring. Watches can be paused by the private operator.",
         provenance:
           "Recorded fictional merchant catalog · no financial or model action",
@@ -205,54 +281,28 @@ export function careFeed(options: {
         action: { label: "View refund details", href: fact.href! },
       });
     }
-    // No prices from unrelated retailers, placeholder reference amounts or AI.
-    const twin = data.twins.find((t) => t.id === p.id)!;
-    const product = data.products.find(
-      (item) =>
-        item.id === twin.productId && item.merchantId === twin.merchantId,
-    );
-    const sameIdentity =
-      product && product.model === p.model && product.brand === p.brand;
-    const watched = options.savedCare?.watches.find(
-      (w) =>
-        w.twinId === p.id &&
-        w.state === "active" &&
-        w.observedMinor !== null &&
-        Number.isSafeInteger(w.observedMinor) &&
-        w.observedMinor > 0 &&
-        w.lastCheckedAt &&
-        Date.parse(w.lastCheckedAt) <= Date.parse(at) &&
-        Date.parse(at) - Date.parse(w.lastCheckedAt) <= 36 * 3600000 &&
-        Date.parse(w.expiresAt) > Date.parse(at),
-    );
-    const comparedMinor = watched?.observedMinor ?? product?.priceMinor;
+    const protection = protections.find((value) => value.twinId === p.id)!;
     if (
       !adjustments.length &&
-      sameIdentity &&
-      p.amountMinor !== null &&
-      product.currency === "USD" &&
-      comparedMinor !== undefined &&
-      Number.isSafeInteger(comparedMinor) &&
-      comparedMinor > 0 &&
-      comparedMinor < p.amountMinor
+      ["opportunity", "ending"].includes(protection.state)
     ) {
       items.push({
         ...base,
         id: `price:${p.id}`,
         kind: "price",
         group: "action",
-        status: watched
-          ? "A lower catalog price was recorded"
-          : "A lower catalog price is available",
-        detail: `${money(p.amountMinor)} ${p.origin === "sample" ? "sample purchase" : "paid in Sandbox"} → ${money(comparedMinor)} ${watched ? "recorded" : "current"} fictional catalog. ${money(p.amountMinor - comparedMinor)} difference, not confirmed savings or refund eligibility.`,
-        summary: `${money(p.amountMinor)} → ${money(comparedMinor)} · ${money(p.amountMinor - comparedMinor)} difference, not confirmed savings.`,
-        provenance: watched
-          ? `Recorded fictional catalog · checked ${watched.lastCheckedAt} · not real-time market monitoring`
-          : "Fictional merchant catalog · read on this visit · not continuous monitoring",
-        at: watched?.lastCheckedAt ?? at,
+        status: protection.label,
+        detail: `${protection.differenceMinor !== null ? `${money(protection.differenceMinor)} potential adjustment, not confirmed savings. ` : ""}${protection.detail}`,
+        provenance:
+          "Recorded purchase-bound policy and fictional catalog evidence",
+        evidence: protection.sources,
+        at: protection.lastCheckedAt ?? at,
         priority: 3,
         action: {
-          label: "Compare prices",
+          label:
+            protection.state === "opportunity"
+              ? "Review adjustment"
+              : "Review closing window",
           href: careDetailHref(p.id, "price"),
         },
       });
@@ -293,7 +343,7 @@ export function careFeed(options: {
         ...base,
         id: `care:${p.id}`,
         kind: "care",
-        group: "action",
+        group: "tracking",
         status: "Source-backed product care",
         detail:
           "Explore the available exact-model official guidance and its documented topics and limits.",
@@ -327,10 +377,12 @@ export function careFeed(options: {
       guardian,
       adjustmentIds: projection.purchases.find((p) => p.id === purchase.id)
         ?.adjustmentIds,
+      protection: protections.find((value) => value.twinId === purchase.id),
     }),
   );
   return {
     ownership,
+    protections,
     savedCare: options.savedCare ?? {
       returns: [],
       warranties: [],

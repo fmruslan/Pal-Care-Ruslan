@@ -7,6 +7,7 @@ import { evidenceLabel, returnTimeline, warrantyDeadline } from "./contracts";
 import type { PurchaseActivity } from "../careos/activity";
 import type { GuardianOverview } from "../price-guardian/contracts";
 import { guardianRules, validatePolicy } from "../price-guardian/policy";
+import type { ProtectionView } from "./protection/contracts";
 
 import type {
   OwnershipFact,
@@ -56,6 +57,7 @@ export function ownershipView(options: {
   activity?: PurchaseActivity;
   guardian?: GuardianOverview | null;
   adjustmentIds?: string[];
+  protection?: ProtectionView;
 }): OwnershipView {
   const { purchase: p, data, saved, asOf } = options;
   const record = findTwin(data, p.id);
@@ -157,6 +159,19 @@ export function ownershipView(options: {
     priceWindow.status = "Conflicting recorded deadlines";
     priceWindow.state = "attention";
   }
+  const protection = options.protection;
+  if (protection?.policyVerified && protection.deadline)
+    Object.assign(priceWindow, {
+      status:
+        protection.state === "expired"
+          ? "Recorded adjustment window expired"
+          : "Recorded adjustment window open",
+      date: protection.deadline,
+      state: protection.state === "expired" ? "expired" : "upcoming",
+      detail: protection.detail,
+      provenance: "Original applicable merchant policy",
+      sources: protection.sources,
+    });
   const returnWindow = base(
     "return-window",
     "Return deadline",
@@ -246,6 +261,28 @@ export function ownershipView(options: {
     returnWindow,
     warranty,
   ];
+  if (protection)
+    facts.push({
+      ...base("price", "Price protection", protection.label, protection.detail),
+      state: ["opportunity", "ending"].includes(protection.state)
+        ? "attention"
+        : protection.state === "expired"
+          ? "expired"
+          : protection.state === "unavailable"
+            ? "unknown"
+            : "recorded",
+      recordedAt: protection.lastCheckedAt,
+      provenance:
+        "Saved policy and supported source checks · fictional demo scope",
+      sources: protection.sources,
+      action: {
+        label:
+          protection.state === "opportunity"
+            ? "Review adjustment evidence"
+            : "Review protection details",
+        href: `/care/${p.id}#price`,
+      },
+    });
   for (const finding of findings.filter(
     (f) => f.kind !== "care" && f.kind !== "warranty",
   )) {
@@ -256,7 +293,7 @@ export function ownershipView(options: {
         finding.kind === "watch"
           ? "Catalog watch"
           : finding.kind === "price"
-            ? "Price comparison"
+            ? "Price protection"
             : finding.kind === "safety"
               ? "Safety assessment"
               : finding.kind === "return"
@@ -273,7 +310,7 @@ export function ownershipView(options: {
       sources: finding.evidence,
       action: finding.action,
     };
-    facts.push(fact);
+    if (fact.topic !== "price" || !protection) facts.push(fact);
     if (fact.topic !== "returns" && fact.topic !== "price") history.push(fact);
   }
   // Paused/expired watches remain inspectable without being active Care cards.
@@ -420,12 +457,27 @@ export function ownershipView(options: {
           verified: false,
           attention: true,
         }
-      : {
-          label: purchase.status,
-          topic: "purchase" as const,
-          verified: purchase.verified,
-          attention: false,
-        };
+      : protection &&
+          [
+            "watching",
+            "ending",
+            "opportunity",
+            "requested",
+            "confirmed",
+            "policy-checking",
+          ].includes(protection.state)
+        ? {
+            label: protection.label,
+            topic: "price" as const,
+            verified: protection.state === "confirmed",
+            attention: ["opportunity", "ending"].includes(protection.state),
+          }
+        : {
+            label: purchase.status,
+            topic: "purchase" as const,
+            verified: purchase.verified,
+            attention: false,
+          };
   const sorted = facts.sort(
     (a, b) =>
       (a.date === null && b.date === null

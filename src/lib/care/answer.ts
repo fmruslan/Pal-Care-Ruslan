@@ -133,6 +133,7 @@ export function careStatusAnswer(
   const items = feed.items.filter(
     (item) =>
       ids.includes(item.purchase.id) &&
+      (topic !== "attention" || item.group === "action") &&
       (topic === "summary" ||
         topic === "attention" ||
         (topic === "price"

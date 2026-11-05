@@ -54,7 +54,7 @@ describe("mandatory CI workload isolation", () => {
     );
   });
 
-  it("retains all baseline commands and unchanged native suite orchestration", () => {
+  it("retains all baseline commands and adds the mandatory complete protection journey", () => {
     expect(commands(foundation)).toEqual([
       "pnpm install --frozen-lockfile",
       "pnpm workspace:check",
@@ -78,11 +78,13 @@ describe("mandatory CI workload isolation", () => {
       "pnpm test:integration",
       "pnpm build",
       browserInstall,
+      "pnpm exec node scripts/workspace.mjs run test:integration tsx --test --test-concurrency=1 --test-name-pattern='purchase → policy discovery' tests/integration/price-protection.test.ts",
       "pnpm exec playwright test --config=playwright.access.config.ts",
       "pnpm test:compat",
       "pnpm exec playwright test --config=playwright.sol.config.ts",
     ]);
     expect(native).toContain('E2E_PORT: "3108"');
+    expect(native).toContain('PALCARE_PROTECTION_BROWSER_JOURNEY: "true"');
     expect(native).not.toMatch(/strategy:|matrix:|E2E_DATA_SOURCE:/);
     expect(workflow).not.toMatch(
       /continue-on-error|--grep|--shard|--retries|--timeout|--project|--test-list|--pass-with-no-tests|--last-failed|--only-changed|\bneeds:|max-parallel:|PLAYWRIGHT_|E2E_TEST/,

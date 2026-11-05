@@ -97,7 +97,7 @@ describe("one ownership view across Twin, Care and North", () => {
   });
   it("groups every finding once per product without losing watch/source evidence", () => {
     const feed = project();
-    const first = feed.items[0];
+    const first = careProductCards(feed)[0].item;
     feed.items.push({
       ...first,
       id: "secondary-watch",
@@ -149,7 +149,13 @@ describe("one ownership view across Twin, Care and North", () => {
       );
     expect(
       careStatusAnswer(feed, 1, [id(202)], "delivery").careHighlights,
-    ).toBeUndefined();
+    ).toEqual([
+      {
+        twinId: id(202),
+        topic: "delivery",
+        revision: feed.ownership.find((v) => v.twinId === id(202))!.revision,
+      },
+    ]);
   });
   it.each([
     "2026-11-05T09:59:59.999Z",
@@ -217,6 +223,19 @@ describe("one ownership view across Twin, Care and North", () => {
         clock < record.expiresAt ? "upcoming" : "expired",
       );
       expect(fact.detail).toContain("exclusive");
+      for (const state of ["unknown", "submitting"] as const) {
+        const unresolved = project({
+          data,
+          guardian: {
+            ...emptyOverview(),
+            cases: [{ ...record, state, attemptedAt: record.createdAt }],
+          },
+          now: new Date(clock),
+        });
+        expect(
+          unresolved.protections.find((p) => p.twinId === id(205))!.state,
+        ).not.toBe("requested");
+      }
       expect(
         feed.ownership
           .find((v) => v.twinId === id(201))!
@@ -266,16 +285,17 @@ describe("one ownership view across Twin, Care and North", () => {
   });
   it("uses the same complete price finding on the timeline, Care and North, without calling it savings", () => {
     const feed = project();
-    const item = feed.items.find((f) => f.kind === "price")!;
+    const protection = feed.protections.find((p) => p.twinId === id(201))!;
     const fact = feed.ownership
       .find((v) => v.twinId === id(201))!
-      .facts.find((f) => f.id === item.id)!;
+      .facts.find((f) => f.topic === "price")!;
     const answer = careStatusAnswer(feed, 1, [id(201)], "price");
-    expect(fact.status).toBe(item.status);
-    expect(fact.detail).toBe(item.detail);
+    expect(fact.status).toBe(protection.label);
+    expect(fact.status).toBe("Protection not verified");
+    expect(fact.detail).toBe(protection.detail);
     expect(answer.steps.join(" ")).toContain(fact.detail);
-    expect(item.action.href).toBe(ownershipHref(id(201), "price"));
-    expect(answer.actions[0].href).toBe(item.action.href);
+    expect(answer.actions[0].href).toBe(ownershipHref(id(201), "price"));
+    expect(feed.items.some((item) => item.kind === "price")).toBe(false);
     expect(fact.date).toBeNull(); // No invented time when the price changed.
   });
   it("records a manual return milestone without filling missing steps or manufacturing a refund", () => {

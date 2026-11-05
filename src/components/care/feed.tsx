@@ -1,118 +1,122 @@
 import { ArrowRight, Info } from "lucide-react";
 import { WorkspaceNavigationLink as Link } from "../intelligence/workspace-navigation-link";
 import { ProductArt } from "../product-art";
-import { Button } from "../ui/button";
-import { displayDate } from "@/lib/demo/presentation";
+import { displayDate, money } from "@/lib/demo/presentation";
 import type { CareFeed } from "@/lib/care/model";
-import { careItemTopic, careProductCards } from "@/lib/care/summary";
-import { AskCareOS } from "../careos/provider";
+import {
+  careItemTopic,
+  careProductCards,
+  type CareFilter,
+} from "@/lib/care/summary";
 import {
   OwnershipScope,
   OwnershipPill,
   OwnershipSummary,
   CareCollectionRefresh,
-  OwnershipIcon,
 } from "./ownership";
 
 function CareCard({
   item,
   findings,
   view,
+  protection,
+  quiet,
 }: ReturnType<typeof careProductCards>[number]) {
   const p = item.purchase;
+  const update = findings.length ? item.status : protection.label;
+  const action =
+    item.group === "action"
+      ? item.action
+      : protection.monitoring
+        ? { label: "Protection details", href: `/care/${p.id}#price` }
+        : { label: "Details", href: p.href };
   return (
     <OwnershipScope view={view} surface="care">
       <article
-        className="care-action-card grid min-w-0 grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1 rounded-2xl border bg-card p-3 shadow-sm [overflow-wrap:anywhere] sm:grid-cols-[3rem_minmax(0,1fr)_auto] sm:gap-x-4 sm:px-4"
+        className={`care-action-card min-w-0 rounded-2xl border bg-card p-3 [overflow-wrap:anywhere] sm:px-4 ${quiet ? "" : "shadow-sm"}`}
         data-care-card={item.id}
         data-care-product={p.id}
+        data-care-quiet={quiet}
       >
-        <div className="care-product-art min-w-0 sm:row-span-3 sm:self-center">
-          <ProductArt kind={p.illustration ?? "computer"} size="thumbnail" />
-        </div>
-        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,45%)] items-start gap-x-2 gap-y-1 sm:col-span-2 sm:flex sm:flex-wrap sm:justify-between sm:gap-x-3">
-          <div className="min-w-0">
-            <h3 className="text-sm font-semibold tracking-tight">
-              <Link
-                href={p.href}
-                className="hover:text-primary hover:underline"
-              >
-                {p.name}
-              </Link>
-            </h3>
-            <p className="text-xs leading-5 text-muted-foreground">
-              {p.model} ·{" "}
-              {p.origin === "sandbox" ? "Sandbox purchase" : "Sample purchase"}{" "}
-              <span className="hidden sm:inline">
-                {" "}
-                ·{" "}
+        <div className="grid min-w-0 grid-cols-[2.5rem_minmax(0,1fr)] items-start gap-x-3 gap-y-1 sm:grid-cols-[3rem_minmax(0,1fr)_auto]">
+          <div className="care-product-art min-w-0 [&>div]:size-10 [&_svg]:h-10 [&_svg]:w-12 sm:row-span-2 sm:self-center sm:[&>div]:size-12">
+            <ProductArt kind={p.illustration ?? "computer"} size="thumbnail" />
+          </div>
+          <div className="flex min-w-0 flex-wrap items-start justify-between gap-x-3 gap-y-1 sm:col-span-2">
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold">
+                <Link
+                  href={p.href}
+                  className="hover:text-primary hover:underline"
+                >
+                  {p.name}
+                </Link>
+              </h3>
+              <p className="text-xs leading-5 text-muted-foreground">
                 <time dateTime={p.purchasedOn}>
                   {displayDate(p.purchasedOn)}
-                </time>
-              </span>
-            </p>
-          </div>
-          <div className="col-start-2 row-start-1 min-w-0 justify-self-end sm:order-last">
+                </time>{" "}
+                ·{" "}
+                {p.origin === "sandbox"
+                  ? "Sandbox purchase"
+                  : "Sample purchase"}{" "}
+                · {p.model}
+              </p>
+            </div>
             <OwnershipPill compact />
           </div>
-          <details className="col-start-1 row-start-2 min-w-0 text-xs text-muted-foreground">
-            <summary className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-              <Info className="size-3.5" aria-hidden="true" />
-              Evidence & source
-            </summary>
-            {findings.map((finding) => (
-              <div key={finding.id} className="mb-3 max-w-xl">
-                <p className="font-semibold leading-5">{finding.status}</p>
-                <p className="leading-5">{finding.detail}</p>
-                <p className="leading-5">{finding.provenance}</p>
-                <time dateTime={finding.at} className="mt-1 block leading-5">
-                  Record checked or dated {displayDate(finding.at)}
-                </time>
-                <ul className="mt-2 list-disc pl-4">
-                  {finding.evidence.map((e) => (
-                    <li key={e.href}>
-                      <Link
-                        href={e.href}
-                        className="inline-flex min-h-11 items-center text-primary underline underline-offset-4"
-                      >
-                        {e.label}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </details>
-          <AskCareOS
-            context={{
-              twinId: p.id,
-              name: p.name,
-              model: p.model,
-              origin: p.origin,
-              purchasedOn: p.purchasedOn,
-            }}
-            label={`Ask North about ${p.name}, purchased ${p.purchasedOn}`}
-          >
-            <OwnershipIcon topic="north" className="size-4" />
-            <span className="hidden sm:inline">Ask North</span>
-          </AskCareOS>
-        </div>
-        <div className="col-span-2 min-w-0 sm:col-span-1 sm:col-start-2">
-          <OwnershipSummary topic={careItemTopic(item)} />
-        </div>
-        <div className="col-span-2 min-w-0 sm:col-span-1 sm:col-start-3 sm:row-start-2 sm:self-center">
-          <Button
-            asChild
-            className="max-w-full flex-wrap whitespace-normal text-left"
-          >
-            <Link href={item.action.href}>
-              {item.action.label}
-              <ArrowRight className="shrink-0" aria-hidden="true" />
+          <div className="col-span-2 flex min-w-0 flex-wrap items-center justify-between gap-x-3 sm:col-start-2">
+            <p
+              className={`text-xs leading-5 ${item.group === "action" ? "font-semibold text-foreground" : "text-muted-foreground"}`}
+            >
+              {update}
+              {protection.state === "opportunity" &&
+              protection.differenceMinor !== null
+                ? ` · ${money(protection.differenceMinor)} potential adjustment, not savings`
+                : ""}
+            </p>
+            <details className="min-w-0 text-xs text-muted-foreground">
+              <summary className="inline-flex min-h-8 cursor-pointer items-center gap-1 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+                <Info className="size-3" aria-hidden="true" />
+                Evidence
+              </summary>
+              <p className="mb-2 max-w-2xl leading-6">{protection.detail}</p>
+              {findings.map((f) => (
+                <div key={f.id} className="mb-3 max-w-2xl leading-6">
+                  <p className="font-semibold">{f.status}</p>
+                  <p>{f.detail}</p>
+                  <p>
+                    {f.provenance} · record dated {displayDate(f.at)}
+                  </p>
+                  <ul>
+                    {f.evidence.map((e) => (
+                      <li key={e.href}>
+                        <Link
+                          href={e.href}
+                          className="inline-flex min-h-8 items-center text-primary underline underline-offset-4"
+                        >
+                          {e.label}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </details>
+            <Link
+              href={action.href}
+              className={`inline-flex min-h-8 max-w-full items-center gap-1 rounded-lg text-xs font-semibold text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${item.group === "action" ? "underline underline-offset-4" : ""}`}
+            >
+              {action.label}
+              <ArrowRight className="size-3.5" aria-hidden="true" />
             </Link>
-          </Button>
-          <p className="mt-1 max-w-52 text-xs leading-4 text-muted-foreground">
-            {item.status}
-          </p>
+          </div>
+        </div>
+        <div className="mt-2 border-t border-border/60 pt-2">
+          <OwnershipSummary
+            topic={item.group === "action" ? careItemTopic(item) : "price"}
+            secondary
+          />
         </div>
       </article>
     </OwnershipScope>
@@ -121,147 +125,172 @@ function CareCard({
 
 export function CareFeedView({
   feed,
+  filter = "all",
   completed,
   filters = true,
 }: {
   feed: CareFeed;
-  completed: boolean;
+  filter?: CareFilter;
+  completed?: boolean;
   filters?: boolean;
 }) {
-  const groups = completed
-    ? ["completed" as const]
-    : ["action" as const, "tracking" as const];
-  const shown = careProductCards(feed, completed);
+  const selected = completed ? "completed" : filter;
+  const shown = careProductCards(feed, selected);
+  const notifications = feed.protections.flatMap((protection) =>
+    protection.notifications.map((notice) => ({ protection, notice })),
+  );
   return (
     <>
       <CareCollectionRefresh />
       {filters && (
-        <div className="mb-7">
-          <CareFilters completed={completed} />
+        <div className="mb-5">
+          <CareFilters filter={selected} feed={feed} />
         </div>
       )}
       {(!feed.complete || feed.unavailable.length > 0) && (
         <p
           role="status"
-          className="mb-5 rounded-xl border bg-card p-4 text-sm leading-6 text-muted-foreground"
+          className="mb-4 rounded-xl border p-3 text-sm text-muted-foreground"
         >
           Some evidence is unavailable or incomplete
           {feed.unavailable.length ? `: ${feed.unavailable.join(", ")}` : ""}.
-          Missing information is not an all-clear. Your saved purchases remain
-          available.
+          Missing information is not an all-clear.
         </p>
       )}
-      {!shown.length && (
-        <section className="rounded-2xl border bg-card px-6 py-10 text-center">
-          <svg
-            viewBox="0 0 80 48"
-            className="mx-auto mb-4 h-12 w-20 text-primary"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path
-              d="M8 25h64M22 12v26m36-26v26"
-              stroke="currentColor"
-              strokeOpacity=".3"
-              strokeWidth="2"
-            />
-            <circle
-              cx="40"
-              cy="25"
-              r="13"
-              className="fill-card"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            />
-            <path
-              d="m34 25 4 4 8-9"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          <h2 className="text-lg font-semibold">
-            {completed
-              ? "No completed care tasks recorded."
-              : feed.purchases.length
-                ? "No actions found in your available records."
-                : "No saved purchases are available."}
+      {notifications.length > 0 && (
+        <section
+          aria-label="Protection notifications"
+          className="mb-5 rounded-xl border border-intelligence-border bg-intelligence p-3 text-sm"
+        >
+          <h2 className="font-semibold text-intelligence-foreground">
+            Protection updates
           </h2>
-          <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-muted-foreground">
-            {completed
-              ? "Resolved tasks and verified outcomes appear with supporting records. Nothing has been marked complete for you."
-              : "Care only surfaces findings supported by your records. You can still browse your products and their documents."}
+          <ul className="mt-1 space-y-1">
+            {notifications.map(({ protection, notice }) => (
+              <li key={notice.id}>
+                <Link
+                  className="inline-flex min-h-8 items-center gap-2 text-intelligence-foreground underline underline-offset-4"
+                  href={`/care/${protection.twinId}#price`}
+                >
+                  {feed.purchases.find((p) => p.id === protection.twinId)?.name}{" "}
+                  ·{" "}
+                  {notice.kind === "opportunity"
+                    ? "Possible adjustment"
+                    : "Window ending"}
+                  {notice.historical
+                    ? " · historical, review current evidence"
+                    : ""}{" "}
+                  · {displayDate(notice.at)}
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Saved in-app updates only. No email, push or merchant request was
+            sent.
+          </p>
+        </section>
+      )}
+      {!shown.length && (
+        <section className="rounded-xl border bg-card p-5">
+          <h2 className="text-base font-semibold">
+            {selected === "completed"
+              ? "No completed care tasks recorded."
+              : selected === "watching"
+                ? "No verified price-protection monitoring is active."
+                : selected === "attention"
+                  ? "No actionable care findings in the available records."
+                  : "No saved purchases are available."}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            {selected === "completed"
+              ? "Completed means a resolved tracking action, not simply a purchased product."
+              : "Missing coverage is not an all-clear. All purchases remain available in the default view."}
           </p>
           <Link
-            href="/purchases"
-            className="mt-4 inline-flex min-h-11 items-center gap-2 font-semibold text-primary"
+            className="mt-2 inline-flex min-h-8 items-center text-sm font-semibold text-primary"
+            href="/dashboard"
           >
-            Browse purchases
-            <ArrowRight className="size-4" aria-hidden="true" />
+            All purchases
           </Link>
         </section>
       )}
-      {groups.map((group) => {
-        const items = shown.filter(({ item }) => item.group === group);
-        if (!items.length) return null;
+      {(["action", "tracking", "completed"] as const).map((group) => {
+        const cards = shown.filter((card) => card.group === group);
+        if (!cards.length) return null;
         const title =
-          group === "completed"
-            ? "Completed care"
+          group === "action"
+            ? "Needs attention"
             : group === "tracking"
-              ? "Being tracked — no action needed"
-              : "Worth a look";
+              ? "Being cared for"
+              : "Completed";
         return (
-          <section key={group} aria-label={title} className="mb-8">
-            <h2 className="mb-4 text-sm font-semibold text-muted-foreground">
+          <section key={group} aria-label={title} className="mb-5">
+            <h2 className="mb-2 text-xs font-semibold text-muted-foreground">
               {title}
             </h2>
-            <div className="space-y-4">
-              {items.map((card) => (
-                <CareCard {...card} key={card.item.purchase.id} />
+            <div className="space-y-2">
+              {cards.map((card) => (
+                <CareCard key={card.item.purchase.id} {...card} />
               ))}
             </div>
           </section>
         );
       })}
-      <details className="mt-7 text-sm text-muted-foreground">
-        <summary className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+      <details className="mt-5 text-xs text-muted-foreground">
+        <summary className="inline-flex min-h-8 cursor-pointer items-center">
           About your Care coverage
         </summary>
-        <ul className="mt-2 list-disc space-y-2 pl-5 leading-6">
+        <ul className="mt-1 list-disc space-y-1 pl-4 leading-6">
+          <li>
+            Being cared for includes quiet ownership; it does not promise active
+            monitoring.
+          </li>
+          <li>
+            Watching requires a verified applicable policy/window, a supported
+            source, an actual schedule and fresh successful checks.
+          </li>
           <li>{feed.tracking.watches}</li>
           <li>{feed.tracking.returns}</li>
           <li>{feed.tracking.warranties}</li>
           <li>
             Fictional goods do not ship or carry a real warranty. Verified
-            Sandbox payment evidence establishes payment only.
+            Sandbox payment establishes payment only.
           </li>
         </ul>
-        <Link
-          href="/purchases"
-          className="mt-2 inline-flex min-h-11 items-center font-semibold text-primary"
-        >
-          Explore products, documents and available care
-        </Link>
       </details>
     </>
   );
 }
 
-export function CareFilters({ completed }: { completed: boolean }) {
+export function CareFilters({
+  filter = "all",
+  feed,
+  completed,
+}: {
+  filter?: CareFilter;
+  feed?: CareFeed;
+  completed?: boolean;
+}) {
+  const selected = completed ? "completed" : filter;
   return (
-    <nav aria-label="Care filters" className="flex flex-wrap gap-2">
-      {[
-        [false, "Needs attention"],
-        [true, "Completed"],
-      ].map(([selected, label]) => (
+    <nav aria-label="Care filters" className="flex min-w-0 flex-wrap gap-1.5">
+      {(
+        [
+          ["all", "All purchases"],
+          ["attention", "Needs attention"],
+          ["watching", "Watching"],
+          ["completed", "Completed"],
+        ] as const
+      ).map(([value, label]) => (
         <Link
-          key={String(label)}
-          href={selected ? "/dashboard?status=completed" : "/dashboard"}
-          aria-current={completed === selected ? "page" : undefined}
-          className={`inline-flex min-h-11 items-center rounded-full border px-4 text-sm font-semibold ${completed === selected ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card text-muted-foreground hover:text-foreground"}`}
+          key={value}
+          href={value === "all" ? "/dashboard" : `/dashboard?status=${value}`}
+          aria-current={selected === value ? "page" : undefined}
+          className={`inline-flex min-h-9 items-center rounded-full border px-3 text-xs font-semibold ${selected === value ? "border-primary bg-primary text-primary-foreground" : "border-input bg-card text-muted-foreground hover:text-foreground"}`}
         >
           {label}
+          {value === "all" && feed ? ` (${feed.purchases.length})` : ""}
         </Link>
       ))}
     </nav>

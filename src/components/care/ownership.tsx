@@ -22,6 +22,7 @@ import {
   careMilestoneLabel,
   careMilestoneState,
   careNextWindow,
+  careMilestoneTopics,
 } from "@/lib/care/summary";
 import {
   ownershipTopic,
@@ -322,6 +323,16 @@ function ConnectedOwnershipScope({
               <ReturnDraft
                 key={`${view.twinId}:${topic}`}
                 {...view.purchase}
+                evidenceSummary={
+                  topic.startsWith("price")
+                    ? facts
+                        .map(
+                          (fact) =>
+                            `${fact.status}. ${fact.detail} ${fact.sources.map((source) => `${source.label}: ${source.href}`).join("; ")}`,
+                        )
+                        .join("\n")
+                    : undefined
+                }
                 topic={
                   topic === "refunds"
                     ? "refund"
@@ -467,7 +478,13 @@ export function CareCollectionRefresh() {
   return null;
 }
 
-export function OwnershipSummary({ topic }: { topic: OwnershipTopic }) {
+export function OwnershipSummary({
+  topic,
+  secondary = false,
+}: {
+  topic: OwnershipTopic;
+  secondary?: boolean;
+}) {
   const journey = useJourney();
   const label = useId();
   if (!journey)
@@ -477,7 +494,17 @@ export function OwnershipSummary({ topic }: { topic: OwnershipTopic }) {
       </p>
     );
   const { view, show, focused } = journey;
-  const milestones = careMilestones(view, focused ?? topic);
+  const milestones = careMilestones(
+    view,
+    focused ?? (secondary ? null : topic),
+  ).filter(
+    (fact) =>
+      !secondary ||
+      careMilestoneTopics.includes(fact.topic) ||
+      fact.topic === focused ||
+      (["returns", "refunds"].includes(fact.topic) &&
+        ["recorded", "attention"].includes(fact.state)),
+  );
   const next = careNextWindow(view);
   const selected = focused ? view.facts.filter((f) => f.topic === focused) : [];
   return (
@@ -496,13 +523,13 @@ export function OwnershipSummary({ topic }: { topic: OwnershipTopic }) {
           {milestones.map((fact, index) => (
             <li
               key={fact.id}
-              className="relative min-w-[3.25rem] flex-1 sm:min-w-[4.5rem]"
+              className={`relative flex-1 ${secondary ? "min-w-11" : "min-w-[3.25rem] sm:min-w-[4.5rem]"}`}
             >
               <svg
                 aria-hidden="true"
                 viewBox="0 0 100 20"
                 preserveAspectRatio="none"
-                className="absolute top-0 h-5 w-full text-border"
+                className={`absolute top-0 w-full text-border ${secondary ? "h-3" : "h-5"}`}
               >
                 <path
                   d={`M${index === 0 ? 50 : 0} 10H${index === milestones.length - 1 ? 50 : 100}`}
@@ -531,39 +558,62 @@ export function OwnershipSummary({ topic }: { topic: OwnershipTopic }) {
                 }
                 aria-haspopup="dialog"
                 onClick={(event) => show(fact.topic, event.currentTarget)}
-                className={`relative flex min-h-[3.75rem] w-full flex-col items-center rounded-lg px-1 pb-1 text-center text-[10px] leading-4 [overflow-wrap:normal] hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring sm:text-[11px] ${focused === fact.topic ? "bg-intelligence text-intelligence-foreground" : "text-foreground"}`}
+                className={`relative flex w-full flex-col items-center rounded-lg px-1 pb-1 text-center text-[10px] [overflow-wrap:normal] hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring ${secondary ? "min-h-8 leading-3 text-muted-foreground" : "min-h-[3.75rem] leading-4 sm:text-[11px]"} ${focused === fact.topic ? "bg-intelligence text-intelligence-foreground" : ""}`}
               >
                 <span
-                  className={`relative flex size-5 items-center justify-center rounded-full border bg-card ${view.pill.topic === fact.topic ? "ring-2 ring-primary/30 ring-offset-1 ring-offset-card" : ""} ${fact.state === "recorded" ? "border-primary text-primary" : fact.state === "upcoming" || fact.state === "attention" ? "border-intelligence-foreground text-intelligence-foreground" : "border-muted-foreground text-muted-foreground"} ${["unknown", "unavailable", "not-applicable"].includes(fact.state) ? "border-dashed" : ""}`}
+                  className={`relative flex items-center justify-center rounded-full border ${secondary ? `size-3 ${fact.state === "recorded" ? "bg-primary" : "bg-card"}` : "size-5 bg-card"} ${view.pill.topic === fact.topic ? "ring-2 ring-primary/30 ring-offset-1 ring-offset-card" : ""} ${fact.state === "recorded" ? "border-primary text-primary" : fact.state === "upcoming" || fact.state === "attention" ? "border-intelligence-foreground text-intelligence-foreground" : "border-muted-foreground text-muted-foreground"} ${["unknown", "unavailable", "not-applicable"].includes(fact.state) ? "border-dashed" : ""}`}
                 >
-                  {fact.state === "recorded" ? (
-                    <Check className="size-3" aria-hidden="true" />
-                  ) : fact.state === "expired" ? (
-                    <X className="size-3" aria-hidden="true" />
-                  ) : (
-                    <OwnershipIcon topic={fact.topic} className="size-3" />
-                  )}
+                  {!secondary &&
+                    (fact.state === "recorded" ? (
+                      <Check className="size-3" aria-hidden="true" />
+                    ) : fact.state === "expired" ? (
+                      <X className="size-3" aria-hidden="true" />
+                    ) : (
+                      <OwnershipIcon topic={fact.topic} className="size-3" />
+                    ))}
                 </span>
-                <span className="mt-1 font-semibold">
-                  <span className="sm:hidden">
-                    {fact.topic === "purchase"
-                      ? "Bought"
-                      : fact.topic === "price-window"
-                        ? "Price window"
-                        : fact.topic === "return-window"
-                          ? "Returns"
-                          : careMilestoneLabel(fact)}
+                {secondary ? (
+                  <span className="mt-1">
+                    {fact.topic === "price-window"
+                      ? "Price"
+                      : fact.topic === "return-window"
+                        ? "Return"
+                        : careMilestoneLabel(fact)}
                   </span>
-                  <span className="hidden sm:inline">
-                    {careMilestoneLabel(fact)}
+                ) : (
+                  <span className="mt-1 font-semibold">
+                    <span className="sm:hidden">
+                      {fact.topic === "purchase"
+                        ? "Bought"
+                        : fact.topic === "price-window"
+                          ? "Price window"
+                          : fact.topic === "return-window"
+                            ? "Returns"
+                            : careMilestoneLabel(fact)}
+                    </span>
+                    <span className="hidden sm:inline">
+                      {careMilestoneLabel(fact)}
+                    </span>
                   </span>
-                </span>
-                <span className="text-muted-foreground">
-                  {fact.date
-                    ? displayDate(fact.date)
-                    : careMilestoneState(fact)}
-                </span>
-                {fact.date && fact.state !== "recorded" && (
+                )}
+                {(!secondary ||
+                  (fact.date &&
+                    ["price-window", "return-window", "warranty"].includes(
+                      fact.topic,
+                    ))) && (
+                  <span
+                    className={
+                      fact.state === "upcoming"
+                        ? "text-intelligence-foreground"
+                        : "text-muted-foreground"
+                    }
+                  >
+                    {fact.date
+                      ? displayDate(fact.date)
+                      : careMilestoneState(fact)}
+                  </span>
+                )}
+                {!secondary && fact.date && fact.state !== "recorded" && (
                   <span className="text-muted-foreground">
                     {careMilestoneState(fact)}
                   </span>
@@ -573,7 +623,7 @@ export function OwnershipSummary({ topic }: { topic: OwnershipTopic }) {
           ))}
         </ol>
       </div>
-      {next && (
+      {next && !secondary && (
         <p className="mt-1 text-xs text-intelligence-foreground">
           Next recorded window: {careMilestoneLabel(next)} ·{" "}
           <time dateTime={next.date!}>{displayDate(next.date!)}</time> ·{" "}

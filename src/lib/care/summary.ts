@@ -90,22 +90,98 @@ export function careNextWindow(view: OwnershipView) {
       )[0] ?? null
   );
 }
-/** One compact product card, retaining every finding in the source disclosure. */
-export function careProductCards(feed: CareFeed, completed: boolean) {
-  const groups = completed ? ["completed"] : ["action", "tracking"];
-  const products = new Map<
-    string,
-    { item: CareItem; findings: CareItem[]; view: OwnershipView | null }
-  >();
-  for (const item of feed.items.filter((item) => groups.includes(item.group))) {
-    const existing = products.get(item.purchase.id);
-    if (existing) existing.findings.push(item);
-    else
-      products.set(item.purchase.id, {
-        item,
-        findings: [item],
-        view: feed.ownership.find((v) => v.twinId === item.purchase.id) ?? null,
-      });
-  }
-  return [...products.values()];
+export type CareFilter = "all" | "attention" | "watching" | "completed";
+export function parseCareFilter(value: unknown): CareFilter {
+  return ["attention", "watching", "completed"].includes(String(value))
+    ? (value as CareFilter)
+    : "all";
+}
+/** All saved identities once; completed means a resolved action, not ownership. */
+export function careProductCards(
+  feed: CareFeed,
+  filter: CareFilter | boolean = "all",
+) {
+  const selected =
+    typeof filter === "boolean" ? (filter ? "completed" : "all") : filter;
+  const rank = { action: 0, tracking: 1, completed: 2 };
+  return feed.purchases
+    .flatMap((purchase) => {
+      const view = feed.ownership.find((v) => v.twinId === purchase.id) ?? null;
+      const protection = feed.protections.find(
+        (v) => v.twinId === purchase.id,
+      )!;
+      const findings = feed.items.filter(
+        (item) =>
+          item.purchase.id === purchase.id &&
+          (selected !== "completed" || item.group === "completed"),
+      );
+      const actionable = findings.some((item) => item.group === "action");
+      const resolved = findings.some((item) => item.group === "completed");
+      const ongoing =
+        protection.monitoring ||
+        findings.some(
+          (item) =>
+            item.group === "tracking" &&
+            ["return", "refund", "watch"].includes(item.kind),
+        );
+      if (
+        (selected === "attention" && !actionable) ||
+        (selected === "watching" && !protection.monitoring) ||
+        (selected === "completed" && !findings.length)
+      )
+        return [];
+      const primaryFindings =
+        !actionable && resolved && !ongoing
+          ? findings.filter((item) => item.group === "completed")
+          : findings;
+      const primary = [...primaryFindings].sort(
+        (a, b) =>
+          rank[a.group] - rank[b.group] ||
+          a.priority - b.priority ||
+          a.id.localeCompare(b.id),
+      )[0];
+      const item: CareItem = primary ?? {
+        id: `ownership:${purchase.id}`,
+        purchase,
+        kind: "care",
+        group: "tracking",
+        status: protection.label,
+        detail: protection.detail,
+        provenance:
+          purchase.origin === "sandbox"
+            ? "Verified Sandbox purchase · protection is separate"
+            : "Sample ownership · not real coverage",
+        at: purchase.purchasedOn,
+        verified: false,
+        priority: 9,
+        action: { label: "View purchase", href: purchase.href },
+        evidence: purchase.documentLinks.map((d) => ({
+          label: d.title,
+          href: d.href,
+        })),
+      };
+      return [
+        {
+          item,
+          findings,
+          view,
+          protection,
+          group: actionable
+            ? ("action" as const)
+            : selected === "completed" || (resolved && !ongoing)
+              ? ("completed" as const)
+              : ("tracking" as const),
+          quiet: !actionable && !protection.monitoring,
+        },
+      ];
+    })
+    .sort(
+      (a, b) =>
+        rank[a.group] - rank[b.group] ||
+        a.item.priority - b.item.priority ||
+        b.item.purchase.purchasedOn.localeCompare(
+          a.item.purchase.purchasedOn,
+        ) ||
+        a.item.purchase.id.localeCompare(b.item.purchase.id),
+    );
 }

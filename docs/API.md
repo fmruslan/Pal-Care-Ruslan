@@ -1,5 +1,13 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
+## All-purchase Care / automatic price protection — candidate, release pending
+
+- `GET /dashboard` defaults to **All purchases**; `status=attention|watching|completed` selects the corresponding read-only subset. Unknown statuses default to all. Each saved purchase appears once; quiet ownership is not a completed task. The shared ownership `price` fact now describes protection, not generic price comparison; original dated Twin/document links and milestone topics remain compatible.
+- `GET /care/{twinUuid}#price` shows the same current saved policy/source/deadline/check/opportunity facts, original legacy catalog checks separately, and editable unsent preparation. No merchant request, refund or job is dispatched by loading the page or preparing a draft.
+- No public mutation/notification endpoint is added. Existing authenticated North tools use the shared saved evidence; their original ownership, Origin, request identity, provider admission/accounting and recovery contracts remain unchanged. Notifications are persisted **in-app only**, with deduplication and historical/current labels; no external delivery is claimed.
+- `CARE_PROTECTION_ENABLED` enables only the independent restricted reader; `CARE_PROTECTION_SCHEDULE_ENABLED` declares the separately verified bounded timer, not authority by itself. The worker credential/enable flag, admin URL and provisioning credentials are rejected in web readiness. Ordinary test environments clear all application protection flags/URLs.
+- The owner-approved selected `drizzle/protection` lane uses `drizzle.__care_protection_migrations`, never the deferred root 0016/API lane. [Exact SQL/authority and stop boundary](CARE-PRICE-PROTECTION-PLAN.md). Application activation and exact-commit release evidence remain tracked in [STATUS](STATUS.md).
+
 **Care homepage correction (deployed `8df4e19`):** saved-record North answers may include optional application-resolved `careHighlights: { twinId, topic, revision }[]`, at most four relevant-product targets. This is presentation metadata, not a browser-supplied query, data write or authorization. On `/dashboard`, fresh answers highlight exact shared facts without navigating away; success requires exactly one visible matching card and its exact current milestone/fact/revision read-back, excluding hidden streaming copies. History never executes it. Existing product-page `ownershipPresentation` stays compatible. No endpoint, migration or provider scope is added. [Release evidence and limits](evidence/CARE-HOMEPAGE-TIMELINE-RELEASE.md).
 
 ## Ownership milestones — deployed core (`1dbec14`)

@@ -5,6 +5,7 @@ import { createServer, connect, type Socket } from "node:net";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runtimeWriterUrl } from "../src/db/authority";
+import { PROTECTION_STOP_AT } from "../src/lib/care/protection/contracts";
 
 export const CARE_WORKER_IMAGE =
   "node@sha256:4b150b48b4116e2a22f2c39cc27025fbf4f153e2078fd3b14d159fdb5c7279da";
@@ -29,13 +30,16 @@ export function careWorkerContainerArgs(
   root: string,
   bridge: string,
   name: string,
+  mode: "care" | "protection" = "care",
 ) {
+  const script =
+    mode === "protection" ? "protection-records.ts" : "care-records.ts";
   const mounts = [
     [join(root, "src"), "/app/src"],
     [join(root, "node_modules"), "/app/node_modules"],
     [join(root, "package.json"), "/app/package.json"],
     [join(root, "tsconfig.json"), "/app/tsconfig.json"],
-    [join(root, "scripts/care-records.ts"), "/app/scripts/care-records.ts"],
+    [join(root, `scripts/${script}`), `/app/scripts/${script}`],
     [bridge, "/run/care-db"],
   ];
   return [
@@ -69,30 +73,42 @@ export function careWorkerContainerArgs(
       `type=bind,src=${source},dst=${target},readonly`,
     ]),
     "--env",
-    "CARE_HOST_WRITES_ENABLED",
+    mode === "protection"
+      ? "CARE_PROTECTION_WORKER_ENABLED"
+      : "CARE_HOST_WRITES_ENABLED",
     "--env",
-    "CARE_WATCH_DATABASE_URL",
+    mode === "protection"
+      ? "CARE_PROTECTION_DATABASE_URL"
+      : "CARE_WATCH_DATABASE_URL",
     CARE_WORKER_IMAGE,
     "node",
     "--import",
     "tsx",
-    "scripts/care-records.ts",
+    `scripts/${script}`,
     "check",
   ];
 }
 
 /** One-shot private Unix bridge to exactly one approved local PostgreSQL port.
  * It is not an HTTP proxy, public listener, provider client or persistent service. */
-export async function launchCareWorker() {
+export async function launchCareWorker(mode: "care" | "protection" = "care") {
+  const flag =
+    mode === "protection"
+      ? "CARE_PROTECTION_WORKER_ENABLED"
+      : "CARE_HOST_WRITES_ENABLED";
+  const databaseKey =
+    mode === "protection"
+      ? "CARE_PROTECTION_DATABASE_URL"
+      : "CARE_WATCH_DATABASE_URL";
   if (
-    process.env.CARE_HOST_WRITES_ENABLED !== "true" ||
+    !["care", "protection"].includes(mode) ||
+    process.env[flag] !== "true" ||
+    (mode === "protection" && Date.now() >= Date.parse(PROTECTION_STOP_AT)) ||
     process.getuid?.() !== 1000 ||
     (await realpath(process.cwd())) !== primary
   )
     throw Error("care_worker_host_scope_rejected");
-  const { url, port } = careWorkerTarget(
-    runtimeWriterUrl("CARE_WATCH_DATABASE_URL"),
-  );
+  const { url, port } = careWorkerTarget(runtimeWriterUrl(databaseKey));
   const base = `/run/user/${process.getuid()}/palcare-care`;
   await mkdir(base, { recursive: true, mode: 0o700 });
   const info = await lstat(base);
@@ -104,7 +120,7 @@ export async function launchCareWorker() {
   )
     throw Error("care_worker_bridge_not_private");
   const folder = await mkdtemp(join(base, "check-"));
-  const name = `palcare-care-worker-${randomUUID()}`;
+  const name = `palcare-${mode}-worker-${randomUUID()}`;
   const sockets = new Set<Socket>();
   const server = createServer((client) => {
     const database = connect({ host: "127.0.0.1", port });
@@ -147,14 +163,14 @@ export async function launchCareWorker() {
     const result = await new Promise<number>((accept, reject) => {
       const running = spawn(
         "docker",
-        careWorkerContainerArgs(primary, folder, name),
+        careWorkerContainerArgs(primary, folder, name, mode),
         {
           stdio: "inherit",
           env: {
             PATH: "/usr/bin:/bin",
             NODE_ENV: "production",
-            CARE_HOST_WRITES_ENABLED: "true",
-            CARE_WATCH_DATABASE_URL: url.toString(),
+            [flag]: "true",
+            [databaseKey]: url.toString(),
           },
         },
       );

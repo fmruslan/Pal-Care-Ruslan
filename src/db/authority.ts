@@ -10,11 +10,37 @@ export type DatabaseCapability =
   | "recall"
   | "care_reader"
   | "care_reporter"
-  | "care_worker";
+  | "care_worker"
+  | "protection_reader"
+  | "protection_worker";
 type Grants = Record<string, string[]>;
 export const runtimeGrants: Record<DatabaseCapability, Grants> = {
   reader: {},
   care_reader: {},
+  protection_reader: {},
+  protection_worker: {
+    care_protection_jobs: [
+      "INSERT:twin_id",
+      "UPDATE:state",
+      "UPDATE:next_check_at",
+      "UPDATE:last_checked_at",
+      "UPDATE:checks",
+    ],
+    care_protection_evidence: [
+      "INSERT:twin_id",
+      "INSERT:kind",
+      "INSERT:source",
+      "INSERT:source_url",
+      "INSERT:facts",
+      "INSERT:content_hash",
+      "INSERT:dedup_key",
+    ],
+    care_protection_notifications: [
+      "INSERT:twin_id",
+      "INSERT:evidence_id",
+      "INSERT:kind",
+    ],
+  },
   care_reporter: {
     care_cases: ["INSERT:id", "INSERT:twin_id", "INSERT:kind"],
     care_case_events: [
@@ -84,6 +110,18 @@ export const runtimeGrants: Record<DatabaseCapability, Grants> = {
   },
 };
 export const runtimeReads: Record<DatabaseCapability, string[]> = {
+  protection_reader: [
+    "care_protection_inputs",
+    "care_protection_jobs",
+    "care_protection_evidence",
+    "care_protection_notifications",
+  ],
+  protection_worker: [
+    "care_protection_inputs",
+    "care_protection_jobs",
+    "care_protection_evidence",
+    "care_protection_notifications",
+  ],
   care_reader: [
     "purchase_twins",
     "care_cases",

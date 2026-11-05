@@ -37,6 +37,14 @@ try {
   for (const [capability, url] of [
     ["reader", env.DATABASE_URL],
     ["careos", env.CAREOS_DATABASE_URL],
+    ...(env.CARE_PROTECTION_ENABLED === "true"
+      ? [
+          [
+            "protection_reader",
+            env.CARE_PROTECTION_READER_DATABASE_URL,
+          ] as const,
+        ]
+      : []),
   ] as const) {
     const pool = new Pool({
       connectionString: url,

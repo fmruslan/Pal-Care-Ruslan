@@ -14,6 +14,7 @@ import { readinessPlan } from "../../src/lib/readiness-plan";
 import { isolatedCareEnvironment } from "../helpers/isolated-care-environment";
 import { careFeed } from "../../src/lib/care/model";
 import { careStatusAnswer } from "../../src/lib/care/answer";
+import { careProductCards } from "../../src/lib/care/summary";
 import {
   evidenceLabel,
   returnTimeline,
@@ -102,15 +103,21 @@ describe("Care read-only domain", () => {
     );
     expect(libraryReturn("https://evil.test/purchases")).toBe("/purchases");
   });
-  it("surfaces existing price evidence without inventing savings, watches, returns or warranties", () => {
+  it("does not turn historical purchase/catalog amounts into an actionable price drop or coverage", () => {
     const result = feed();
-    expect(result.items.map((i) => i.kind)).toEqual(["price", "care"]);
-    const item = result.items[0];
-    expect(item.detail).toContain("$20.00 difference, not confirmed savings");
-    expect(item.provenance).toContain("not continuous monitoring");
-    expect(item.verified).toBe(false);
-    expect(item.group).toBe("action");
-    expect(item.action.href).toBe(`/vault/${id(201)}?milestone=price`);
+    expect(result.items.map((i) => i.kind)).toEqual(["care"]);
+    expect(result.items[0].group).toBe("tracking");
+    expect(careProductCards(result)).toHaveLength(result.purchases.length);
+    expect(careProductCards(result, "attention")).toEqual([]);
+    expect(
+      result.protections.every(
+        (p) =>
+          p.state === "unavailable" && p.deadline === null && !p.monitoring,
+      ),
+    ).toBe(true);
+    expect(
+      result.items.some((item) => item.action.label === "Compare prices"),
+    ).toBe(false);
     expect(result.items.some((i) => i.kind === "return")).toBe(false);
     expect(result.tracking.warranties).toContain("No verified");
   });
@@ -176,16 +183,21 @@ describe("Care read-only domain", () => {
     for (let i = 0; i < 18; i++)
       data.twins.push({ ...demoData.twins[0], id: id(800 + i) });
     expect(feed({ data }).purchases).toHaveLength(22);
+    expect(careProductCards(feed({ data }))).toHaveLength(22);
     expect(feed({ data }).items.filter((i) => i.kind === "price")).toHaveLength(
-      19,
+      0,
     );
   });
   it("North returns the same factual finding and original source links as Care", () => {
     const result = feed();
     const answer = careStatusAnswer(result, 3, [id(201)], "price");
-    expect(answer.steps[0]).toContain(result.items[0].detail);
+    expect(answer.steps[0]).toContain(
+      result.ownership
+        .find((v) => v.twinId === id(201))!
+        .facts.find((f) => f.topic === "price")!.detail,
+    );
     expect(answer.context?.twinId).toBe(id(201));
-    expect(answer.actions[0].href).toBe(result.items[0].action.href);
+    expect(answer.actions[0].href).toBe(`/vault/${id(201)}?milestone=price`);
     expect(answer.sources.every((s) => s.href.startsWith("/documents/"))).toBe(
       true,
     );
@@ -453,7 +465,7 @@ describe("durable Care projection (isolated data; activation remains off)", () =
     expect(project()[0].group).toBe("tracking");
     expect(project({}, false)[0].status).toContain("monitoring not confirmed");
     expect(project({ nextCheckAt: "2026-11-03T10:00:00Z" })[0].group).toBe(
-      "action",
+      "tracking",
     );
     expect(project({ state: "paused" })).toEqual([]);
     expect(project({ expiresAt: "2026-11-01T10:00:00Z" })).toEqual([]);
@@ -464,10 +476,10 @@ describe("durable Care projection (isolated data; activation remains off)", () =
       },
       persistenceEnabled: true,
       scheduled: true,
-    }).items.find((i) => i.kind === "price")!;
-    expect(observed.detail).toContain("$109.00 recorded fictional catalog");
+    }).items.find((i) => i.kind === "watch")!;
+    expect(observed.detail).toContain("$109.00");
     expect(observed.detail).toContain(
-      "$40.00 difference, not confirmed savings",
+      "not a verified price-change event or adjustment eligibility",
     );
     expect(observed.at).toBe(watch.lastCheckedAt);
   });
@@ -495,7 +507,22 @@ describe("North model-planned Care tool", () => {
       void payload;
       return plan;
     });
-    const care = vi.fn(async () => feed());
+    const saved = emptySavedCare();
+    for (const twinId of [id(201), id(204)])
+      saved.returns.push({
+        id: id(1900 + Number(twinId.slice(-3))),
+        caseId: id(900 + Number(twinId.slice(-3))),
+        twinId,
+        state: "prepared",
+        evidence: {
+          kind: "manual",
+          reference: "test-unsent-enquiry",
+          effectiveOn: "2026-11-03",
+          recordedAt: "2026-11-04T10:00:00Z",
+          href: `/vault/${twinId}`,
+        },
+      });
+    const care = vi.fn(async () => feed({ savedCare: saved }));
     const options = {
       input: {
         requestId: randomUUID(),
@@ -524,7 +551,7 @@ describe("North model-planned Care tool", () => {
     expect(care).toHaveBeenCalledTimes(1);
     expect(
       answer.steps.some((s) =>
-        s.includes("$20.00 difference, not confirmed savings"),
+        s.includes("Return message prepared · not sent"),
       ),
     ).toBe(true);
     expect(answer.mode).toBe("live"); // Injected interpretation, not provider proof.
@@ -567,8 +594,14 @@ describe("North model-planned Care tool", () => {
     expect(care).not.toHaveBeenCalled();
   });
   it("keeps a Care finding selection for ordinary records follow-ups without browser-trusted history", async () => {
-    const { options } = setup({ productAction: "price" });
-    const first = await answerConversationTurn(options);
+    const { options } = setup({
+      productAction: "returns",
+      relation: "selected",
+    });
+    const first = await answerConversationTurn({
+      ...options,
+      input: { ...options.input, twinId: id(201) },
+    });
     expect(first.careSelection).toEqual([id(201)]);
     const next = setup({ task: "records", relation: "followup" });
     const answer = await answerConversationTurn({

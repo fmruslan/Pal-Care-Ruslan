@@ -1,0 +1,11 @@
+[Unit]
+Description=Pal Care bounded hourly protection discovery/due sweep
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=60
+Unit=palcare-protection.service
+
+[Install]
+WantedBy=timers.target

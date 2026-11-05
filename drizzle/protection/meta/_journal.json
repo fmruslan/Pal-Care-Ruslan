@@ -1,0 +1,7 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    { "idx": 0, "version": "7", "when": 1793836800000, "tag": "0018_care_price_protection", "breakpoints": true }
+  ]
+}

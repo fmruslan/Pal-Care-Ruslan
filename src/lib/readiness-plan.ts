@@ -15,6 +15,8 @@ export function readinessPlan(env: Record<string, string | undefined>) {
     env.LOCAL_POSTGRES_PASSWORD ||
     env.CARE_REPORTER_DATABASE_URL ||
     env.CARE_WATCH_DATABASE_URL ||
+    env.CARE_PROTECTION_DATABASE_URL ||
+    env.CARE_PROTECTION_WORKER_ENABLED === "true" ||
     env.CARE_HOST_WRITES_ENABLED === "true" ||
     !validAppOrigin(env.APP_ORIGIN)
   )
@@ -63,6 +65,19 @@ export function readinessPlan(env: Record<string, string | undefined>) {
     env.CARE_RECORDS_ENABLED !== "true"
   )
     throw Error("Watch schedule requires Care records");
+  if (env.CARE_PROTECTION_ENABLED === "true") {
+    if (env.DEMO_DATA_SOURCE !== "database")
+      throw Error("Protection persistence requires database mode");
+    requirements.push({
+      capability: "protection_reader",
+      url: runtimeWriterUrl("CARE_PROTECTION_READER_DATABASE_URL", env),
+    });
+  }
+  if (
+    env.CARE_PROTECTION_SCHEDULE_ENABLED === "true" &&
+    env.CARE_PROTECTION_ENABLED !== "true"
+  )
+    throw Error("Protection schedule requires records");
   if (env.PAYPAL_CHECKOUT_ENABLED === "true") {
     const checkout = parseCheckoutConfig(env);
     if (!checkout.enabled) throw new Error("Invalid checkout configuration");
@@ -92,6 +107,10 @@ export function readinessPlan(env: Record<string, string | undefined>) {
     requirements,
     features: {
       careos: care.mode,
+      priceProtection:
+        env.CARE_PROTECTION_ENABLED === "true"
+          ? "configured-read-only-evidence-required"
+          : "disabled",
       careTracking:
         env.CARE_RECORDS_ENABLED === "true"
           ? "configured-read-only"

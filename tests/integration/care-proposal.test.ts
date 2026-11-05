@@ -395,6 +395,14 @@ test("actual restricted Care logins persist manual timelines/warranties and dail
     });
     assert.equal(watch.state, "saved");
     assert.equal((await checkDueWatches(worker)).checked, 1);
+    if (process.env.PALCARE_PROTECTION_HOST_ISOLATION === "true") {
+      const { workerHostProof } = await import("../helpers/worker-host-proof");
+      assert.equal(
+        (await workerHostProof(worker.options.connectionString!, "care"))
+          .hostIsolation,
+        "passed",
+      );
+    }
     assert.equal((await checkDueWatches(worker)).checked, 0);
     assert.equal(await pauseWatches(worker, true), 1);
     assert.equal((await checkDueWatches(worker)).checked, 0);

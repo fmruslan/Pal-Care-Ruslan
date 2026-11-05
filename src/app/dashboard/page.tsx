@@ -3,6 +3,7 @@ import { Shell } from "@/components/shell";
 import { NorthCollection, NorthSearch } from "@/components/careos/integrated";
 import { CareFeedView, CareFilters } from "@/components/care/feed";
 import { getCareFeed } from "@/lib/care/repository";
+import { parseCareFilter } from "@/lib/care/summary";
 import {
   libraryHref,
   parseLibraryQuery,
@@ -28,6 +29,7 @@ export default async function Care({
     );
   }
   const feed = await getCareFeed();
+  const filter = parseCareFilter(params.status);
   return (
     <Shell active="/dashboard" source={feed.source}>
       <NorthCollection>
@@ -38,14 +40,10 @@ export default async function Care({
       <NorthSearch
         query={parseLibraryQuery({})}
         searchIndex={feed.searchIndex}
-        footer={<CareFilters completed={params.status === "completed"} />}
+        footer={<CareFilters filter={filter} feed={feed} />}
       />
       <NorthCollection>
-        <CareFeedView
-          feed={feed}
-          completed={params.status === "completed"}
-          filters={false}
-        />
+        <CareFeedView feed={feed} filter={filter} filters={false} />
       </NorthCollection>
     </Shell>
   );

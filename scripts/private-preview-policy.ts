@@ -38,6 +38,16 @@ export function privatePreviewEnvironment(
     )
       throw Error("care_reader_configuration_invalid");
   }
+  if (source.CARE_PROTECTION_ENABLED === "true") {
+    const protection = new URL(
+      source.CARE_PROTECTION_READER_DATABASE_URL ?? "",
+    );
+    if (
+      !["postgres:", "postgresql:"].includes(protection.protocol) ||
+      !["127.0.0.1", "localhost"].includes(protection.hostname)
+    )
+      throw Error("protection_reader_configuration_invalid");
+  }
   const app = application.safeParse(appRecord);
   const session = sessionSchema.safeParse(sessionRecord);
   const valid =
@@ -65,6 +75,16 @@ export function privatePreviewEnvironment(
       : {}),
     CARE_WATCH_SCHEDULE_ENABLED:
       source.CARE_WATCH_SCHEDULE_ENABLED === "true" ? "true" : "false",
+    CARE_PROTECTION_ENABLED:
+      source.CARE_PROTECTION_ENABLED === "true" ? "true" : "false",
+    ...(source.CARE_PROTECTION_ENABLED === "true"
+      ? {
+          CARE_PROTECTION_READER_DATABASE_URL:
+            source.CARE_PROTECTION_READER_DATABASE_URL,
+        }
+      : {}),
+    CARE_PROTECTION_SCHEDULE_ENABLED:
+      source.CARE_PROTECTION_SCHEDULE_ENABLED === "true" ? "true" : "false",
     CAREOS_DATABASE_URL: urls.careos,
     CAREOS_PROVIDER: "subscription",
     CAREOS_MODEL: "gpt-6.1-sol",

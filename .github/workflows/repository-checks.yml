@@ -129,6 +129,10 @@ jobs:
         run: pnpm test:integration
       - run: pnpm build
       - run: pnpm exec playwright install --with-deps chromium firefox webkit
+      - name: Complete price-protection purchase-to-North journey (isolated DB and injected North only)
+        run: pnpm exec node scripts/workspace.mjs run test:integration tsx --test --test-concurrency=1 --test-name-pattern='purchase → policy discovery' tests/integration/price-protection.test.ts
+        env:
+          PALCARE_PROTECTION_BROWSER_JOURNEY: "true"
       - name: Private owner pairing, browser persistence and expiry (isolated fixture, no inference)
         run: pnpm exec playwright test --config=playwright.access.config.ts
       - name: Firefox and WebKit essential journeys (emulation, not real-device certification)

@@ -22,40 +22,73 @@ test("Care is the default and has three calm destinations, factual cards and no 
       .getByRole("link"),
   ).toHaveText(["Care", "Purchases", "Insights"]);
   await expect(page.locator("[data-north-search]")).toHaveCount(1);
-  const card = page.locator(`[data-care-card="price:${headphones}"]`);
+  const main = page.getByRole("main");
+  const card = main.locator(`[data-care-product="${headphones}"]`);
+  await expect(main.locator("[data-care-product]")).toHaveCount(4);
+  await expect(
+    page
+      .getByRole("navigation", { name: "Care filters", exact: true })
+      .getByRole("link"),
+  ).toHaveText([
+    "All purchases (4)",
+    "Needs attention",
+    "Watching",
+    "Completed",
+  ]);
   await expect(card.locator("[data-ownership-pill]")).toBeVisible();
   await expect(card.locator("[data-care-timeline]")).toBeVisible();
   await expect(
-    card.getByRole("link", { name: "Compare prices" }),
+    card.getByRole("link", { name: "Details", exact: true }),
   ).toBeVisible();
-  const action = await card
-    .getByRole("link", { name: "Compare prices" })
+  const action = await main
+    .locator("[data-care-product]")
+    .first()
+    .getByRole("link", { name: "Details", exact: true })
     .boundingBox();
   expect(action!.y + action!.height).toBeLessThan(664);
-  await card.getByText("Evidence & source", { exact: true }).click();
-  await expect(card).toContainText("not confirmed savings");
-  await expect(card).toContainText("not continuous monitoring");
+  expect((await card.boundingBox())!.height).toBeLessThan(210);
+  expect(
+    (await card.locator("[data-care-timeline]").boundingBox())!.height,
+  ).toBeLessThan(60);
+  await card.getByText("Evidence", { exact: true }).click();
+  await expect(card).toContainText("have not been established");
+  await expect(card).toContainText("Review the original policy");
+  await expect(
+    page.getByRole("link", { name: "Compare prices", exact: true }),
+  ).toHaveCount(0);
+  await expect(card.getByRole("button", { name: /North/ })).toHaveCount(0);
   expect(writes).toEqual([]);
 });
 
-test("price card opens exact purchase comparison and working return draft without changing records", async ({
+test("quiet card opens its exact purchase and honest protection evidence plus editable unsent drafts", async ({
   page,
 }) => {
   await page.goto("/dashboard");
   await page
-    .locator(`[data-care-card="price:${headphones}"]`)
-    .getByRole("link", { name: "Compare prices" })
+    .getByRole("main")
+    .locator(`[data-care-product="${headphones}"]`)
+    .getByRole("link", { name: "Details", exact: true })
     .click();
-  await expect(page).toHaveURL(
-    new RegExp(`/vault/${headphones}\\?milestone=price$`),
-  );
+  await expect(page).toHaveURL(new RegExp(`/vault/${headphones}$`));
+  await page.locator('[data-ownership-milestone="price"]').click();
   const evidence = page.getByRole("dialog", {
-    name: "Price comparison",
+    name: "Price protection",
     exact: true,
   });
-  await expect(evidence).toContainText("$149.00");
-  await expect(evidence).toContainText("$129.00");
-  await expect(evidence).toContainText("not continuous monitoring");
+  await expect(evidence).toContainText("Protection not verified");
+  await expect(evidence).toContainText("have not been established");
+  await evidence
+    .getByRole("button", {
+      name: "Prepare price adjustment message",
+      exact: true,
+    })
+    .click();
+  await expect(
+    evidence.getByRole("textbox", {
+      name: "Editable price adjustment enquiry · not sent",
+      exact: true,
+    }),
+  ).toHaveValue(/Protection not verified/);
   await evidence
     .getByRole("button", { name: "Close ownership evidence", exact: true })
     .click();
@@ -80,6 +113,31 @@ test("price card opens exact purchase comparison and working return draft withou
   await expect(page.locator("#warranty")).toContainText(
     "No verified warranty expiration date",
   );
+});
+
+test("quiet ownership is neither an actionable finding, an active protection watch nor a completed task", async ({
+  page,
+}) => {
+  for (const [filter, heading] of [
+    ["attention", "No actionable care findings in the available records."],
+    ["watching", "No verified price-protection monitoring is active."],
+    ["completed", "No completed care tasks recorded."],
+  ] as const) {
+    await page.goto(`/dashboard?status=${filter}`);
+    await expect(
+      page.getByRole("heading", { name: heading, exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("main").locator("[data-care-product]"),
+    ).toHaveCount(0);
+  }
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: "All purchases", exact: true })
+    .click();
+  await expect(
+    page.getByRole("main").locator("[data-care-product]"),
+  ).toHaveCount(4);
 });
 
 test("Completed has no invented outcomes and legacy library links preserve their scope", async ({
