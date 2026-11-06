@@ -1,6 +1,6 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
-## Rolling Care calendar — candidate, no new endpoint
+## Rolling Care calendar — deployed source 0f4628d, no new endpoint
 
 Optional server-produced `CareAnswer.careCalendarRange: { from, toExclusive }` identifies the UTC calendar answer without changing legacy fingerprints. It is presentation metadata, never authorization; North keeps source links but does not automatically preview a raw source document for this summary. Original answers/history remain immutable and read-only selection never replays inference.
 
