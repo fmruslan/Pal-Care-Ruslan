@@ -239,7 +239,7 @@ test("consumer calendar has one swipe surface, no native frames or vertical clip
   expect(clipping).toBe(false);
 });
 
-test("consumer cards use readable type, one primary action and a Demo label beside each fictional event", async ({
+test("consumer cards use one disclosure, soft truthful statuses and one active milestone", async ({
   page,
 }) => {
   await page.goto("/dashboard");
@@ -247,9 +247,20 @@ test("consumer cards use readable type, one primary action and a Demo label besi
   await expect(cards).toHaveCount(10);
   for (const card of await cards.all()) {
     await expect(card.locator("[data-care-primary-action]")).toHaveCount(1);
+    await expect(card.locator("[data-ownership-pill]")).not.toContainText(
+      /Demo|Refund complete/,
+    );
+    await expect(card.locator("[data-ownership-pill] > svg")).toHaveCount(1);
     await expect(
-      card.locator("[data-ownership-pill] [data-care-demo]"),
-    ).toHaveText("Demo");
+      card.locator('[data-care-milestone-active="true"]'),
+    ).toHaveCount(1);
+    await expect(
+      card.locator('[data-care-status-tone="verified"]'),
+    ).toHaveCount(0);
+    await expect(card.locator("[data-ownership-pill]")).toHaveCSS(
+      "background-color",
+      "rgba(0, 0, 0, 0)",
+    );
     expect(
       await card
         .getByRole("heading", { level: 2 })
@@ -269,6 +280,34 @@ test("consumer cards use readable type, one primary action and a Demo label besi
     );
   }
   await expect(page.getByRole("main")).not.toContainText("0 verified windows");
+  await expect(page.locator("[data-care-demo-disclosure]")).toHaveCount(1);
+  await expect(page.locator("[data-care-demo-disclosure]")).toHaveText(
+    "Sample collection · Illustrative purchases and care events",
+  );
+  const expected: Record<string, string> = {
+    201: "Price drop found",
+    202: "Delivery expected",
+    203: "Safety review",
+    204: "Price review",
+    205: "Warranty details",
+    206: "Return in progress",
+    207: "Return ends Nov 8",
+    208: "Refund example",
+    209: "Price watch active",
+    210: "Return ends Nov 7",
+  };
+  for (const [suffix, status] of Object.entries(expected))
+    await expect(
+      page.locator(
+        `[data-care-product="00000000-0000-4000-8000-000000000${suffix}"] [data-ownership-pill]`,
+      ),
+    ).toHaveText(status);
+  await expect(
+    page.locator('[data-care-product="00000000-0000-4000-8000-000000000208"]'),
+  ).toContainText("No PayPal refund was issued");
+  const events = page.locator("[data-care-calendar-event]");
+  for (const event of await events.all())
+    await expect(event).not.toContainText("Demo");
 });
 
 test("saved Demo price, return-progress and refund sources open useful next steps without dispatching anything", async ({
@@ -280,18 +319,13 @@ test("saved Demo price, return-progress and refund sources open useful next step
   });
   await page.goto("/dashboard");
   for (const [suffix, action, heading, evidence] of [
-    ["201", "Review opportunity", "Price protection opportunity", "$20.00"],
-    [
-      "206",
-      "View return progress",
-      "Return being reviewed",
-      "Inspection pending",
-    ],
+    ["201", "Review opportunity", "Price drop found", "$20.00"],
+    ["206", "View return progress", "Return in progress", "Inspection pending"],
     [
       "208",
       "View refund details",
-      "Refund complete",
-      "No real refund was issued",
+      "Refund example",
+      "No PayPal refund was issued",
     ],
   ]) {
     const card = page.locator(
@@ -300,6 +334,7 @@ test("saved Demo price, return-progress and refund sources open useful next step
     await card.getByRole("button", { name: action, exact: true }).click();
     const dialog = page.getByRole("dialog", { name: heading, exact: true });
     await expect(dialog).toContainText("Demo event");
+    await expect(dialog).toContainText("· Sample");
     await expect(dialog).toContainText("Next step:");
     await expect(dialog).toContainText(evidence);
     await expect(
@@ -321,7 +356,7 @@ test("saved Demo price, return-progress and refund sources open useful next step
     page.getByRole("main").locator("[data-care-product]"),
   ).toHaveCount(1);
   await expect(page.getByRole("main")).toContainText(
-    "No real refund was issued",
+    "No PayPal refund was issued",
   );
   expect(writes).toEqual([]);
 });
@@ -352,7 +387,7 @@ test("ten persisted-fixture products use a compact responsive grid, real filters
     "Completed (1)",
   ]);
   await expect(main).not.toContainText("active verified windows");
-  await expect(main).toContainText("Demo collection");
+  await expect(main).toContainText("Sample collection");
   const first = await cards.nth(0).boundingBox();
   const second = await cards.nth(1).boundingBox();
   if (info.project.name.startsWith("desktop")) {
@@ -389,7 +424,7 @@ test("ten persisted-fixture products use a compact responsive grid, real filters
     .getByRole("link", { name: "Needs attention (5)", exact: true })
     .click();
   await expect(cards).toHaveCount(5);
-  await expect(main).toContainText("Safety check needed");
+  await expect(main).toContainText("Safety review");
 });
 
 test("exact refrigerator shows separate fictional amount and sourced retail snapshot", async ({
@@ -453,9 +488,7 @@ test("320px enlarged-text cards and source controls remain usable", async ({
   const card = page
     .getByRole("main")
     .locator('[data-care-product="00000000-0000-4000-8000-000000000203"]');
-  await card
-    .getByRole("button", { name: /Safety.*Safety check needed/ })
-    .click();
+  await card.getByRole("button", { name: /Safety.*Safety review/ }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toContainText("No official recall match is established");
   await page.keyboard.press("Escape");

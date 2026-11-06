@@ -180,9 +180,16 @@ export function CareCalendarRail({
                                     {dateLabel(day)}
                                   </time>
                                   <span
-                                    className={`care-rail-provenance ${event.evidence === "Demo" ? "care-rail-demo" : ""}`}
+                                    className={
+                                      event.evidence === "Demo"
+                                        ? "sr-only"
+                                        : "care-rail-provenance"
+                                    }
+                                    data-care-event-provenance={event.evidence}
                                   >
-                                    {event.evidence}
+                                    {event.evidence === "Demo"
+                                      ? "Sample event"
+                                      : event.evidence}
                                   </span>
                                 </span>
                               </span>
@@ -241,12 +248,9 @@ export function CareCalendarRail({
         </p>
       )}
       <div className="care-rail-disclosure">
-        <p>
-          Demo events are fictional; estimates are not confirmed delivery. Quiet
-          days are compressed.
-        </p>
-        <span data-care-event-counts>
-          {counts.demo} Demo · {counts.verified} verified Sandbox ·{" "}
+        <p>Quiet days are compressed. Delivery dates are estimates.</p>
+        <span data-care-event-counts className="sr-only">
+          {counts.demo} Sample · {counts.verified} verified Sandbox ·{" "}
           {counts.recorded} recorded, unverified
         </span>
       </div>

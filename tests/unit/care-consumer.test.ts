@@ -16,6 +16,7 @@ import { emptyOverview } from "../../src/lib/price-guardian/projections";
 import { emptyRecordsQuery } from "../../src/lib/careos/records/contracts";
 import { querySavedRecords } from "../../src/lib/careos/records/service";
 import { consumerProposal } from "../../scripts/care-consumer-plan";
+import { consumerScenario } from "../../src/lib/care/demo/consumer";
 
 const dataOf = () =>
   withConsumerDemoFixtures(withTenProductFixtures(structuredClone(demoData)));
@@ -28,6 +29,44 @@ const feedOf = (data = dataOf()) =>
     now: new Date("2026-11-05T12:00:00Z"),
   });
 describe("consumer Care uses human presentation, never invented authority", () => {
+  it("formats the actual saved return deadline in UTC and keeps expired windows closed", () => {
+    const scenario = dataOf().demoCare!.scenarios.find(
+      (s) => s.kind === "return-window",
+    )!;
+    if (scenario.kind !== "return-window")
+      throw Error("return fixture required");
+    const shifted = { ...scenario, endsAt: "2026-12-02T23:30:00-05:00" };
+    expect(consumerScenario(shifted, true).status).toBe("Return ends Dec 3");
+    expect(consumerScenario(shifted, false).status).toBe(
+      "Return window closed",
+    );
+    expect(scenario.endsAt).not.toBe(shifted.endsAt);
+  });
+  it("uses concise labels derived from saved deadlines and never calls a sample refund complete", () => {
+    const feed = feedOf();
+    for (const [id, label] of [
+      [201, "Price drop found"],
+      [202, "Delivery expected"],
+      [203, "Safety review"],
+      [204, "Price review"],
+      [205, "Warranty details"],
+      [206, "Return in progress"],
+      [207, "Return ends Nov 8"],
+      [208, "Refund example"],
+      [209, "Price watch active"],
+      [210, "Return ends Nov 7"],
+    ] as const) {
+      const view = feed.ownership.find((v) => v.twinId === demoId(id))!;
+      expect(
+        view.facts.find((f) => f.topic === view.pill.topic)!.consumer!.status,
+      ).toBe(label);
+      expect(view.pill.verified).toBe(false);
+    }
+    const book = feed.ownership.find((v) => v.twinId === demoId(208))!;
+    expect(book.facts[0].consumer!.summary).toContain(
+      "No PayPal refund was issued",
+    );
+  });
   it("gives all ten saved scenarios different situations and meaningful next steps", () => {
     const feed = feedOf();
     const cards = careProductCards(feed);
@@ -125,7 +164,7 @@ describe("consumer Care uses human presentation, never invented authority", () =
     );
     const headphones = feed.ownership.find((v) => v.twinId === demoId(201))!;
     expect(headphones.facts[0].consumer!.summary).toContain(
-      "$20.00 lower demo catalog price",
+      "$20.00 lower catalog price",
     );
     expect(headphones.facts[0].consumer!.nextStep).toContain(
       "not eligibility or money saved",
@@ -149,7 +188,7 @@ describe("consumer Care uses human presentation, never invented authority", () =
       demoCompletion: true,
     });
     expect(book.facts[0].consumer!.summary).toContain(
-      "No real refund was issued",
+      "No PayPal refund was issued",
     );
     expect(feed.purchases.find((p) => p.id === demoId(208))!.amountMinor).toBe(
       2495,

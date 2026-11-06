@@ -165,7 +165,7 @@ export function withDemoOwnership(
             ? `${s.terms} Example expiration ${s.endsAt}, exclusive.`
             : s.terms;
   const fact: OwnershipFact = {
-    consumer: consumerScenario(s, active, ending),
+    consumer: consumerScenario(s, active),
     summary:
       s.kind === "safety"
         ? "No official recall match established. Review exact identifiers."

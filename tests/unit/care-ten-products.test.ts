@@ -58,7 +58,7 @@ describe("ten-product evidence and price separation", () => {
       "",
       "Return deadline",
     ],
-    ["What needs my attention?", "attention", "", "Safety check needed"],
+    ["What needs my attention?", "attention", "", "Safety review"],
     [
       "What is my refrigerator's retail reference price?",
       "retail-reference",
@@ -81,7 +81,7 @@ describe("ten-product evidence and price separation", () => {
       "Is my refrigerator still under warranty?",
       "warranty",
       "Refrigerator",
-      "Warranty coverage",
+      "Warranty details",
     ],
     [
       "What's happening with my kettle delivery?",

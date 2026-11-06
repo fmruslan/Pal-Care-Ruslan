@@ -74,7 +74,7 @@ function ConsumerCareCard({ item, view, members }: ProductCard) {
                     {displayDate(member.purchasedOn)} ·{" "}
                     {member.origin === "sandbox"
                       ? "Verified Sandbox payment"
-                      : "Demo purchase"}{" "}
+                      : "Sample purchase"}{" "}
                     ·{" "}
                     {member.amountMinor === null
                       ? "Price not added"
@@ -288,19 +288,6 @@ export function CareFeedView({
   return (
     <>
       <CareCollectionRefresh />
-      {feed.demoAsOf && (
-        <p
-          className="mb-3 text-sm leading-6 text-muted-foreground"
-          data-care-demo-disclosure
-        >
-          <span className="font-semibold text-foreground">
-            Demo collection.
-          </span>{" "}
-          Events marked Demo are fictional, shown as of{" "}
-          {displayDate(feed.demoAsOf)}. Details explain each source; no real
-          delivery, coverage or refund is promised.
-        </p>
-      )}
       {filters && (
         <div className="mb-5">
           <CareFilters filter={selected} feed={feed} />

@@ -51,6 +51,14 @@ export default async function Care({
         footer={<CareFilters filter={filter} feed={feed} />}
       />
       <NorthCollection>
+        {feed.demoAsOf && (
+          <p
+            data-care-demo-disclosure
+            className="mb-3 text-xs leading-6 text-muted-foreground"
+          >
+            Sample collection · Illustrative purchases and care events
+          </p>
+        )}
         <CareCalendarPanel
           calendar={careCalendar(feed)}
           studioAllowed={studioAllowed}

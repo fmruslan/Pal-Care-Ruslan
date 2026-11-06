@@ -174,15 +174,15 @@ export function withConsumerDemoOwnership(
   const consumer =
     source.kind === "price-opportunity"
       ? {
-          status: "Price protection opportunity",
-          summary: `A ${money(source.paidMinor - source.currentMinor)} lower demo catalog price was found. Eligibility needs review.`,
+          status: "Price drop found",
+          summary: `A ${money(source.paidMinor - source.currentMinor)} lower catalog price was found. Eligibility needs review.`,
           action: "Review opportunity",
           nextStep:
             "Compare the exact product, seller's price policy and deadline before requesting an adjustment. The lower catalog price is not eligibility or money saved.",
         }
       : source.kind === "return-progress"
         ? {
-            status: "Return being reviewed",
+            status: "Return in progress",
             summary:
               "Your parcel has reached the seller. The next step is an inspection; no refund is confirmed.",
             action: "View return progress",
@@ -190,8 +190,8 @@ export function withConsumerDemoOwnership(
               "Keep the return confirmation and parcel receipt. Wait for the inspection outcome before expecting a refund. This Demo has no live carrier or merchant connection.",
           }
         : {
-            status: "Refund complete",
-            summary: `Your Demo history shows a ${money(source.amountMinor)} refund. No real refund was issued.`,
+            status: "Refund example",
+            summary: `An illustrative ${money(source.amountMinor)} refund. No PayPal refund was issued.`,
             action: "View refund details",
             nextStep:
               "Review the Demo refund breakdown and original receipt. This illustration is excluded from verified refunds and money recovered.",

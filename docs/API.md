@@ -1,5 +1,9 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
+## Care card label polish — presentation only
+
+No endpoint, payload, data schema, provider, financial or authorization change. Concise consumer labels derive from existing source-backed situations; return labels format their saved deadline in UTC. Fictional completion stays unverified and excluded from recovered-money totals: the book says **Refund example / No PayPal refund was issued**. One Sample collection disclosure replaces repeated surface Demo badges; exact event provenance, original source wording and links remain in evidence details/Insights. The 30-day Studio engine, UTC window, IDs and navigation are unchanged.
+
 ## Consumer timeline polish — deployed source dfd3f19, presentation only
 
 No HTTP, data schema, North planning, authorization, date calculation or provenance contract changes. The homepage custom widget renders the consumer rail only after actual Studio query IDs are validated; content-height measurements change native widget tracks, not records. Exact Twin/fact links and the complete Insights timeline/grid remain unchanged. No new endpoint, runtime flag, database write, worker, provider or financial operation. [Release state](STATUS.md).

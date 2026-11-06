@@ -13,7 +13,7 @@ import {
 import * as Dialog from "@radix-ui/react-dialog";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ChevronDown, Check, X, RefreshCw, ArrowRight } from "lucide-react";
+import { Check, X, RefreshCw, ArrowRight } from "lucide-react";
 import { Button } from "../ui/button";
 import { ReturnDraft } from "./return-draft";
 import { displayDate } from "@/lib/demo/presentation";
@@ -84,7 +84,7 @@ function FactDetails({ fact }: { fact: OwnershipFact }) {
     <div className="space-y-3" data-ownership-fact={fact.id}>
       <p className="font-semibold">
         {fact.consumer?.status ?? fact.status}
-        {fact.simulation && fact.consumer ? " · Demo" : ""}
+        {fact.simulation ? " · Sample" : ""}
       </p>
       {fact.consumer && (
         <>
@@ -482,7 +482,18 @@ export function OwnershipPill({ compact = false }: { compact?: boolean }) {
       data-ownership-twin={view.twinId}
       aria-haspopup="dialog"
       onClick={(event) => show(view.pill.topic, event.currentTarget)}
-      className={`inline-flex min-h-11 max-w-full flex-wrap items-center rounded-full border ${fact?.consumer ? "gap-2 px-3 py-1.5 text-sm" : compact ? "gap-1.5 px-2.5 py-1 text-[11px] [overflow-wrap:normal] sm:text-xs" : "gap-2 px-4 py-2 text-sm"} text-left font-semibold transition-colors motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${view.pill.verified ? "border-success/30 bg-success-surface text-success" : view.pill.attention ? "border-warning/40 bg-warning-surface text-warning" : "border-primary/30 bg-secondary text-foreground"}`}
+      data-care-status-tone={
+        view.pill.verified && !fact?.simulation
+          ? "verified"
+          : fact?.topic === "return-window" || fact?.topic === "safety"
+            ? "deadline"
+            : ["warranty", "price"].includes(fact?.topic ?? "") &&
+                fact?.consumer?.status !== "Price watch active" &&
+                fact?.consumer?.status !== "Price review"
+              ? "protection"
+              : "neutral"
+      }
+      className={`care-status-chip inline-flex min-h-11 max-w-full flex-wrap items-center gap-1.5 rounded-lg px-2.5 py-1 text-left ${compact ? "text-xs" : "text-sm"} font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
     >
       {view.pill.verified ? (
         <Check className="size-4 shrink-0" aria-hidden="true" />
@@ -490,18 +501,6 @@ export function OwnershipPill({ compact = false }: { compact?: boolean }) {
         <OwnershipIcon topic={view.pill.topic} className="size-4 shrink-0" />
       )}
       <span>{fact?.consumer?.status ?? view.pill.label}</span>
-      {fact?.consumer && fact.simulation && (
-        <span
-          className="rounded-full border border-current/25 px-2 py-0.5 text-xs font-medium"
-          data-care-demo
-        >
-          Demo
-        </span>
-      )}
-      <ChevronDown
-        className={`${compact ? "hidden sm:block" : ""} size-4 shrink-0`}
-        aria-hidden="true"
-      />
     </button>
   );
 }
@@ -600,7 +599,7 @@ export function OwnershipSummary({
                   stroke="currentColor"
                   strokeWidth="2"
                   strokeDasharray={
-                    fact.state === "recorded" ? undefined : "3 4"
+                    secondary || fact.state !== "recorded" ? "3 4" : undefined
                   }
                 />
               </svg>
@@ -628,7 +627,14 @@ export function OwnershipSummary({
                 className={`relative flex w-full flex-col items-center rounded-lg px-1 pb-1 text-center ${secondary && view.simulation ? "text-xs" : "text-[10px]"} [overflow-wrap:normal] hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring ${secondary ? `${view.simulation ? "min-h-11 leading-4" : "min-h-8 leading-3"} text-muted-foreground` : "min-h-[3.75rem] leading-4 sm:text-[11px]"} ${focused === fact.topic ? "bg-intelligence text-intelligence-foreground" : ""}`}
               >
                 <span
-                  className={`relative flex items-center justify-center rounded-full border ${secondary ? `size-3 ${fact.state === "recorded" ? "bg-primary" : "bg-card"}` : "size-5 bg-card"} ${view.pill.topic === fact.topic ? "ring-2 ring-primary/30 ring-offset-1 ring-offset-card" : ""} ${fact.state === "recorded" ? "border-primary text-primary" : fact.state === "upcoming" || fact.state === "attention" ? "border-intelligence-foreground text-intelligence-foreground" : "border-muted-foreground text-muted-foreground"} ${["unknown", "unavailable", "not-applicable"].includes(fact.state) ? "border-dashed" : ""}`}
+                  data-care-milestone-active={
+                    (focused ?? view.pill.topic) === fact.topic
+                  }
+                  className={
+                    secondary
+                      ? `care-milestone-dot relative size-3 rounded-full border ${(focused ?? view.pill.topic) === fact.topic ? "border-intelligence-foreground bg-intelligence ring-2 ring-intelligence-border/40" : "border-muted-foreground/40 bg-card"}`
+                      : `relative flex size-5 items-center justify-center rounded-full border bg-card ${view.pill.topic === fact.topic ? "ring-2 ring-primary/30 ring-offset-1 ring-offset-card" : ""} ${fact.state === "recorded" ? "border-primary text-primary" : fact.state === "upcoming" || fact.state === "attention" ? "border-intelligence-foreground text-intelligence-foreground" : "border-muted-foreground text-muted-foreground"} ${["unknown", "unavailable", "not-applicable"].includes(fact.state) ? "border-dashed" : ""}`
+                  }
                 >
                   {!secondary &&
                     (fact.state === "recorded" && !fact.simulation ? (
@@ -640,7 +646,9 @@ export function OwnershipSummary({
                     ))}
                 </span>
                 {secondary ? (
-                  <span className="mt-1">
+                  <span
+                    className={`mt-1 ${(focused ?? view.pill.topic) === fact.topic ? "font-medium text-foreground" : "text-muted-foreground"}`}
+                  >
                     {fact.topic === "price-window"
                       ? "Price"
                       : fact.topic === "return-window"

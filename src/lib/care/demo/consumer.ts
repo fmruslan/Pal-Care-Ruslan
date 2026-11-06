@@ -6,11 +6,10 @@ import { displayDate, money } from "../../demo/presentation";
 export function consumerScenario(
   s: DemoScenario,
   active: boolean,
-  ending: boolean,
 ): NonNullable<OwnershipFact["consumer"]> {
   if (s.kind === "delivery")
     return {
-      status: "On its way",
+      status: "Delivery expected",
       summary: `Estimated arrival ${displayDate(s.estimatedAt)}. Follow its journey in the delivery details.`,
       action: "Track delivery",
       nextStep:
@@ -18,7 +17,7 @@ export function consumerScenario(
     };
   if (s.kind === "safety")
     return {
-      status: "Safety check needed",
+      status: "Safety review",
       summary:
         "Check the model and batch details against the notice. No recall match is confirmed.",
       action: "Check safety details",
@@ -36,11 +35,7 @@ export function consumerScenario(
     };
   if (s.kind === "warranty")
     return {
-      status: active
-        ? s.extended
-          ? "Warranty coverage"
-          : "Warranty details available"
-        : "Warranty period ended",
+      status: active ? "Warranty details" : "Warranty period ended",
       summary: `${s.extended ? "Extended plan" : "Warranty"} details ${active ? "are available through" : "ended on"} ${displayDate(s.endsAt)}. Check what's included before arranging a repair.`,
       action: "View warranty",
       nextStep:
@@ -50,11 +45,7 @@ export function consumerScenario(
     return {
       status: !active
         ? "Return window closed"
-        : s.requiresUnopened && s.condition === "unknown"
-          ? "Check before you return"
-          : ending
-            ? "Return window closing"
-            : "Time to return",
+        : `Return ends ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(s.endsAt))}`,
       summary: !active
         ? "The return deadline has passed. Check the seller's terms for other options."
         : s.requiresUnopened
@@ -72,12 +63,12 @@ export function consumerScenario(
     status: !active
       ? "Price review window closed"
       : drop > 0
-        ? "Lower price to review"
-        : "Watching the price",
+        ? "Price review"
+        : "Price watch active",
     summary:
       drop > 0
-        ? `A ${money(drop)} lower catalog price is shown against a ${money(s.hypotheticalPurchaseMinor)} demo price basis. Your purchase price is still missing.`
-        : "Price-watch preview: no lower catalog price is shown yet.",
+        ? `A ${money(drop)} lower catalog price is shown against an illustrative ${money(s.hypotheticalPurchaseMinor)} price basis. Your purchase price is still missing.`
+        : "No lower catalog price is shown yet.",
     action: drop > 0 ? "Review price details" : "View price watch",
     nextStep:
       drop > 0
