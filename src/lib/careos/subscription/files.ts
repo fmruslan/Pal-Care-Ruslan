@@ -45,6 +45,7 @@ type FileName =
   | "quality.json"
   | "owner-state.json"
   | "standing-approval.json"
+  | "evaluation-approval.json"
   | "north-review-origin-approval.json"
   | "north-review-origin-request.json";
 

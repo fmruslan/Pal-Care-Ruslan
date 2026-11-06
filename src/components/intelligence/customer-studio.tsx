@@ -798,6 +798,15 @@ export function CustomerStudio({
         target.focus({ preventScroll: true });
       }
     }
+    // Inspectable public presentation evidence, captured ONLY after the actual
+    // SDK state, widget queries and native displays above have all agreed.
+    // It grants no authority; evaluators must also check rendered records.
+    if (canvas.current)
+      canvas.current.dataset.nativeReadback = JSON.stringify({
+        state: current.getState(),
+        recordIds: expectedIds,
+        nativeDisplaysVerified: true,
+      });
     return { empty: expectedIds.length === 0, nativeReady: true };
   }
 
@@ -1319,6 +1328,7 @@ export function CustomerStudio({
               setReady(true);
             }}
             onStateUpdated={(event) => {
+              if (canvas.current) delete canvas.current.dataset.nativeReadback;
               if (
                 insightPages.includes(event.state.selectedPageId as InsightPage)
               )

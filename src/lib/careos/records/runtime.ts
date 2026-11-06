@@ -10,6 +10,8 @@ import { PostgresStore } from "../postgres-store";
 import { CareError } from "../contracts";
 import { digest, validCapability } from "../security";
 import { northReviewPresentation } from "../../private-preview-origin";
+import { StandingOwner } from "../standing-owner";
+import { standingOwnerMode, standingProof } from "../standing-runtime";
 
 const review = northReviewPresentation(process.env);
 export const RECORDS_COOKIE = review
@@ -33,6 +35,21 @@ export function recordsRuntime() {
       runtimeDatabase(runtimeWriterUrl("CAREOS_DATABASE_URL")).pool,
       undefined,
       true,
+      Date.now,
+      async (owner) => {
+        if (
+          !standingOwnerMode() ||
+          process.env.CAREOS_STANDING_AI_ENABLED !== "true"
+        )
+          return false;
+        const token = (await cookies()).get(RECORDS_COOKIE)?.value;
+        if (!validCapability(token) || recordsOwner(token) !== owner)
+          return false;
+        return new StandingOwner().evaluationQuotaAccess(
+          await standingProof(),
+          true,
+        );
+      },
     );
     store = shared.northRecordsPostgres;
   } else store = shared.northRecordsMemory ??= new MemoryStore();

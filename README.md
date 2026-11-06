@@ -1,5 +1,7 @@
 # Pal Care
 
+**North language evaluation approved:** a reusable 1,050-case library and **300 new genuine provider attempts** will test natural language, corrections/context, exact purchase evidence and actual native Studio actions. The separate browser-bound allocation and faster campaign-only application limits are under verification, not activated or completed. Original accounting and provider limits remain intact. [Plan, scope and demo evidence priorities](docs/NORTH-LANGUAGE-300.md) · [actual status](docs/STATUS.md).
+
 **Risk-based CI is active:** proven cosmetic changes use focused CI, recognized Care/North/Studio features use integration acceptance, and critical/unknown/mixed changes use full checks. GitHub requires **release-gate + PR delivery**; private startup requires exact-commit CI/build evidence. The full-risk rollout passed and is deployed; final submission still requires its own full verification. [CI policy](docs/CI-POLICY.md) · [activation evidence and timing limits](docs/STATUS.md). Do not automatically repeat a 20–25-minute full suite for a strictly cosmetic iteration.
 
 **Care card wording/style polish:** shorter source-backed statuses, small soft chips, one active milestone and one **Sample collection** disclosure replace repetitive surface Demo badges. The book is a **Refund example** and explicitly says **No PayPal refund was issued**; details retain provenance. Existing layout, 30-day Studio calendar, North and actions remain. [Verification/release checkpoint](docs/STATUS.md).

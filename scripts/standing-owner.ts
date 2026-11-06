@@ -12,13 +12,19 @@ try {
       "approve-browser",
       "revoke-browser",
       "approve-policy",
+      "approve-evaluation",
       "approve-review-origin",
     ].includes(action)
   )
     throw new Error("usage");
   const owner = new StandingOwner();
   if (action === "approve-browser") await owner.approve(id);
-  else if (action === "revoke-browser") await owner.revokeSession(id);
+  else if (action === "approve-evaluation") {
+    if (id !== "evaluation-approval.json") throw new Error("usage");
+    await owner.approveEvaluation(
+      await owner.files.read("evaluation-approval.json"),
+    );
+  } else if (action === "revoke-browser") await owner.revokeSession(id);
   else if (action === "approve-review-origin") {
     if (id !== "north-review-origin-approval.json") throw new Error("usage");
     await owner.installReviewOriginApproval(

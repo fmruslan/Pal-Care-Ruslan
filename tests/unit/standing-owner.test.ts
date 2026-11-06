@@ -55,6 +55,173 @@ afterEach(async () => {
 });
 
 describe("remembered private owner and independent standing permission (no live provider)", () => {
+  async function evaluation() {
+    const context = await setup(2);
+    await context.owner.installPolicy(context.policy);
+    await context.owner.reserve(
+      context.proof,
+      "customer",
+      "original-unknown",
+      true,
+    );
+    await context.owner.settle("original-unknown", "unknown");
+    const pair = await context.owner.pair("evaluation-browser");
+    const state = (await context.files.read("owner-state.json")) as {
+      policy: unknown;
+      sessions: { id: string; createdAt: number }[];
+      events: unknown[];
+    };
+    const now = state.sessions.find((s) => s.id === pair.id)!.createdAt;
+    const approval = {
+      id: randomUUID(),
+      policyId: context.policy.id,
+      policyHash: createHash("sha256")
+        .update(JSON.stringify(state.policy))
+        .digest("hex"),
+      approvedAt: now,
+      expiresAt: now + 86400000,
+      sessionId: pair.id,
+      requestLimit: 300,
+      purpose: "north-language-300",
+      fastApplicationQuotaApproved: true,
+    };
+    return {
+      ...context,
+      evaluationProof: { token: pair.token, agent: "evaluation-browser" },
+      evaluationPair: pair,
+      approval,
+      before: state,
+    };
+  }
+  it("adds exactly 300 independently charged attempts, preserves policy/history/unknown and never falls back to old allowance", async () => {
+    const c = await evaluation();
+    await c.owner.approveEvaluation(c.approval);
+    expect(await c.owner.finishBrowser(c.evaluationProof)).toBe(
+      c.approval.expiresAt,
+    );
+    for (let i = 0; i < 300; i++) {
+      c.advance(60001);
+      await c.owner.reserve(
+        c.evaluationProof,
+        i % 2 ? "customer" : "customer-studio",
+        `new-${i}`,
+        true,
+      );
+      await c.owner.settle(
+        `new-${i}`,
+        i === 0 ? "unknown" : i === 1 ? "failed" : "completed",
+      );
+    }
+    await expect(
+      c.owner.reserve(c.evaluationProof, "customer", "over-budget", true),
+    ).rejects.toThrow("quota_exhausted");
+    expect(await c.owner.status(c.evaluationProof)).toMatchObject({
+      requestLimit: 300,
+      used: 300,
+      remaining: 0,
+      unknown: 2,
+      standingAllocation: { used: 1, remaining: 1 },
+      evaluation: { used: 300, remaining: 0, browserBound: true },
+    });
+    const after = (await c.files.read("owner-state.json")) as typeof c.before;
+    expect(after.policy).toEqual(c.before.policy);
+    expect(after.events.slice(0, c.before.events.length)).toEqual(
+      c.before.events,
+    );
+    await c.owner.reserve(c.proof, "customer", "last-original", true);
+    await c.owner.settle("last-original", "completed");
+    expect(await c.owner.status(c.proof)).toMatchObject({
+      used: 2,
+      remaining: 0,
+      evaluation: { used: 300, browserBound: false },
+    });
+  }, 30000); // 600 fsynced private-file writes; not a provider latency allowance.
+  it("cannot steal the campaign allocation from another browser or renew/reinstall it", async () => {
+    const c = await evaluation();
+    await c.owner.approveEvaluation(c.approval);
+    expect(await c.owner.evaluationQuotaAccess(c.proof, true)).toBe(false);
+    expect(await c.owner.evaluationQuotaAccess(c.evaluationProof, true)).toBe(
+      true,
+    );
+    expect(await c.owner.evaluationQuotaAccess(c.evaluationProof, false)).toBe(
+      false,
+    );
+    await c.owner.reserve(c.proof, "customer", "last-old", true);
+    await c.owner.settle("last-old", "completed");
+    await expect(
+      c.owner.reserve(c.proof, "customer", "steal", true),
+    ).rejects.toThrow("quota_exhausted");
+    await expect(
+      c.owner.approveEvaluation({ ...c.approval, id: randomUUID() }),
+    ).rejects.toThrow("evaluation_not_approved");
+    expect(await c.owner.status(c.evaluationProof)).toMatchObject({
+      remaining: 300,
+    });
+  });
+  it("bounds the dedicated browser to 24 hours, with exact expiry enforced by authentication and dispatch", async () => {
+    const c = await evaluation();
+    await expect(
+      c.owner.approveEvaluation({
+        ...c.approval,
+        expiresAt: c.approval.expiresAt + 1,
+      }),
+    ).rejects.toThrow("evaluation_not_approved");
+    await c.owner.approveEvaluation(c.approval);
+    c.advance(86400000);
+    await expect(c.owner.authenticate(c.evaluationProof)).rejects.toThrow(
+      "signin_required",
+    );
+    await expect(
+      c.owner.reserve(c.evaluationProof, "customer", "expired", true),
+    ).rejects.toThrow("signin_required");
+    expect(await c.owner.status(c.evaluationProof)).toMatchObject({
+      browserAccess: "session-expired",
+      evaluation: { used: 0, browserBound: false },
+    });
+  });
+  it.each(["policyId", "policyHash", "requestLimit", "sessionId", "purpose"])(
+    "rejects mismatched approval %s without changing state",
+    async (field) => {
+      const c = await evaluation();
+      const bad = {
+        ...c.approval,
+        [field]:
+          field === "requestLimit"
+            ? 301
+            : field === "policyHash"
+              ? "0".repeat(64)
+              : field === "purpose"
+                ? "other"
+                : randomUUID(),
+      };
+      await expect(c.owner.approveEvaluation(bad)).rejects.toThrow();
+      expect(await c.files.read("owner-state.json")).toEqual(c.before);
+    },
+  );
+  it("retains global concurrency/rate/revocation and prohibits the extra origin for campaign calls", async () => {
+    const c = await evaluation();
+    await c.owner.approveEvaluation(c.approval);
+    await c.owner.reserve(c.evaluationProof, "customer", "in-flight", true);
+    await expect(
+      c.owner.reserve(c.proof, "customer", "over-concurrency", true),
+    ).rejects.toThrow("busy");
+    await c.owner.settle("in-flight", "completed");
+    await expect(
+      c.owner.reserve(
+        { ...c.evaluationProof, origin: northReviewOrigin },
+        "customer",
+        "wrong-origin",
+        true,
+      ),
+    ).rejects.toThrow("origin_not_approved");
+    await c.owner.revokeSession(c.evaluationPair.id);
+    expect(await c.owner.evaluationQuotaAccess(c.evaluationProof, true)).toBe(
+      false,
+    );
+    await expect(
+      c.owner.reserve(c.evaluationProof, "customer", "revoked", true),
+    ).rejects.toThrow("signin_required");
+  });
   it("an additive exact review-origin approval shares the original immutable policy and spent ledger", async () => {
     const { owner, files, proof, policy } = await setup(2);
     await owner.installPolicy(policy);
