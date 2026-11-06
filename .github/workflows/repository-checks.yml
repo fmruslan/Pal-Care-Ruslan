@@ -2,7 +2,10 @@ name: Repository checks
 
 on:
   push:
+    branches: [main]
+    tags: ["submission-*"]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -25,7 +28,144 @@ env:
   CPSC_REFRESH_ENABLED: "false"
 
 jobs:
+  classify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      lane: ${{ steps.risk.outputs.lane }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - id: risk
+        # Classify with the base revision's policy, not a modified classifier in
+        # this PR. First installation/unavailable history always bootstraps full.
+        run: |
+          if [[ "$CI_BASE" =~ ^[a-f0-9]{40}$ ]] && git cat-file -e "$CI_BASE:scripts/ci-risk.mjs" 2>/dev/null; then
+            git show "$CI_BASE:scripts/ci-risk.mjs" > .ci-trusted-risk.mjs
+            node .ci-trusted-risk.mjs
+            rm .ci-trusted-risk.mjs
+          else
+            node --input-type=module -e 'import {writeFileSync,appendFileSync} from "node:fs";const result={lane:"full",base:process.env.CI_BASE||null,head:process.env.CI_HEAD,forceFull:true,reasons:[{path:"trusted-policy-unavailable",lane:"full"}]};writeFileSync("ci-risk.json",JSON.stringify(result,null,2));appendFileSync(process.env.GITHUB_OUTPUT,"lane=full\n");console.log(JSON.stringify(result));'
+          fi
+        env:
+          CI_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          CI_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          CI_EVENT: ${{ github.event_name }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: risk-classification
+          path: ci-risk.json
+          retention-days: 30
+
+  fast-ui:
+    needs: classify
+    if: needs.classify.outputs.lane == 'fast'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      DEMO_DATA_SOURCE: fixtures
+      DATABASE_URL: ""
+      TEST_DATABASE_URL: ""
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/verify-repository.mjs
+      - run: pnpm format:check
+      - run: pnpm check
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Focused Care, provenance, Studio, responsive and accessibility checks
+        run: pnpm exec playwright test --config=playwright.demo-care.config.ts --project=desktop-light --project=mobile-dark
+        env:
+          E2E_PORT: "3110"
+      - name: Focused visual and appearance regressions
+        run: pnpm exec playwright test tests/e2e/design.spec.ts --project=desktop-light --project=mobile-dark --grep 'System is the default|Light/Dark overrides|visual regression:'
+        env:
+          E2E_PORT: "3110"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: fast-ui-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  feature-acceptance:
+    needs: classify
+    if: needs.classify.outputs.lane == 'feature'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: palcare
+          POSTGRES_DB: palcare_test
+          POSTGRES_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U palcare -d palcare_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/verify-repository.mjs
+      - run: pnpm format:check
+      - run: pnpm lint && pnpm typecheck && pnpm test
+      - run: pnpm test:integration
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Care, Studio and provenance acceptance
+        run: pnpm exec playwright test --config=playwright.demo-care.config.ts
+        env:
+          E2E_PORT: "3110"
+      - name: Customer Care, North and native Insights regressions
+        run: pnpm exec playwright test tests/e2e/care-homepage.spec.ts tests/e2e/customer-insights.spec.ts tests/e2e/integrated-north.spec.ts tests/e2e/design.spec.ts --project=desktop-light --project=mobile-dark
+        env:
+          E2E_PORT: "3110"
+      - name: Saved database to native calendar and North History
+        run: pnpm exec node scripts/workspace.mjs run test:integration tsx --test tests/integration/care-ten-products.test.ts
+        env:
+          PALCARE_DEMO_BROWSER_JOURNEY: "true"
+      - name: Injected Sol protocol and actual Studio tools
+        run: pnpm exec playwright test --config=playwright.sol.config.ts
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: feature-results
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
   foundation:
+    needs: classify
+    if: needs.classify.outputs.lane == 'full'
     name: foundation (${{ matrix.data-source }})
     runs-on: ubuntu-24.04
     timeout-minutes: 35
@@ -52,6 +192,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -97,6 +238,8 @@ jobs:
   # matrices from consuming this suite's job window. Keep all existing test
   # deadlines/retries and the 35-minute job bound; no coverage is filtered out.
   native-acceptance:
+    needs: classify
+    if: needs.classify.outputs.lane == 'full'
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     services:
@@ -117,6 +260,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -158,3 +302,22 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+
+  release-gate:
+    if: always()
+    needs:
+      [classify, fast-ui, feature-acceptance, foundation, native-acceptance]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .node-version
+      - name: Require the successful risk-selected checks, never a skipped required job
+        run: node scripts/ci-gate.mjs
+        env:
+          CI_NEEDS: ${{ toJSON(needs) }}

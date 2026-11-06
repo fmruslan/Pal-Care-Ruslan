@@ -206,6 +206,8 @@ describe("persistent private website is not AI authorization", () => {
     expect(unit).not.toContain("RuntimeMaxSec");
     const launcher = readFileSync("scripts/private-preview.ts", "utf8");
     expect(launcher).toContain("assertBuild(true)");
+    expect(launcher).toContain("assertCiReceipt");
+    expect(launcher).toContain('".next/palcare-ci.json"');
     expect(launcher).toContain("assertDatabaseAuthority");
     expect(launcher).not.toContain("subscriptionSession(");
     expect(launcher).not.toContain("files.write");
