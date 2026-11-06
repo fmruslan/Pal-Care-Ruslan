@@ -1,6 +1,6 @@
 # Pal Care
 
-**Risk-based development policy:** small proven cosmetic changes use focused CI, recognized Care/North/Studio features use integration acceptance, and critical/unknown/mixed changes use full checks. The owner approved **required release-gate + PR delivery**; final submission always requires full verification. [CI policy](docs/CI-POLICY.md) · [implementation/activation evidence](docs/STATUS.md). Do not automatically repeat a 20–25-minute full suite for a strictly cosmetic iteration.
+**Risk-based CI is active:** proven cosmetic changes use focused CI, recognized Care/North/Studio features use integration acceptance, and critical/unknown/mixed changes use full checks. GitHub requires **release-gate + PR delivery**; private startup requires exact-commit CI/build evidence. The full-risk rollout passed and is deployed; final submission still requires its own full verification. [CI policy](docs/CI-POLICY.md) · [activation evidence and timing limits](docs/STATUS.md). Do not automatically repeat a 20–25-minute full suite for a strictly cosmetic iteration.
 
 **Care card wording/style polish:** shorter source-backed statuses, small soft chips, one active milestone and one **Sample collection** disclosure replace repetitive surface Demo badges. The book is a **Refund example** and explicitly says **No PayPal refund was issued**; details retain provenance. Existing layout, 30-day Studio calendar, North and actions remain. [Verification/release checkpoint](docs/STATUS.md).
 
