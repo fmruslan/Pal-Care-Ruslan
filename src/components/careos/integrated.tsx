@@ -617,6 +617,7 @@ export function IntegratedNorthView({
               {answer!.recordsResult && (
                 <RecordsResultView
                   key={active.requestId}
+                  requestId={active.requestId}
                   headingLevel={collectionPage ? 2 : 3}
                   presentation="inline"
                   result={answer!.recordsResult}

@@ -30,6 +30,8 @@ Initial attempt allocation: language 48, equivalent 42, repetition 24, context 4
 
 Safety/provider/accounting failures stop live dispatch. A material reproducible product defect pauses its affected stream for diagnosis, regression, appropriate CI and a clearly identified new retest. Ordinary unsupported/ambiguous inputs remain useful boundary observations, not reasons to fabricate capability. An oracle mismatch is reviewed and recorded separately from a product failure.
 
+Pre-dispatch parallel audit corrections distinguish a reviewable UI-observation failure **after a known completed call** from unknown/provider/accounting failures: only the former may retain the same approved browser for reviewed continuation. Invoking a paused/finished run grants nothing and changes no authority; a persisted unresolved dispatch cannot be resubmitted. Retest-prefix conversations keep separate bounded owned hints so original follow-ups resume their original server history. Native proof must match the exact current request/execution generation, not an older identical chart. NC-22's extra actual Previous result interaction is provider-free and requires exact restored records plus zero additional turn writes/reservations. These safeguards do not increase limits, extend expiry, authorize replacement identity or erase failed attempts.
+
 ## Hackathon and demo alignment
 
 | Evidence priority | Customer/judging relevance | Required proof |

@@ -14,12 +14,17 @@ import {
   type InsightsRun,
 } from "./use-insights-conversation";
 import type { RecordsResult } from "@/lib/careos/records/contracts";
-type RecordsRun = (result: RecordsResult, signal: AbortSignal) => Promise<void>;
+type RecordsRun = (
+  result: RecordsResult,
+  signal: AbortSignal,
+  // Legacy callers may omit identity, but cannot establish correlated proof.
+  requestId?: string,
+) => Promise<void>;
 type Control = ReturnType<typeof useInsightsConversation> & {
   connected: boolean;
   register: (run: InsightsRun, reset?: () => void) => () => void;
   registerRecords: (run: RecordsRun) => () => void;
-  applyRecords: (result: RecordsResult, signal: AbortSignal) => Promise<void>;
+  applyRecords: RecordsRun;
   cancelRecords: () => void;
   registerDeparture: (release: () => void) => () => void;
   prepareDeparture: () => void;
@@ -64,7 +69,7 @@ export function InsightsControlProvider({ children }: { children: ReactNode }) {
     };
   }, []);
   const applyRecords = useCallback(
-    async (result: RecordsResult, signal: AbortSignal) => {
+    async (result: RecordsResult, signal: AbortSignal, requestId?: string) => {
       if (!recordsHandler.current) throw new Error("insights_not_ready");
       recordsAction.current?.abort();
       const controller = new AbortController();
@@ -73,6 +78,7 @@ export function InsightsControlProvider({ children }: { children: ReactNode }) {
         await recordsHandler.current(
           result,
           AbortSignal.any([signal, controller.signal]),
+          requestId,
         );
         if (controller.signal.aborted || signal.aborted)
           throw new Error("insights_cancelled");

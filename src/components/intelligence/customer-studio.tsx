@@ -284,6 +284,7 @@ export function CustomerStudio({
   const [rows, setRows] = useState(dataset.purchases.map((p) => p.id));
   const rowsRef = useRef<string[] | null>(null);
   const epochRef = useRef(0);
+  const nativeExecutionRef = useRef(0);
   const refreshListeners = useRef(new Set<() => void>());
   const observations = useRef(new Map<string, WidgetObservation>());
   const rowListeners = useRef(new Set<() => void>());
@@ -533,8 +534,13 @@ export function CustomerStudio({
     command: CustomerCommand,
     signal: AbortSignal,
     recordIds?: string[],
+    requestId?: string,
   ) {
+    // Clear before any SDK mutation (including an identical-state request).
+    // State-update events alone cannot invalidate proof for a fresh execution.
+    if (canvas.current) delete canvas.current.dataset.nativeReadback;
     if (signal.aborted || !api.current) throw new Error("insights_cancelled");
+    const executionGeneration = ++nativeExecutionRef.current;
     const current = api.current;
     if (command.operation === "reset")
       current.setState(customerReport(compact));
@@ -801,8 +807,18 @@ export function CustomerStudio({
     // Inspectable public presentation evidence, captured ONLY after the actual
     // SDK state, widget queries and native displays above have all agreed.
     // It grants no authority; evaluators must also check rendered records.
+    if (signal.aborted) throw new Error("insights_cancelled");
+    if (
+      executionGeneration !== nativeExecutionRef.current ||
+      generation !== epochRef.current ||
+      stateFingerprint(current.getState()) !== expectedState ||
+      !nativeReady()
+    )
+      throw new Error("insights_result_unverified");
     if (canvas.current)
       canvas.current.dataset.nativeReadback = JSON.stringify({
+        requestId: requestId ?? null,
+        executionGeneration,
         state: current.getState(),
         recordIds: expectedIds,
         nativeDisplaysVerified: true,
@@ -813,38 +829,49 @@ export function CustomerStudio({
   useEffect(() => {
     if (!ready) return;
     const controller = new AbortController();
-    const unregister = registerRecords(async (result, callerSignal) => {
-      const signal = AbortSignal.any([controller.signal, callerSignal]);
-      if (!api.current || signal.aborted) throw new Error("insights_not_ready");
-      const expected = recordsChartState(
-        api.current.getState(),
-        result,
-        dataset.purchases,
-        compact,
-      );
-      api.current.setState(expected);
-      if (
-        stateFingerprint(api.current.getState()) !== stateFingerprint(expected)
-      )
-        throw new Error("insights_saved_analysis_state_unverified");
-      for (const widget of recordsChartWidgets)
-        validateTarget(api.current.getState(), "purchases", `extra-${widget}`);
-      const ids = result.records.map((r) => r.id);
-      const next = { ...emptyPurchaseFilters, recordIds: ids };
-      filtersRef.current = next;
-      setFilters(next);
-      setPage("purchases");
-      setCrossCategory("");
-      await apply(
-        { operation: "widget", widget: "recorded-value-chart" },
-        signal,
-        ids,
-      );
-      if (signal.aborted) throw new Error("insights_cancelled");
-      setNotice(
-        `Saved analysis chart verified: ${ids.length} matching purchases; Sample and Verified Sandbox values remain separate. Unpriced/reference exclusions are shown in North.`,
-      );
-    });
+    const unregister = registerRecords(
+      async (result, callerSignal, requestId?: string) => {
+        // Invalidate even when saved-result validation fails before apply runs.
+        if (canvas.current) delete canvas.current.dataset.nativeReadback;
+        const signal = AbortSignal.any([controller.signal, callerSignal]);
+        if (!api.current || signal.aborted)
+          throw new Error("insights_not_ready");
+        const expected = recordsChartState(
+          api.current.getState(),
+          result,
+          dataset.purchases,
+          compact,
+        );
+        api.current.setState(expected);
+        if (
+          stateFingerprint(api.current.getState()) !==
+          stateFingerprint(expected)
+        )
+          throw new Error("insights_saved_analysis_state_unverified");
+        for (const widget of recordsChartWidgets)
+          validateTarget(
+            api.current.getState(),
+            "purchases",
+            `extra-${widget}`,
+          );
+        const ids = result.records.map((r) => r.id);
+        const next = { ...emptyPurchaseFilters, recordIds: ids };
+        filtersRef.current = next;
+        setFilters(next);
+        setPage("purchases");
+        setCrossCategory("");
+        await apply(
+          { operation: "widget", widget: "recorded-value-chart" },
+          signal,
+          ids,
+          requestId,
+        );
+        if (signal.aborted) throw new Error("insights_cancelled");
+        setNotice(
+          `Saved analysis chart verified: ${ids.length} matching purchases; Sample and Verified Sandbox values remain separate. Unpriced/reference exclusions are shown in North.`,
+        );
+      },
+    );
     return () => {
       controller.abort();
       unregister();

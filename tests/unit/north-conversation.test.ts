@@ -272,6 +272,123 @@ describe("model-first conversation, with application-owned facts and no keyword 
       true,
     );
   });
+  it("reports a missing sample headphones manual while retaining its existing receipt and dated scope", async () => {
+    const proposal = plan({
+      task: "product",
+      productSearch: "headphones",
+      productAction: "manual",
+    });
+    Object.assign(proposal.query, {
+      origin: "sample",
+      from: "2026-10-18",
+      to: "2026-10-18",
+    });
+    const options = setup(proposal);
+    const answer = await answerConversationTurn({
+      ...options,
+      input: {
+        ...input(
+          "Find the manufacturer manual for my sample headphones from October 18",
+        ),
+        revision: 3,
+      },
+    });
+    expect(answer.outcome).toBe("missing");
+    expect(answer.mode).toBe("live");
+    expect(answer.revision).toBe(3);
+    expect(answer.questionScope).toBe("purchase");
+    expect(answer.context).toMatchObject({
+      twinId: "00000000-0000-4000-8000-000000000201",
+      purchasedOn: "2026-10-18",
+      origin: "sample",
+    });
+    expect(answer.conversationPlan).toEqual(proposal);
+    expect(answer.text).toContain(
+      "No manufacturer manual is available for Forma F-01",
+    );
+    expect(answer.sources).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "00000000-0000-4000-8000-000000000201",
+          href: "/vault/00000000-0000-4000-8000-000000000201",
+        }),
+        expect.objectContaining({
+          id: "00000000-0000-4000-8000-000000000301",
+          href: "/documents/00000000-0000-4000-8000-000000000301",
+        }),
+      ]),
+    );
+    expect(answer.actions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          href: "/documents/00000000-0000-4000-8000-000000000301",
+        }),
+        {
+          label: "Review saved documents",
+          href: "/vault/00000000-0000-4000-8000-000000000201#documents-heading",
+        },
+      ]),
+    );
+    expect(answer.actions.some((action) => action.href.endsWith("/care"))).toBe(
+      false,
+    );
+    expect(options.model.explain).not.toHaveBeenCalled();
+  });
+  it("answers a manual request from approved exact-model guidance even without saved documents", async () => {
+    const options = setup(
+      plan({
+        task: "product",
+        productSearch: "Raspberry Pi 5",
+        productAction: "manual",
+      }),
+    );
+    options.load.mockResolvedValueOnce({
+      ...demoData,
+      documents: demoData.documents.filter(
+        (d) => d.twinId !== "00000000-0000-4000-8000-000000000204",
+      ),
+    });
+    const answer = await answerConversationTurn({
+      ...options,
+      input: input("Find the manufacturer guidance for my Raspberry Pi 5"),
+    });
+    expect(answer.outcome).toBe("answered");
+    expect(answer.context?.twinId).toBe("00000000-0000-4000-8000-000000000204");
+    expect(answer.text).toContain(
+      "Matched official product guidance is available",
+    );
+    expect(answer.actions).toContainEqual({
+      label: "Open official-source product guidance",
+      href: "/vault/00000000-0000-4000-8000-000000000204/care",
+    });
+    expect(answer.sources.map((source) => source.href)).toEqual([
+      "/vault/00000000-0000-4000-8000-000000000204",
+    ]);
+    expect(options.model.explain).not.toHaveBeenCalled();
+  });
+  it.each(["conflicting", "withdrawn"] as const)(
+    "does not treat %s exact-model guidance as an available manual",
+    async (status) => {
+      const options = setup(
+        plan({
+          task: "product",
+          productSearch: "Raspberry Pi 5",
+          productAction: "manual",
+        }),
+      );
+      options.knowledge.mockResolvedValueOnce([{ ...referenceSource, status }]);
+      const answer = await answerConversationTurn({
+        ...options,
+        input: input("Find the manufacturer guidance for my Raspberry Pi 5"),
+      });
+      expect(answer.outcome).toBe("missing");
+      expect(answer.text).toContain("No manufacturer manual is available");
+      expect(answer.context?.twinId).toBe(
+        "00000000-0000-4000-8000-000000000204",
+      );
+      expect(options.model.explain).not.toHaveBeenCalled();
+    },
+  );
   it("model proposals cannot introduce money, record IDs, URLs or executable authority", async () => {
     const options = setup(plan());
     options.interpret.mockResolvedValueOnce({

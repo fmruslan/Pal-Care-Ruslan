@@ -25,9 +25,20 @@ import {
 import type { CareTurn } from "../src/lib/careos/contracts";
 import {
   assessLanguageAnswer,
+  expectedLanguageRecords,
   type LanguageObservation,
 } from "./north-language-assessment";
-import { submitLanguageTurn } from "./north-language-browser";
+import {
+  submitLanguageTurn,
+  verifyLanguageHistory,
+} from "./north-language-browser";
+import {
+  languageAttemptCount,
+  languageOriginalPrefixIntact,
+  languageStopDisposition,
+  rememberLanguageGroup,
+  restoreLanguageGroup,
+} from "./north-language-lifecycle";
 import { stratifyLanguageWork } from "../tests/fixtures/north-language-stratification";
 import {
   conversationScenarios,
@@ -74,6 +85,9 @@ type Progress = {
   finished?: boolean;
   holdoutNext?: number;
   retests?: Work[];
+  groupStorage?: Record<string, Record<string, string>>;
+  pendingDispatch?: { requestId: string; path: string; at: number };
+  groupRequestIds?: Record<string, string[]>;
 };
 const [action, output, batchText] = process.argv.slice(2);
 if (
@@ -94,10 +108,7 @@ const owner = new StandingOwner(),
   provider = subscriptionFiles();
 const host = async () =>
   (await owner.files.read("owner-state.json")) as HostState;
-const used = (s: HostState) =>
-  s.events.filter(
-    (e) => e.kind === "reserve" && e.allocationId === s.evaluation?.id,
-  ).length;
+const used = (s: HostState) => languageAttemptCount(s.events, s.evaluation?.id);
 const goal = (id: string, patch: Partial<Goal> = {}): Goal => ({
   ...languageGoals.find((g) => g.id === id)!,
   ...patch,
@@ -245,15 +256,21 @@ let context:
   progress: Progress | undefined,
   page: Page | undefined;
 let stopReason: string | undefined;
+let journalFailed = false;
 const errors: string[] = [],
   forbidden: string[] = [];
 const save = async () => {
-  if (progress)
-    await writeFile(
-      join(output, "progress.json"),
-      JSON.stringify(progress, null, 2),
-      { mode: 0o600 },
-    );
+  try {
+    if (progress)
+      await writeFile(
+        join(output, "progress.json"),
+        JSON.stringify(progress, null, 2),
+        { mode: 0o600 },
+      );
+  } catch {
+    journalFailed = true;
+    throw Error("campaign_journal_write_failed");
+  }
 };
 const checkpoint = async () => {
   const build = assertBuild(true);
@@ -268,12 +285,17 @@ const checkpoint = async () => {
   };
 };
 const emit = async (value: unknown) => {
-  const handle = await open(join(output, "ledger.jsonl"), "a", 0o600);
   try {
-    await handle.writeFile(JSON.stringify(value) + "\n");
-    await handle.sync();
-  } finally {
-    await handle.close();
+    const handle = await open(join(output, "ledger.jsonl"), "a", 0o600);
+    try {
+      await handle.writeFile(JSON.stringify(value) + "\n");
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+  } catch {
+    journalFailed = true;
+    throw Error("campaign_journal_write_failed");
   }
 };
 async function schedule(creating = false) {
@@ -336,7 +358,11 @@ async function observe(turn: CareTurn): Promise<LanguageObservation> {
           const proof = page!.locator(
             '[data-testid="customer-studio"][data-native-readback]',
           );
-          if (await proof.count()) return true;
+          if (await proof.count()) {
+            const raw = await proof.getAttribute("data-native-readback");
+            if (raw && JSON.parse(raw).requestId === turn.requestId)
+              return true;
+          }
           return (
             (await article.textContent())?.includes("could not be verified") ??
             false
@@ -345,9 +371,12 @@ async function observe(turn: CareTurn): Promise<LanguageObservation> {
         { timeout: 45000, intervals: [250, 500, 1000] },
       )
       .toBe(true);
-    const raw = await page!
-      .locator('[data-testid="customer-studio"]')
-      .getAttribute("data-native-readback");
+    const proof = page!.locator(
+      '[data-testid="customer-studio"][data-native-readback]',
+    );
+    const raw = (await proof.count())
+      ? await proof.getAttribute("data-native-readback")
+      : null;
     if (raw) nativeReadback = JSON.parse(raw);
   }
   const renderedIds = await article
@@ -373,6 +402,7 @@ async function observe(turn: CareTurn): Promise<LanguageObservation> {
     if (!r.ok()) linksResolve = false;
   }
   return {
+    requestId: turn.requestId,
     text: await article.innerText(),
     renderedIds,
     linksResolve,
@@ -401,6 +431,8 @@ try {
   if (progress?.finished) throw Error("campaign_already_closed_no_replay");
   if (progress?.paused)
     throw Error("campaign_paused_review_required_no_replay");
+  if (progress?.pendingDispatch)
+    throw Error("unreconciled_application_dispatch_no_replay");
   if (
     progress &&
     (!s.evaluation ||
@@ -456,6 +488,11 @@ try {
         if (Date.now() >= progress.deadline || used(await host()) >= 300)
           return route.abort("blockedbyclient");
         progress.turnTimes.push(Date.now());
+        progress.pendingDispatch = {
+          requestId: r.postDataJSON().requestId,
+          path: u.pathname,
+          at: Date.now(),
+        };
         await save();
         await emit({
           kind: "application-dispatch",
@@ -611,20 +648,23 @@ try {
     if (!item) throw Error("meaningful_frozen_cases_exhausted");
     await schedule(item.group !== progress.activeGroup);
     if (item.group !== progress.activeGroup) {
-      await freshPage();
+      if (page && progress.activeGroup) {
+        rememberLanguageGroup(
+          progress,
+          await page.evaluate(() =>
+            Object.fromEntries(Object.entries(sessionStorage)),
+          ),
+        );
+        await save();
+      }
+      const restored = restoreLanguageGroup(progress, item.group);
+      await freshPage(restored);
       progress.activeGroup = item.group;
-      progress.storage = {};
+      progress.storage = restored ?? {};
       await save();
     } else if (!page) await freshPage(progress.storage);
     const before = await host();
-    if (
-      before.events
-        .slice(0, progress.originalEvents.length)
-        .some(
-          (e, i) =>
-            JSON.stringify(e) !== JSON.stringify(progress!.originalEvents[i]),
-        )
-    )
+    if (!languageOriginalPrefixIntact(before.events, progress.originalEvents))
       throw Error("original_event_prefix_changed");
     if (hash(before.policy) !== progress.originalPolicyHash)
       throw Error("original_policy_changed");
@@ -678,17 +718,69 @@ try {
     if (isHoldout) progress.holdoutNext = (progress.holdoutNext ?? 0) + 1;
     else if (isRetest) progress.retests!.shift();
     else progress.next++;
+    delete progress.pendingDispatch;
+    const priorRequestId = progress.groupRequestIds?.[item.group]?.at(-1);
+    if (response.ok() && body.answer) {
+      progress.groupRequestIds ??= {};
+      progress.groupRequestIds[item.group] = [
+        ...(progress.groupRequestIds[item.group] ?? []),
+        request.requestId,
+      ];
+    }
     await save();
     let observation: LanguageObservation | undefined,
       assessment: ReturnType<typeof assessLanguageAnswer> | undefined;
     if (response.ok() && body.answer) {
-      observation = await observe(body as CareTurn);
-      assessment = assessLanguageAnswer(
-        item.goal,
-        progress.snapshot,
-        body.answer,
-        observation,
-      );
+      try {
+        observation = await observe(body as CareTurn);
+        assessment = assessLanguageAnswer(
+          item.goal,
+          progress.snapshot,
+          body.answer,
+          observation,
+        );
+        if (item.id.replace(/(?:-R\d+)+$/, "") === "NC-22-3") {
+          if (!priorRequestId) throw Error("owned_previous_result_required");
+          const beforeHistory = used(await host());
+          const history = await verifyLanguageHistory(
+            page!,
+            priorRequestId,
+            expectedLanguageRecords(progress.snapshot, audio()).map(
+              (record) => record.id,
+            ),
+          );
+          const afterHistory = used(await host());
+          await emit({
+            kind: "history-observation",
+            caseId: item.id,
+            group: item.group,
+            expectedRequestId: priorRequestId,
+            history,
+            providerAttempts: afterHistory - beforeHistory,
+            source: await checkpoint(),
+          });
+          const check = {
+            name: "Read-only History restored the exact prior result with zero provider attempts",
+            pass:
+              history.attemptedWrites.length === 0 &&
+              afterHistory === beforeHistory,
+          };
+          assessment.checks.push(check);
+          if (!check.pass) assessment.failures.push(check.name);
+          assessment.automatedPass = assessment.checks.every(
+            (entry) => entry.pass,
+          );
+        }
+      } catch {
+        if (journalFailed) throw Error("campaign_journal_write_failed");
+        assessment = {
+          checks: [{ name: "Actual UI observation completed", pass: false }],
+          failures: ["Actual UI observation completed"],
+          automatedPass: false,
+          semanticReviewRequired: true,
+          expectedIds: [],
+        };
+      }
     }
     const evidence = {
       kind: "evaluation",
@@ -719,11 +811,15 @@ try {
         failures: assessment?.failures ?? [],
       }),
     );
-    progress.storage = await page!.evaluate(() =>
-      Object.fromEntries(Object.entries(sessionStorage)),
+    rememberLanguageGroup(
+      progress,
+      await page!.evaluate(() =>
+        Object.fromEntries(Object.entries(sessionStorage)),
+      ),
     );
     await save();
     if (
+      forbidden.length > 0 ||
       unknown ||
       unsettled ||
       after.events
@@ -758,9 +854,25 @@ try {
       ? e.message
       : "campaign_execution_stopped_review_private_evidence";
   if (progress) {
-    progress.paused = stopReason;
-    await save();
-    await owner.revokeSession(progress.sessionId);
+    const disposition = languageStopDisposition({
+      reason: stopReason,
+      allocationId: progress.allocationId,
+      events: (await host()).events,
+      pendingDispatch: !!progress.pendingDispatch,
+      unsafeBoundary: forbidden.length > 0 || journalFailed,
+      expired: Date.now() >= progress.deadline,
+    });
+    if (disposition !== "unchanged") {
+      progress.paused = stopReason;
+      if (disposition === "revoke")
+        await owner.revokeSession(progress.sessionId);
+      try {
+        await save();
+      } catch {
+        await owner.revokeSession(progress.sessionId);
+        throw Error("campaign_journal_write_failed");
+      }
+    }
   }
 } finally {
   await context?.close();

@@ -22,6 +22,9 @@ export function expectedLanguageRecords(snapshot: SavedRecord[], goal: Goal) {
   );
 }
 export type NativeReadback = {
+  requestId: string;
+  // Missing legacy generations are assessed as failed, not inferred fresh.
+  executionGeneration?: number;
   state: {
     selectedPageId?: string;
     pages?: {
@@ -54,6 +57,8 @@ export type NativeReadback = {
   nativeDisplaysVerified: boolean;
 };
 export type LanguageObservation = {
+  /** Set by the runner from the actual turn, never from the readback itself. */
+  requestId?: string;
   text: string;
   renderedIds: string[];
   linksResolve: boolean;
@@ -144,6 +149,16 @@ export function assessLanguageAnswer(
         );
       if (goal.format === "chart") {
         const native = observed.nativeReadback;
+        check(
+          "Fresh native proof for exact request",
+          typeof observed.requestId === "string" &&
+            observed.requestId.length > 0 &&
+            !!native &&
+            native.requestId === observed.requestId &&
+            typeof native.executionGeneration === "number" &&
+            Number.isSafeInteger(native.executionGeneration) &&
+            native.executionGeneration > 0,
+        );
         const page = native?.state.pages?.find((p) => p.id === "purchases");
         const chart = page?.widgets?.["extra-recorded-value-chart"];
         const filter = page?.filter?.page?.find(
@@ -221,20 +236,14 @@ export function assessLanguageAnswer(
     }
   }
   if (goal.action === "receipt") {
-    check(
-      "Exact dated product context",
-      !!answer.context?.twinId &&
-        expected.some((r) => r.id === answer.context!.twinId),
-    );
+    const purchase = expected.find((r) => r.id === answer.context?.twinId);
+    check("Exact dated product context", !!purchase);
     check(
       "Exact saved receipt, not substituted",
-      expected.some(
-        (r) =>
-          !!r.receiptId &&
-          [...answer.actions, ...answer.sources].some((a) =>
-            a.href.includes(r.receiptId!),
-          ),
-      ),
+      !!purchase?.receiptId &&
+        [...answer.actions, ...answer.sources].some(
+          (a) => a.href === `/documents/${purchase.receiptId}`,
+        ),
     );
   }
   if (goal.action === "manual")
