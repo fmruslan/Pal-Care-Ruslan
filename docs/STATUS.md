@@ -1,6 +1,6 @@
 # Implementation status
 
-## Consumer 30-day timeline redesign — implemented; release gates pending
+## Consumer 30-day timeline redesign — live private release; owner review next
 
 **Implemented:** homepage-only airy “Your next 30 days” section with soft semantic surfaces, weekly headings, thin continuous date rail, Violet Today marker, Bronze event accents and floating original-product cards. Supported Studio theme/layout settings remove enterprise canvas frames; actual query/ID verification remains mandatory. `ResizeObserver` sizes native tracks to content. One keyboard/touch horizontal surface and subtle previous/Today/next controls replace nested scrolling. Product cards/filters, full Insights native grid, rolling UTC logic, exact evidence links, North, saved dates/amounts and provenance are unchanged. Demo labels and one concise section disclosure remain; quiet days are explicitly compressed.
 
@@ -10,7 +10,11 @@
 
 **Retained harness interruption:** first dedicated-test launch queried readiness immediately after starting its stopped container; PostgreSQL was not ready, so no tests ran and the container was stopped. Bounded readiness retry added to the private harness; this is not an application defect or a test pass.
 
-**Incomplete:** candidate commit/push, all three mandatory exact-commit CI jobs, promotion/preservation and actual new-design private HTTPS. **Blocked:** owner visual/real-device review follows deployment; new genuine North acceptance and financial/public-judging gates remain separate. **Next:** finish release gates and deploy on existing private 8444 with verified application-only rollback; no routine new approval needed within this scope.
+**Verified — exact-source CI:** committed/pushed **`dfd3f190d1dd3c60f36a7dc94338e1960817c66e`**; [42147561764](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/42147561764) passed all three mandatory jobs: native **15m30s**, database **23m37s**, fixtures **21m10s**. Both foundations passed **972** browsers; native passed **40** timeline/product, **33** access, **182** Firefox/WebKit and **14** injected Sol checks. Dedicated database and both injected connected journeys passed; six synthetic Guardian checks passed in the database job. No first-attempt failure/flaky result reported for this run.
+
+**Verified — actual application:** source `dfd3f19`, clean build **`HewGfT_30nihU0T6qMgcM`**, promoted on private **8444 → 3002** after the frozen rollback was restarted and four-profile HTTPS passed again. Candidate desktop/mobile × Light/Dark HTTPS passed actual Studio IDs/rolling range, borderless native canvas, zero vertical scroll/clipping, exact Twin/fact links, full Insights grid/evidence filtering, ten cards/eleven purchases/both headphones histories and Axe. All **41 tables**, **31 roles**, **123 objects**, **27 protected files**, memberships/functions and runtime hash remained unchanged. Zero dispatched writes/model/financial/external requests and zero page errors. Only this task's continuity override was removed; verified application-only rollback remains retained. [Release evidence](evidence/CARE-TIMELINE-POLISH-RELEASE.md).
+
+**Incomplete:** owner subjective/real-device review and separately scoped genuine North acceptance. **Blocked:** no new genuine acceptance browser/model call occurred; existing allowance/financial/public-judging boundaries remain unchanged. **Next:** owner reviews [live Care](https://greatbison.tail9e8802.ts.net:8444/dashboard). This documentation receipt receives separate exact-commit CI/build refresh; it does not replace accepted application-source evidence.
 
 ## Rolling 30-day Care calendar — live private release; owner review next
 

@@ -1,6 +1,6 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
-## Consumer timeline polish — presentation-only candidate
+## Consumer timeline polish — deployed source dfd3f19, presentation only
 
 No HTTP, data schema, North planning, authorization, date calculation or provenance contract changes. The homepage custom widget renders the consumer rail only after actual Studio query IDs are validated; content-height measurements change native widget tracks, not records. Exact Twin/fact links and the complete Insights timeline/grid remain unchanged. No new endpoint, runtime flag, database write, worker, provider or financial operation. [Release state](STATUS.md).
 
