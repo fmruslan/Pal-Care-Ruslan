@@ -28,8 +28,8 @@ import {
   type LanguageObservation,
 } from "./north-language-assessment";
 import { submitLanguageTurn } from "./north-language-browser";
+import { stratifyLanguageWork } from "../tests/fixtures/north-language-stratification";
 import {
-  buildLanguageLibrary,
   conversationScenarios,
   languageGoals,
   LANGUAGE_CAMPAIGN,
@@ -229,45 +229,11 @@ function buildWork(): Work[] {
       expected: s.expected,
     })),
   );
-  // Each category also receives unseen single-turn cases. Context-dependent
-  // cases stay in the 24 real conversations, never browser-posted fake history.
-  const library = buildLanguageLibrary().filter(
-    (c) => c.context.length === 0 && c.expected.inference === "genuine",
-  );
-  for (let n = 0; n < 300; n++) {
-    const c = library[(n * 37) % library.length];
-    work.push({
-      id: c.id,
-      group: `library-${Math.floor(n / 12)}`,
-      category: c.category,
-      input: c.input,
-      goal: c.goal,
-      expected: c.expected.semantic,
-    });
-  }
   return work;
 }
-let work = buildWork();
-let holdout: Work[] = buildLanguageLibrary()
-  .filter(
-    (c) =>
-      c.category === "equivalent" &&
-      !!c.goal.filter &&
-      !c.goal.action &&
-      c.goal.format !== "chart",
-  )
-  .slice(-30)
-  .map((c) => ({
-    id: `HOLDOUT-${c.id}`,
-    group: `holdout-${c.id}`,
-    category: c.category,
-    input: c.input,
-    goal: c.goal,
-    expected: c.expected.semantic,
-  }));
-// Holdout inputs never appear in the discovery/regression selection.
-const heldInputs = new Set(holdout.map((c) => c.input));
-work = work.filter((c) => !heldInputs.has(c.input));
+const planned = stratifyLanguageWork(buildWork());
+let work: Work[] = planned.work;
+let holdout: Work[] = planned.holdout;
 await mkdir(output, { recursive: true, mode: 0o700 });
 const stat = await lstat(output);
 if (stat.isSymbolicLink() || stat.mode & 0o077)
@@ -514,7 +480,15 @@ try {
     await writeFile(
       join(output, "work.json"),
       JSON.stringify(
-        { campaign: LANGUAGE_CAMPAIGN, source, work, holdout },
+        {
+          campaign: LANGUAGE_CAMPAIGN,
+          source,
+          work,
+          holdout,
+          adjustedTargets: planned.targets,
+          plannedDiscoveryCalls: planned.plannedDiscoveryCalls,
+          plannedHoldoutCalls: planned.plannedHoldoutCalls,
+        },
         null,
         2,
       ),

@@ -48,17 +48,27 @@ if (kind === "repair") {
   const { work } = JSON.parse(
     await readFile(join(output, "work.json"), "utf8"),
   );
+  const rootCase = failure.caseId.replace(/(?:-R\d+)+$/, "");
+  const original = work.find((w: { id: string }) => w.id === rootCase);
   const group = work.filter(
-    (w: { group: string }) => w.group === failure.group,
+    (w: { group: string }) => w.group === original?.group,
   );
-  const index = group.findIndex((w: { id: string }) => w.id === failure.caseId);
+  const index = group.findIndex((w: { id: string }) => w.id === rootCase);
   if (index < 0) throw Error("frozen_original_case_required");
   const version =
     entries.filter(
-      (e) => e.kind === "review" && e.originalCase === failure.caseId,
+      (e) =>
+        e.kind === "review" &&
+        e.originalCase.replace(/(?:-R\d+)+$/, "") === rootCase,
     ).length + 1;
   const rerun = group
-    .slice(failure.group.startsWith("NC-") ? 0 : index, index + 1)
+    .slice(
+      group.some((w: { id: string }) => w.id.includes("-SETUP-")) ||
+        original?.group.startsWith("NC-")
+        ? 0
+        : index,
+      index + 1,
+    )
     .map((w: Record<string, unknown>) => ({
       ...w,
       id: `${w.id}-R${version}`,
