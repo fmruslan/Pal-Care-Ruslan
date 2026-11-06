@@ -379,13 +379,15 @@ export async function answerConversationTurn(options: {
     scoped,
     plan.task === "care" ? "care" : "documents",
   );
-  if (plan.productAction === "manual" && plan.task === "product")
+  if (plan.productAction === "manual" && plan.task === "product") {
+    const hasApprovedSource = sources.some((s) => s.status === "approved");
     return {
       ...baseAnswer,
       mode: "live",
+      outcome: hasApprovedSource ? "answered" : "missing",
       questionScope: "purchase",
       conversationPlan: plan,
-      text: sources.some((s) => s.status === "approved")
+      text: hasApprovedSource
         ? "Matched official product guidance is available. The source page shows its documented topics and limits."
         : `No manufacturer manual is available for ${record.product.brand} ${record.product.model} in these records. The saved documents below are not a substitute manufacturer manual.`,
       actions: [
@@ -404,6 +406,7 @@ export async function answerConversationTurn(options: {
           : []),
       ],
     };
+  }
   if (sources.some((s) => s.status === "conflicting"))
     return {
       ...baseAnswer,

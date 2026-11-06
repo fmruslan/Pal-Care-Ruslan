@@ -1332,6 +1332,7 @@ export function CareOSProvider({
                         <p>{turn.answer.text}</p>
                         {turn.answer.recordsResult && (
                           <RecordsResultView
+                            requestId={turn.requestId}
                             result={turn.answer.recordsResult}
                             autoApply={recordsSubmission === turn.requestId}
                             onAutoApplyStarted={() =>

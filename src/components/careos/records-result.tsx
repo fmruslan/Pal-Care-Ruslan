@@ -48,6 +48,7 @@ function Totals({
 /** Values/identities are computed on the server; the model cannot supply links. */
 export function RecordsResultView({
   result: raw,
+  requestId,
   onNavigate,
   autoApply = false,
   onAutoApplyStarted,
@@ -55,6 +56,8 @@ export function RecordsResultView({
   headingLevel = 3,
 }: {
   result: RecordsResult;
+  /** Actual rendered turn identity; presentation evidence, never authority. */
+  requestId: string;
   onNavigate: () => void;
   autoApply?: boolean;
   onAutoApplyStarted?: () => void;
@@ -82,6 +85,7 @@ export function RecordsResultView({
       await applyRecords(
         recordsResultSchema.parse(raw),
         AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]),
+        requestId,
       );
       controller.signal.throwIfAborted();
       setChartStatus(
@@ -105,7 +109,7 @@ export function RecordsResultView({
       active.current = null;
       setApplying(false);
     }
-  }, [applyRecords, raw, presentation]);
+  }, [applyRecords, raw, presentation, requestId]);
   useEffect(() => () => active.current?.abort(), []);
   useEffect(() => {
     if (!autoApply || raw.query.format !== "chart" || started.current) return;
