@@ -28,6 +28,10 @@ if (
   new Set(cases.map((c) => c.id)).size !== 1050
 )
   throw new Error("library_count_mismatch");
+if (
+  new Set(cases.map((c) => JSON.stringify([c.input, c.context]))).size !== 1050
+)
+  throw new Error("duplicate_input_context_pair");
 const manifest = {
   version: 1,
   campaign: LANGUAGE_CAMPAIGN,

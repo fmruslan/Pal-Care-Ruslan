@@ -478,8 +478,30 @@ export function buildLanguageLibrary(): LanguageCase[] {
       cases.push(
         define(
           "styles",
-          variants[[10, 11, 8, 9, 14, 15, 17, 18, 19, 28][i]][0],
-          variants[[10, 11, 8, 9, 14, 15, 17, 18, 19, 28][i]][1](goal.request),
+          [
+            "older-expression",
+            "professional",
+            "non-technical",
+            "internet-slang",
+            "non-native-grammar",
+            "direct",
+            "detailed",
+            "indirect",
+            "bilingual",
+            "number-substitution",
+          ][i],
+          [
+            `I haven't the foggiest how to proceed. Would you kindly ${goal.request}?`,
+            `Please clarify the applicable saved evidence and ${goal.request}.`,
+            `Where's the little button that makes this work? I want to ${goal.request}.`,
+            `Bro, I'm lost in here. ${goal.request}, that's the assignment.`,
+            `I try yesterday, still not working. Please ${goal.request}.`,
+            `${goal.request}. That's all I need.`,
+            `I kept several receipts in a drawer, then remembered I had saved purchase records here. I'm not adding anything new. Could you ${goal.request}?`,
+            `If there's a way, I'd appreciate it if you could ${goal.request}.`,
+            `Hola, necesito ayuda con mis compras. Could you ${goal.request}?`,
+            `Please ${goal.request} 4 me 2day; don't add a new date filter.`,
+          ][i],
           goal,
         ),
       );

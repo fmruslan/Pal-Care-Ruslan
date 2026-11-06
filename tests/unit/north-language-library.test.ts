@@ -11,6 +11,9 @@ describe("offline North language library (no inference)", () => {
     const cases = buildLanguageLibrary();
     expect(cases).toHaveLength(1050);
     expect(new Set(cases.map((c) => c.id)).size).toBe(1050);
+    expect(
+      new Set(cases.map((c) => JSON.stringify([c.input, c.context]))).size,
+    ).toBe(1050);
     expect(buildLanguageLibrary()).toEqual(cases);
     expect(
       Object.values(categoryTargets).reduce((n, [, calls]) => n + calls, 0),
