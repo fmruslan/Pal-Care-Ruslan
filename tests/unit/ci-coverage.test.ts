@@ -6,9 +6,13 @@ const workflow = readFileSync(
   ".github/workflows/repository-checks.yml",
   "utf8",
 );
-const [shared, foundation, native] = workflow.split(
-  /^  (?:foundation|native-acceptance):\n/m,
-);
+const shared = workflow.split(/^jobs:\n/m)[0];
+const job = (name: string) =>
+  workflow
+    .split(new RegExp(`^  ${name}:\\n`, "m"))[1]
+    .split(/^  [a-z-]+:\n/m)[0];
+const foundation = job("foundation"),
+  native = job("native-acceptance");
 const commands = (job: string) =>
   Array.from(job.matchAll(/^\s+(?:- )?run: (.+)$/gm), ([, command]) => command);
 const steps = (job: string) => job.split(/^      - /m).slice(1);
@@ -88,22 +92,31 @@ describe("mandatory CI workload isolation", () => {
     expect(native).toContain('E2E_PORT: "3108"');
     expect(native).toContain('PALCARE_PROTECTION_BROWSER_JOURNEY: "true"');
     expect(native).not.toMatch(/strategy:|matrix:|E2E_DATA_SOURCE:/);
-    expect(workflow).not.toMatch(
-      /continue-on-error|--grep|--shard|--retries|--timeout|--project|--test-list|--pass-with-no-tests|--last-failed|--only-changed|\bneeds:|max-parallel:|PLAYWRIGHT_|E2E_TEST/,
+    expect(foundation + native).not.toMatch(
+      /continue-on-error|--grep|--shard|--retries|--timeout|--project|--test-list|--pass-with-no-tests|--last-failed|--only-changed|max-parallel:|PLAYWRIGHT_|E2E_TEST/,
     );
   });
 
-  it("permits only database-exclusive Guardian and always-upload artifact conditions", () => {
+  it("selects lanes only through classification, with unchanged full-suite step conditions", () => {
     expect(workflow.match(/^\s+(?:- )?if: .+$/gm)).toEqual([
+      "    if: needs.classify.outputs.lane == 'fast'",
+      "        if: always()",
+      "    if: needs.classify.outputs.lane == 'feature'",
+      "        if: always()",
+      "    if: needs.classify.outputs.lane == 'full'",
       "        if: matrix.data-source == 'database'",
       "        if: always()",
+      "    if: needs.classify.outputs.lane == 'full'",
       "        if: always()",
+      "    if: always()",
     ]);
     expect(foundation.match(/^\s+(?:- )?if: .+$/gm)).toEqual([
+      "    if: needs.classify.outputs.lane == 'full'",
       "        if: matrix.data-source == 'database'",
       "        if: always()",
     ]);
     expect(native.match(/^\s+(?:- )?if: .+$/gm)).toEqual([
+      "    if: needs.classify.outputs.lane == 'full'",
       "        if: always()",
     ]);
     const guardian = steps(foundation).filter((step) =>
@@ -136,7 +149,7 @@ describe("mandatory CI workload isolation", () => {
   });
 
   it("keeps every runner at the original bounds with independent disposable PostgreSQL", () => {
-    expect(workflow.match(/^\s+timeout-minutes: .+$/gm)).toEqual([
+    expect((foundation + native).match(/^\s+timeout-minutes: .+$/gm)).toEqual([
       "    timeout-minutes: 35",
       "    timeout-minutes: 35",
     ]);
@@ -178,6 +191,35 @@ describe("mandatory CI workload isolation", () => {
     expect(shared).toContain('DISCOVERY_PROVIDER: "fixture"');
     expect(foundation + native).not.toMatch(
       /PAYPAL_|CAREOS_|GUARDIAN_|PRICE_GUARDIAN_|DISCOVERY_|CHANNEL3_|CPSC_|DATABASE_URL:/,
+    );
+  });
+  it("requires trusted automatic classification and an always-running gate for all lane results", () => {
+    expect(job("classify")).toContain(
+      'git show "$CI_BASE:scripts/ci-risk.mjs"',
+    );
+    expect(job("classify")).toContain("fetch-depth: 0");
+    expect(job("classify")).toContain('"lane=full\\n"');
+    expect(job("release-gate").replace(/\s+/g, " ")).toContain(
+      "needs: [classify, fast-ui, feature-acceptance, foundation, native-acceptance]",
+    );
+    expect(job("release-gate")).toContain("if: always()");
+    expect(job("release-gate")).toContain("node scripts/ci-gate.mjs");
+    expect(workflow).not.toMatch(
+      /continue-on-error|paths-ignore:|paths:|pull_request_target|inputs:/,
+    );
+  });
+  it("retains focused fast and feature evidence without provider authority", () => {
+    expect(commands(job("fast-ui"))).toContain("pnpm check");
+    expect(job("fast-ui")).toContain(
+      "--project=desktop-light --project=mobile-dark",
+    );
+    expect(job("fast-ui")).toContain("DEMO_DATA_SOURCE: fixtures");
+    expect(job("feature-acceptance")).toContain("pnpm test:integration");
+    expect(job("feature-acceptance")).toContain(
+      'PALCARE_DEMO_BROWSER_JOURNEY: "true"',
+    );
+    expect(job("feature-acceptance")).toContain(
+      "--config=playwright.sol.config.ts",
     );
   });
 });

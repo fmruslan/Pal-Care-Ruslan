@@ -13,7 +13,7 @@
     "build": "node scripts/workspace.mjs run build next build",
     "start": "node scripts/workspace.mjs run start next start --hostname 0.0.0.0",
     "lint": "node scripts/workspace.mjs run lint eslint . --max-warnings 0",
-    "format:check": "node scripts/workspace.mjs run format:check prettier --check src tests scripts/*.ts scripts/workspace.mjs *.ts *.mjs package.json components.json compose.yaml render.yaml",
+    "format:check": "node scripts/workspace.mjs run format:check prettier --check src tests scripts/*.ts scripts/workspace.mjs scripts/ci-*.mjs scripts/verify-ci-release.mjs *.ts *.mjs package.json components.json compose.yaml render.yaml",
     "typecheck": "node scripts/workspace.mjs run typecheck next typegen && tsc --noEmit",
     "test": "node scripts/workspace.mjs run test vitest run",
     "test:e2e": "node scripts/workspace.mjs run test:e2e playwright test",

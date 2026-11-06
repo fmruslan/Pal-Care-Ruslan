@@ -9,6 +9,7 @@ import {
   assertEvidenceGuards,
 } from "../src/db/authority";
 import { assertBuild, primary } from "./workspace.mjs";
+import { assertCiReceipt } from "./ci-receipt.mjs";
 import {
   privatePreviewEnvironment,
   previewExitCode,
@@ -29,6 +30,10 @@ async function existing(name: string) {
 
 try {
   const build = assertBuild(true);
+  assertCiReceipt(
+    build,
+    JSON.parse(await readFile(join(primary, ".next/palcare-ci.json"), "utf8")),
+  );
   const env = privatePreviewEnvironment(
     parse(await readFile(join(primary, ".env.local"))),
     await existing("application.json"),

@@ -19,6 +19,20 @@ describe("authoritative workspace guard", () => {
   it("permits primary main without discarding local-only work", () => {
     expect(workspaceProblem(state)).toBeNull();
   });
+  it("permits the approved primary-folder PR branch convention, not historical worktrees", () => {
+    expect(
+      workspaceProblem({ ...state, branch: "palcare/risk-based-ci" }),
+    ).toBeNull();
+    expect(workspaceProblem({ ...state, branch: "palcare/" })).not.toBeNull();
+    expect(
+      workspaceProblem({
+        ...state,
+        branch: "palcare/risk-based-ci",
+        directory: "/old",
+        root: "/old",
+      }),
+    ).not.toBeNull();
+  });
   it("rejects a historical checkout, wrong branch and nested directory", () => {
     expect(
       workspaceProblem({ ...state, directory: "/old", root: "/old" }),

@@ -19,6 +19,8 @@ coverage/
 playwright-report/
 test-results/
 *.tsbuildinfo
+ci-risk.json
+.ci-trusted-risk.mjs
 
 # Local and customer data
 .DS_Store

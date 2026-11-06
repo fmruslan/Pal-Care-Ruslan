@@ -38,8 +38,13 @@ export function workspaceProblem(state) {
   )
     return "Expected origin fmruslan/Pal-Care-Ruslan.";
   if (state.directory !== state.root) return "Run from the repository root.";
-  if (state.ownerHost && (state.root !== primary || state.branch !== "main"))
-    return `Use Pal Care → ${primary} → main; historical checkouts are retained for history.`;
+  if (
+    state.ownerHost &&
+    (state.root !== primary ||
+      (state.branch !== "main" &&
+        !/^palcare\/[a-z0-9][a-z0-9-]*$/.test(state.branch)))
+  )
+    return `Use Pal Care → ${primary} → main or an owner-approved palcare/<topic> PR branch; historical checkouts are retained for history.`;
   return null;
 }
 
