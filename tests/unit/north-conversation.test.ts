@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { demoData } from "../../src/lib/demo/fixtures";
 import {
   answerConversationTurn,
+  CONVERSATION_INSTRUCTIONS,
   conversationPlanSchema,
   type ConversationPlan,
 } from "../../src/lib/careos/records/conversation-service";
@@ -74,6 +75,290 @@ function setup(proposal: ConversationPlan) {
     now,
   };
 }
+describe("owned latest-topic projection with injected interpretation", () => {
+  async function topicHistory() {
+    const careOptions = setup(
+      plan({
+        task: "care",
+        relation: "followup",
+        productSearch: "Raspberry Pi 5",
+        careQuestion: "Can I unplug the Raspberry Pi 5 right away?",
+      }),
+    );
+    const careTurn: CareTurn = {
+      requestId: careOptions.input.requestId,
+      message: "Can I unplug it right away?",
+      answer: await answerConversationTurn(careOptions),
+    };
+    const allOptions = setup(plan());
+    const allTurn: CareTurn = {
+      requestId: allOptions.input.requestId,
+      message: "Back to all saved purchases",
+      answer: await answerConversationTurn(allOptions),
+    };
+    const unpricedPlan = plan({ relation: "followup" });
+    unpricedPlan.query.price = "missing";
+    unpricedPlan.query.format = "bullets";
+    const unpricedOptions = setup(unpricedPlan);
+    const unpricedTurn: CareTurn = {
+      requestId: unpricedOptions.input.requestId,
+      message: "Which have no recorded price?",
+      answer: await answerConversationTurn(unpricedOptions),
+    };
+    return { careTurn, allTurn, unpricedTurn, unpricedPlan };
+  }
+
+  it("anchors simplification to the latest actual unpriced result instead of an older care question or stale plan", async () => {
+    const { careTurn, allTurn, unpricedTurn, unpricedPlan } =
+      await topicHistory();
+    // A derived plan must not outrank the actual application-owned result.
+    unpricedTurn.answer = {
+      ...unpricedTurn.answer,
+      conversationPlan: careTurn.answer.conversationPlan,
+    };
+    const options = setup(unpricedPlan);
+    options.history = [careTurn, allTurn, unpricedTurn];
+    const originalHistory = JSON.stringify(options.history);
+    const message = "Explain that more simply";
+    const answer = await answerConversationTurn({
+      ...options,
+      input: {
+        ...input(message),
+        followupRequestId: unpricedTurn.requestId,
+      },
+    });
+    const payload = JSON.parse(options.interpret.mock.calls[0][0]);
+    expect(payload.question).toBe(message);
+    expect(payload.currentTopic).toMatchObject({
+      question: unpricedTurn.message,
+      answer: unpricedTurn.answer.text,
+      task: "records",
+      questionScope: "library",
+      context: null,
+      careQuestion: "",
+      recordsResult: {
+        query: unpricedTurn.answer.recordsResult!.query,
+        comparison: null,
+        records: [
+          {
+            name: "Raspberry Pi 5",
+            model: "5",
+            purchasedOn: "2026-10-07",
+            origin: "sample",
+            amountMinor: null,
+          },
+        ],
+        complete: true,
+      },
+    });
+    expect(
+      payload.history.map((turn: { question: string }) => turn.question),
+    ).toEqual(options.history.map((turn) => turn.message));
+    expect(
+      payload.history.every(
+        (turn: { plan: { careQuestion: string } }) =>
+          turn.plan.careQuestion === "",
+      ),
+    ).toBe(true);
+    expect(JSON.stringify(options.history)).toBe(originalHistory);
+    expect(answer.recordsResult?.query.price).toBe("missing");
+    expect(answer.recordsResult?.records.map((record) => record.id)).toEqual([
+      "00000000-0000-4000-8000-000000000204",
+    ]);
+    expect(options.knowledge).not.toHaveBeenCalled();
+    expect(options.model.explain).not.toHaveBeenCalled();
+  });
+
+  it("bounds current-topic server facts to twelve rows without exposing record IDs", async () => {
+    const data = {
+      ...demoData,
+      twins: Array.from({ length: 13 }, () => ({
+        ...demoData.twins[0],
+        id: randomUUID(),
+      })),
+      documents: [],
+      events: [],
+    };
+    const originalInput = input("Show all my saved purchases");
+    const answer = await answerRecordsTurn({
+      input: originalInput,
+      history: [],
+      load: async () => data,
+      now,
+    });
+    const options = setup(plan({ relation: "followup" }));
+    options.history = [
+      {
+        requestId: originalInput.requestId,
+        message: originalInput.message,
+        answer,
+      },
+    ];
+    await answerConversationTurn({
+      ...options,
+      input: input("Explain that result"),
+    });
+    const payload = JSON.parse(options.interpret.mock.calls[0][0]);
+    expect(answer.recordsResult?.records).toHaveLength(13);
+    expect(payload.currentTopic.recordsResult.records).toHaveLength(12);
+    expect(payload.currentTopic.recordsResult.complete).toBe(false);
+    for (const record of payload.currentTopic.recordsResult.records) {
+      expect(Object.keys(record).sort()).toEqual([
+        "amountMinor",
+        "model",
+        "name",
+        "origin",
+        "purchasedOn",
+      ]);
+      expect(record.amountMinor).toBe(14900);
+    }
+    expect(payload.currentTopic.context).toBeNull();
+    for (const twin of data.twins)
+      expect(JSON.stringify(payload.currentTopic)).not.toContain(twin.id);
+  });
+
+  it("preserves explicit product care after an intervening library result", async () => {
+    const { careTurn, allTurn, unpricedTurn } = await topicHistory();
+    const options = setup(
+      plan({
+        task: "care",
+        relation: "followup",
+        productSearch: "Raspberry Pi 5",
+        careQuestion: "How do I shut down my Raspberry Pi 5?",
+      }),
+    );
+    options.history = [careTurn, allTurn, unpricedTurn];
+    const answer = await answerConversationTurn({
+      ...options,
+      input: {
+        ...input("How do I shut it down?"),
+        followupRequestId: unpricedTurn.requestId,
+      },
+    });
+    const payload = JSON.parse(options.interpret.mock.calls[0][0]);
+    expect(payload.question).toBe("How do I shut it down?");
+    expect(payload.currentTopic.task).toBe("records");
+    expect(payload.currentTopic.careQuestion).toBe("");
+    expect(answer.context?.twinId).toBe("00000000-0000-4000-8000-000000000204");
+    expect(answer.sources[0].id).toBe(referenceSource.id);
+    expect(options.model.explain).toHaveBeenCalledOnce();
+  });
+
+  it("derives the records topic from the owned anchor and excludes later care turns", async () => {
+    const { careTurn, allTurn, unpricedTurn, unpricedPlan } =
+      await topicHistory();
+    const options = setup(unpricedPlan);
+    options.history = [
+      careTurn,
+      allTurn,
+      unpricedTurn,
+      {
+        ...careTurn,
+        requestId: randomUUID(),
+        message: "Later product-care question outside the selected anchor",
+      },
+    ];
+    const originalHistory = JSON.stringify(options.history);
+    await answerConversationTurn({
+      ...options,
+      input: {
+        ...input("Explain that more simply"),
+        followupRequestId: unpricedTurn.requestId,
+      },
+    });
+    const payload = JSON.parse(options.interpret.mock.calls[0][0]);
+    expect(payload.currentTopic.question).toBe(unpricedTurn.message);
+    expect(payload.currentTopic.recordsResult.query.price).toBe("missing");
+    expect(payload.history).toHaveLength(3);
+    expect(JSON.stringify(payload)).not.toContain(
+      "Later product-care question outside the selected anchor",
+    );
+    expect(JSON.stringify(options.history)).toBe(originalHistory);
+    expect(options.model.explain).not.toHaveBeenCalled();
+  });
+
+  it("preserves care-to-care topic hints when the owned anchor precedes later records", async () => {
+    const { careTurn, allTurn, unpricedTurn } = await topicHistory();
+    const options = setup(
+      plan({
+        task: "care",
+        relation: "followup",
+        productSearch: "Raspberry Pi 5",
+        careQuestion: "Can I unplug the Raspberry Pi 5 right away?",
+      }),
+    );
+    options.history = [careTurn, allTurn, unpricedTurn];
+    const answer = await answerConversationTurn({
+      ...options,
+      input: {
+        ...input("Explain that more simply"),
+        followupRequestId: careTurn.requestId,
+      },
+    });
+    const payload = JSON.parse(options.interpret.mock.calls[0][0]);
+    expect(payload.currentTopic).toMatchObject({
+      question: careTurn.message,
+      task: "care",
+      questionScope: "purchase",
+      context: { name: "Raspberry Pi 5", model: "5" },
+      careQuestion: careTurn.answer.conversationPlan!.careQuestion,
+      recordsResult: null,
+    });
+    expect(payload.currentTopic.context).not.toHaveProperty("twinId");
+    expect(payload.history).toHaveLength(1);
+    expect(payload.history[0].plan.careQuestion).toBe(
+      careTurn.answer.conversationPlan!.careQuestion,
+    );
+    expect(payload.previous).toBeNull();
+    expect(answer.sources[0].id).toBe(referenceSource.id);
+    expect(options.model.explain).toHaveBeenCalledOnce();
+  });
+});
+
+describe("retrospective receipt prompt contract, not genuine model acceptance", () => {
+  it.each([
+    [
+      "cn u find my paypal hedphones recipt",
+      "choose product/receipt with query.origin sandbox",
+    ],
+    [
+      "Find my Sample PayPal headphones receipt",
+      "An explicit Sample request overrides implicit PayPal shorthand",
+    ],
+    [
+      "Find one headphones receipt that is both Sample and verified Sandbox",
+      "choose clarification rather than silently discard either explicit condition",
+    ],
+  ])(
+    "retains the original message and explicit provenance instruction: %s",
+    async (message, instruction) => {
+      const options = setup(
+        plan({
+          task: "clarification",
+          clarification: "Which purchase do you mean?",
+        }),
+      );
+      await answerConversationTurn({ ...options, input: input(message) });
+      expect(JSON.parse(options.interpret.mock.calls[0][0]).question).toBe(
+        message,
+      );
+      expect(CONVERSATION_INSTRUCTIONS).toContain(instruction);
+      expect(CONVERSATION_INSTRUCTIONS).toContain(
+        "For retrospective receipt, invoice or proof-of-payment requests only",
+      );
+      expect(CONVERSATION_INSTRUCTIONS).toContain(
+        'including misspellings such as "paypal hedphones recipt"',
+      );
+      expect(CONVERSATION_INSTRUCTIONS).toContain(
+        "not universal PayPal account access, a fresh payment-status check or proof that any verified purchase exists",
+      );
+      expect(CONVERSATION_INSTRUCTIONS).toContain(
+        "Only server-supplied saved evidence can establish a verified receipt",
+      );
+      expect(options.model.explain).not.toHaveBeenCalled();
+    },
+  );
+});
 describe("model-first conversation, with application-owned facts and no keyword admission", () => {
   it.each([
     "show me all my purches and how much I spent",
