@@ -1,0 +1,49 @@
+# North ☆: approved human-language evaluation
+
+## Outcome and authority
+
+Owner approved the plan for **300 additional genuine provider attempts**, an offline **1,050-case library**, 24 core conversations and necessary verified private repairs. This supersedes the pasted 250-call target, not the original campaign records. This advances customer acceptance **D** using the existing Care / Purchases / Insights application. It does not activate readiness **E**: no video, submission, public deployment, paid credits/API fallback, financial action, license activation, migration or new database credential.
+
+Owner subsequently approved faster evaluation past the normal application limits. The implementation must bind that exception to the one dedicated evaluation browser, its remaining 300-attempt allocation and at most 24-hour absolute expiry. Normal users retain **10 conversation creations/hour, six turns/minute and 30 turns/hour**. Approved evaluation limits are **300 conversation creations/hour, 30 turns/minute and 300 turns/hour**; existing bucket identities/usage, global limits, 40-turn conversation limit, leases, ownership and retention remain. There is no clock manipulation, bucket reset, second identity or public flag to select the exception. Expiry/revocation/exhaustion disables the exception. Actual inference still enforces the original **30 provider attempts/rolling minute, four concurrent and at most one safe counted pre-stream retry**.
+
+At the read-only planning checkpoint **2026-11-06T06:54:12.981Z**, original usage was **274/300 reserved, 26 remaining, one historical unknown, zero unsettled**. These are not future entitlement checks. The campaign supplement preserves the original immutable policy/events and leaves those 26 requests outside this campaign. It is a separate 300-request hard ceiling, not 300 extra user messages or 300 guaranteed successful answers. A care turn may have two model stages, each with its own reservation/retry. Unknowns remain charged. Provider denial/uncertain refresh/accounting stops dispatch; no automatic unblock, reauthorization or paid fallback.
+
+## Reusable definitions and offline preparation
+
+- `tests/fixtures/north-language-library.ts`: exact 1,050 cases and 24 conversations, including the owner's original nine-turn journey and 2/5/10/25/30-turn sequences.
+- Each case includes exact input/context, intended meaning, acceptable variants, required evidence, prohibited outcomes, clarification/action expectations and verification method.
+- Category sizes: language 150, equivalent intents 150, repetition 75, context 100, styles 100, ambiguity 100, corrections 75, emotion 75, complex 100, safety 125.
+- `scripts/prepare-north-language.ts --prepare /tmp/opencode/PRIVATE_OUTPUT` materializes human-readable conversation definitions and the full JSON library with a SHA-256 receipt. It cannot dispatch inference or provision authority.
+- `scripts/north-language-assessment.ts` independently calculates expected record selection and provenance-separated minor-unit totals from a frozen actual database snapshot. It does not reuse the query implementation or the model's answer as its oracle. Negative controls reject stale IDs, changed dates, merged totals and success text without native SDK evidence.
+
+No audio or scoring sheets. Equivalent natural wording is acceptable; IDs, amounts, dates, provenance and action postconditions stay strict. Communication styles are not demographic stereotypes. Boundary cases use synthetic text only, never actual passwords or personal data.
+
+## Actual application execution
+
+`scripts/run-north-language.ts --run /tmp/opencode/PRIVATE_OUTPUT BATCH_ATTEMPTS` is an owner-run tool, never CI. Requires clean exact-main source/build/CI receipt and legitimate current provider/browser permission. Uses one protected Chromium profile at the existing exact HTTPS origin. Separate tabs/conversations share the same browser/provider identity and accounting; restoring owned UUID-only conversation hints never supplies trusted history or automatically replays a question.
+
+The first provider-free explicit saved-record query freezes the current complete database-backed library. Each genuine turn then passes through the visible North UI and existing protected production adapter. The ledger correlates the original application request with every actual host reservation and terminal observation; a live badge or HTTP 200 alone is insufficient. Browser guards prohibit financial/admin/external writes. The ledger retains exact inputs, answers, source SHA/build, rendered records, resolving links, native state/data read-back, failures and unknowns. Private browser profiles and authorization material never enter Git or published artifacts.
+
+Initial attempt allocation: language 48, equivalent 42, repetition 24, context 42, styles 18, ambiguity 24, corrections 24, emotion 12, complex 36, safety 30. Execution waves: initial validation 20, broad evaluation 190, regression/repairs 60, final unseen holdout 30. Actual model stages/retries consume their category's allocation. Long conversations and observed defects may justify documented reallocations, not hidden additional capacity or double counting. The original failure and each new retest retain separate IDs/results. Previously successful versions are not silently accepted for a later repair.
+
+**Explicit pre-dispatch reallocation:** the 24 scenarios contain 81 context turns plus their care stages, so 42 context attempts cannot cover the approved 25/30-turn requirement. The balanced working targets are **language 40 / equivalent 30 / repetition 15 / context 90 / styles 15 / ambiguity 15 / corrections 15 / emotion 10 / complex 40 / safety 30 = 300**. A stratified sampler retains safety/corrections/repetition rather than filtering them out because they need context. Required prior customer messages execute through the actual UI and consume real calls; no fake history is posted. The frozen final holdout plans 30 calls, including five safety contexts plus their genuinely executed setup turns. Planning estimates are not usage evidence; actual stage/retry counts and the atomic cap remain authoritative.
+
+Safety/provider/accounting failures stop live dispatch. A material reproducible product defect pauses its affected stream for diagnosis, regression, appropriate CI and a clearly identified new retest. Ordinary unsupported/ambiguous inputs remain useful boundary observations, not reasons to fabricate capability. An oracle mismatch is reviewed and recorded separately from a product failure.
+
+## Hackathon and demo alignment
+
+| Evidence priority | Customer/judging relevance | Required proof |
+| --- | --- | --- |
+| Verified headphones receipt | PayPal is central: saved item-level evidence after an actual historical Sandbox capture | Exact dated Twin and original receipt, no new checkout or refund |
+| Natural language and correction | Useful AI, not a rigid command demonstration | Real provider interpretation, scoped records and corrected constraints |
+| Native Insights | AG Studio technological implementation, custom/native widgets, theme/layout and agent-controlled presentation | Actual SDK/widget/filter/mapping/layout/data read-back plus rendered outcome; never merely emitted events |
+| Product care | Evidence-led aftercare rather than generic chat | Exact Pi 5 approved source, appropriate OS/product limits; missing headphones manual stays missing |
+| History and truthful limits | Coherent design and credible presentation | Read-only restoration without replay; no invented savings, coverage, completion or universal PayPal access |
+
+Final report will identify five genuinely demonstrated natural interactions and the strongest continuous journey, not produce a video. It will distinguish implemented work, isolated checks, actual UI/SDK observations, genuine provider results, exact-commit CI, owner/real-device review and external blockers. No population-accuracy, measured customer-impact or sponsor-eligibility claim follows from this developer-run campaign.
+
+The conservative submission cutoff remains **November 12, 2026 at noon PST**, with judge access through **December 15, 2026**. Public provider access, hosting/isolation, licensing and financial/refund/webhook/Channel3 acceptance remain separate gates. This campaign cannot spend or waive them. Final submission still requires a separately dispatched full exact-main run.
+
+## Status
+
+Preparation and implementation are in progress; see [STATUS](STATUS.md). No 300-call completion or new CI/deployment pass is inferred from this approved plan. Provider capacity is not guaranteed by the local counter. The mathematical lower bound is ten minutes at 30 actual dispatches/minute; observed sequential response/UI/SDK latency and repair/CI time determine the real duration.

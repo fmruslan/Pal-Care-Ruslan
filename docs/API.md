@@ -1,5 +1,13 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
+## North 300-attempt evaluation — candidate, activation pending
+
+No new public approval endpoint or browser-posted authority field. Host-only `StandingOwner.approveEvaluation` accepts the separately approved strict 300-attempt grant, exact original policy ID/hash, one pending browser/session, a maximum 24-hour absolute expiry and explicit campaign-only fast-quota approval. It appends grant evidence while preserving the original immutable policy/event prefix. A second installation/replacement/renewal is rejected. Original 26 remaining requests cannot be consumed by the campaign browser, even after its supplement is exhausted.
+
+`GET /api/ai/owner` remains provider-free/no-refresh. Top-level used/remaining/limit describe the current browser's allocation; `standingAllocation` retains original usage/remaining and optional `evaluation` reports campaign ID, limit, used, remaining, expiry and whether this authenticated browser is bound. These status values are not provider capacity guarantees or grants. `finish` cookie expiry is bounded by the original session's campaign deadline, not 30 days for this evaluation browser. Logout/revocation/provider denial remain effective; unknowns retain their reservations.
+
+Records create/claim selects faster application quotas only from the server-validated current browser proof and the current records-owner cookie. Request JSON, headers, a public request ID, copied result or fixture cannot select it. Existing ownership/Origin/leases/fingerprints/40-turn limit/global buckets remain. Normal application quotas and all provider dispatch/rate/concurrency/safe-retry controls remain unchanged. No database migration/credential change, paid transport or financial capability. Native Studio exposes inspectable public state/data read-back only after actual SDK/query/display checks; this evidence never grants authority or replaces checking rendered outcomes. [Approved scope](NORTH-LANGUAGE-300.md) · [actual status](STATUS.md).
+
 ## Care card label polish — presentation only
 
 No endpoint, payload, data schema, provider, financial or authorization change. Concise consumer labels derive from existing source-backed situations; return labels format their saved deadline in UTC. Fictional completion stays unverified and excluded from recovered-money totals: the book says **Refund example / No PayPal refund was issued**. One Sample collection disclosure replaces repeated surface Demo badges; exact event provenance, original source wording and links remain in evidence details/Insights. The 30-day Studio engine, UTC window, IDs and navigation are unchanged.

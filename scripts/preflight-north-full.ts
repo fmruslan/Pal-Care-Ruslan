@@ -60,7 +60,16 @@ export function inspectDraftOracles() {
 
 const accountingSchema = z.object({
   policy: standingPolicySchema,
-  events: z.array(z.object({ kind: z.string(), subject: z.string() })),
+  events: z.array(
+    z.object({
+      kind: z.string(),
+      subject: z.string(),
+      allocationId: z.string().optional(),
+    }),
+  ),
+  evaluation: z
+    .object({ id: z.string(), requestLimit: z.number(), expiresAt: z.number() })
+    .optional(),
 });
 export async function readNorthAccounting() {
   const state = accountingSchema.parse(
@@ -71,7 +80,9 @@ export async function readNorthAccounting() {
       ),
     ),
   );
-  const reservations = state.events.filter((e) => e.kind === "reserve");
+  const reservations = state.events.filter(
+    (e) => e.kind === "reserve" && !e.allocationId,
+  );
   const terminal = new Set(
     state.events
       .filter((e) => ["completed", "failed", "unknown"].includes(e.kind))
@@ -102,6 +113,17 @@ export async function readNorthAccounting() {
     providerEntitlementChecked: false,
     financialCostApproved: false,
     permissionOrExpiryRenewed: false,
+    evaluation: state.evaluation
+      ? {
+          id: state.evaluation.id,
+          limit: state.evaluation.requestLimit,
+          used: state.events.filter(
+            (e) =>
+              e.kind === "reserve" && e.allocationId === state.evaluation!.id,
+          ).length,
+          expiresAt: state.evaluation.expiresAt,
+        }
+      : null,
   };
 }
 

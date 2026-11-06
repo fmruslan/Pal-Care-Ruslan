@@ -36,6 +36,7 @@ export class PostgresStore implements ConversationStore {
     },
     private requireRestrictedRole = false,
     private now: () => number = Date.now,
+    private evaluationQuota?: (owner: string) => Promise<boolean>,
   ) {}
   private async tx<T>(work: (client: PoolClient) => Promise<T>): Promise<T> {
     const client = await this.pool.connect();
@@ -91,10 +92,11 @@ export class PostgresStore implements ConversationStore {
     const id = randomUUID();
     const expiresAt = new Date(Date.now() + 86400000).toISOString();
     await this.tx(async (client) => {
+      const evaluation = await this.evaluationQuota?.(owner);
       const hour = Math.floor(Date.now() / 3600000),
         day = Math.floor(Date.now() / 86400000);
       await this.quotas(client, [
-        [`create:owner:${owner}:${hour}`, 1, 10],
+        [`create:owner:${owner}:${hour}`, 1, evaluation ? 300 : 10],
         [`create:global:${day}`, 1, 500],
       ]);
       await client.query(
@@ -168,9 +170,10 @@ export class PostgresStore implements ConversationStore {
         throw new CareError("careos_conversation_full", 429);
       const minute = Math.floor(Date.now() / 60000),
         hour = Math.floor(Date.now() / 3600000);
+      const evaluation = await this.evaluationQuota?.(owner);
       await this.quotas(client, [
-        [`turn:owner:${owner}:${minute}`, 1, 6],
-        [`turn:owner:${owner}:${hour}`, 1, 30],
+        [`turn:owner:${owner}:${minute}`, 1, evaluation ? 30 : 6],
+        [`turn:owner:${owner}:${hour}`, 1, evaluation ? 300 : 30],
         [`turn:global:${hour}`, 1, 5000],
       ]);
       await client.query(

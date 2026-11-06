@@ -144,6 +144,58 @@ test("session turn quota is persistent across instances", async () => {
   }
   await assert.rejects(store().claim(c.id, o, input()), { status: 429 });
 });
+test("evaluation-only quota selection retains bucket identities, ordinary limits, leases and immediate revocation", async () => {
+  const evaluationOwner = owner(),
+    ordinaryOwner = owner();
+  let approved = true;
+  const fast = () =>
+    new PostgresStore(
+      pool,
+      undefined,
+      false,
+      Date.now,
+      async (selected) => approved && selected === evaluationOwner,
+    );
+  const c = await fast().create(evaluationOwner);
+  for (let n = 0; n < 7; n++) {
+    const i = input();
+    await fast().claim(c.id, evaluationOwner, i);
+    await fast().finish(c.id, evaluationOwner, {
+      requestId: i.requestId,
+      message: i.message,
+      answer: deterministicAnswer(demoData, i),
+    });
+  }
+  const minute = Math.floor(Date.now() / 60000);
+  assert.equal(
+    (
+      await pool.query("select amount from care_buckets where key=$1", [
+        `turn:owner:${evaluationOwner}:${minute}`,
+      ])
+    ).rows[0].amount,
+    7,
+  );
+  approved = false;
+  await assert.rejects(fast().claim(c.id, evaluationOwner, input()), {
+    status: 429,
+  });
+  approved = true;
+  const normal = await fast().create(ordinaryOwner);
+  for (let n = 0; n < 6; n++) {
+    const i = input();
+    await fast().claim(normal.id, ordinaryOwner, i);
+    await fast().finish(normal.id, ordinaryOwner, {
+      requestId: i.requestId,
+      message: i.message,
+      answer: deterministicAnswer(demoData, i),
+    });
+  }
+  await assert.rejects(fast().claim(normal.id, ordinaryOwner, input()), {
+    status: 429,
+  });
+  for (let n = 1; n < 11; n++) await fast().create(evaluationOwner);
+  await assert.rejects(store().create(evaluationOwner), { status: 429 });
+});
 test("paid reservations are atomic across concurrent sessions and survive unknown outcomes", async () => {
   const s = store();
   const attempts = await Promise.all(

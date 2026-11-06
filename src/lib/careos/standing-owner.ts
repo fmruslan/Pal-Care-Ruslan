@@ -34,6 +34,22 @@ export const standingPolicySchema = z.strictObject({
   providerPermissionConfirmed: z.literal(true),
   historicalJournalHash: digest,
 });
+/** One separately approved campaign, never a replacement/rollover of the policy. */
+export const evaluationApprovalSchema = z.strictObject({
+  id: z.uuid(),
+  policyId: z.uuid(),
+  policyHash: digest,
+  approvedAt: time,
+  expiresAt: time,
+  sessionId: z.uuid(),
+  requestLimit: z.literal(300),
+  purpose: z.literal("north-language-300"),
+  fastApplicationQuotaApproved: z.literal(true),
+});
+const evaluationSchema = evaluationApprovalSchema.extend({
+  baselineEventCount: time,
+  baselineEventHash: digest,
+});
 const eventSchema = z.strictObject({
   id: z.uuid(),
   at: time,
@@ -42,6 +58,7 @@ const eventSchema = z.strictObject({
     "approve",
     "finish-browser",
     "approve-policy",
+    "approve-evaluation",
     "provider-block",
     "logout",
     "touch",
@@ -53,6 +70,7 @@ const eventSchema = z.strictObject({
     "failed",
   ]),
   subject: z.string().min(1).max(200),
+  allocationId: z.uuid().optional(),
   observation: z
     .object({
       httpStatus: z.number().int().min(100).max(599).optional(),
@@ -76,6 +94,7 @@ const eventSchema = z.strictObject({
 const stateSchema = z.strictObject({
   version: z.literal(1),
   policy: standingPolicySchema.nullable(),
+  evaluation: evaluationSchema.optional(),
   sessions: z
     .array(
       z.strictObject({
@@ -86,6 +105,7 @@ const stateSchema = z.strictObject({
         lastSeen: time,
         approvedAt: time.nullable(),
         finishedAt: time.optional(),
+        expiresAt: time.optional(),
         revoked: z.boolean(),
       }),
     )
@@ -193,6 +213,7 @@ export class StandingOwner {
       entry.approvedAt === null ||
       this.now() < entry.createdAt ||
       this.now() >= entry.createdAt + OWNER_MAX_AGE ||
+      (entry.expiresAt !== undefined && this.now() >= entry.expiresAt) ||
       this.now() >= entry.lastSeen + OWNER_IDLE
     )
       return deny("signin_required");
@@ -223,6 +244,7 @@ export class StandingOwner {
       };
     if (
       now >= entry.createdAt + OWNER_MAX_AGE ||
+      (entry.expiresAt !== undefined && now >= entry.expiresAt) ||
       now >= entry.lastSeen + OWNER_IDLE
     )
       return {
@@ -255,7 +277,7 @@ export class StandingOwner {
     selected: z.infer<typeof scope>,
     enabled: boolean,
   ) {
-    this.session(s, proof);
+    const entry = this.session(s, proof);
     const p = s.policy;
     if (!enabled || !p || s.events.some((e) => e.kind === "revoke-policy"))
       return deny("ai_disabled");
@@ -263,7 +285,15 @@ export class StandingOwner {
       return deny("provider_unavailable");
     if (!p.scopes.includes(selected)) return deny("scope_denied");
     const reservations = s.events.filter((e) => e.kind === "reserve");
-    if (reservations.length >= p.requestLimit) return deny("quota_exhausted");
+    const evaluation =
+      s.evaluation?.sessionId === entry.id ? s.evaluation : null;
+    if (evaluation && (proof.origin ?? OWNER_ORIGIN) !== OWNER_ORIGIN)
+      return deny("scope_denied");
+    const used = reservations.filter((e) =>
+      evaluation ? e.allocationId === evaluation.id : !e.allocationId,
+    ).length;
+    if (used >= (evaluation?.requestLimit ?? p.requestLimit))
+      return deny("quota_exhausted");
     if (
       reservations.filter(
         (e) =>
@@ -350,6 +380,52 @@ export class StandingOwner {
       this.event(s, "approve-policy", hash(JSON.stringify(policy)));
     });
   }
+  /** Host-only exact approval. Approves ONE pending browser and its independent
+   * allocation atomically. No replacement, renewal, paid scope or old-slot use. */
+  async approveEvaluation(value: unknown) {
+    const approval = evaluationApprovalSchema.parse(value);
+    return this.change((s) => {
+      const entry = s.sessions.find((v) => v.id === approval.sessionId);
+      if (
+        s.evaluation ||
+        !s.policy ||
+        approval.policyId !== s.policy.id ||
+        approval.policyHash !== hash(JSON.stringify(s.policy)) ||
+        approval.approvedAt < s.policy.approvedAt ||
+        approval.approvedAt > this.now() ||
+        approval.expiresAt <= this.now() ||
+        approval.expiresAt > approval.approvedAt + 86400000 ||
+        !entry ||
+        entry.revoked ||
+        entry.approvedAt !== null ||
+        entry.expiresAt !== undefined ||
+        this.now() < entry.createdAt ||
+        this.now() >= entry.createdAt + 300000 ||
+        approval.expiresAt > entry.createdAt + 86400000 ||
+        s.events.some((e) =>
+          ["revoke-policy", "provider-block"].includes(e.kind),
+        ) ||
+        s.events.some(
+          (e) =>
+            e.kind === "reserve" &&
+            !s.events.some(
+              (v) =>
+                v.subject === e.subject &&
+                ["completed", "failed", "unknown"].includes(v.kind),
+            ),
+        )
+      )
+        return deny("evaluation_not_approved");
+      s.evaluation = {
+        ...approval,
+        baselineEventCount: s.events.length,
+        baselineEventHash: hash(JSON.stringify(s.events)),
+      };
+      entry.approvedAt = this.now();
+      entry.expiresAt = approval.expiresAt;
+      this.event(s, "approve-evaluation", approval.id);
+    });
+  }
   async authenticate(proof: OwnerProof) {
     return this.change(async (s) => {
       await this.additionalOrigin(s, proof.origin);
@@ -373,7 +449,10 @@ export class StandingOwner {
         this.event(s, "finish-browser", entry.id);
       }
       // Finishing never extends the original absolute lifetime or grants AI.
-      return entry.createdAt + OWNER_MAX_AGE;
+      return Math.min(
+        entry.createdAt + OWNER_MAX_AGE,
+        entry.expiresAt ?? Infinity,
+      );
     });
   }
   async revokeSession(id: string) {
@@ -409,6 +488,24 @@ export class StandingOwner {
       return this.allowed(state, proof, selected, enabled);
     }, ".owner-access-lock");
   }
+  /** Server-only quota selection, not inference authority or a visitor flag.
+   * Missing/expired/ordinary browsers keep the original application limits. */
+  async evaluationQuotaAccess(proof: OwnerProof, enabled: boolean) {
+    return this.files.lockedWaiting(async () => {
+      const s = await this.state();
+      if (!s.evaluation) return false;
+      try {
+        const session = this.session(s, proof);
+        if (session.id !== s.evaluation.sessionId) return false;
+        await this.additionalOrigin(s, proof.origin);
+        this.allowed(s, proof, "customer", enabled);
+        return s.evaluation.fastApplicationQuotaApproved;
+      } catch (error) {
+        if (error instanceof CareError) return false;
+        throw error;
+      }
+    }, ".owner-access-lock");
+  }
   async reserve(
     proof: OwnerProof,
     selected: z.infer<typeof scope>,
@@ -422,6 +519,8 @@ export class StandingOwner {
       if (s.events.some((e) => e.kind === "reserve" && e.subject === key))
         return deny("already_dispatched");
       this.event(s, "reserve", key);
+      if (s.evaluation?.sessionId === this.session(s, proof).id)
+        s.events.at(-1)!.allocationId = s.evaluation.id;
     });
   }
   async settle(
@@ -440,6 +539,10 @@ export class StandingOwner {
       )
         return deny("settlement_conflict");
       this.event(s, outcome, key); // All outcomes retain one charged request.
+      const allocationId = s.events.find(
+        (e) => e.kind === "reserve" && e.subject === key,
+      )?.allocationId;
+      if (allocationId) s.events.at(-1)!.allocationId = allocationId;
       if (observation)
         s.events.at(-1)!.observation =
           eventSchema.shape.observation.parse(observation);
@@ -474,14 +577,33 @@ export class StandingOwner {
     } catch {
       /* No authority from status. */
     }
-    const used = s.events.filter((e) => e.kind === "reserve").length;
+    const originalUsed = s.events.filter(
+      (e) => e.kind === "reserve" && !e.allocationId,
+    ).length;
+    const evaluation = s.evaluation;
+    const evaluationUsed = evaluation
+      ? s.events.filter(
+          (e) => e.kind === "reserve" && e.allocationId === evaluation.id,
+        ).length
+      : 0;
+    const evaluationBrowser =
+      !!evaluation &&
+      s.sessions.some(
+        (v) =>
+          v.id === evaluation.sessionId &&
+          v.tokenHash === hash(proof.token ?? ""),
+      );
+    const used = evaluationBrowser ? evaluationUsed : originalUsed;
+    const limit = evaluationBrowser
+      ? evaluation!.requestLimit
+      : (s.policy?.requestLimit ?? 0);
     return {
       remembered,
       browserCompletion,
       browserAccess: browser.state,
       pairing: browser.pairing ?? null,
       policyId: s.policy?.id ?? null,
-      requestLimit: s.policy?.requestLimit ?? 0,
+      requestLimit: limit,
       concurrency: s.policy?.concurrency ?? 0,
       requestsPerMinute: s.policy?.requestsPerMinute ?? 0,
       maxRetries: s.policy?.maxRetries ?? 0,
@@ -489,7 +611,13 @@ export class StandingOwner {
       policy: s.policy ? "approved" : "disabled",
       revoked: s.events.some((e) => e.kind === "revoke-policy"),
       used,
-      remaining: s.policy ? Math.max(0, s.policy.requestLimit - used) : 0,
+      remaining: s.policy ? Math.max(0, limit - used) : 0,
+      standingAllocation: {
+        used: originalUsed,
+        remaining: s.policy
+          ? Math.max(0, s.policy.requestLimit - originalUsed)
+          : 0,
+      },
       unknown: s.events.filter(
         (e) =>
           e.kind === "reserve" &&
@@ -499,6 +627,31 @@ export class StandingOwner {
               v.subject === e.subject,
           ),
       ).length,
+      evaluation: s.evaluation
+        ? {
+            id: s.evaluation.id,
+            limit: s.evaluation.requestLimit,
+            expiresAt: s.evaluation.expiresAt,
+            used: s.events.filter(
+              (e) =>
+                e.kind === "reserve" && e.allocationId === s.evaluation!.id,
+            ).length,
+            remaining: Math.max(
+              0,
+              s.evaluation.requestLimit -
+                s.events.filter(
+                  (e) =>
+                    e.kind === "reserve" && e.allocationId === s.evaluation!.id,
+                ).length,
+            ),
+            browserBound:
+              s.sessions.some(
+                (v) =>
+                  v.id === s.evaluation!.sessionId &&
+                  v.tokenHash === hash(proof.token ?? ""),
+              ) && remembered,
+          }
+        : null,
     };
   }
 }

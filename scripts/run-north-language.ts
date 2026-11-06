@@ -1,0 +1,788 @@
+/** Owner-run ONLY. Uses the real private HTTPS application, never direct model
+ * calls, injected answers, copied owner cookies or a second provider identity.
+ * Batches reopen the SAME protected Chromium profile and owned conversation
+ * hints. Completed/unknown attempts are never resubmitted. Never run in CI. */
+import { chromium, expect, type Page } from "@playwright/test";
+import { createHash, randomUUID } from "node:crypto";
+import {
+  mkdir,
+  readFile,
+  writeFile,
+  open,
+  unlink,
+  lstat,
+} from "node:fs/promises";
+import { setTimeout as delay } from "node:timers/promises";
+import { join } from "node:path";
+import { StandingOwner, OWNER_ORIGIN } from "../src/lib/careos/standing-owner";
+import { subscriptionFiles } from "../src/lib/careos/subscription/provider";
+import { assertBuild } from "./workspace.mjs";
+import { assertCiReceipt } from "./ci-receipt.mjs";
+import {
+  recordsResultSchema,
+  type SavedRecord,
+} from "../src/lib/careos/records/contracts";
+import type { CareTurn } from "../src/lib/careos/contracts";
+import {
+  assessLanguageAnswer,
+  type LanguageObservation,
+} from "./north-language-assessment";
+import { submitLanguageTurn } from "./north-language-browser";
+import { stratifyLanguageWork } from "../tests/fixtures/north-language-stratification";
+import {
+  conversationScenarios,
+  languageGoals,
+  LANGUAGE_CAMPAIGN,
+  type Goal,
+  type LanguageCategory,
+} from "../tests/fixtures/north-language-library";
+
+type Event = {
+  kind: string;
+  subject: string;
+  at: number;
+  allocationId?: string;
+  observation?: unknown;
+};
+type HostState = {
+  policy: { id: string };
+  events: Event[];
+  evaluation?: { id: string; expiresAt: number; sessionId: string };
+};
+type Work = {
+  id: string;
+  group: string;
+  category: LanguageCategory;
+  input: string;
+  goal: Goal;
+  expected: string;
+};
+type Progress = {
+  campaign: string;
+  next: number;
+  sessionId: string;
+  allocationId: string;
+  deadline: number;
+  originalPolicyHash: string;
+  originalEvents: Event[];
+  snapshot: SavedRecord[];
+  storage: Record<string, string>;
+  activeGroup: string | null;
+  turnTimes: number[];
+  createTimes: number[];
+  paused?: string;
+  finished?: boolean;
+  holdoutNext?: number;
+  retests?: Work[];
+};
+const [action, output, batchText] = process.argv.slice(2);
+if (
+  action !== "--run" ||
+  !output?.startsWith("/tmp/opencode/") ||
+  !/^\d+$/.test(batchText ?? "") ||
+  process.argv.length !== 5 ||
+  process.env.CI
+)
+  throw Error(
+    "Owner only: --run /tmp/opencode/PRIVATE_OUTPUT BATCH_ATTEMPTS (1..30)",
+  );
+const batch = Number(batchText);
+if (batch < 1 || batch > 30) throw Error("bounded_batch_required");
+const hash = (v: unknown) =>
+  createHash("sha256").update(JSON.stringify(v)).digest("hex");
+const owner = new StandingOwner(),
+  provider = subscriptionFiles();
+const host = async () =>
+  (await owner.files.read("owner-state.json")) as HostState;
+const used = (s: HostState) =>
+  s.events.filter(
+    (e) => e.kind === "reserve" && e.allocationId === s.evaluation?.id,
+  ).length;
+const goal = (id: string, patch: Partial<Goal> = {}): Goal => ({
+  ...languageGoals.find((g) => g.id === id)!,
+  ...patch,
+});
+const audio = (
+  origin?: "sample" | "sandbox",
+  format?: "chart" | "table",
+  operation?: "total" | "breakdown",
+): Goal =>
+  goal(
+    format === "chart"
+      ? "chart"
+      : operation === "total"
+        ? "audio-total"
+        : "audio",
+    {
+      filter: { category: "Audio", ...(origin ? { origin } : {}) },
+      ...(format ? { format } : {}),
+      ...(operation ? { operation } : {}),
+    },
+  );
+const clarify = goal("help"),
+  care = goal("pi-care");
+function scenarioGoals(index: number, turn: number): Goal {
+  const maps: Record<number, Goal[]> = {
+    0: [
+      goal("receipt"),
+      audio("sample"),
+      audio("sample", undefined, "total"),
+      audio("sample", "chart", "breakdown"),
+      audio("sandbox"),
+      audio("sandbox", "table"),
+      care,
+      care,
+      clarify,
+    ],
+    1: [goal("all", { filter: { search: "headphones" } }), goal("receipt")],
+    2: [audio(undefined, undefined, "total"), audio(undefined, "table")],
+    3: [goal("receipt"), audio("sample")],
+    4: [audio(), audio("sandbox")],
+    5: [
+      audio(undefined, undefined, "total"),
+      audio(undefined, undefined, "total"),
+    ],
+    6: [goal("receipt"), goal("manual")],
+    8: [
+      goal("missing-receipt"),
+      goal("missing-receipt"),
+      goal("missing-receipt"),
+    ],
+    9: [audio("sample"), audio("sample", undefined, "total")],
+    10: [
+      audio(),
+      audio("sample"),
+      audio("sample", undefined, "total"),
+      audio("sample", "table"),
+      goal("sample", { format: "table" }),
+    ],
+    11: [
+      goal("all"),
+      audio(),
+      audio("sandbox"),
+      goal("receipt"),
+      goal("all", { filter: { search: "Raspberry Pi" } }),
+      care,
+      care,
+      goal("all"),
+      goal("unpriced"),
+      goal("unpriced"),
+    ],
+    15: [goal("all", { filter: { search: "headphones" } }), clarify, clarify],
+    16: [clarify, clarify, clarify],
+    17: [audio("sample"), audio("sandbox"), audio("sample"), goal("sample")],
+    18: [
+      goal("sample", {
+        filter: { origin: "sample", category: "Audio", receipt: "present" },
+      }),
+      goal("sample", { filter: { origin: "sample", receipt: "present" } }),
+      goal("sample"),
+    ],
+    19: [
+      audio(undefined, "chart", "breakdown"),
+      audio(),
+      audio(undefined, undefined, "total"),
+    ],
+    20: [
+      goal("totals", { format: "table" }),
+      audio("sandbox", "chart", "breakdown"),
+      goal("refund"),
+    ],
+    21: [
+      audio(undefined, "chart", "breakdown"),
+      audio(undefined, "table"),
+      clarify,
+    ],
+    22: [care, care, goal("manual")],
+    23: [goal("refund"), goal("refund"), goal("refund")],
+  };
+  if (index === 7) return audio();
+  if (index === 12)
+    return [
+      goal("all"),
+      audio(),
+      audio("sample"),
+      audio("sample", undefined, "total"),
+      audio("sample", "table"),
+    ][turn % 5];
+  if (index === 13)
+    return turn === 29
+      ? clarify
+      : [
+          goal("all"),
+          goal("all", { filter: { category: "Computing" } }),
+          goal("unpriced"),
+          goal("all", { filter: { receipt: "present" } }),
+          goal("verified"),
+          goal("all"),
+        ][turn % 6];
+  return maps[index]?.[turn] ?? clarify;
+}
+function buildWork(): Work[] {
+  const work: Work[] = conversationScenarios.flatMap((s, i) =>
+    s.inputs.map((input, n) => ({
+      id: `${s.id}-${n + 1}`,
+      group: s.id,
+      category: s.category,
+      input,
+      goal: scenarioGoals(i, n),
+      expected: s.expected,
+    })),
+  );
+  return work;
+}
+const planned = stratifyLanguageWork(buildWork());
+let work: Work[] = planned.work;
+let holdout: Work[] = planned.holdout;
+await mkdir(output, { recursive: true, mode: 0o700 });
+const stat = await lstat(output);
+if (stat.isSymbolicLink() || stat.mode & 0o077)
+  throw Error("private_output_required");
+const lockPath = join(output, ".run-lock"),
+  lock = await open(lockPath, "wx", 0o600);
+let context:
+    Awaited<ReturnType<typeof chromium.launchPersistentContext>> | undefined,
+  progress: Progress | undefined,
+  page: Page | undefined;
+let stopReason: string | undefined;
+const errors: string[] = [],
+  forbidden: string[] = [];
+const save = async () => {
+  if (progress)
+    await writeFile(
+      join(output, "progress.json"),
+      JSON.stringify(progress, null, 2),
+      { mode: 0o600 },
+    );
+};
+const checkpoint = async () => {
+  const build = assertBuild(true);
+  assertCiReceipt(
+    build,
+    JSON.parse(await readFile(".next/palcare-ci.json", "utf8")),
+  );
+  return {
+    commit: build.commit,
+    buildId: build.buildId,
+    sourceHash: build.sourceHash,
+  };
+};
+const emit = async (value: unknown) => {
+  const handle = await open(join(output, "ledger.jsonl"), "a", 0o600);
+  try {
+    await handle.writeFile(JSON.stringify(value) + "\n");
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+};
+async function schedule(creating = false) {
+  if (!progress) return;
+  for (;;) {
+    const now = Date.now(),
+      hour = Math.floor(now / 3600000) * 3600000;
+    if (now >= progress.deadline) throw Error("evaluation_browser_expired");
+    const turns = progress.turnTimes.filter((t) => t >= hour),
+      creates = progress.createTimes.filter((t) => t >= hour),
+      recent = (await host()).events
+        .filter((e) => e.kind === "reserve" && e.at > now - 60000)
+        .map((e) => e.at);
+    let wait = 0;
+    if (turns.length >= 300 || (creating && creates.length >= 300))
+      wait = hour + 3600000 - now + 250;
+    if (recent.length >= 27)
+      wait = Math.max(wait, Math.min(...recent) + 60001 - now);
+    if (!wait) return;
+    await emit({
+      kind: "quota-wait",
+      observedAt: new Date().toISOString(),
+      waitMs: wait,
+      turnsThisHour: turns.length,
+      newConversationsThisHour: creates.length,
+    });
+    console.log(
+      JSON.stringify({
+        waitingForExistingApplicationQuota: true,
+        until: new Date(now + wait).toISOString(),
+      }),
+    );
+    await delay(wait);
+  }
+}
+async function freshPage(storage?: Record<string, string>) {
+  await schedule(!storage);
+  if (page) await page.close();
+  page = await context!.newPage();
+  if (storage)
+    await page.addInitScript((values) => {
+      for (const [key, value] of Object.entries(values))
+        sessionStorage.setItem(key, value);
+    }, storage);
+  await page.goto(OWNER_ORIGIN + "/dashboard");
+  return page;
+}
+async function observe(turn: CareTurn): Promise<LanguageObservation> {
+  const article = page!.locator(
+    `[data-native-north-result][data-request-id="${turn.requestId}"]`,
+  );
+  await expect(article).toBeVisible({ timeout: 30000 });
+  const more = article.getByRole("button", { name: /^Show more purchases/ });
+  for (let n = 0; n < 100 && (await more.count()); n++) await more.click();
+  let nativeReadback = null;
+  if (turn.answer.recordsResult?.query.format === "chart") {
+    await expect
+      .poll(
+        async () => {
+          const proof = page!.locator(
+            '[data-testid="customer-studio"][data-native-readback]',
+          );
+          if (await proof.count()) return true;
+          return (
+            (await article.textContent())?.includes("could not be verified") ??
+            false
+          );
+        },
+        { timeout: 45000, intervals: [250, 500, 1000] },
+      )
+      .toBe(true);
+    const raw = await page!
+      .locator('[data-testid="customer-studio"]')
+      .getAttribute("data-native-readback");
+    if (raw) nativeReadback = JSON.parse(raw);
+  }
+  const renderedIds = await article
+    .locator('[data-records-result] a[href^="/vault/"]')
+    .evaluateAll((elements) => [
+      ...new Set(
+        elements
+          .map((e) => e.getAttribute("href")!.split("/")[2])
+          .filter((id) => /^[a-f0-9-]{36}$/.test(id)),
+      ),
+    ]);
+  let linksResolve = true;
+  for (const href of [
+    ...new Set(
+      [...turn.answer.actions, ...turn.answer.sources].map((a) => a.href),
+    ),
+  ]) {
+    if (!href.startsWith("/")) {
+      linksResolve = false;
+      continue;
+    }
+    const r = await context!.request.get(OWNER_ORIGIN + href);
+    if (!r.ok()) linksResolve = false;
+  }
+  return {
+    text: await article.innerText(),
+    renderedIds,
+    linksResolve,
+    nativeReadback,
+    applicationErrors: [...errors],
+    forbiddenRequests: [...forbidden],
+  };
+}
+try {
+  const source = await checkpoint();
+  const s = await host(),
+    registration = await provider.registration();
+  if (!registration?.tokens || registration.refreshPending)
+    throw Error("provider_connection_not_ready_no_new_access_or_inference");
+  await owner.assertHistoricalJournal(await provider.read("session.json"));
+  const status = await owner.status({ agent: "campaign-preflight" });
+  if (status.revoked || status.providerBlocked || status.policy !== "approved")
+    throw Error("provider_or_policy_blocked");
+  try {
+    progress = JSON.parse(
+      await readFile(join(output, "progress.json"), "utf8"),
+    );
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+  }
+  if (progress?.finished) throw Error("campaign_already_closed_no_replay");
+  if (progress?.paused)
+    throw Error("campaign_paused_review_required_no_replay");
+  if (
+    progress &&
+    (!s.evaluation ||
+      progress.allocationId !== s.evaluation.id ||
+      hash(s.policy) !== progress.originalPolicyHash)
+  )
+    throw Error("campaign_authority_changed");
+  if (!progress && s.evaluation)
+    throw Error("existing_evaluation_cannot_be_replaced");
+  if (progress) {
+    const manifest = JSON.parse(
+      await readFile(join(output, "work.json"), "utf8"),
+    );
+    work = manifest.work;
+    holdout = manifest.holdout;
+  }
+  await mkdir(join(output, "profile"), { recursive: true, mode: 0o700 });
+  context = await chromium.launchPersistentContext(join(output, "profile"), {
+    viewport: { width: 1440, height: 1000 },
+    reducedMotion: "reduce",
+  });
+  context.on("page", (p) => p.on("pageerror", (e) => errors.push(e.message)));
+  await context.route("**/*", async (route) => {
+    const r = route.request(),
+      u = new URL(r.url()),
+      read = ["GET", "HEAD"].includes(r.method());
+    const allowedPost =
+      r.method() === "POST" &&
+      (/^\/api\/ai\/owner$/.test(u.pathname) ||
+        /^\/api\/careos\/(?:records\/)?conversations(?:\/[a-f0-9-]{36}\/(?:turns|interpret))?$/.test(
+          u.pathname,
+        ) ||
+        u.pathname === "/api/intelligence/customer/plan");
+    if (
+      u.origin !== OWNER_ORIGIN ||
+      /^\/api\/(checkout|operator|guardian|paypal|payments)(\/|$)/.test(
+        u.pathname,
+      ) ||
+      (!read && !allowedPost)
+    ) {
+      forbidden.push(
+        `${r.method()} ${u.origin === OWNER_ORIGIN ? u.pathname : "external-origin"}`,
+      );
+      return route.abort("blockedbyclient");
+    }
+    if (
+      r.method() === "POST" &&
+      /^\/api\/careos\/(?:records\/)?conversations\/[a-f0-9-]{36}\/(turns|interpret)$/.test(
+        u.pathname,
+      )
+    ) {
+      if (progress) {
+        if (Date.now() >= progress.deadline || used(await host()) >= 300)
+          return route.abort("blockedbyclient");
+        progress.turnTimes.push(Date.now());
+        await save();
+        await emit({
+          kind: "application-dispatch",
+          at: Date.now(),
+          group: progress.activeGroup,
+          path: u.pathname,
+          input: r.postDataJSON(),
+        });
+      }
+    }
+    if (
+      progress &&
+      r.method() === "POST" &&
+      u.pathname === "/api/careos/records/conversations"
+    ) {
+      progress.createTimes.push(Date.now());
+      await save();
+    }
+    return route.continue();
+  });
+  if (!progress) {
+    await writeFile(
+      join(output, "work.json"),
+      JSON.stringify(
+        {
+          campaign: LANGUAGE_CAMPAIGN,
+          source,
+          work,
+          holdout,
+          adjustedTargets: planned.targets,
+          plannedDiscoveryCalls: planned.plannedDiscoveryCalls,
+          plannedHoldoutCalls: planned.plannedHoldoutCalls,
+        },
+        null,
+        2,
+      ),
+      { mode: 0o600, flag: "wx" },
+    );
+    page = await freshPage();
+    const pair = await page.evaluate(async () => {
+      const r = await fetch("/api/ai/owner", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "pair" }),
+      });
+      if (!r.ok) throw Error("pair_failed");
+      return r.json() as Promise<{ id: string }>;
+    });
+    const created = (await host()).events.find(
+      (e) => e.kind === "pair" && e.subject === pair.id,
+    )!.at;
+    const approval = {
+      id: randomUUID(),
+      policyId: s.policy.id,
+      policyHash: hash(s.policy),
+      approvedAt: Date.now(),
+      expiresAt: created + 86400000,
+      sessionId: pair.id,
+      requestLimit: 300,
+      purpose: "north-language-300",
+      fastApplicationQuotaApproved: true,
+    };
+    await owner.files.write("evaluation-approval.json", approval);
+    await owner.approveEvaluation(approval);
+    progress = {
+      campaign: LANGUAGE_CAMPAIGN,
+      next: 0,
+      sessionId: pair.id,
+      allocationId: approval.id,
+      deadline: approval.expiresAt,
+      originalPolicyHash: hash(s.policy),
+      originalEvents: s.events,
+      snapshot: [],
+      storage: {},
+      activeGroup: null,
+      turnTimes: [],
+      createTimes: [],
+    };
+    await save();
+    const finished = await page.evaluate(
+      async () =>
+        (
+          await fetch("/api/ai/owner", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "finish" }),
+          })
+        ).ok,
+    );
+    if (!finished) throw Error("evaluation_finish_failed");
+    // A provider-free explicit saved-record query freezes the actual data, never
+    // fixture totals or the model's own interpretation as the oracle.
+    const snapshot = await page.evaluate(async () => {
+      const create = await fetch("/api/careos/records/conversations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      if (!create.ok) throw Error("snapshot_conversation_failed");
+      const c = await create.json();
+      const r = await fetch(`/api/careos/records/conversations/${c.id}/turns`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          requestId: crypto.randomUUID(),
+          twinId: null,
+          revision: 0,
+          message: "show all saved purchases",
+        }),
+      });
+      if (!r.ok) throw Error("snapshot_failed");
+      return r.json();
+    });
+    const result = recordsResultSchema.parse(snapshot.answer.recordsResult);
+    if (
+      result.coverage.source !== "database" ||
+      !result.coverage.complete ||
+      used(await host()) !== 0
+    )
+      throw Error("independent_database_snapshot_required");
+    progress.snapshot = result.records;
+    await writeFile(
+      join(output, "snapshot.json"),
+      JSON.stringify(
+        {
+          source,
+          observedAt: new Date().toISOString(),
+          result,
+          providerCalls: 0,
+        },
+        null,
+        2,
+      ),
+      { mode: 0o600, flag: "wx" },
+    );
+    await save();
+  }
+  const initialUsed = used(await host());
+  while (
+    (progress.next < work.length ||
+      (progress.retests?.length ?? 0) > 0 ||
+      (progress.holdoutNext ?? 0) < holdout.length) &&
+    used(await host()) < 300 &&
+    used(await host()) - initialUsed < batch
+  ) {
+    const isHoldout = used(await host()) >= 270;
+    const isRetest = !isHoldout && (progress.retests?.length ?? 0) > 0;
+    const item = isHoldout
+      ? holdout[(progress.holdoutNext ?? 0) % holdout.length]
+      : isRetest
+        ? progress.retests![0]
+        : work[progress.next];
+    if (!item) throw Error("meaningful_frozen_cases_exhausted");
+    await schedule(item.group !== progress.activeGroup);
+    if (item.group !== progress.activeGroup) {
+      await freshPage();
+      progress.activeGroup = item.group;
+      progress.storage = {};
+      await save();
+    } else if (!page) await freshPage(progress.storage);
+    const before = await host();
+    if (
+      before.events
+        .slice(0, progress.originalEvents.length)
+        .some(
+          (e, i) =>
+            JSON.stringify(e) !== JSON.stringify(progress!.originalEvents[i]),
+        )
+    )
+      throw Error("original_event_prefix_changed");
+    if (hash(before.policy) !== progress.originalPolicyHash)
+      throw Error("original_policy_changed");
+    const browserStatus = await page!.evaluate(async () =>
+      (await fetch("/api/ai/owner")).json(),
+    );
+    if (
+      !browserStatus.remembered ||
+      !browserStatus.evaluation?.browserBound ||
+      browserStatus.evaluation.id !== progress.allocationId ||
+      browserStatus.revoked ||
+      browserStatus.providerBlocked ||
+      browserStatus.remaining <= 0
+    )
+      throw Error("actual_browser_authority_denied");
+    const startedAt = Date.now();
+    const response = await submitLanguageTurn(page!, item.input),
+      body = await response.json(),
+      request = response.request().postDataJSON(),
+      after = await host();
+    const events = after.events.filter(
+      (e) =>
+        e.allocationId === progress!.allocationId &&
+        e.subject.startsWith(`customer:${request.requestId}:`),
+    );
+    const reservations = events.filter((e) => e.kind === "reserve"),
+      unknown = events.some((e) => e.kind === "unknown"),
+      unsettled = reservations.some(
+        (e) =>
+          !events.some(
+            (t) =>
+              t.subject === e.subject &&
+              ["completed", "failed", "unknown"].includes(t.kind),
+          ),
+      );
+    // Persist dispatch evidence BEFORE attempting UI observations. A broken
+    // locator/render must never erase an actual model attempt or invite replay.
+    await emit({
+      kind: "provider-observation",
+      caseId: item.id,
+      category: item.category,
+      input: item.input,
+      startedAt,
+      httpStatus: response.status(),
+      applicationRequest: request,
+      turn: body,
+      events,
+      providerAttempts: reservations.length,
+      source: await checkpoint(),
+    });
+    if (isHoldout) progress.holdoutNext = (progress.holdoutNext ?? 0) + 1;
+    else if (isRetest) progress.retests!.shift();
+    else progress.next++;
+    await save();
+    let observation: LanguageObservation | undefined,
+      assessment: ReturnType<typeof assessLanguageAnswer> | undefined;
+    if (response.ok() && body.answer) {
+      observation = await observe(body as CareTurn);
+      assessment = assessLanguageAnswer(
+        item.goal,
+        progress.snapshot,
+        body.answer,
+        observation,
+      );
+    }
+    const evidence = {
+      kind: "evaluation",
+      caseId: item.id,
+      group: item.group,
+      category: item.category,
+      input: item.input,
+      expected: item.expected,
+      startedAt,
+      finishedAt: Date.now(),
+      source: await checkpoint(),
+      applicationRequest: request,
+      httpStatus: response.status(),
+      turn: body,
+      providerAttempts: reservations.length,
+      events,
+      observation,
+      assessment,
+    };
+    await emit(evidence);
+    console.log(
+      JSON.stringify({
+        case: item.id,
+        attempts: reservations.length,
+        campaignUsed: used(after),
+        http: response.status(),
+        automatedPass: assessment?.automatedPass ?? false,
+        failures: assessment?.failures ?? [],
+      }),
+    );
+    progress.storage = await page!.evaluate(() =>
+      Object.fromEntries(Object.entries(sessionStorage)),
+    );
+    await save();
+    if (
+      unknown ||
+      unsettled ||
+      after.events
+        .slice(before.events.length)
+        .some((e) => e.kind === "provider-block")
+    )
+      throw Error("new_unknown_unsettled_or_provider_block_no_replay");
+    if (
+      !response.ok() ||
+      !reservations.length ||
+      !events.some((e) => e.kind === "completed")
+    )
+      throw Error("genuine_completion_not_established");
+    if (assessment && !assessment.automatedPass) {
+      await page!.screenshot({
+        path: join(output, `${progress.next}-failure.png`),
+        fullPage: true,
+      });
+      progress.paused = `${item.id}: ${assessment.failures.join(", ")}`;
+      await save();
+      break;
+    }
+  }
+  if (used(await host()) >= 300) {
+    progress.finished = true;
+    await owner.revokeSession(progress.sessionId);
+    await save();
+  }
+} catch (e) {
+  stopReason =
+    e instanceof Error && /^[a-z_]+$/.test(e.message)
+      ? e.message
+      : "campaign_execution_stopped_review_private_evidence";
+  if (progress) {
+    progress.paused = stopReason;
+    await save();
+    await owner.revokeSession(progress.sessionId);
+  }
+} finally {
+  await context?.close();
+  await lock.close();
+  await unlink(lockPath);
+  const s = await host();
+  const summary = {
+    campaign: LANGUAGE_CAMPAIGN,
+    observedAt: new Date().toISOString(),
+    newAttempts: used(s),
+    target: 300,
+    next: progress?.next ?? 0,
+    paused: progress?.paused ?? null,
+    finished: progress?.finished ?? false,
+    stopReason,
+    originalAllocation: await owner.status({ agent: "campaign-closeout" }),
+  };
+  await writeFile(
+    join(output, "latest-summary.json"),
+    JSON.stringify(summary, null, 2),
+    { mode: 0o600 },
+  );
+  console.log(JSON.stringify(summary));
+  if (stopReason) process.exitCode = 1;
+}
