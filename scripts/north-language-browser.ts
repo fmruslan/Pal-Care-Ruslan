@@ -11,7 +11,12 @@ export async function submitLanguageTurn(page: Page, message: string) {
     name: "Ask about your purchases",
     exact: true,
   });
-  const fromSearch = !!(await search.count());
+  // Database pages can finish navigation before their streamed inputs mount.
+  // Choose only after an actual visible input exists, not an early DOM count.
+  await expect(
+    search.or(composer).filter({ visible: true }).first(),
+  ).toBeVisible();
+  const fromSearch = await search.isVisible();
   await (fromSearch ? search : composer).fill(message);
   const responsePromise = page.waitForResponse(
     (r) =>
