@@ -28,6 +28,23 @@ const feedOf = () =>
     now: new Date("2026-11-05T12:00:00Z"),
   });
 describe("shared rolling Care calendar", () => {
+  it("uses supported borderless Studio presentation without changing event rows or Insights grid layout", () => {
+    const calendar = careCalendar(feedOf()),
+      before = structuredClone(calendar);
+    const home = careCalendarReport(calendar, false),
+      insights = careCalendarReport(calendar, true);
+    expect(home.pages[0].layout).toMatchObject({
+      pagePadding: 0,
+      widgetPadding: 0,
+      widgetBorderEnabled: false,
+      widgetBorderWidth: 0,
+      backgroundColor: "transparent",
+      widgetBackgroundColor: "transparent",
+    });
+    expect(insights.pages[0].layout).toBeUndefined();
+    expect(insights.pages[0].widgets?.events?.type).toBe("grid");
+    expect(calendar).toEqual(before);
+  });
   it("keeps the exact dated product context even when it has no upcoming event", () => {
     const feed = feedOf(),
       fridge = feed.purchases.find((p) => p.name === "Refrigerator")!;

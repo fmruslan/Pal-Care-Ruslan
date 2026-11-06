@@ -70,19 +70,37 @@ export function CareCalendarPanel({
     <section
       id={all ? "care-events" : "next-30-days"}
       aria-labelledby={all ? "care-events-title" : "care-calendar-title"}
-      className="mb-6 min-w-0 rounded-2xl border bg-card shadow-sm"
+      className={
+        all
+          ? "mb-6 min-w-0 rounded-2xl border bg-card shadow-sm"
+          : "care-calendar-panel mb-6 min-w-0"
+      }
       data-care-calendar-range={`${calendar.today}/${calendar.endExclusive}`}
     >
-      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1 px-4 pt-4 sm:px-5">
+      <div
+        className={
+          all
+            ? "flex flex-wrap items-start justify-between gap-x-4 gap-y-1 px-4 pt-4 sm:px-5"
+            : "care-calendar-heading"
+        }
+      >
         <div className="flex items-start gap-3">
           <CalendarDays
             aria-hidden="true"
-            className="mt-1 size-6 shrink-0 text-intelligence-foreground"
+            className={
+              all
+                ? "mt-1 size-6 shrink-0 text-intelligence-foreground"
+                : "care-calendar-icon"
+            }
           />
           <div>
             <h2
               id={all ? "care-events-title" : "care-calendar-title"}
-              className="text-lg font-semibold"
+              className={
+                all
+                  ? "text-lg font-semibold"
+                  : "text-xl font-semibold tracking-tight sm:text-2xl"
+              }
             >
               {all ? "All care events" : "Your next 30 days"}
             </h2>

@@ -68,6 +68,19 @@ export function careCalendarReport(
     pages: [
       {
         id: "care-events",
+        ...(!all
+          ? {
+              layout: {
+                pagePadding: 0,
+                backgroundColor: "transparent",
+                widgetPadding: 0,
+                widgetBackgroundColor: "transparent",
+                widgetBorderEnabled: false,
+                widgetBorderWidth: 0,
+                widgetBorderRadius: 0,
+              },
+            }
+          : {}),
         filter: { page: careCalendarFilter(calendar, all) },
         widgets: {
           timeline: { type: "care-timeline", dataMapping: {} },

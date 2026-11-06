@@ -1,5 +1,9 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
+## Consumer timeline polish — presentation-only candidate
+
+No HTTP, data schema, North planning, authorization, date calculation or provenance contract changes. The homepage custom widget renders the consumer rail only after actual Studio query IDs are validated; content-height measurements change native widget tracks, not records. Exact Twin/fact links and the complete Insights timeline/grid remain unchanged. No new endpoint, runtime flag, database write, worker, provider or financial operation. [Release state](STATUS.md).
+
 ## Rolling Care calendar — deployed source 0f4628d, no new endpoint
 
 Optional server-produced `CareAnswer.careCalendarRange: { from, toExclusive }` identifies the UTC calendar answer without changing legacy fingerprints. It is presentation metadata, never authorization; North keeps source links but does not automatically preview a raw source document for this summary. Original answers/history remain immutable and read-only selection never replays inference.

@@ -23,7 +23,7 @@ test("30-day calendar queries the real Studio engine and opens the exact dated T
   await expect(panel.locator(".ag-studio-layout")).toBeVisible();
   // The vendor notice remains present and readable even in its fading state.
   await expect(panel.locator(".ag-studio-watermark")).toHaveCSS("opacity", "1");
-  await expect(panel.getByText(/Today ·/)).toBeVisible();
+  await expect(panel.locator("[data-care-today]")).toHaveText("Today");
   let links = panel.locator("[data-care-calendar-event]");
   // The immutable Demo dates must age out honestly. Still exercise exact
   // navigation through the full saved timeline when the rolling window is empty.
@@ -145,6 +145,19 @@ test("calendar scrolls inside its panel at 320px/200% text without page overflow
     true,
   );
   await page.keyboard.press("ArrowRight");
+  await expect
+    .poll(() =>
+      scroll.evaluate((el) => {
+        const box = el.getBoundingClientRect();
+        return Array.from(
+          el.querySelectorAll<HTMLElement>("[data-care-calendar-event]"),
+        ).some((card) => {
+          const r = card.getBoundingClientRect();
+          return r.top < box.top || r.bottom > box.bottom;
+        });
+      }),
+    )
+    .toBe(false);
   await panel
     .getByRole("button", { name: "Next dates →", exact: true })
     .click();
@@ -160,6 +173,70 @@ test("calendar scrolls inside its panel at 320px/200% text without page overflow
     (await new AxeBuilder({ page }).include("#next-30-days").analyze())
       .violations,
   ).toEqual([]);
+});
+
+test("consumer calendar has one swipe surface, no native frames or vertical clipping", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto("/dashboard");
+  const panel = page.getByRole("region", {
+    name: "Your next 30 days",
+    exact: true,
+  });
+  await expect(
+    panel.locator('[data-care-calendar-engine="verified"]'),
+  ).toBeVisible({ timeout: 20000 });
+  const scroll = panel.locator("[data-care-calendar-viewport]");
+  await expect
+    .poll(() =>
+      panel.evaluate((root) =>
+        Array.from(root.querySelectorAll<HTMLElement>("*"))
+          .filter((el) => {
+            const s = getComputedStyle(el);
+            return (
+              ["auto", "scroll"].includes(s.overflowY) &&
+              el.scrollHeight > el.clientHeight + 2
+            );
+          })
+          .map((el) => el.className),
+      ),
+    )
+    .toEqual([]);
+  const horizontal = await panel.evaluate((root) =>
+    Array.from(root.querySelectorAll<HTMLElement>("*"))
+      .filter((el) => {
+        const s = getComputedStyle(el);
+        return (
+          ["auto", "scroll"].includes(s.overflowX) &&
+          el.scrollWidth > el.clientWidth + 2
+        );
+      })
+      .map((el) => el.hasAttribute("data-care-calendar-viewport")),
+  );
+  expect(horizontal).toEqual([true]);
+  await expect(panel.locator(".ag-studio-root-inner")).toHaveCSS(
+    "border-top-width",
+    "0px",
+  );
+  await expect(panel.locator(".ag-studio-layout")).toHaveCSS("padding", "0px");
+  await expect(panel.locator(".ag-studio-layout-widget-container")).toHaveCSS(
+    "background-color",
+    "rgba(0, 0, 0, 0)",
+  );
+  expect(
+    await scroll.evaluate((el) => el.scrollHeight <= el.clientHeight + 1),
+  ).toBe(true);
+  const clipping = await scroll.evaluate((el) => {
+    const box = el.getBoundingClientRect();
+    return Array.from(
+      el.querySelectorAll<HTMLElement>("[data-care-calendar-event]"),
+    ).some((card) => {
+      const r = card.getBoundingClientRect();
+      return r.top < box.top || r.bottom > box.bottom;
+    });
+  });
+  expect(clipping).toBe(false);
 });
 
 test("consumer cards use readable type, one primary action and a Demo label beside each fictional event", async ({

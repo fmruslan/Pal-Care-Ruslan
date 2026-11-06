@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import {
   AgStudio,
@@ -19,6 +19,7 @@ import type {
 import { ProductArt } from "../product-art";
 import { WorkspaceNavigationLink as Link } from "../intelligence/workspace-navigation-link";
 import { purchaseStudioTheme } from "../intelligence/studio-theme";
+import { CareCalendarRail } from "./calendar-rail";
 import {
   careEventCounts,
   type CareCalendar,
@@ -42,11 +43,26 @@ interface Registry extends AgBaseRegistry {
   )[];
 }
 type Context = {
+  onHeight: (height: number) => void;
   calendar: CareCalendar;
   all: boolean;
   selection: () => { all: boolean; evidence: string };
   subscribe: (fn: () => void) => () => void;
 };
+const consumerCalendarTheme = purchaseStudioTheme.withParams({
+  backgroundColor: "transparent",
+  borderWidth: 0,
+  studioMinWidth: 0,
+  studioMinHeight: 0,
+  studioCanvasPadding: 0,
+  studioCanvasBackgroundColor: "transparent",
+  studioCanvasBorder: false,
+  studioCanvasBorderRadius: 0,
+  studioWidgetPadding: 0,
+  studioWidgetBackgroundColor: "transparent",
+  studioWidgetBorder: false,
+  studioWidgetBorderRadius: 0,
+});
 const dateLabel = (day: string) =>
   new Intl.DateTimeFormat("en-US", {
     month: "short",
@@ -119,6 +135,26 @@ function TimelineWidget(params: AgWidgetParams<CustomData, unknown, Context>) {
     );
   const calendar = params.context.calendar,
     counts = careEventCounts(events);
+  if (!params.context.all)
+    return (
+      <div
+        data-care-calendar-engine="verified"
+        data-care-calendar-ids={events
+          .map((e) => e.id)
+          .sort()
+          .join("|")}
+      >
+        <CareCalendarRail
+          calendar={calendar}
+          events={events}
+          onHeight={params.context.onHeight}
+        />
+        <span className="sr-only" data-care-calendar-native-query>
+          AG Studio queried careEvents and verified {events.length} exact saved
+          event IDs.
+        </span>
+      </div>
+    );
   const upcoming = events.filter((e) => calendar.days.includes(e.day));
   // The compact calendar is always today's 30 days, even in Insights. Its native
   // grid below contains the entire relevant dated selection, including history.
@@ -330,6 +366,7 @@ export function CareCalendarStudio({
     host = useRef<HTMLDivElement>(null),
     listeners = useRef(new Set<() => void>());
   const [width, setWidth] = useState(0),
+    [contentHeight, setContentHeight] = useState(320),
     [rowHeight, setRowHeight] = useState(16),
     [ready, setReady] = useState(false),
     [evidence, setEvidence] = useState("all"),
@@ -347,7 +384,18 @@ export function CareCalendarStudio({
     return () => observer.disconnect();
   }, []);
   const data = useMemo(() => careCalendarData<Registry>(calendar), [calendar]);
-  const tracks = width < 600 ? 30 : 22;
+  const onHeight = useCallback(
+    (height: number) =>
+      setContentHeight((current) =>
+        Math.abs(current - height) > 1 ? height : current,
+      ),
+    [],
+  );
+  const tracks = all
+    ? width < 600
+      ? 30
+      : 22
+    : Math.max(10, Math.ceil(contentHeight / rowHeight));
   useEffect(() => {
     const current = api.current;
     if (!ready || !current) return;
@@ -389,6 +437,7 @@ export function CareCalendarStudio({
     () => ({
       calendar,
       all,
+      onHeight,
       selection: () => selection.current,
       subscribe: (fn) => {
         listeners.current.add(fn);
@@ -397,7 +446,7 @@ export function CareCalendarStudio({
         };
       },
     }),
-    [calendar, all],
+    [calendar, all, onHeight],
   );
   const widgets = useMemo(
     () =>
@@ -475,8 +524,8 @@ export function CareCalendarStudio({
         ref={host}
         data-testid="care-calendar-studio"
         data-ag-theme-mode={resolvedTheme === "dark" ? "dark" : "light"}
-        className="care-calendar-studio ag-theme-mode min-w-0 overflow-hidden"
-        style={{ height: `${tracks + (all ? 27 : 2.5)}rem` }}
+        className={`care-calendar-studio ag-theme-mode min-w-0 ${all ? "overflow-hidden" : "care-calendar-studio--home"}`}
+        style={{ height: all ? `${tracks + 27}rem` : tracks * rowHeight }}
       >
         {width > 0 && (
           <AgStudio<Registry>
@@ -485,14 +534,28 @@ export function CareCalendarStudio({
             widgets={widgets}
             context={context}
             initialState={initial as unknown as AgReportState<Registry>}
-            theme={purchaseStudioTheme}
+            theme={all ? purchaseStudioTheme : consumerCalendarTheme}
             loadThemeGoogleFonts={false}
             mode="view"
             panels={{
               view: { left: [], right: [] },
               edit: { left: [], right: [] },
             }}
-            layout={{ minWidth: width, columns: 24, rowHeight }}
+            layout={{
+              minWidth: width,
+              columns: 24,
+              rowHeight,
+              ...(!all
+                ? {
+                    pagePadding: 0,
+                    backgroundColor: "transparent",
+                    widgetPadding: 0,
+                    widgetBackgroundColor: "transparent",
+                    widgetBorderEnabled: false,
+                    widgetBorderWidth: 0,
+                  }
+                : {}),
+            }}
             onApiReady={(event) => {
               api.current = event.api as unknown as AgStudioApi;
               setReady(true);
