@@ -387,7 +387,8 @@ describe("exact campaign recovery, isolated fake evidence only; no live authorit
       originalBrowserRevoked: true,
       recoveryActive: true,
       used: 63,
-      remaining: 237,
+      requestLimit: 150,
+      remaining: 87,
       maxRetries: 0,
       concurrency: 1,
       evaluation: { id: RECOVERY_EVALUATION, browserBound: true },
@@ -398,8 +399,20 @@ describe("exact campaign recovery, isolated fake evidence only; no live authorit
       c.owner.authenticate({ ...proof, token: c.oldToken }),
     ).rejects.toThrow("signin_required");
     const subject = key();
+    const question = randomUUID();
+    await c.owner.beginCampaignQuestion(
+      proof,
+      subject.split(":")[1],
+      question,
+      true,
+    );
     await c.owner.reserve(proof, "customer", subject, true);
     await c.owner.settle(subject, "completed", { httpStatus: 200 });
+    await c.owner.finishCampaignQuestion(
+      proof,
+      subject.split(":")[1],
+      question,
+    );
     const after = await c.read();
     expect(after.sessions).toEqual(before.sessions);
     expect(after.policy).toEqual(before.policy);
@@ -412,7 +425,7 @@ describe("exact campaign recovery, isolated fake evidence only; no live authorit
     ).toBe(true);
     expect(await c.owner.status(proof)).toMatchObject({
       used: 64,
-      remaining: 236,
+      remaining: 86,
       standingAllocation: { used: 274, remaining: 26 },
       unknown: 1,
     });
@@ -420,8 +433,8 @@ describe("exact campaign recovery, isolated fake evidence only; no live authorit
       active: true,
       sessionId: RECOVERY_SESSION,
       baselineUsed: 63,
-      maxAdditional: 237,
-      remaining: 236,
+      maxAdditional: 87,
+      remaining: 86,
       activationSequence: 1,
     });
   });
@@ -1082,6 +1095,12 @@ describe("exact campaign recovery, isolated fake evidence only; no live authorit
     const c = await setup(),
       proof = await c.activate();
     const subject = key();
+    await c.owner.beginCampaignQuestion(
+      proof,
+      subject.split(":")[1],
+      randomUUID(),
+      true,
+    );
     await c.owner.reserve(proof, "customer", subject, true);
     await c.owner.logout(proof);
     await c.owner.settle(subject, "completed", { httpStatus: 200 });
@@ -1093,6 +1112,12 @@ describe("exact campaign recovery, isolated fake evidence only; no live authorit
     const c = await setup(),
       proof = await c.activate(),
       subject = key();
+    await c.owner.beginCampaignQuestion(
+      proof,
+      subject.split(":")[1],
+      randomUUID(),
+      true,
+    );
     await c.owner.reserve(proof, "customer", subject, true);
     await expect(
       c.owner.reserve(proof, "customer", key(), true),
@@ -1138,16 +1163,22 @@ describe("exact campaign recovery, isolated fake evidence only; no live authorit
     expect(await c.read()).toEqual(s);
     c.advance(60000);
     const subject = key();
+    await c.owner.beginCampaignQuestion(
+      proof,
+      subject.split(":")[1],
+      randomUUID(),
+      true,
+    );
     await c.owner.reserve(proof, "customer", subject, true);
     expect((await c.read()).events.at(-1)?.allocationId).toBe(
       RECOVERY_EVALUATION,
     );
   });
-  it("at300 cannot fall back to the separate remaining26", async () => {
+  it("at150 cannot use the historical unused150 or the separate remaining26", async () => {
     const c = await setup(),
       proof = await c.activate(),
       s = await c.read();
-    for (let n = 0; n < 237; n++) {
+    for (let n = 0; n < 87; n++) {
       const subject = key();
       s.events.push(
         {
@@ -1212,9 +1243,9 @@ describe("exact campaign recovery, isolated fake evidence only; no live authorit
     expect(await c.restart().status(proof)).toMatchObject({
       recoveryActive: false,
       originalBrowserRevoked: true,
-      requestLimit: 300,
+      requestLimit: 150,
       used: 63,
-      remaining: 237,
+      remaining: 87,
       standingAllocation: { used: 274, remaining: 26 },
     });
     await expect(

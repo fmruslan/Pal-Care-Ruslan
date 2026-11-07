@@ -26,8 +26,15 @@ export async function standingStructured<T extends z.ZodType>(options: {
 }) {
   for (let attempt = 0; ; attempt++) {
     const { owner, proof, scope } = options;
+    const base = `${scope}:${options.requestId}:${options.name}`;
+    const key = attempt === 0 ? base : `${base}:retry-${attempt}`;
     // No refresh at all without present owner/policy/quota/provider authority.
-    const policy = await owner.assertDispatch(proof, scope, options.enabled());
+    const policy = await owner.assertDispatch(
+      proof,
+      scope,
+      options.enabled(),
+      key,
+    );
     await owner.assertHistoricalJournal(
       await options.files.read("session.json"),
     );
@@ -43,15 +50,13 @@ export async function standingStructured<T extends z.ZodType>(options: {
     );
     const token = await options.files.lockedWaiting(
       async () => {
-        await owner.assertDispatch(proof, scope, options.enabled());
+        await owner.assertDispatch(proof, scope, options.enabled(), key);
         return accessToken(options.files, options.transport);
       },
       ".lock",
       options.signal,
       15000,
     );
-    const base = `${scope}:${options.requestId}:${options.name}`;
-    const key = attempt === 0 ? base : `${base}:retry-${attempt}`;
     let reserved = false;
     const observation: Record<string, unknown> = {};
     try {

@@ -4,9 +4,76 @@ import { createHash } from "node:crypto";
 import {
   applyNorthRecoveryFallback,
   verifyNorthRecoveryInventory,
+  validateNorth150Fallback,
 } from "../../scripts/north-recovery-fallback";
+import { recoveryHash } from "../../src/lib/careos/evaluation-recovery";
 
 describe("managed application-only fallback ordering, isolated operations", () => {
+  it("requires the corrected exact source, 150 ceiling and marker-aware immutable fallback", () => {
+    const release = {
+      commit: "a".repeat(40),
+      sourceHash: "b".repeat(64),
+      buildId: "synthetic-cap-aware",
+    };
+    const ciReceipt = {
+      schema: 1,
+      ...release,
+      lane: "full",
+      exactChecks: true,
+      runId: 123,
+      workflow: ".github/workflows/repository-checks.yml",
+      checkedAt: "2026-11-07T08:00:00Z",
+    };
+    const runtime = { release, ciReceiptHash: recoveryHash(ciReceipt) };
+    const proof = {
+      executionLimit: 150,
+      questionMarkersSupported: true,
+      ciReceipt,
+      fallback: {
+        release,
+        ciReceiptHash: runtime.ciReceiptHash,
+        ciRunId: 123,
+        recoveryAware: true,
+        startupHttpsPassed: true,
+        oldCredentialDenied: true,
+        injectedRecoveryLogoutPassed: true,
+        disableBeforeSwitch: true,
+        evidenceHash: "c".repeat(64),
+        managedEntrypointHash: "d".repeat(64),
+      },
+    };
+    expect(validateNorth150Fallback(proof, runtime).executionLimit).toBe(150);
+    for (const bad of [
+      { ...proof, executionLimit: 300 },
+      { ...proof, questionMarkersSupported: false },
+      { ...proof, fallback: { ...proof.fallback, disableBeforeSwitch: false } },
+      {
+        ...proof,
+        fallback: { ...proof.fallback, ciReceiptHash: "e".repeat(64) },
+      },
+      { ...proof, fallback: { ...proof.fallback, ciRunId: 124 } },
+      {
+        ...proof,
+        fallback: {
+          ...proof.fallback,
+          release: { ...release, commit: "f".repeat(40) },
+        },
+      },
+    ])
+      expect(() => validateNorth150Fallback(bad, runtime)).toThrow();
+    expect(() =>
+      validateNorth150Fallback(proof, {
+        ...runtime,
+        release: { ...release, sourceHash: "e".repeat(64) },
+      }),
+    ).toThrow();
+    expect(() =>
+      validateNorth150Fallback(proof, {
+        ...runtime,
+        ciReceiptHash: "e".repeat(64),
+      }),
+    ).toThrow();
+  });
   it("durably disables recovery before any service switch, without reactivation", async () => {
     const calls: string[] = [];
     await applyNorthRecoveryFallback({

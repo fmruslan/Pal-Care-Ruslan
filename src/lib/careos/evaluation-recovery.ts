@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { z } from "zod";
 import { CareError } from "./contracts";
+import { CAMPAIGN_EXECUTION_LIMIT } from "./campaign-execution";
 import type { OwnerState, OwnerProof } from "./standing-owner";
 import {
   PilotTransitionPublicationUncertainError,
@@ -49,6 +50,98 @@ const secretHash = (token: string) =>
 const denied = (): never => {
   throw new CareError("careos_owner_evaluation_recovery_denied", 403);
 };
+type RecoveryChronology = {
+  audit: { action: string; at: number }[];
+  challenge?: { createdAt: number; expiresAt: number };
+  approval?: { at: number };
+  activation?: { at: number };
+  disabled?: { at: number };
+};
+/** State creation and audit publication intentionally use separate clock reads.
+ * Preserve their actual timestamps; require ordered events, not equality. */
+export function validRecoveryChronology(doc: RecoveryChronology) {
+  const actions = ["prepare", "challenge", "approve", "activate", "disable"];
+  const times = [
+    ...(doc.challenge
+      ? [doc.challenge.createdAt, doc.challenge.expiresAt]
+      : []),
+    ...(doc.approval ? [doc.approval.at] : []),
+    ...(doc.activation ? [doc.activation.at] : []),
+    ...(doc.disabled ? [doc.disabled.at] : []),
+  ];
+  if (
+    times.some((at) => !Number.isSafeInteger(at) || at < 0) ||
+    !doc.audit.length ||
+    new Set(doc.audit.map((e) => e.action)).size !== doc.audit.length ||
+    !!doc.challenge !== doc.audit.some((e) => e.action === "challenge") ||
+    !!doc.approval !== doc.audit.some((e) => e.action === "approve") ||
+    !!doc.activation !== doc.audit.some((e) => e.action === "activate") ||
+    !!doc.disabled !== doc.audit.some((e) => e.action === "disable") ||
+    doc.audit.some(
+      (e, n) =>
+        !Number.isSafeInteger(e.at) ||
+        e.at < 0 ||
+        !actions.includes(e.action) ||
+        (e.action === "disable"
+          ? n === 0 || n !== doc.audit.length - 1
+          : e.action !== actions[n]) ||
+        (n > 0 && e.at < doc.audit[n - 1].at),
+    )
+  )
+    return false;
+  const at = (action: string) => doc.audit.find((e) => e.action === action)?.at;
+  const prepare = at("prepare");
+  if (prepare === undefined) return false;
+  if (doc.challenge) {
+    const recorded = at("challenge");
+    if (
+      recorded === undefined ||
+      doc.challenge.createdAt < prepare ||
+      recorded < doc.challenge.createdAt ||
+      recorded >= doc.challenge.expiresAt
+    )
+      return false;
+  }
+  if (doc.approval) {
+    const challenge = at("challenge"),
+      recorded = at("approve");
+    if (
+      !doc.challenge ||
+      challenge === undefined ||
+      recorded === undefined ||
+      doc.approval.at < challenge ||
+      recorded < doc.approval.at ||
+      recorded >= doc.challenge.expiresAt
+    )
+      return false;
+  }
+  if (doc.activation) {
+    const approved = at("approve"),
+      recorded = at("activate");
+    if (
+      !doc.challenge ||
+      !doc.approval ||
+      approved === undefined ||
+      recorded === undefined ||
+      doc.activation.at < approved ||
+      recorded < doc.activation.at ||
+      recorded >= doc.challenge.expiresAt
+    )
+      return false;
+  }
+  if (doc.disabled) {
+    const recorded = at("disable"),
+      previous = doc.audit.at(-2)?.at;
+    if (
+      recorded === undefined ||
+      previous === undefined ||
+      doc.disabled.at < previous ||
+      recorded < doc.disabled.at
+    )
+      return false;
+  }
+  return true;
+}
 export const recoveryReleaseSchema = z.strictObject({
   commit: z.string().regex(/^[a-f0-9]{40}$/),
   sourceHash: digest,
@@ -80,30 +173,140 @@ export const recoveryTransitionGateSchema = recoveryGateSchema.extend({
     managedEntrypointHash: digest,
   }),
 });
-export const recoveryTransitionPreparationSchema = z.strictObject({
-  ownerApprovalHash: z.literal(RECOVERY_TRANSITION_OWNER_APPROVAL),
-  originalDocumentHash: digest,
-  originalBindingHash: digest,
+export const recoveryCheckpointSchema = z.strictObject({
   ownerStateHash: digest,
-  fromRelease: recoveryReleaseSchema,
-  fromCiReceiptHash: digest,
-  toGate: recoveryTransitionGateSchema,
-  history: z.strictObject({
+  eventCount: time,
+  eventHash: digest,
+  policyHash: digest,
+  evaluationHash: digest,
+  originalSessionHash: digest,
+});
+export const POST_STOP_RESTRICTION_EVENT =
+  "ac70d904-15a3-4787-8052-4e4a89fb5eb4";
+const continuationBounds = {
+  historicalLimit: z.literal(300),
+  executionLimit: z.literal(150),
+  baselineUsed: z.literal(63),
+  maxAdditional: z.literal(87),
+  questionMaxStages: z.literal(2),
+  maxRetries: z.literal(0),
+  scope: z.literal("customer-records-including-personal-insights-native-sdk"),
+};
+/** Before separate consent, live HTTPS is explicitly unverified. Reusing the
+ * active gate's true flag here would misrepresent an offline engineering test. */
+export const postStopOfflineFallbackSchema =
+  recoveryTransitionGateSchema.shape.fallback.extend({
+    startupHttpsPassed: z.literal(false),
+  });
+/** Engineering evidence only. Creating this proposal NEVER enables a credential. */
+export const postStopProposalSchema = z
+  .strictObject({
+    version: z.literal(1),
+    kind: z.literal("explicit-post-stop-150"),
+    createdAt: time,
+    expiresAt: z.literal(RECOVERY_DEADLINE),
+    originalDocumentHash: digest,
+    originalBindingHash: digest,
+    activationTokenHash: digest,
+    terminalCheckpoint: recoveryCheckpointSchema,
+    terminalRestrictionEventId: z.literal(POST_STOP_RESTRICTION_EVENT),
+    fromRelease: recoveryReleaseSchema,
+    fromCiReceiptHash: digest,
     release: recoveryReleaseSchema,
     ciReceiptHash: digest,
+    securityReviewHash: digest,
+    preservationHash: digest,
+    offlineQaHash: digest,
+    fallbackReadinessHash: digest,
+    fallback: postStopOfflineFallbackSchema,
+    pendingLiveChecks: z.tuple([
+      z.literal("private-production-https-switch"),
+      z.literal("same-source-fallback-https-smoke"),
+      z.literal(
+        "fresh-disabled-cookie-owned-records-get-and-provider-eligibility",
+      ),
+    ]),
+    ...continuationBounds,
+  })
+  .refine(
+    (p) =>
+      p.createdAt >= 1794034945391 &&
+      p.createdAt < RECOVERY_DEADLINE &&
+      p.terminalCheckpoint.eventCount === 785 &&
+      recoveryHash(p.fromRelease) === recoveryHash(RECOVERY_TRANSITION_FROM) &&
+      p.release.commit !== p.fromRelease.commit &&
+      p.release.sourceHash !== p.fromRelease.sourceHash &&
+      recoveryHash(p.fallback.release) === recoveryHash(p.release) &&
+      p.fallback.ciReceiptHash === p.ciReceiptHash,
+  );
+export const postStopApprovalSchema = z.strictObject({
+  version: z.literal(1),
+  decision: z.literal("approve"),
+  kind: z.literal("explicit-post-stop-150"),
+  proposalHash: digest,
+  approvedAt: time,
+  sameCredentialOnly: z.literal(true),
+  noWindowExtension: z.literal(true),
+});
+export const postStopWitnessSchema = z.strictObject({
+  kind: z.literal("explicit-post-stop-150"),
+  proposalHash: digest,
+  approvalHash: digest,
+  approvedAt: time,
+  proposal: postStopProposalSchema,
+  approval: postStopApprovalSchema,
+  terminalCheckpoint: recoveryCheckpointSchema,
+  terminalRestrictionEventId: z.literal(POST_STOP_RESTRICTION_EVENT),
+  activationTokenHash: digest,
+  liveChecks: z.strictObject({
+    release: recoveryReleaseSchema,
     checkedAt: time,
     evidenceHash: digest,
-    ownerStatusHash: digest,
-    bindingHash: digest,
-    recordsOwnerDigest: digest,
-    historyHash: digest,
-    existingRecoveryCredentialVerified: z.literal(true),
-    serverOwnedRecordsProofVerified: z.literal(true),
-    allOriginalPrefixesUnchanged: z.literal(true),
+    productionHttpsPassed: z.literal(true),
+    sameSourceFallbackHttpsPassed: z.literal(true),
+    originalGrantUnchanged: z.literal(true),
   }),
+  ...continuationBounds,
 });
+export type PostStopWitness = z.infer<typeof postStopWitnessSchema>;
+/** Canonical proposal/approval hashes are host attestations, not signatures.
+ * No future approval digest is baked into source or supplied by HTTP. */
+export function createPostStopProposal(value: unknown) {
+  const proposal = postStopProposalSchema.parse(value);
+  return { proposal, proposalHash: recoveryHash(proposal) };
+}
+export const recoveryTransitionPreparationSchema = z
+  .strictObject({
+    ownerApprovalHash: digest,
+    postStop: postStopWitnessSchema.optional(),
+    originalDocumentHash: digest,
+    originalBindingHash: digest,
+    ownerStateHash: digest,
+    fromRelease: recoveryReleaseSchema,
+    fromCiReceiptHash: digest,
+    toGate: recoveryTransitionGateSchema,
+    history: z.strictObject({
+      release: recoveryReleaseSchema,
+      ciReceiptHash: digest,
+      checkedAt: time,
+      evidenceHash: digest,
+      ownerStatusHash: digest,
+      bindingHash: digest,
+      recordsOwnerDigest: digest,
+      historyHash: digest,
+      existingRecoveryCredentialVerified: z.literal(true),
+      serverOwnedRecordsProofVerified: z.literal(true),
+      allOriginalPrefixesUnchanged: z.literal(true),
+    }),
+  })
+  .refine((v) =>
+    v.postStop
+      ? v.ownerApprovalHash === v.postStop.approvalHash &&
+        v.ownerApprovalHash !== RECOVERY_TRANSITION_OWNER_APPROVAL
+      : v.ownerApprovalHash === RECOVERY_TRANSITION_OWNER_APPROVAL,
+  );
 export const recoveryTransitionSchema =
-  recoveryTransitionPreparationSchema.extend({
+  recoveryTransitionPreparationSchema.safeExtend({
     version: z.literal(1),
     sequence: z.literal(1),
     evaluationId: z.literal(RECOVERY_EVALUATION),
@@ -128,14 +331,6 @@ export const recoveryHistorySchema = z
       new Set(v.map((x) => x.conversationId)).size === 15 &&
       v.reduce((n, x) => n + x.turnCount, 0) === 58,
   );
-export const recoveryCheckpointSchema = z.strictObject({
-  ownerStateHash: digest,
-  eventCount: time,
-  eventHash: digest,
-  policyHash: digest,
-  evaluationHash: digest,
-  originalSessionHash: digest,
-});
 export const recoveryPreparationSchema = z.strictObject({
   recordsOwnerDigest: digest,
   history: recoveryHistorySchema,
@@ -207,6 +402,7 @@ export const evaluationRecoverySchema = z
     }[doc.phase];
     const actions = ["prepare", "challenge", "approve", "activate"];
     if (
+      !validRecoveryChronology(doc) ||
       doc.audit.some(
         (e, n) => e.sequence !== n + 1 || (n > 0 && e.at < doc.audit[n - 1].at),
       )
@@ -322,8 +518,71 @@ export class EvaluationRecovery {
   private audit(
     doc: EvaluationRecoveryDocument,
     action: EvaluationRecoveryDocument["audit"][number]["action"],
+    at = this.now(),
   ) {
-    doc.audit.push({ sequence: doc.audit.length + 1, at: this.now(), action });
+    doc.audit.push({ sequence: doc.audit.length + 1, at, action });
+  }
+  private postStopWitness(
+    doc: EvaluationRecoveryDocument,
+    input: RecoveryTransitionPreparation,
+    at: number,
+  ) {
+    const w = input.postStop;
+    if (!w) return;
+    const p = w.proposal,
+      checkpoint = w.terminalCheckpoint;
+    if (
+      doc.phase !== "disabled" ||
+      !doc.disabled ||
+      !doc.activation ||
+      doc.audit.length !== 5 ||
+      !doc.approval ||
+      !doc.challenge ||
+      !validRecoveryChronology(doc) ||
+      doc.approval.bindingHash !== recoveryHash(doc.binding) ||
+      doc.approval.challengeId !== doc.challenge.id ||
+      doc.activation.tokenHash === doc.challenge.tokenHash ||
+      recoveryHash(p) !== w.proposalHash ||
+      recoveryHash(w.approval) !== w.approvalHash ||
+      w.approval.proposalHash !== w.proposalHash ||
+      w.approval.approvedAt !== w.approvedAt ||
+      w.approvedAt <=
+        Math.max(doc.disabled.at, doc.audit.at(-1)!.at, p.createdAt) ||
+      w.approvedAt >= RECOVERY_DEADLINE ||
+      w.approvedAt > at ||
+      p.createdAt <
+        Math.max(doc.disabled.at, doc.audit.at(-1)!.at, 1794034945391) ||
+      p.createdAt >= RECOVERY_DEADLINE ||
+      p.originalDocumentHash !== input.originalDocumentHash ||
+      p.originalBindingHash !== input.originalBindingHash ||
+      p.activationTokenHash !== doc.activation.tokenHash ||
+      w.activationTokenHash !== doc.activation.tokenHash ||
+      recoveryHash(p.terminalCheckpoint) !== recoveryHash(checkpoint) ||
+      checkpoint.eventCount !== 785 ||
+      doc.binding.checkpointEventCount !== 784 ||
+      checkpoint.ownerStateHash !== input.ownerStateHash ||
+      checkpoint.policyHash !== doc.binding.policyHash ||
+      checkpoint.evaluationHash !== doc.binding.evaluationHash ||
+      checkpoint.originalSessionHash !== doc.binding.originalSessionHash ||
+      recoveryHash(p.fromRelease) !== recoveryHash(input.fromRelease) ||
+      p.fromCiReceiptHash !== input.fromCiReceiptHash ||
+      recoveryHash(p.release) !== recoveryHash(input.toGate.release) ||
+      p.ciReceiptHash !== input.toGate.ciReceiptHash ||
+      p.securityReviewHash !== input.toGate.securityReviewHash ||
+      p.preservationHash !== input.toGate.preservationHash ||
+      p.fallbackReadinessHash !== input.toGate.fallbackReadinessHash ||
+      recoveryHash({ ...p.fallback, startupHttpsPassed: true }) !==
+        recoveryHash(input.toGate.fallback) ||
+      recoveryHash(p.fallback.release) !== recoveryHash(p.release) ||
+      p.fallback.ciReceiptHash !== p.ciReceiptHash ||
+      recoveryHash(w.liveChecks.release) !== recoveryHash(p.release) ||
+      w.liveChecks.checkedAt <= w.approvedAt ||
+      w.liveChecks.checkedAt > at ||
+      at - w.liveChecks.checkedAt > 300000 ||
+      input.history.checkedAt <= w.approvedAt ||
+      input.toGate.providerEligibilityCheckedAt <= w.approvedAt
+    )
+      return denied();
   }
   private async gate(doc: EvaluationRecoveryDocument) {
     const runtime = await this.runtime();
@@ -331,6 +590,7 @@ export class EvaluationRecovery {
     let expected = doc.binding.gates;
     if (transition !== null) {
       const t = recoveryTransitionSchema.parse(transition.value);
+      this.postStopWitness(doc, t, t.createdAt);
       const snapshot = await this.files.snapshot(RECOVERY_FILE);
       if (
         snapshot?.hash !== t.originalDocumentHash ||
@@ -340,7 +600,9 @@ export class EvaluationRecovery {
         recoveryHash(t.fromRelease) !==
           recoveryHash(doc.binding.gates.release) ||
         t.fromCiReceiptHash !== doc.binding.gates.ciReceiptHash ||
-        t.ownerStateHash !== doc.binding.checkpoint.ownerStateHash ||
+        t.ownerStateHash !==
+          (t.postStop?.terminalCheckpoint.ownerStateHash ??
+            doc.binding.checkpoint.ownerStateHash) ||
         t.toGate.preservationOwnerStateHash !== t.ownerStateHash ||
         t.createdAt > this.now() ||
         t.createdAt < (doc.activation?.at ?? Infinity) ||
@@ -351,14 +613,17 @@ export class EvaluationRecovery {
         t.history.checkedAt > t.createdAt ||
         t.history.checkedAt < (doc.activation?.at ?? Infinity) ||
         t.createdAt - t.history.checkedAt > 300000 ||
-        recoveryHash(t.history.release) !== recoveryHash(t.fromRelease) ||
-        t.history.ciReceiptHash !== t.fromCiReceiptHash ||
+        recoveryHash(t.history.release) !==
+          recoveryHash(t.postStop ? t.toGate.release : t.fromRelease) ||
+        t.history.ciReceiptHash !==
+          (t.postStop ? t.toGate.ciReceiptHash : t.fromCiReceiptHash) ||
         t.history.bindingHash !== t.originalBindingHash ||
         t.history.recordsOwnerDigest !== doc.binding.recordsOwnerDigest ||
         t.history.historyHash !== recoveryHistoryHash(doc.binding.history) ||
         t.toGate.fallback.release.commit ===
           "091dc83d2fd791b06ee181aaf476c393e014c226" ||
-        recoveryHash(t.toGate.fallback.release) !== recoveryHash(t.fromRelease)
+        recoveryHash(t.toGate.fallback.release) !==
+          recoveryHash(t.postStop ? t.toGate.release : t.fromRelease)
       )
         return denied();
       expected = t.toGate;
@@ -368,6 +633,9 @@ export class EvaluationRecovery {
       runtime.ciReceiptHash !== expected.ciReceiptHash
     )
       return denied();
+    return transition === null
+      ? undefined
+      : recoveryTransitionSchema.parse(transition.value).postStop;
   }
   /** Reused by browser admission AND read-only host inspection; never trusts phase alone. */
   async validate(
@@ -376,9 +644,8 @@ export class EvaluationRecovery {
     requireActive = true,
     admission = true,
   ) {
-    const result = this.validateState(s, doc, requireActive, admission);
-    await this.gate(doc);
-    return result;
+    const postStop = await this.gate(doc);
+    return this.validateState(s, doc, requireActive, admission, postStop);
   }
   /** No runtime bypass is exposed to authentication/admission callers. */
   private validateState(
@@ -386,13 +653,14 @@ export class EvaluationRecovery {
     doc: EvaluationRecoveryDocument,
     requireActive = true,
     admission = true,
+    postStop?: PostStopWitness,
   ) {
     const b = doc.binding,
       now = this.now();
     const original = s.sessions.find((x) => x.id === RECOVERY_SESSION);
     if (
-      (requireActive && doc.phase !== "active") ||
-      doc.phase === "disabled" ||
+      (requireActive && doc.phase !== "active" && !postStop) ||
+      (doc.phase === "disabled" && !postStop) ||
       b.checkpoint.eventCount !== b.checkpointEventCount ||
       b.checkpoint.eventHash !== b.checkpointEventHash ||
       b.checkpoint.policyHash !== b.policyHash ||
@@ -403,6 +671,7 @@ export class EvaluationRecovery {
         "091dc83d2fd791b06ee181aaf476c393e014c226" ||
       doc.audit.some((e) => e.at > now) ||
       (!requireActive &&
+        !postStop &&
         (b.gates.providerEligibilityCheckedAt > now ||
           now - b.gates.providerEligibilityCheckedAt > 300000)) ||
       !original ||
@@ -440,6 +709,38 @@ export class EvaluationRecovery {
       s.events.some((e) => ["provider-block", "revoke-policy"].includes(e.kind))
     )
       return denied();
+    if (postStop) {
+      const terminal = postStop.terminalCheckpoint;
+      const stop = s.events[b.checkpointEventCount];
+      if (
+        s.events.length < terminal.eventCount ||
+        recoveryHash(s.events.slice(0, terminal.eventCount)) !==
+          terminal.eventHash ||
+        recoveryHash({
+          ...s,
+          events: s.events.slice(0, terminal.eventCount),
+        }) !== terminal.ownerStateHash ||
+        recoveryHash({
+          ...s,
+          events: s.events.slice(0, b.checkpointEventCount),
+        }) !== b.checkpoint.ownerStateHash ||
+        !stop ||
+        stop.id !== postStop.terminalRestrictionEventId ||
+        stop.kind !== "revoke-session" ||
+        stop.subject !== RECOVERY_SESSION ||
+        stop.at !== 1794034945391 ||
+        stop.at >= postStop.approvedAt ||
+        postStop.approvedAt > now ||
+        now >= RECOVERY_DEADLINE ||
+        s.events.some((e) => e.at > now) ||
+        new Set(s.events.map((e) => e.id)).size !== s.events.length ||
+        new Set(s.sessions.map((e) => e.id)).size !== s.sessions.length ||
+        new Set(s.sessions.map((e) => e.tokenHash)).size !==
+          s.sessions.length ||
+        s.sessions.some((e) => e.tokenHash === postStop.activationTokenHash)
+      )
+        return denied();
+    }
     const prefix = s.events.slice(0, b.checkpointEventCount);
     const originalReservations = prefix.filter(
       (e) => e.kind === "reserve" && !e.allocationId,
@@ -462,11 +763,13 @@ export class EvaluationRecovery {
       )
     )
       return denied();
-    const tail = s.events.slice(b.checkpointEventCount);
+    const effectiveCheckpointEventCount =
+      postStop?.terminalCheckpoint.eventCount ?? b.checkpointEventCount;
+    const tail = s.events.slice(effectiveCheckpointEventCount);
     if (
       tail.some(
         (e) =>
-          (e.subject === RECOVERY_SESSION &&
+          ((postStop || e.subject === RECOVERY_SESSION) &&
             ["revoke-session", "logout"].includes(e.kind)) ||
           (["reserve", "completed", "failed", "unknown"].includes(e.kind) &&
             (e.allocationId !== RECOVERY_EVALUATION ||
@@ -479,8 +782,8 @@ export class EvaluationRecovery {
     );
     if (
       reserves.length < 63 ||
-      reserves.length > 300 ||
-      (admission && reserves.length >= 300) ||
+      reserves.length > CAMPAIGN_EXECUTION_LIMIT ||
+      (admission && reserves.length >= CAMPAIGN_EXECUTION_LIMIT) ||
       new Set(reserves.map((x) => x.subject)).size !== reserves.length
     )
       return denied();
@@ -519,7 +822,9 @@ export class EvaluationRecovery {
     return {
       original,
       used: reserves.length,
-      remaining: 300 - reserves.length,
+      remaining: CAMPAIGN_EXECUTION_LIMIT - reserves.length,
+      effectiveCheckpointEventCount,
+      postStop,
     };
   }
   /** Host-only one-way release continuity. Caller holds the SAME owner lock.
@@ -531,9 +836,10 @@ export class EvaluationRecovery {
     const snapshot = await this.files.snapshot(RECOVERY_FILE);
     if (!snapshot) return denied();
     const doc = evaluationRecoverySchema.parse(snapshot.value);
-    const valid = this.validateState(s, doc);
     const runtime = await this.runtime(),
       now = this.now();
+    this.postStopWitness(doc, input, now);
+    const valid = this.validateState(s, doc, true, true, input.postStop);
     const fresh = (at: number) => at <= now && now - at <= 300000;
     if (
       valid.used !== 63 ||
@@ -541,8 +847,10 @@ export class EvaluationRecovery {
       snapshot.hash !== input.originalDocumentHash ||
       recoveryHash(doc.binding) !== input.originalBindingHash ||
       recoveryHash(s) !== input.ownerStateHash ||
-      input.ownerStateHash !== doc.binding.checkpoint.ownerStateHash ||
-      s.events.length !== doc.binding.checkpointEventCount ||
+      input.ownerStateHash !==
+        (input.postStop?.terminalCheckpoint.ownerStateHash ??
+          doc.binding.checkpoint.ownerStateHash) ||
+      s.events.length !== valid.effectiveCheckpointEventCount ||
       input.toGate.preservationOwnerStateHash !== input.ownerStateHash ||
       recoveryHash(input.fromRelease) !==
         recoveryHash(RECOVERY_TRANSITION_FROM) ||
@@ -556,24 +864,30 @@ export class EvaluationRecovery {
       !fresh(input.toGate.providerEligibilityCheckedAt) ||
       !fresh(input.history.checkedAt) ||
       input.history.checkedAt < doc.activation.at ||
-      recoveryHash(input.history.release) !== recoveryHash(input.fromRelease) ||
-      input.history.ciReceiptHash !== input.fromCiReceiptHash ||
+      recoveryHash(input.history.release) !==
+        recoveryHash(
+          input.postStop ? input.toGate.release : input.fromRelease,
+        ) ||
+      input.history.ciReceiptHash !==
+        (input.postStop
+          ? input.toGate.ciReceiptHash
+          : input.fromCiReceiptHash) ||
       input.history.bindingHash !== input.originalBindingHash ||
       input.history.recordsOwnerDigest !== doc.binding.recordsOwnerDigest ||
       input.history.historyHash !== recoveryHistoryHash(doc.binding.history) ||
       input.toGate.fallback.release.commit ===
         "091dc83d2fd791b06ee181aaf476c393e014c226" ||
       recoveryHash(input.toGate.fallback.release) !==
-        recoveryHash(input.fromRelease) ||
+        recoveryHash(
+          input.postStop ? input.toGate.release : input.fromRelease,
+        ) ||
       s.events.some((e) => e.at > now) ||
       new Set(s.events.map((e) => e.id)).size !== s.events.length ||
       new Set(s.sessions.map((v) => v.id)).size !== s.sessions.length ||
       new Set(s.sessions.map((v) => v.tokenHash)).size !== s.sessions.length ||
       s.sessions.some((v) => v.tokenHash === doc.activation?.tokenHash) ||
       doc.activation.tokenHash === doc.challenge!.tokenHash ||
-      doc.challenge!.createdAt !== doc.audit[1].at ||
-      doc.approval!.at !== doc.audit[2].at ||
-      doc.activation.at !== doc.audit[3].at ||
+      !validRecoveryChronology(doc) ||
       doc.approval!.at < doc.challenge!.createdAt ||
       doc.activation.at >= doc.challenge!.expiresAt
     )
@@ -588,7 +902,8 @@ export class EvaluationRecovery {
       return denied();
     const finalRuntime = await this.runtime();
     const committedAt = this.now();
-    this.validateState(s, doc);
+    this.postStopWitness(doc, input, committedAt);
+    this.validateState(s, doc, true, true, input.postStop);
     if (
       committedAt < now ||
       committedAt - input.history.checkedAt > 300000 ||
@@ -692,7 +1007,7 @@ export class EvaluationRecovery {
       createdAt: now,
       expiresAt: Math.min(now + 300000, RECOVERY_DEADLINE),
     };
-    this.audit(doc, "challenge");
+    this.audit(doc, "challenge", doc.challenge.createdAt);
     await this.write(doc);
     return { id: doc.challenge.id, token, expiresAt: doc.challenge.expiresAt };
   }
@@ -715,7 +1030,7 @@ export class EvaluationRecovery {
       bindingHash: expectedBinding,
       challengeId: id,
     };
-    this.audit(doc, "approve");
+    this.audit(doc, "approve", doc.approval.at);
     await this.write(doc);
   }
   async finish(
@@ -753,7 +1068,7 @@ export class EvaluationRecovery {
       tokenHash: secretHash(token),
       sequence: 1,
     };
-    this.audit(doc, "activate");
+    this.audit(doc, "activate", doc.activation.at);
     await this.write(doc); // Consumption/token hash durable BEFORE Set-Cookie. Never reissue.
     return { token, expiresAt: RECOVERY_DEADLINE };
   }
@@ -771,6 +1086,33 @@ export class EvaluationRecovery {
       return denied();
     const result = await this.validate(s, doc, true, admission);
     return { ...result, doc };
+  }
+  /** Restriction-only cutoff; deliberately independent of runtime/expiry/usage.
+   * Caller must append a NEW durable restriction after this cutoff, under the
+   * owner lock. The original disabled grant must never be rewritten. */
+  async postStopCheckpoint() {
+    const snapshot = await this.files.snapshot(RECOVERY_TRANSITION_FILE);
+    if (!snapshot) return null;
+    const t = recoveryTransitionSchema.parse(snapshot.value);
+    if (!t.postStop) return null;
+    const docSnapshot = await this.files.snapshot(RECOVERY_FILE);
+    if (!docSnapshot || docSnapshot.hash !== t.originalDocumentHash)
+      return denied();
+    const doc = evaluationRecoverySchema.parse(docSnapshot.value);
+    if (recoveryHash(doc.binding) !== t.originalBindingHash) return denied();
+    this.postStopWitness(doc, t, t.createdAt);
+    return t.postStop.terminalCheckpoint.eventCount;
+  }
+  /** Read-only status evidence, never an identity or dispatch bypass. */
+  async continuationForStatus(s: OwnerState) {
+    try {
+      const doc = await this.read();
+      if (!doc) return null;
+      const result = await this.validate(s, doc, true, false);
+      return result.postStop ? result : null;
+    } catch {
+      return null;
+    }
   }
   /** Restriction-only identity proof, NOT an inference principal. Deliberately
    * independent of UA, expiry, provider eligibility and remaining allowance so
@@ -793,7 +1135,11 @@ export class EvaluationRecovery {
       (!!proof.recordsOwnerDigest &&
         proof.recordsOwnerDigest === doc.binding.recordsOwnerDigest);
     return bound
-      ? { checkpointEventCount: doc.binding.checkpointEventCount }
+      ? {
+          checkpointEventCount:
+            (await this.postStopCheckpoint()) ??
+            doc.binding.checkpointEventCount,
+        }
       : null;
   }
   async disable(reason: string) {
@@ -801,7 +1147,7 @@ export class EvaluationRecovery {
     if (!doc || doc.phase === "disabled") return;
     doc.phase = "disabled";
     doc.disabled = { at: this.now(), reason };
-    this.audit(doc, "disable");
+    this.audit(doc, "disable", doc.disabled.at);
     await this.write(doc);
   }
 }

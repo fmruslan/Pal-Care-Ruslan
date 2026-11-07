@@ -330,6 +330,40 @@ afterEach(async () => {
 });
 
 describe("one-shot exact-release transition (isolated synthetic evidence only)", () => {
+  it("accepts distinct creation/audit samples with an advancing clock, preserving exact grant bytes through restart", async () => {
+    const c = await fixture();
+    c.doc.audit[1].at += 1;
+    c.doc.audit[2].at += 2;
+    c.doc.audit[3].at += 3;
+    await c.files.write(RECOVERY_FILE, c.doc);
+    c.input.originalDocumentHash = (await c.files.snapshot(
+      RECOVERY_FILE,
+    ))!.hash;
+    const grant = await c.bytes(),
+      ledger = await c.ledger();
+    const now = () => {
+      c.advance(1);
+      return c.now();
+    };
+    const recovery = new EvaluationRecovery(
+      c.files,
+      now,
+      async () => c.runtime,
+    );
+    const owner = new StandingOwner(c.files, now, recovery);
+    await owner.transitionEvaluationRecovery(c.input);
+    const restarted = new StandingOwner(
+      c.files,
+      now,
+      new EvaluationRecovery(c.files, now, async () => c.runtime),
+    );
+    expect(await restarted.authenticate(c.proof)).toBe(RECOVERY_SESSION);
+    await expect(
+      restarted.authenticate({ ...c.proof, token: c.oldToken }),
+    ).rejects.toThrow();
+    expect(await c.bytes()).toBe(grant);
+    expect(await c.ledger()).toBe(ledger);
+  });
   it("changes only the release-selection record, retaining SAME secret/binding/audit/activation/ledger/identity and limits", async () => {
     const c = await fixture(),
       before = await c.bytes(),
@@ -343,7 +377,7 @@ describe("one-shot exact-release transition (isolated synthetic evidence only)",
       browserAccess: "recovery-active",
       originalBrowserRevoked: true,
       used: 63,
-      remaining: 237,
+      remaining: 87,
       maxRetries: 0,
       concurrency: 1,
       standingAllocation: { used: 274, remaining: 26 },
@@ -352,12 +386,21 @@ describe("one-shot exact-release transition (isolated synthetic evidence only)",
     });
     expect(await c.bytes()).toBe(before);
     expect(await c.ledger()).toBe(ledger);
-    const subject = key();
+    const requestId = randomUUID(),
+      conversationId = randomUUID();
+    const subject = `customer:${requestId}:north_conversation_v1`;
+    await c.owner.beginCampaignQuestion(
+      c.proof,
+      requestId,
+      conversationId,
+      true,
+    );
     await c.owner.reserve(c.proof, "customer", subject, true);
     await c.owner.settle(subject, "completed", { httpStatus: 200 });
+    await c.owner.finishCampaignQuestion(c.proof, requestId, conversationId);
     expect(await c.owner.status(c.proof)).toMatchObject({
       used: 64,
-      remaining: 236,
+      remaining: 86,
       standingAllocation: { used: 274, remaining: 26 },
       unknown: 1,
     });

@@ -73,7 +73,13 @@ describe("CareOS browser recovery hints", () => {
       policy: "approved",
       revoked: false,
       providerBlocked: false,
-      remaining: 237,
+      remaining: 87,
+      campaign: {
+        executionLimit: 150,
+        availableForNewQuestion: 87,
+        questionActive: false,
+        maxQuestionStages: 2,
+      },
       provider: "Connected; capacity not checked",
     };
     expect(browserAccessSchema.parse(status.browserAccess)).toBe(
@@ -83,6 +89,25 @@ describe("CareOS browser recovery hints", () => {
       "original browser credential remains revoked",
     );
     expect(ownerSendState(status)).toBe("ready");
+    expect(
+      ownerSendState({
+        ...status,
+        remaining: 1,
+        campaign: { ...status.campaign, availableForNewQuestion: 1 },
+      }),
+    ).toBe("exhausted");
+    expect(
+      ownerSendState({
+        ...status,
+        campaign: { ...status.campaign, questionActive: true },
+      }),
+    ).toBe("busy");
+    expect(
+      ownerSendState({
+        ...status,
+        campaign: { ...status.campaign, executionLimit: 300 },
+      }),
+    ).toBe("unavailable");
     expect(ownerSendState({ ...status, remembered: false })).toBe("signin");
     expect(ownerSendState({ ...status, liveEnabled: false })).toBe("disabled");
     expect(ownerSendState({ ...status, policy: "disabled" })).toBe("disabled");

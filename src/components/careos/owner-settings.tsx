@@ -26,6 +26,15 @@ const statusSchema = z.object({
   requestLimit: z.number(),
   concurrency: z.number(),
   requestsPerMinute: z.number(),
+  campaign: z
+    .object({
+      historicalLimit: z.literal(300),
+      executionLimit: z.literal(150),
+      historicalRemaining: z.number().int().nonnegative(),
+      held: z.number().int().nonnegative(),
+    })
+    .nullable()
+    .optional(),
 });
 async function readOwnerStatus() {
   const response = await fetch("/api/ai/owner", { cache: "no-store" });
@@ -148,15 +157,17 @@ export function OwnerSettings() {
           <dd>
             {!status
               ? "Checking"
-              : status.revoked
-                ? "Permission revoked"
-                : !status.liveEnabled || status.policy === "disabled"
-                  ? "Not enabled — awaiting separate owner approval"
-                  : status.providerBlocked
-                    ? "Provider access unavailable — connection review needed"
-                    : status.remaining === 0
-                      ? "Approved usage limit reached"
-                      : "Approved; subject to provider availability"}
+              : !status.remembered
+                ? "Browser not authorized — saved records remain available"
+                : status.revoked
+                  ? "Permission revoked"
+                  : !status.liveEnabled || status.policy === "disabled"
+                    ? "Not enabled — awaiting separate owner approval"
+                    : status.providerBlocked
+                      ? "Provider access unavailable — connection review needed"
+                      : status.remaining === 0
+                        ? "Approved usage limit reached"
+                        : "Approved; subject to provider availability"}
           </dd>
         </div>
         <div>
@@ -164,13 +175,27 @@ export function OwnerSettings() {
           <dd>{status?.provider ?? "Not checked"}</dd>
         </div>
         <div>
-          <dt className="font-semibold">Standing usage</dt>
+          <dt className="font-semibold">
+            {status?.campaign ? "Campaign usage" : "Standing usage"}
+          </dt>
           <dd>
             {status
               ? `${status.used} used · ${status.remaining} approved requests remaining · ${status.unknown} unknown/reserved`
               : "Not checked"}
           </dd>
         </div>
+        {status?.campaign && (
+          <div>
+            <dt className="font-semibold">Retained historical grant</dt>
+            <dd>
+              {status.campaign.historicalLimit} originally approved; execution
+              is capped at {status.campaign.executionLimit} total. Historical
+              unused capacity is not permission to exceed this cap.
+              {status.campaign.held > 0 &&
+                ` ${status.campaign.held} unstarted slots are held for the active question.`}
+            </dd>
+          </div>
+        )}
       </dl>
       {status && (
         <div

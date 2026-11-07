@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { browserAccessSchema } from "./browser-access-state";
+import { QUESTION_MAX_STAGES } from "@/lib/careos/campaign-execution";
 
 export const ownerStatusSchema = z.object({
   remembered: z.boolean(),
@@ -10,6 +11,15 @@ export const ownerStatusSchema = z.object({
   providerBlocked: z.boolean(),
   remaining: z.number().int().nonnegative(),
   provider: z.string(),
+  campaign: z
+    .object({
+      executionLimit: z.literal(150),
+      availableForNewQuestion: z.number().int().nonnegative(),
+      questionActive: z.boolean(),
+      maxQuestionStages: z.literal(QUESTION_MAX_STAGES),
+    })
+    .nullable()
+    .optional(),
   browserCompletion: z
     .enum(["not-verified", "finish-needed", "complete"])
     .optional(),
@@ -20,6 +30,7 @@ export type OwnerSendState =
   | "signin"
   | "disabled"
   | "exhausted"
+  | "busy"
   | "provider"
   | "unavailable";
 export function ownerSendState(raw: unknown): OwnerSendState {
@@ -29,6 +40,9 @@ export function ownerSendState(raw: unknown): OwnerSendState {
   if (!s.remembered) return "signin";
   if (!s.liveEnabled || s.policy !== "approved" || s.revoked) return "disabled";
   if (s.remaining === 0) return "exhausted";
+  if (s.campaign?.questionActive) return "busy";
+  if (s.campaign && s.campaign.availableForNewQuestion < QUESTION_MAX_STAGES)
+    return "exhausted";
   if (
     s.providerBlocked ||
     ["Sign in required", "Connection needs review"].includes(s.provider)
@@ -46,7 +60,8 @@ export const ownerSendMessage: Record<OwnerSendState, string> = {
   disabled:
     "AI permission is not enabled for this browser. Your saved purchases and Insights still work.",
   exhausted:
-    "Your approved AI usage limit has been reached. Your saved records are still available.",
+    "Not enough approved AI capacity remains for another complete question. Your saved records are still available.",
+  busy: "An earlier AI question is still active. Check its saved result before starting another; your draft is kept.",
   provider:
     "Your ChatGPT connection needs attention. Your saved purchases and Insights still work.",
   unavailable:

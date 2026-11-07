@@ -23,6 +23,7 @@ import {
 import { getKnowledge } from "../knowledge-repository";
 import { ownedFollowupHistory } from "./followup";
 import { getCareFeed } from "../../care/repository";
+import { StandingOwner } from "../standing-owner";
 
 export async function assertRecordsModelAccess() {
   const { config } = careRuntime();
@@ -50,57 +51,76 @@ export async function answerAuthorizedRecords(
   const ownerProof = standingOwnerMode()
     ? await assertStandingOwner("records")
     : undefined;
-  const provider = new SubscriptionProvider({
-    scope: "customer",
-    requestId: input.requestId,
-    ownerProof,
-  });
-  const timeout = AbortSignal.any([
-    signal,
-    AbortSignal.timeout(TURN_DEADLINE_MS),
-  ]);
-  if (northConversationalPresentation(process.env))
-    return answerConversationTurn({
+  const campaignOwner = ownerProof ? new StandingOwner() : undefined;
+  const held =
+    ownerProof && campaignOwner
+      ? await campaignOwner.beginCampaignQuestion(
+          ownerProof,
+          input.requestId,
+          id,
+          process.env.CAREOS_STANDING_AI_ENABLED === "true",
+        )
+      : false;
+  try {
+    const provider = new SubscriptionProvider({
+      scope: "customer",
+      requestId: input.requestId,
+      ownerProof,
+    });
+    const timeout = AbortSignal.any([
+      signal,
+      AbortSignal.timeout(TURN_DEADLINE_MS),
+    ]);
+    if (northConversationalPresentation(process.env))
+      return await answerConversationTurn({
+        input,
+        history,
+        load: getSavedRecordsData,
+        loadSelected: getDemoData,
+        knowledge: getKnowledge,
+        care: getCareFeed,
+        model: provider,
+        call: async (work) => (await work(timeout)).value,
+        interpret: async (payload) => {
+          await assertRecordsModelAccess();
+          timeout.throwIfAborted();
+          return (
+            await provider.structured(
+              payload,
+              conversationPlanSchema,
+              "north_conversation_v1",
+              timeout,
+              CONVERSATION_MODEL_PROMPT,
+            )
+          ).value;
+        },
+      });
+    return await answerSemanticRecordsTurn({
       input,
       history,
       load: getSavedRecordsData,
-      loadSelected: getDemoData,
-      knowledge: getKnowledge,
-      care: getCareFeed,
-      model: provider,
-      call: async (work) => (await work(timeout)).value,
       interpret: async (payload) => {
         await assertRecordsModelAccess();
         timeout.throwIfAborted();
+        // Existing production transport reserves before POST and preserves every
+        // failed/unknown attempt. One structured proposal; no open-ended tool loop.
         return (
           await provider.structured(
             payload,
-            conversationPlanSchema,
-            "north_conversation_v1",
+            recordsInterpretationSchema,
+            RECORDS_INTERPRETATION_VERSION.replaceAll("-", "_"),
             timeout,
-            CONVERSATION_MODEL_PROMPT,
+            `${RECORDS_INTERPRETATION_INSTRUCTIONS}\n${RECORDS_INTERPRETATION_DEFAULTS}`,
           )
         ).value;
       },
     });
-  return answerSemanticRecordsTurn({
-    input,
-    history,
-    load: getSavedRecordsData,
-    interpret: async (payload) => {
-      await assertRecordsModelAccess();
-      timeout.throwIfAborted();
-      // Existing production transport reserves before POST and preserves every
-      // failed/unknown attempt. One structured proposal; no open-ended tool loop.
-      return (
-        await provider.structured(
-          payload,
-          recordsInterpretationSchema,
-          RECORDS_INTERPRETATION_VERSION.replaceAll("-", "_"),
-          timeout,
-          `${RECORDS_INTERPRETATION_INSTRUCTIONS}\n${RECORDS_INTERPRETATION_DEFAULTS}`,
-        )
-      ).value;
-    },
-  });
+  } finally {
+    if (held && ownerProof && campaignOwner)
+      await campaignOwner.finishCampaignQuestion(
+        ownerProof,
+        input.requestId,
+        id,
+      );
+  }
 }
