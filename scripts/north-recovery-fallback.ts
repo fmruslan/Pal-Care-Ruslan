@@ -53,6 +53,7 @@ const fallbackSchema = z.strictObject({
   executionLimit: z.literal(150),
   questionMarkersSupported: z.literal(true),
   ciReceipt: z.unknown(),
+  authorization: z.enum(["legacy-recovery", "quota-bounded"]).optional(),
 });
 /** Pure same-source selection gate. Older 63a cannot parse the new ledger
  * markers and must never become a fallback after this continuation. */
@@ -142,7 +143,10 @@ export async function managedNorthRecoveryFallback() {
         await recoveryRuntimeEvidence(),
       );
       const release = proof.fallback.release;
-      const root = north150FallbackRoot;
+      const root =
+        proof.authorization === "quota-bounded"
+          ? `${releases}/release-${release.commit.slice(0, 7)}-north-quota-compatible`
+          : north150FallbackRoot;
       const build = JSON.parse(
         await readFile(`${root}/.next/palcare-build.json`, "utf8"),
       );

@@ -32,6 +32,10 @@ const statusSchema = z.object({
       executionLimit: z.literal(150),
       historicalRemaining: z.number().int().nonnegative(),
       held: z.number().int().nonnegative(),
+      authorized: z.boolean().optional(),
+      authorization: z.literal("quota-bounded").optional(),
+      calendarExpiresAt: z.null().optional(),
+      browserExpiresAt: z.number().optional(),
     })
     .nullable()
     .optional(),
@@ -161,13 +165,15 @@ export function OwnerSettings() {
                 ? "Browser not authorized — saved records remain available"
                 : status.revoked
                   ? "Permission revoked"
-                  : !status.liveEnabled || status.policy === "disabled"
-                    ? "Not enabled — awaiting separate owner approval"
-                    : status.providerBlocked
-                      ? "Provider access unavailable — connection review needed"
-                      : status.remaining === 0
-                        ? "Approved usage limit reached"
-                        : "Approved; subject to provider availability"}
+                  : status.campaign?.authorized === false
+                    ? "Campaign authorization unavailable — saved records remain available"
+                    : !status.liveEnabled || status.policy === "disabled"
+                      ? "Not enabled — awaiting separate owner approval"
+                      : status.providerBlocked
+                        ? "Provider access unavailable — connection review needed"
+                        : status.remaining === 0
+                          ? "Approved usage limit reached"
+                          : "Approved; subject to provider availability"}
           </dd>
         </div>
         <div>
@@ -197,6 +203,14 @@ export function OwnerSettings() {
           </div>
         )}
       </dl>
+      {status?.campaign?.authorization === "quota-bounded" && (
+        <p className="text-sm text-muted-foreground">
+          Campaign policy: no fixed calendar expiration; stops when revoked,
+          exhausted or blocked. Browser expiration and provider credential
+          checks still apply. The original deadline and disabled grant remain
+          unchanged.
+        </p>
+      )}
       {status && (
         <div
           className="space-y-2 rounded-xl border p-3 text-sm"

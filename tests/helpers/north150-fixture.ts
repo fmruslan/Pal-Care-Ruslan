@@ -27,6 +27,10 @@ import {
 } from "../../src/lib/careos/evaluation-recovery";
 import type { CareTurn } from "../../src/lib/careos/contracts";
 import { preparePostStopContinuation } from "../../scripts/transition-north-recovery";
+import {
+  quotaCampaignSchema,
+  subscriptionIdentityHash,
+} from "../../src/lib/careos/quota-campaign";
 
 export const north150Hash = (text: string) =>
   createHash("sha256").update(text).digest("hex");
@@ -57,6 +61,38 @@ export function north150Clock(root: string) {
       renameSync(offsetFile + ".next", offsetFile);
     },
   };
+}
+
+/** New owner policy fixture; never modifies the historical disabled document. */
+export async function north150QuotaApproval(
+  f: Awaited<ReturnType<typeof north150Fixture>>,
+) {
+  return quotaCampaignSchema.parse({
+    version: 1,
+    campaignId: RECOVERY_EVALUATION,
+    ownerApprovalHash: north150Hash(
+      "explicit synthetic quota-only policy approval",
+    ),
+    approvedAt: f.clock.now(),
+    calendarExpiresAt: null,
+    baselineUsed: 63,
+    executionLimit: 150,
+    maxAdditional: 87,
+    scope: "customer-records-care-native-insights",
+    concurrency: 1,
+    maxRetries: 0,
+    policyHash: recoveryHash(f.state.policy),
+    historicalEvaluationHash: recoveryHash(f.state.evaluation),
+    historicalRecoveryRawHash: (await f.files.snapshot(RECOVERY_FILE))!.hash,
+    historicalEventCount: 785,
+    historicalEventHash: recoveryHash(f.state.events),
+    originalSessionHash: recoveryHash(f.state.sessions[0]),
+    recordsOwnerDigest: f.recordsOwner,
+    agentHash: f.state.sessions[0].agentHash,
+    providerIdentityHash: subscriptionIdentityHash(
+      await f.provider.registration(),
+    ),
+  });
 }
 type Clock = ReturnType<typeof north150Clock>;
 type Release = RecoveryTransitionPreparation["toGate"]["release"];
