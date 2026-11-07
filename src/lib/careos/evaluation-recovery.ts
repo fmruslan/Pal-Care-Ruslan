@@ -4,9 +4,21 @@ import { join } from "node:path";
 import { z } from "zod";
 import { CareError } from "./contracts";
 import type { OwnerState, OwnerProof } from "./standing-owner";
-import type { PilotFiles } from "./subscription/files";
+import {
+  PilotTransitionPublicationUncertainError,
+  type PilotFiles,
+} from "./subscription/files";
 
 export const RECOVERY_FILE = "evaluation-recovery.json";
+export const RECOVERY_TRANSITION_FILE = "evaluation-recovery-transition.json";
+export const RECOVERY_TRANSITION_OWNER_APPROVAL =
+  "bf11ce7295579cc8e0f113c32229bf42ce818ab49fa91bf6d850eec305c1d697";
+export const RECOVERY_TRANSITION_FROM = {
+  commit: "63a877fa2df15affa184bcc1c7ffb8788a14e61a",
+  sourceHash:
+    "5aafe8283690d28b02f00e8e2dec56b5e27294322ee0b34b33eeb9ab0655010e",
+  buildId: "XoS_uZJx7N3KPBKt1NqyC",
+} as const;
 export const RECOVERY_COOKIE = "__Host-palcare-evaluation-recovery-pending";
 export const RECOVERY_ORIGIN = "https://greatbison.tail9e8802.ts.net:8444";
 export const RECOVERY_EVALUATION = "feb8831c-702b-476e-91e3-d0034ceb645d";
@@ -61,6 +73,47 @@ export const recoveryGateSchema = z.strictObject({
     injectedRecoveryLogoutPassed: z.literal(true),
   }),
 });
+export const recoveryTransitionGateSchema = recoveryGateSchema.extend({
+  fallbackReadinessHash: digest,
+  fallback: recoveryGateSchema.shape.fallback.extend({
+    disableBeforeSwitch: z.literal(true),
+    managedEntrypointHash: digest,
+  }),
+});
+export const recoveryTransitionPreparationSchema = z.strictObject({
+  ownerApprovalHash: z.literal(RECOVERY_TRANSITION_OWNER_APPROVAL),
+  originalDocumentHash: digest,
+  originalBindingHash: digest,
+  ownerStateHash: digest,
+  fromRelease: recoveryReleaseSchema,
+  fromCiReceiptHash: digest,
+  toGate: recoveryTransitionGateSchema,
+  history: z.strictObject({
+    release: recoveryReleaseSchema,
+    ciReceiptHash: digest,
+    checkedAt: time,
+    evidenceHash: digest,
+    ownerStatusHash: digest,
+    bindingHash: digest,
+    recordsOwnerDigest: digest,
+    historyHash: digest,
+    existingRecoveryCredentialVerified: z.literal(true),
+    serverOwnedRecordsProofVerified: z.literal(true),
+    allOriginalPrefixesUnchanged: z.literal(true),
+  }),
+});
+export const recoveryTransitionSchema =
+  recoveryTransitionPreparationSchema.extend({
+    version: z.literal(1),
+    sequence: z.literal(1),
+    evaluationId: z.literal(RECOVERY_EVALUATION),
+    sessionId: z.literal(RECOVERY_SESSION),
+    expiresAt: z.literal(RECOVERY_DEADLINE),
+    createdAt: time,
+  });
+export type RecoveryTransitionPreparation = z.infer<
+  typeof recoveryTransitionPreparationSchema
+>;
 export const recoveryHistorySchema = z
   .array(
     z.strictObject({
@@ -274,15 +327,61 @@ export class EvaluationRecovery {
   }
   private async gate(doc: EvaluationRecoveryDocument) {
     const runtime = await this.runtime();
+    const transition = await this.files.snapshot(RECOVERY_TRANSITION_FILE);
+    let expected = doc.binding.gates;
+    if (transition !== null) {
+      const t = recoveryTransitionSchema.parse(transition.value);
+      const snapshot = await this.files.snapshot(RECOVERY_FILE);
+      if (
+        snapshot?.hash !== t.originalDocumentHash ||
+        recoveryHash(doc.binding) !== t.originalBindingHash ||
+        recoveryHash(t.fromRelease) !==
+          recoveryHash(RECOVERY_TRANSITION_FROM) ||
+        recoveryHash(t.fromRelease) !==
+          recoveryHash(doc.binding.gates.release) ||
+        t.fromCiReceiptHash !== doc.binding.gates.ciReceiptHash ||
+        t.ownerStateHash !== doc.binding.checkpoint.ownerStateHash ||
+        t.toGate.preservationOwnerStateHash !== t.ownerStateHash ||
+        t.createdAt > this.now() ||
+        t.createdAt < (doc.activation?.at ?? Infinity) ||
+        t.toGate.release.commit === t.fromRelease.commit ||
+        t.toGate.release.sourceHash === t.fromRelease.sourceHash ||
+        t.toGate.providerEligibilityCheckedAt > t.createdAt ||
+        t.createdAt - t.toGate.providerEligibilityCheckedAt > 300000 ||
+        t.history.checkedAt > t.createdAt ||
+        t.history.checkedAt < (doc.activation?.at ?? Infinity) ||
+        t.createdAt - t.history.checkedAt > 300000 ||
+        recoveryHash(t.history.release) !== recoveryHash(t.fromRelease) ||
+        t.history.ciReceiptHash !== t.fromCiReceiptHash ||
+        t.history.bindingHash !== t.originalBindingHash ||
+        t.history.recordsOwnerDigest !== doc.binding.recordsOwnerDigest ||
+        t.history.historyHash !== recoveryHistoryHash(doc.binding.history) ||
+        t.toGate.fallback.release.commit ===
+          "091dc83d2fd791b06ee181aaf476c393e014c226" ||
+        recoveryHash(t.toGate.fallback.release) !== recoveryHash(t.fromRelease)
+      )
+        return denied();
+      expected = t.toGate;
+    }
     if (
-      recoveryHash(runtime.release) !==
-        recoveryHash(doc.binding.gates.release) ||
-      runtime.ciReceiptHash !== doc.binding.gates.ciReceiptHash
+      recoveryHash(runtime.release) !== recoveryHash(expected.release) ||
+      runtime.ciReceiptHash !== expected.ciReceiptHash
     )
       return denied();
   }
   /** Reused by browser admission AND read-only host inspection; never trusts phase alone. */
   async validate(
+    s: OwnerState,
+    doc: EvaluationRecoveryDocument,
+    requireActive = true,
+    admission = true,
+  ) {
+    const result = this.validateState(s, doc, requireActive, admission);
+    await this.gate(doc);
+    return result;
+  }
+  /** No runtime bypass is exposed to authentication/admission callers. */
+  private validateState(
     s: OwnerState,
     doc: EvaluationRecoveryDocument,
     requireActive = true,
@@ -417,12 +516,103 @@ export class EvaluationRecovery {
         doc.approval.bindingHash !== recoveryHash(b))
     )
       return denied();
-    await this.gate(doc);
     return {
       original,
       used: reserves.length,
       remaining: 300 - reserves.length,
     };
+  }
+  /** Host-only one-way release continuity. Caller holds the SAME owner lock.
+   * Never writes the original document, owner state, credentials or accounting.
+   * Receipt hashes are host attestations, not signatures against owner/root. */
+  async transition(s: OwnerState, value: unknown) {
+    const input = recoveryTransitionPreparationSchema.parse(value);
+    if (await this.files.snapshot(RECOVERY_TRANSITION_FILE)) return denied();
+    const snapshot = await this.files.snapshot(RECOVERY_FILE);
+    if (!snapshot) return denied();
+    const doc = evaluationRecoverySchema.parse(snapshot.value);
+    const valid = this.validateState(s, doc);
+    const runtime = await this.runtime(),
+      now = this.now();
+    const fresh = (at: number) => at <= now && now - at <= 300000;
+    if (
+      valid.used !== 63 ||
+      doc.activation?.sequence !== 1 ||
+      snapshot.hash !== input.originalDocumentHash ||
+      recoveryHash(doc.binding) !== input.originalBindingHash ||
+      recoveryHash(s) !== input.ownerStateHash ||
+      input.ownerStateHash !== doc.binding.checkpoint.ownerStateHash ||
+      s.events.length !== doc.binding.checkpointEventCount ||
+      input.toGate.preservationOwnerStateHash !== input.ownerStateHash ||
+      recoveryHash(input.fromRelease) !==
+        recoveryHash(RECOVERY_TRANSITION_FROM) ||
+      recoveryHash(input.fromRelease) !==
+        recoveryHash(doc.binding.gates.release) ||
+      input.fromCiReceiptHash !== doc.binding.gates.ciReceiptHash ||
+      recoveryHash(runtime.release) !== recoveryHash(input.toGate.release) ||
+      runtime.ciReceiptHash !== input.toGate.ciReceiptHash ||
+      input.toGate.release.commit === input.fromRelease.commit ||
+      input.toGate.release.sourceHash === input.fromRelease.sourceHash ||
+      !fresh(input.toGate.providerEligibilityCheckedAt) ||
+      !fresh(input.history.checkedAt) ||
+      input.history.checkedAt < doc.activation.at ||
+      recoveryHash(input.history.release) !== recoveryHash(input.fromRelease) ||
+      input.history.ciReceiptHash !== input.fromCiReceiptHash ||
+      input.history.bindingHash !== input.originalBindingHash ||
+      input.history.recordsOwnerDigest !== doc.binding.recordsOwnerDigest ||
+      input.history.historyHash !== recoveryHistoryHash(doc.binding.history) ||
+      input.toGate.fallback.release.commit ===
+        "091dc83d2fd791b06ee181aaf476c393e014c226" ||
+      recoveryHash(input.toGate.fallback.release) !==
+        recoveryHash(input.fromRelease) ||
+      s.events.some((e) => e.at > now) ||
+      new Set(s.events.map((e) => e.id)).size !== s.events.length ||
+      new Set(s.sessions.map((v) => v.id)).size !== s.sessions.length ||
+      new Set(s.sessions.map((v) => v.tokenHash)).size !== s.sessions.length ||
+      s.sessions.some((v) => v.tokenHash === doc.activation?.tokenHash) ||
+      doc.activation.tokenHash === doc.challenge!.tokenHash ||
+      doc.challenge!.createdAt !== doc.audit[1].at ||
+      doc.approval!.at !== doc.audit[2].at ||
+      doc.activation.at !== doc.audit[3].at ||
+      doc.approval!.at < doc.challenge!.createdAt ||
+      doc.activation.at >= doc.challenge!.expiresAt
+    )
+      return denied();
+    // Recheck immutable inputs immediately before the sole protected write.
+    if (
+      (await this.files.snapshot(RECOVERY_FILE))?.hash !== snapshot.hash ||
+      recoveryHash(await this.files.read("owner-state.json")) !==
+        input.ownerStateHash ||
+      (await this.files.snapshot(RECOVERY_TRANSITION_FILE))
+    )
+      return denied();
+    const finalRuntime = await this.runtime();
+    const committedAt = this.now();
+    this.validateState(s, doc);
+    if (
+      committedAt < now ||
+      committedAt - input.history.checkedAt > 300000 ||
+      committedAt - input.toGate.providerEligibilityCheckedAt > 300000 ||
+      recoveryHash(finalRuntime) !== recoveryHash(runtime)
+    )
+      return denied();
+    const record = recoveryTransitionSchema.parse({
+      ...input,
+      version: 1,
+      sequence: 1,
+      evaluationId: RECOVERY_EVALUATION,
+      sessionId: RECOVERY_SESSION,
+      expiresAt: RECOVERY_DEADLINE,
+      createdAt: committedAt,
+    });
+    try {
+      await this.files.write(RECOVERY_TRANSITION_FILE, record);
+    } catch (error) {
+      // Even write-then-throw is ambiguous: retain the already-durable owner
+      // lock, never delete the record or infer that a thrown write was absent.
+      throw new PilotTransitionPublicationUncertainError(error);
+    }
+    return recoveryHash(record);
   }
   async prepare(s: OwnerState, value: unknown) {
     if (await this.read()) return denied(); // Includes disabled: no automatic reactivation.

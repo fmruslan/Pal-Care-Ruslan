@@ -11,6 +11,15 @@ import {
   OWNER_COOKIE,
   OWNER_ORIGIN,
 } from "../../src/lib/careos/standing-owner";
+import { submitLanguageTurn } from "../../scripts/north-language-browser";
+import {
+  querySavedRecords,
+  recordsAnswer,
+} from "../../src/lib/careos/records/service";
+import { emptyRecordsQuery } from "../../src/lib/careos/records/contracts";
+import { demoData } from "../../src/lib/demo/fixtures";
+import { testRuntimeRoles } from "../helpers/runtime-roles";
+import { SUBSCRIPTION_SESSION } from "../../src/lib/careos/subscription/policy";
 
 // Browser HTTPS transport is intercepted to this isolated loopback production
 // server. Real routes/storage/cookie behavior, fictional records, zero providers;
@@ -18,7 +27,10 @@ import {
 const local = "http://127.0.0.1:3116";
 let home: string;
 let server: ChildProcess | undefined;
-async function start(standingLive = false) {
+let roles: Awaited<ReturnType<typeof testRuntimeRoles>> | undefined;
+async function start(standingLive = false, conversational = false) {
+  if (conversational)
+    roles = await testRuntimeRoles(process.env.TEST_DATABASE_URL ?? "");
   server = spawn(
     process.execPath,
     [
@@ -38,12 +50,20 @@ async function start(standingLive = false) {
         NODE_ENV: "production",
         NEXT_TELEMETRY_DISABLED: "1",
         APP_ORIGIN: OWNER_ORIGIN,
-        DEMO_DATA_SOURCE: "fixtures",
-        CAREOS_PROVIDER: "fixture",
+        DEMO_DATA_SOURCE: conversational ? "database" : "fixtures",
+        DATABASE_URL: roles?.urls.reader ?? "",
+        CAREOS_DATABASE_URL: roles?.urls.careos ?? "",
+        CAREOS_PROVIDER: conversational ? "subscription" : "fixture",
         CAREOS_OWNER_MODE: "true",
         CAREOS_STANDING_AI_ENABLED: standingLive ? "true" : "false",
         CAREOS_EVALUATION_ENABLED: "false",
         CAREOS_OWNER_PAIRING_ENABLED: "false",
+        PALCARE_NORTH_MAIN_ENABLED: conversational ? "true" : "false",
+        CAREOS_SUBSCRIPTION_ENABLED: conversational ? "true" : "false",
+        CAREOS_SUBSCRIPTION_CREDITS_DISABLED: "true",
+        CAREOS_SUBSCRIPTION_SESSION_ID: conversational
+          ? SUBSCRIPTION_SESSION
+          : "",
         PAYPAL_CHECKOUT_ENABLED: "false",
         GUARDIAN_OPERATIONS_ENABLED: "false",
         GUARDIAN_REFUNDS_ENABLED: "false",
@@ -70,6 +90,8 @@ async function stop() {
     await exited;
   }
   server = undefined;
+  await roles?.close();
+  roles = undefined;
 }
 test.beforeEach(async ({ context }) => {
   home = await mkdtemp("/tmp/opencode/standing-owner-browser-");
@@ -92,6 +114,173 @@ test.afterEach(async ({ context }) => {
   await context.unrouteAll({ behavior: "wait" });
   await stop();
   await rm(home, { recursive: true, force: true });
+});
+
+test("recovered browser status enables the real ordinary-language composer while preserving its owned anchor (injected, zero providers)", async ({
+  page,
+}) => {
+  await stop();
+  await start(true, true);
+  const status = {
+    remembered: true,
+    browserCompletion: "complete",
+    browserAccess: "recovery-active",
+    diagnosticId: randomUUID(),
+    originalBrowserRevoked: true,
+    recoveryActive: true,
+    pairing: null,
+    policy: "approved",
+    revoked: false,
+    used: 63,
+    remaining: 237,
+    unknown: 1,
+    liveEnabled: true,
+    provider: "Connected; capacity not checked",
+    providerBlocked: false,
+    requestLimit: 300,
+    concurrency: 1,
+    requestsPerMinute: 30,
+  };
+  const ownerPosts: string[] = [];
+  await page.route("**/api/ai/owner", async (route) => {
+    if (route.request().method() !== "GET") {
+      ownerPosts.push(route.request().method());
+      return route.abort();
+    }
+    return route.fulfill({ json: status });
+  });
+  const conversationId = randomUUID(),
+    expiresAt = new Date(Date.now() + 86400000).toISOString();
+  const turns: { requestId: string; message: string; answer: unknown }[] = [];
+  const posts: {
+    requestId: string;
+    followupRequestId?: string;
+    message: string;
+    path: string;
+  }[] = [];
+  await page.route("**/api/careos/records/conversations", (route) =>
+    route.fulfill({ json: { id: conversationId, expiresAt, turns: [] } }),
+  );
+  await page.route(
+    `**/api/careos/records/conversations/${conversationId}`,
+    (route) =>
+      route.fulfill({ json: { id: conversationId, expiresAt, turns } }),
+  );
+  await page.route(
+    /\/api\/careos\/records\/conversations\/[^/]+\/(turns|interpret)$/,
+    async (route) => {
+      const input = route.request().postDataJSON();
+      const path = new URL(route.request().url()).pathname;
+      expect(path).toBe(
+        `/api/careos/records/conversations/${conversationId}/interpret`,
+      );
+      posts.push({ ...input, path });
+      const answer = recordsAnswer(
+        querySavedRecords(demoData, {
+          ...emptyRecordsQuery("2026-11-07"),
+          price:
+            input.message === "Which have no recorded price?"
+              ? "missing"
+              : "any",
+        }),
+        input.revision,
+      );
+      const turn = {
+        requestId: input.requestId,
+        message: input.message,
+        answer,
+      };
+      turns.push(turn);
+      await route.fulfill({ json: turn });
+    },
+  );
+  await page.goto(OWNER_ORIGIN + "/ai-evaluation");
+  await expect(
+    page.getByText("Recovered evaluation browser", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByLabel("Browser verification diagnostic"),
+  ).toContainText("original browser credential remains revoked");
+  await page.goto(OWNER_ORIGIN + "/purchases");
+  const first = await (
+    await submitLanguageTurn(page, "Back to all saved purchases")
+  ).json();
+  await expect(
+    page.locator(
+      `[data-native-north-result][data-request-id="${first.requestId}"]`,
+    ),
+  ).toBeVisible();
+  // Care has no purchases search field: exercise the exact follow-up composer
+  // that was disabled by rejecting the real server's recovery-active status.
+  await page.goto(OWNER_ORIGIN + "/dashboard");
+  await expect(
+    page.getByRole("searchbox", {
+      name: "Search products and documents",
+      exact: true,
+    }),
+  ).toHaveCount(0);
+  const composer = page.getByRole("textbox", {
+    name: "Ask about your purchases",
+    exact: true,
+  });
+  await expect(composer).toBeVisible();
+  await composer.fill("Which have no recorded price?");
+  const send = page.getByRole("button", {
+    name: "Send to North Star",
+    exact: true,
+  });
+  await expect(send).toBeEnabled();
+  const [response] = await Promise.all([
+    page.waitForResponse(
+      (r) =>
+        r.request().method() === "POST" &&
+        new URL(r.url()).pathname ===
+          `/api/careos/records/conversations/${conversationId}/interpret`,
+    ),
+    send.click(),
+  ]);
+  expect(response.ok()).toBe(true);
+  const second = await response.json();
+  const active = page.locator(
+    `[data-native-north-result][data-request-id="${second.requestId}"]`,
+  );
+  await expect(active).toBeVisible();
+  await expect(
+    page.locator("[data-native-north-result]").filter({ visible: true }),
+  ).toHaveCount(1);
+  await expect(active).toContainText("Which have no recorded price?");
+  const missingIds = ["00000000-0000-4000-8000-000000000204"];
+  expect(second.answer.recordsResult.query.price).toBe("missing");
+  expect(
+    second.answer.recordsResult.records.map(
+      (record: { id: string }) => record.id,
+    ),
+  ).toEqual(missingIds);
+  await expect
+    .poll(() =>
+      active
+        .locator('[data-records-result] a[href^="/vault/"]')
+        .filter({ visible: true })
+        .evaluateAll((links) =>
+          [
+            ...new Set(
+              links.map((link) =>
+                link.getAttribute("href")!.slice("/vault/".length),
+              ),
+            ),
+          ].sort(),
+        ),
+    )
+    .toEqual(missingIds);
+  expect(posts).toHaveLength(2);
+  expect(posts[1].message).toBe("Which have no recorded price?");
+  expect(posts[1].requestId).not.toBe(first.requestId);
+  expect(posts[1].followupRequestId).toBe(first.requestId);
+  expect(posts.map((post) => post.path)).toEqual([
+    `/api/careos/records/conversations/${conversationId}/interpret`,
+    `/api/careos/records/conversations/${conversationId}/interpret`,
+  ]);
+  expect(ownerPosts).toEqual([]);
 });
 
 test("pair once, remember across reload/server restart, logout and deny stolen replay", async ({
