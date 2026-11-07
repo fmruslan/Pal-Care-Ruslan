@@ -116,7 +116,7 @@ describe("owned latest-topic projection with injected interpretation", () => {
       ...unpricedTurn.answer,
       conversationPlan: careTurn.answer.conversationPlan,
     };
-    const options = setup(unpricedPlan);
+    const options = setup({ ...unpricedPlan, productAction: "explain" });
     options.history = [careTurn, allTurn, unpricedTurn];
     const originalHistory = JSON.stringify(options.history);
     const message = "Explain that more simply";
@@ -161,6 +161,13 @@ describe("owned latest-topic projection with injected interpretation", () => {
     expect(payload.coverage.derivedHistoricalPlans).toBe("omitted");
     expect(JSON.stringify(options.history)).toBe(originalHistory);
     expect(answer.recordsResult?.query.price).toBe("missing");
+    expect(answer.text).not.toBe(unpricedTurn.answer.text);
+    expect(answer.text).toContain(
+      "Raspberry Pi 5 has no recorded purchase price",
+    );
+    expect(answer.text).toContain("unknown, not zero or free");
+    expect(answer.text).toContain("left out of spending totals");
+    expect(answer.steps).toHaveLength(1);
     expect(answer.recordsResult?.records.map((record) => record.id)).toEqual([
       "00000000-0000-4000-8000-000000000204",
     ]);

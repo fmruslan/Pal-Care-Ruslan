@@ -1,5 +1,7 @@
 # Pal Care
 
+**Real North testing is active:** the ninth context transition and a complete seven-question receipt → totals → corrected filters → native chart → sourced care → all purchases → History journey passed on private `ab16f86`. Simplification kept the correct records but merely repeated its answer; that genuine defect is retained and a small fix is under verification. **73/163 attempts used; 90 remain.** [Evidence and limits](docs/STATUS.md).
+
 **Latest North budget approval:** **100 additional provider attempts / 163 cumulative including the original 63**, without resetting accounting or changing historical grants. The uninstalled quota policy is being updated; activation and genuine retests remain pending. The previous 150/87 proposal and CI evidence below are historical. [Current status](docs/STATUS.md).
 
 **North evaluation: owner approved a new quota-bounded policy with no fixed campaign deadline.** The candidate reuses existing standing-owner approval and browser expiry/revocation, preserves the original disabled November 7 grant and all 63 charges, and keeps **150 total / at most 87 additional** attempts. A normal host-approved browser proof replaces no provider/database identity and never revives the old credential. Local **1,916 units / nine cross-engine application checks** pass; new exact-commit CI/deployment/provider checks and genuine testing remain pending. No budget renewal, paid fallback, finance or public authority. [Current evidence](docs/STATUS.md).
