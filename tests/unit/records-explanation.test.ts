@@ -75,6 +75,38 @@ function comparisonResult(
 }
 
 describe("grounded saved-record explanations — pure presentation", () => {
+  it("states the applied Audio-only category without implying Kitchen is selected", () => {
+    const result = querySavedRecords(
+      demoData,
+      {
+        ...emptyRecordsQuery(day),
+        categories: ["Audio"],
+        origin: "sample",
+        from: "2026-10-01",
+        to: day,
+      },
+      observedAt,
+    );
+    const before = JSON.stringify(result);
+    const answer = recordsAnswer(result, 2, true);
+
+    expect(answer.text).toContain("The current selection is Audio only.");
+    expect(answer.text).toContain("2026-10-01 through 2026-11-03");
+    expect(answer.text).toContain("Sample recorded amounts total $218.00");
+    expect(answer.text).toContain(
+      "Verified Sandbox recorded amounts total $0.00",
+    );
+    expect(answer.text).not.toContain("Kitchen");
+    expect(result.records.length).toBeGreaterThan(0);
+    expect(
+      result.records.every(
+        (record) => record.category === "Audio" && record.origin === "sample",
+      ),
+    ).toBe(true);
+    expect(answer.recordsResult).toBe(result);
+    expect(JSON.stringify(result)).toBe(before);
+  });
+
   it("qualifies an empty selection when saved-library coverage is partial", () => {
     const result = querySavedRecords(
       demoData,

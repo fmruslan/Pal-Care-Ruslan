@@ -453,7 +453,19 @@ export async function answerConversationTurn(options: {
         history.at(-1)?.answer.context?.twinId === selected?.twin.id))
   )
     data = exactSelected;
-  let candidates = querySavedRecords(data, search).records;
+  // Preserve every scoped predicate, but match canonical product terms against
+  // the owned identity (including its saved/snapshotted brand), not categories.
+  const productTerms = search.search.toLowerCase().split(/\s+/).filter(Boolean);
+  let candidates = querySavedRecords(data, {
+    ...search,
+    search: "",
+  }).records.filter((candidate) => {
+    const record = findTwin(data, candidate.id);
+    if (!record) return false;
+    const identity =
+      `${record.product.brand} ${record.product.name} ${record.product.model}`.toLowerCase();
+    return productTerms.every((term) => identity.includes(term));
+  });
   const recent = history.at(-1)?.answer;
   const priorContext = recent?.context?.twinId;
   const bound =
@@ -497,6 +509,7 @@ export async function answerConversationTurn(options: {
       ...purchaseSelection(data, input, (r) =>
         candidates.some((c) => c.id === r.twin.id),
       ),
+      context: null,
       mode: "live",
       conversationPlan: plan,
       text: candidates.length
