@@ -341,6 +341,7 @@ export async function north150Fixture(options: {
     const now = clock.now();
     const fallback = {
       ...oldGate.fallback,
+      startupHttpsPassed: false as const,
       release,
       ciReceiptHash: options.ciReceiptHash,
       evidenceHash: options.fallbackManifestHash,

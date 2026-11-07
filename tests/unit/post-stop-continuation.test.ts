@@ -244,6 +244,7 @@ async function fixture() {
     fallbackReadinessHash: sha("offline-fallback"),
     fallback: {
       ...oldGate.fallback,
+      startupHttpsPassed: false,
       release: runtime.release,
       ciReceiptHash: runtime.ciReceiptHash,
       disableBeforeSwitch: true,
@@ -363,6 +364,32 @@ afterEach(async () => {
 });
 
 describe("explicit future post-stop continuation (synthetic offline only)", () => {
+  it("keeps live HTTPS unverified in the engineering proposal; only fresh post-approval live receipts can promote the gate", async () => {
+    const c = await fixture();
+    expect(c.proposal.fallback.startupHttpsPassed).toBe(false);
+    expect(c.input.toGate.fallback.startupHttpsPassed).toBe(true);
+    expect(() =>
+      createPostStopProposal({
+        ...c.proposal,
+        fallback: { ...c.proposal.fallback, startupHttpsPassed: true },
+      }),
+    ).toThrow();
+    for (const live of [
+      { ...c.live, productionHttpsPassed: false },
+      { ...c.live, sameSourceFallbackHttpsPassed: false },
+      { ...c.live, checkedAt: c.approval.approvedAt },
+    ])
+      expect(() =>
+        preparePostStopContinuation({
+          proposal: c.proposal,
+          approval: c.approval,
+          history: c.historyReceipt,
+          provider: c.provider,
+          live,
+        }),
+      ).toThrow();
+    expect(await c.files.snapshot(RECOVERY_TRANSITION_FILE)).toBeNull();
+  });
   it("requires fresh explicit mock approval; preserves disabled bytes, all histories/accounting and same token across restart", async () => {
     const c = await fixture(),
       grant = await c.grant(),

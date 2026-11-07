@@ -192,6 +192,12 @@ const continuationBounds = {
   maxRetries: z.literal(0),
   scope: z.literal("customer-records-including-personal-insights-native-sdk"),
 };
+/** Before separate consent, live HTTPS is explicitly unverified. Reusing the
+ * active gate's true flag here would misrepresent an offline engineering test. */
+export const postStopOfflineFallbackSchema =
+  recoveryTransitionGateSchema.shape.fallback.extend({
+    startupHttpsPassed: z.literal(false),
+  });
 /** Engineering evidence only. Creating this proposal NEVER enables a credential. */
 export const postStopProposalSchema = z
   .strictObject({
@@ -212,7 +218,7 @@ export const postStopProposalSchema = z
     preservationHash: digest,
     offlineQaHash: digest,
     fallbackReadinessHash: digest,
-    fallback: recoveryTransitionGateSchema.shape.fallback,
+    fallback: postStopOfflineFallbackSchema,
     pendingLiveChecks: z.tuple([
       z.literal("private-production-https-switch"),
       z.literal("same-source-fallback-https-smoke"),
@@ -565,7 +571,8 @@ export class EvaluationRecovery {
       p.securityReviewHash !== input.toGate.securityReviewHash ||
       p.preservationHash !== input.toGate.preservationHash ||
       p.fallbackReadinessHash !== input.toGate.fallbackReadinessHash ||
-      recoveryHash(p.fallback) !== recoveryHash(input.toGate.fallback) ||
+      recoveryHash({ ...p.fallback, startupHttpsPassed: true }) !==
+        recoveryHash(input.toGate.fallback) ||
       recoveryHash(p.fallback.release) !== recoveryHash(p.release) ||
       p.fallback.ciReceiptHash !== p.ciReceiptHash ||
       recoveryHash(w.liveChecks.release) !== recoveryHash(p.release) ||

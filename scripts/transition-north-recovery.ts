@@ -129,7 +129,7 @@ export const postStopEngineeringReceiptSchema = receiptSchema.extend({
   preservationHash: digest,
   offlineQaHash: digest,
   fallbackReadinessHash: digest,
-  fallback: recoveryTransitionGateSchema.shape.fallback,
+  fallback: postStopProposalSchema.shape.fallback,
   fallbackCiReceipt: z.unknown(),
 });
 export const postStopHistoryReceiptSchema = transitionHistoryReceiptSchema
@@ -208,7 +208,9 @@ export function preparePostStopContinuation(value: {
       providerEligibilityHash: recoveryHash(provider),
       providerEligibilityCheckedAt: provider.checkedAt,
       fallbackReadinessHash: p.fallbackReadinessHash,
-      fallback: p.fallback,
+      // Live receipt parsing above requires actual post-approval HTTPS checks.
+      // Only then can the active gate carry a true startup-HTTPS flag.
+      fallback: { ...p.fallback, startupHttpsPassed: true },
     },
     history: {
       release: history.release,
@@ -480,7 +482,7 @@ const postStopReceipt = (name: string) =>
 
 async function verifyPostStopFallback(
   release: z.infer<typeof recoveryReleaseSchema>,
-  fallback: z.infer<typeof recoveryTransitionGateSchema>["fallback"],
+  fallback: z.infer<typeof postStopProposalSchema>["fallback"],
 ) {
   const [rawBuild, buildId, manifest, managed] = await Promise.all([
     readFile(`${postStopFallbackRoot}/.next/palcare-build.json`, "utf8"),
