@@ -24,17 +24,31 @@ assertCiReceipt(
 const progress = JSON.parse(
   await readFile(join(output, "progress.json"), "utf8"),
 );
-const state = (await new StandingOwner().files.read("owner-state.json")) as {
+const owner = new StandingOwner();
+const state = (await owner.files.read("owner-state.json")) as {
   sessions: { id: string; revoked: boolean }[];
-  evaluation?: { id: string; expiresAt: number };
+  evaluation?: { id: string; sessionId: string; expiresAt: number };
 };
+// Host queue inspection is NOT model authority. Recovered browsers still need
+// the real new credential/records proof at every dispatch; raw revoked flags
+// must not masquerade as either recovery approval or the original 26 slots.
+const recovery = await owner.evaluationRecoveryStatus();
+const recovered =
+  recovery.active &&
+  recovery.evaluationId === progress.allocationId &&
+  recovery.sessionId === progress.sessionId &&
+  recovery.expiresAt === progress.deadline &&
+  recovery.originalBrowserRevoked;
 if (
   !progress.paused ||
   progress.finished ||
   !state.evaluation ||
   state.evaluation?.id !== progress.allocationId ||
+  state.evaluation.sessionId !== progress.sessionId ||
+  state.evaluation.expiresAt !== progress.deadline ||
   Date.now() >= state.evaluation.expiresAt ||
-  !state.sessions.some((s) => s.id === progress.sessionId && !s.revoked)
+  (!recovered &&
+    !state.sessions.some((s) => s.id === progress.sessionId && !s.revoked))
 )
   throw Error("valid_original_evaluation_browser_required_no_replacement");
 const entries = (await readFile(join(output, "ledger.jsonl"), "utf8"))
@@ -45,6 +59,10 @@ const failure = entries.filter((e) => e.kind === "evaluation").at(-1);
 if (!failure?.assessment?.failures?.length)
   throw Error("reviewable_known_failure_required");
 if (kind === "repair") {
+  // Recovery must not silently replay a completed multi-turn prefix. Its exact
+  // known-unsent ninth/tenth continuation has a separately validated queue.
+  if (recovered)
+    throw Error("recovery_requires_explicit_no_replay_continuation");
   const { work } = JSON.parse(
     await readFile(join(output, "work.json"), "utf8"),
   );

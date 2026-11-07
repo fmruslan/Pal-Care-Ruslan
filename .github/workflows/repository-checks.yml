@@ -89,7 +89,13 @@ jobs:
       - run: node scripts/verify-repository.mjs
       - run: pnpm format:check
       - run: pnpm check
+      - name: Verify narrow Ubuntu mirror transform
+        run: node --test scripts/ci-ubuntu-mirrors.test.mjs
+      - name: Select existing official Ubuntu HTTPS fallbacks (ephemeral CI only)
+        timeout-minutes: 1
+        run: sudo --preserve-env=CI,GITHUB_ACTIONS,RUNNER_ENVIRONMENT "$(command -v node)" scripts/ci-ubuntu-mirrors.mjs
       - run: pnpm exec playwright install --with-deps chromium
+        timeout-minutes: 10
       - name: Focused Care, provenance, Studio, responsive and accessibility checks
         run: pnpm exec playwright test --config=playwright.demo-care.config.ts --project=desktop-light --project=mobile-dark
         env:
@@ -139,7 +145,13 @@ jobs:
       - run: pnpm lint && pnpm typecheck && pnpm test
       - run: pnpm test:integration
       - run: pnpm build
+      - name: Verify narrow Ubuntu mirror transform
+        run: node --test scripts/ci-ubuntu-mirrors.test.mjs
+      - name: Select existing official Ubuntu HTTPS fallbacks (ephemeral CI only)
+        timeout-minutes: 1
+        run: sudo --preserve-env=CI,GITHUB_ACTIONS,RUNNER_ENVIRONMENT "$(command -v node)" scripts/ci-ubuntu-mirrors.mjs
       - run: pnpm exec playwright install --with-deps chromium
+        timeout-minutes: 10
       - name: Care, Studio and provenance acceptance
         run: pnpm exec playwright test --config=playwright.demo-care.config.ts
         env:
@@ -216,7 +228,13 @@ jobs:
       - run: pnpm build
       - name: Unavailable database readiness (real production server)
         run: pnpm test:failure
+      - name: Verify narrow Ubuntu mirror transform
+        run: node --test scripts/ci-ubuntu-mirrors.test.mjs
+      - name: Select existing official Ubuntu HTTPS fallbacks (ephemeral CI only)
+        timeout-minutes: 1
+        run: sudo --preserve-env=CI,GITHUB_ACTIONS,RUNNER_ENVIRONMENT "$(command -v node)" scripts/ci-ubuntu-mirrors.mjs
       - run: pnpm exec playwright install --with-deps chromium firefox webkit
+        timeout-minutes: 10
       - name: Full ${{ matrix.data-source }} browser and accessibility tests
         run: pnpm test:e2e
         env:
@@ -272,7 +290,13 @@ jobs:
       - name: PostgreSQL migrations, seeds and integrity tests
         run: pnpm test:integration
       - run: pnpm build
+      - name: Verify narrow Ubuntu mirror transform
+        run: node --test scripts/ci-ubuntu-mirrors.test.mjs
+      - name: Select existing official Ubuntu HTTPS fallbacks (ephemeral CI only)
+        timeout-minutes: 1
+        run: sudo --preserve-env=CI,GITHUB_ACTIONS,RUNNER_ENVIRONMENT "$(command -v node)" scripts/ci-ubuntu-mirrors.mjs
       - run: pnpm exec playwright install --with-deps chromium firefox webkit
+        timeout-minutes: 10
       - name: Complete price-protection purchase-to-North journey (isolated DB and injected North only)
         run: pnpm exec node scripts/workspace.mjs run test:integration tsx --test --test-concurrency=1 --test-name-pattern='purchase → policy discovery' tests/integration/price-protection.test.ts
         env:

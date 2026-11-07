@@ -1,5 +1,4 @@
 import OpenAI from "openai";
-import { zodTextFormat } from "openai/helpers/zod";
 import { z } from "zod";
 import { randomUUID, createHash } from "node:crypto";
 import { PilotFiles, PilotError } from "./files";
@@ -11,12 +10,7 @@ import {
   explanationSchema,
   type ModelResult,
 } from "../providers/responses";
-import {
-  MODEL,
-  REASONING,
-  MODEL_REQUEST_BYTES,
-  MODEL_TIMEOUT_MS,
-} from "../model-policy";
+import { MODEL, REASONING, MODEL_TIMEOUT_MS } from "../model-policy";
 import { resolveTurn } from "../service";
 import { demoData } from "../../demo/fixtures";
 import { referenceSource, REFERENCE_TWIN } from "../knowledge";
@@ -26,6 +20,7 @@ import {
 } from "../../intelligence/planner";
 import { illustrativeDataset } from "../../intelligence/model";
 import { SubscriptionOutput, finalStructuredText } from "./output";
+import { structuredRequestBody, assertStructuredRequestSize } from "./request";
 
 export const PILOT_ID = "careos-subscription-sol-medium-phase1-v1";
 const tokenCount = z.number().int().nonnegative().max(2000000);
@@ -92,19 +87,13 @@ export async function streamStructured<T extends z.ZodType>(options: {
   observe: (summary: Record<string, unknown>) => void;
   transport?: Transport;
 }): Promise<ModelResult<z.infer<T>>> {
-  const body: OpenAI.Responses.ResponseCreateParamsStreaming = {
-    model: MODEL,
-    reasoning: { effort: REASONING },
-    store: false,
-    stream: true,
-    input: [
-      { role: "developer", content: options.prompt ?? CARE_INSTRUCTIONS },
-      { role: "user", content: options.payload },
-    ],
-    text: { format: zodTextFormat(options.schema, options.name) },
-  };
-  if (Buffer.byteLength(JSON.stringify(body)) > MODEL_REQUEST_BYTES)
-    throw new PilotError("pilot_request_too_large");
+  const body = structuredRequestBody({
+    payload: options.payload,
+    prompt: options.prompt ?? CARE_INSTRUCTIONS,
+    schema: options.schema,
+    name: options.name,
+  });
+  assertStructuredRequestSize(body);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
   const started = Date.now();

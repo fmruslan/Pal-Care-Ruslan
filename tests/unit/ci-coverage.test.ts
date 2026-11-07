@@ -18,6 +18,9 @@ const commands = (job: string) =>
 const steps = (job: string) => job.split(/^      - /m).slice(1);
 const browserInstall =
   "pnpm exec playwright install --with-deps chromium firefox webkit";
+const mirrorTest = "node --test scripts/ci-ubuntu-mirrors.test.mjs";
+const mirrorSelect =
+  'sudo --preserve-env=CI,GITHUB_ACTIONS,RUNNER_ENVIRONMENT "$(command -v node)" scripts/ci-ubuntu-mirrors.mjs';
 
 describe("mandatory CI workload isolation", () => {
   it("expands one unfiltered browser command into both complete data-source suites", () => {
@@ -72,6 +75,8 @@ describe("mandatory CI workload isolation", () => {
       "pnpm test:integration",
       "pnpm build",
       "pnpm test:failure",
+      mirrorTest,
+      mirrorSelect,
       browserInstall,
       "pnpm test:e2e",
       "pnpm test:guardian:e2e",
@@ -81,6 +86,8 @@ describe("mandatory CI workload isolation", () => {
       "pnpm workspace:check",
       "pnpm test:integration",
       "pnpm build",
+      mirrorTest,
+      mirrorSelect,
       browserInstall,
       "pnpm exec node scripts/workspace.mjs run test:integration tsx --test --test-concurrency=1 --test-name-pattern='purchase → policy discovery' tests/integration/price-protection.test.ts",
       "pnpm exec playwright test --config=playwright.demo-care.config.ts",
@@ -149,7 +156,8 @@ describe("mandatory CI workload isolation", () => {
   });
 
   it("keeps every runner at the original bounds with independent disposable PostgreSQL", () => {
-    expect((foundation + native).match(/^\s+timeout-minutes: .+$/gm)).toEqual([
+    // Step-specific provisioning bounds are not changes to the job budgets.
+    expect((foundation + native).match(/^ {4}timeout-minutes: .+$/gm)).toEqual([
       "    timeout-minutes: 35",
       "    timeout-minutes: 35",
     ]);
@@ -172,6 +180,41 @@ describe("mandatory CI workload isolation", () => {
     expect(workflow).not.toMatch(
       /secrets\.|retries:|timeout:|timeout-seconds:/,
     );
+  });
+
+  it("requires verified official-mirror selection before each unchanged engine install, with fatal step bounds", () => {
+    for (const [name, budget, engines] of [
+      ["fast-ui", 15, "chromium"],
+      ["feature-acceptance", 25, "chromium"],
+      ["foundation", 35, "chromium firefox webkit"],
+      ["native-acceptance", 35, "chromium firefox webkit"],
+    ] as const) {
+      const body = job(name),
+        list = steps(body),
+        runs = commands(body);
+      expect(body.match(/^ {4}timeout-minutes: .+$/gm)).toEqual([
+        `    timeout-minutes: ${budget}`,
+      ]);
+      expect(body.match(/^ {8}timeout-minutes: .+$/gm)).toEqual([
+        "        timeout-minutes: 1",
+        "        timeout-minutes: 10",
+      ]);
+      const install = `pnpm exec playwright install --with-deps ${engines}`;
+      const pos = runs.indexOf(install);
+      expect(pos).toBeGreaterThan(1);
+      expect(runs.slice(pos - 2, pos + 1)).toEqual([
+        mirrorTest,
+        mirrorSelect,
+        install,
+      ]);
+      for (const command of [mirrorTest, mirrorSelect, install]) {
+        const matches = list.filter((step) =>
+          commands(`      - ${step}`).includes(command),
+        );
+        expect(matches).toHaveLength(1);
+        expect(matches[0]).not.toMatch(/\bif:|continue-on-error|\|\|/);
+      }
+    }
   });
 
   it("keeps provider-off policy shared without per-job overrides", () => {

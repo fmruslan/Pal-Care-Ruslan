@@ -18,7 +18,7 @@ import { northConversationalPresentation } from "../../private-preview-origin";
 import {
   answerConversationTurn,
   conversationPlanSchema,
-  CONVERSATION_INSTRUCTIONS,
+  CONVERSATION_MODEL_PROMPT,
 } from "./conversation-service";
 import { getKnowledge } from "../knowledge-repository";
 import { ownedFollowupHistory } from "./followup";
@@ -33,7 +33,7 @@ export async function assertRecordsModelAccess() {
     !(recordsRuntime().store instanceof PostgresStore)
   )
     throw new CareError("careos_live_not_authorized", 403);
-  await assertCustomerRuntimeAccess(config);
+  await assertCustomerRuntimeAccess(config, "records");
 }
 export async function answerAuthorizedRecords(
   input: TurnInput,
@@ -48,7 +48,7 @@ export async function answerAuthorizedRecords(
     input.followupRequestId,
   );
   const ownerProof = standingOwnerMode()
-    ? await assertStandingOwner()
+    ? await assertStandingOwner("records")
     : undefined;
   const provider = new SubscriptionProvider({
     scope: "customer",
@@ -78,7 +78,7 @@ export async function answerAuthorizedRecords(
             conversationPlanSchema,
             "north_conversation_v1",
             timeout,
-            `${CONVERSATION_INSTRUCTIONS}\naftercare: use this read-only ownership task for current payment, shipment/delivery, return deadlines/progress, refund evidence, price differences/watches, warranty dates and recall/safety questions. productAction is payment, shipment, delivery, return-window, price-window, returns, refunds, warranty, price, safety, attention or summary. Where is my order/has it arrived uses delivery; can I still return uses returns with the recorded return-window. For an explicit request to OPEN/SHOW/HIGHLIGHT a milestone, select the corresponding open_ action (open_delivery, open_warranty, open_returns, open_return-window, open_price, open_price-window, open_safety, open_refunds, open_purchase or open_watch); this only proposes presentation, not status changes. Do not auto-open for an ordinary factual question. Prepare requests use returns/refunds/warranty/price; the application offers an editable unsent enquiry, never sends it. Broad requests have blank productSearch and fresh relation, resolving requested library filters; specific products retain exact dated ownership/disambiguation. These tools share the timeline and Care evidence, not AI-generated statuses. The server determines actual availability; manual reports do not establish external verification, coverage or financial status. The existing fictional goods do not ship; a merchant-added tracking number would not prove carrier movement/delivery. Recall coverage is limited, never a safety all-clear. Keep product actions summary/receipt/documents/manual for product facts.`,
+            CONVERSATION_MODEL_PROMPT,
           )
         ).value;
       },

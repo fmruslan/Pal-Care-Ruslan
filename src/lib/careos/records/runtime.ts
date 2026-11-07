@@ -46,7 +46,7 @@ export function recordsRuntime() {
         if (!validCapability(token) || recordsOwner(token) !== owner)
           return false;
         return new StandingOwner().evaluationQuotaAccess(
-          await standingProof(),
+          await standingProof("records"),
           true,
         );
       },

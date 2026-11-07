@@ -16,7 +16,12 @@ import { CareError } from "@/lib/careos/contracts";
 import {
   assertStandingOwner,
   standingOwnerMode,
+  configuredOwnerOrigin,
 } from "@/lib/careos/standing-runtime";
+import {
+  assertOwnerRequest,
+  type OwnerProof,
+} from "@/lib/careos/standing-owner";
 import { PostgresStore } from "@/lib/careos/postgres-store";
 import { ResponsesProvider } from "@/lib/careos/providers/responses";
 import { SubscriptionProvider } from "@/lib/careos/subscription/provider";
@@ -47,6 +52,13 @@ const schema = z.discriminatedUnion("action", [
 const conversationQuerySchema = z.strictObject({ conversationId: z.uuid() });
 
 async function customerStudioAccess(request: Request, mutation: boolean) {
+  // Reject customer-only recovery before initializing Studio persistence or
+  // deriving a new raw-token Studio history namespace.
+  let scopedProof: OwnerProof | undefined;
+  if (process.env.CAREOS_PROVIDER === "subscription" && standingOwnerMode()) {
+    assertOwnerRequest(request, mutation, configuredOwnerOrigin());
+    scopedProof = await assertStandingOwner(undefined, "customer-studio");
+  }
   const { store, origin, config } = careRuntime();
   // Browser same-origin GETs need not send Origin. An explicit foreign Origin
   // is never accepted; every mutation still requires the exact trusted Origin.
@@ -59,7 +71,8 @@ async function customerStudioAccess(request: Request, mutation: boolean) {
     throw new CareError("customer_dashboard_live_unavailable");
   const ownerProof =
     config.mode === "subscription" && standingOwnerMode()
-      ? await assertStandingOwner()
+      ? (scopedProof ??
+        (await assertStandingOwner(undefined, "customer-studio")))
       : undefined;
   const token =
     ownerProof?.token ??
