@@ -28,8 +28,6 @@ import {
   RECOVERY_EVALUATION,
   RECOVERY_SESSION,
   RECOVERY_DEADLINE,
-  RECOVERY_TRANSITION_FILE,
-  recoveryTransitionSchema,
 } from "../src/lib/careos/evaluation-recovery";
 import type { CareTurn } from "../src/lib/careos/contracts";
 import {
@@ -97,17 +95,19 @@ type Progress = {
   groupStorage?: Record<string, Record<string, string>>;
   pendingDispatch?: { requestId: string; path: string; at: number };
   groupRequestIds?: Record<string, string[]>;
+  reviewedCaseIds?: string[];
+  reviewedNext?: number;
 };
 const [action, output, batchText] = process.argv.slice(2);
 if (
   action !== "--run-150" ||
-  output !== "/tmp/opencode/north-language-300" ||
+  output !== "/tmp/opencode/north-language-300/live" ||
   !/^\d+$/.test(batchText ?? "") ||
   process.argv.length !== 5 ||
   process.env.CI
 )
   throw Error(
-    "Owner only, after separate recovery and journey acceptance: --run-150 /tmp/opencode/north-language-300 BATCH_ATTEMPTS (1..30)",
+    "Owner only, after quota authorization and journey acceptance: --run-150 /tmp/opencode/north-language-300/live BATCH_ATTEMPTS (1..30)",
   );
 const batch = Number(batchText);
 if (batch < 1 || batch > 30) throw Error("bounded_batch_required");
@@ -265,6 +265,7 @@ let context:
   progress: Progress | undefined,
   page: Page | undefined;
 let stopReason: string | undefined;
+let campaignBrowserId: string | undefined;
 let journalFailed = false;
 const errors: string[] = [],
   forbidden: string[] = [];
@@ -312,7 +313,8 @@ async function schedule(creating = false) {
   for (;;) {
     const now = Date.now(),
       hour = Math.floor(now / 3600000) * 3600000;
-    if (now >= progress.deadline) throw Error("evaluation_browser_expired");
+    if (!(await owner.quotaCampaignStatus()).active)
+      throw Error("campaign_authorization_denied");
     const turns = progress.turnTimes.filter((t) => t >= hour),
       creates = progress.createTimes.filter((t) => t >= hour),
       recent = (await host()).events
@@ -460,11 +462,12 @@ try {
     s.evaluation.expiresAt !== RECOVERY_DEADLINE
   )
     throw Error("existing_evaluation_required_no_replacement");
-  const continuationStatus = await owner.evaluationRecoveryStatus();
-  if (!continuationStatus.active || continuationStatus.phase !== "continued")
-    throw Error("separate_explicit_recovery_authorization_required");
+  const authorization = await owner.quotaCampaignStatus();
+  if (!authorization.active || !authorization.browserSessionId)
+    throw Error("approved_quota_policy_and_authenticated_browser_required");
+  campaignBrowserId = authorization.browserSessionId;
   // Broader batches must not precede the separately observed complete journey.
-  // This receipt records human review; it cannot activate recovery or inference.
+  // This records observed journey review, never authority or human acceptance.
   const journeyPath = join(output, "journey-150-accepted.json");
   const journeyStat = await lstat(journeyPath);
   if (
@@ -475,25 +478,18 @@ try {
   )
     throw Error("private_journey_acceptance_required");
   const journey = JSON.parse(await readFile(journeyPath, "utf8"));
-  const transition = await owner.files.snapshot(RECOVERY_TRANSITION_FILE);
-  const transitionRecord =
-    transition && recoveryTransitionSchema.parse(transition.value);
   if (
     journey.evaluationId !== RECOVERY_EVALUATION ||
     journey.sessionId !== RECOVERY_SESSION ||
     journey.executionLimit !== CAMPAIGN_EXECUTION_LIMIT ||
-    !transition ||
-    !transitionRecord?.postStop ||
-    journey.transitionHash !== transition.hash ||
+    journey.authorizationHash !== authorization.authorizationHash ||
     journey.commit !== source.commit ||
     journey.sourceHash !== source.sourceHash ||
     journey.buildId !== source.buildId ||
     journey.decision !== "accept-continuous-journey" ||
     !Number.isSafeInteger(journey.reviewedAt) ||
-    journey.reviewedAt <= transitionRecord.createdAt ||
-    journey.reviewedAt <= transitionRecord.postStop.approvedAt ||
+    journey.reviewedAt <= authorization.approvedAt ||
     journey.reviewedAt > Date.now() ||
-    journey.reviewedAt >= RECOVERY_DEADLINE ||
     !/^[a-f0-9]{64}$/.test(journey.evidenceHash ?? "") ||
     journey.ninthAndSimplificationPassed !== true ||
     journey.nativeSdkReadbackPassed !== true
@@ -505,6 +501,21 @@ try {
     );
     work = manifest.work;
     holdout = manifest.holdout;
+    if (progress.reviewedCaseIds) {
+      const ids = progress.reviewedCaseIds;
+      const catalog = new Map<string, Work>(
+        [...work, ...holdout].map((item) => [item.id, item]),
+      );
+      if (
+        !ids.length ||
+        ids.length > 87 ||
+        new Set(ids).size !== ids.length ||
+        ids.some((id) => !catalog.has(id))
+      )
+        throw Error("distinct_frozen_library_cases_required");
+      work = ids.map((id) => catalog.get(id)!);
+      holdout = [];
+    }
   }
   await mkdir(join(output, "profile"), { recursive: true, mode: 0o700 });
   context = await chromium.launchPersistentContext(join(output, "profile"), {
@@ -541,7 +552,7 @@ try {
     ) {
       if (progress) {
         if (
-          Date.now() >= progress.deadline ||
+          !(await owner.quotaCampaignStatus()).active ||
           campaignBudget((await host()).events).availableForNewQuestion <
             QUESTION_MAX_STAGES
         )
@@ -573,8 +584,10 @@ try {
     return route.continue();
   });
   const initialUsed = used(await host());
+  const workIndex = () =>
+    progress!.reviewedCaseIds ? (progress!.reviewedNext ?? 0) : progress!.next;
   while (
-    (progress.next < work.length ||
+    (workIndex() < work.length ||
       (progress.retests?.length ?? 0) > 0 ||
       (progress.holdoutNext ?? 0) < holdout.length) &&
     campaignBudget((await host()).events).availableForNewQuestion >=
@@ -582,13 +595,13 @@ try {
     used(await host()) - initialUsed + QUESTION_MAX_STAGES <= batch
   ) {
     // Meaningful holdouts are scheduled by reviewed work, not a usage target.
-    const isHoldout = progress.next >= work.length && !progress.retests?.length;
+    const isHoldout = workIndex() >= work.length && !progress.retests?.length;
     const isRetest = !isHoldout && (progress.retests?.length ?? 0) > 0;
     const item = isHoldout
       ? holdout[(progress.holdoutNext ?? 0) % holdout.length]
       : isRetest
         ? progress.retests![0]
-        : work[progress.next];
+        : work[workIndex()];
     if (!item) throw Error("meaningful_frozen_cases_exhausted");
     await schedule(item.group !== progress.activeGroup);
     if (item.group !== progress.activeGroup) {
@@ -622,6 +635,8 @@ try {
       browserStatus.revoked ||
       browserStatus.providerBlocked ||
       browserStatus.campaign?.executionLimit !== CAMPAIGN_EXECUTION_LIMIT ||
+      browserStatus.campaign.authorization !== "quota-bounded" ||
+      browserStatus.campaign.authorized !== true ||
       browserStatus.campaign.availableForNewQuestion < QUESTION_MAX_STAGES ||
       browserStatus.campaign.questionActive
     )
@@ -663,6 +678,7 @@ try {
     });
     if (isHoldout) progress.holdoutNext = (progress.holdoutNext ?? 0) + 1;
     else if (isRetest) progress.retests!.shift();
+    else if (progress.reviewedCaseIds) progress.reviewedNext = workIndex() + 1;
     else progress.next++;
     delete progress.pendingDispatch;
     const priorRequestId = progress.groupRequestIds?.[item.group]?.at(-1);
@@ -794,7 +810,7 @@ try {
     QUESTION_MAX_STAGES
   ) {
     progress.finished = true;
-    await owner.revokeSession(progress.sessionId);
+    await owner.revokeSession(campaignBrowserId);
     await save();
   }
 } catch (e) {
@@ -809,16 +825,16 @@ try {
       events: (await host()).events,
       pendingDispatch: !!progress.pendingDispatch,
       unsafeBoundary: forbidden.length > 0 || journalFailed,
-      expired: Date.now() >= progress.deadline,
+      expired: !campaignBrowserId,
     });
     if (disposition !== "unchanged") {
       progress.paused = stopReason;
-      if (disposition === "revoke")
-        await owner.revokeSession(progress.sessionId);
+      if (disposition === "revoke" && campaignBrowserId)
+        await owner.revokeSession(campaignBrowserId);
       try {
         await save();
       } catch {
-        await owner.revokeSession(progress.sessionId);
+        if (campaignBrowserId) await owner.revokeSession(campaignBrowserId);
         throw Error("campaign_journal_write_failed");
       }
     }

@@ -17,6 +17,7 @@ export const ownerStatusSchema = z.object({
       availableForNewQuestion: z.number().int().nonnegative(),
       questionActive: z.boolean(),
       maxQuestionStages: z.literal(QUESTION_MAX_STAGES),
+      authorized: z.boolean().optional(),
     })
     .nullable()
     .optional(),
@@ -39,6 +40,7 @@ export function ownerSendState(raw: unknown): OwnerSendState {
   const s = parsed.data;
   if (!s.remembered) return "signin";
   if (!s.liveEnabled || s.policy !== "approved" || s.revoked) return "disabled";
+  if (s.campaign?.authorized === false) return "disabled";
   if (s.remaining === 0) return "exhausted";
   if (s.campaign?.questionActive) return "busy";
   if (s.campaign && s.campaign.availableForNewQuestion < QUESTION_MAX_STAGES)

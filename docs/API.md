@@ -1,5 +1,13 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
+## Quota-bounded North policy — approved candidate, live activation pending
+
+The latest owner authorization adds a strict, one-time `quotaCampaign` record to the existing host owner state: fixed campaign ID, **63 baseline / 150 execution ceiling / at most 87 additional**, `calendarExpiresAt: null`, zero retries, one concurrent question, original state/history hashes and pinned existing provider identity. There is no HTTP policy-approval endpoint. Host-only `scripts/standing-owner.ts approve-quota-campaign quota-campaign-approval.json` reads the one protected approval file and refuses replacement/replenishment. Old `evaluation`, revoked session and disabled recovery-file bytes are not edited; the old November 7 expiry stays historical.
+
+The existing owner `pair` action accepts only the action body and server-derived records proof; under the separately approved policy it can request a new **pending** campaign-tagged browser proof rather than reviving the disabled token. Existing host `approve-browser` and browser `finish` are still mandatory. Requests expire after five minutes; normal absolute/idle browser expiry, exact Origin/agent binding and revocation remain. Another concurrently approved campaign browser is denied. Campaign-tagged credentials cannot drop the records cookie or switch routes to consume the original standing allowance. Provider client/subject checks run before refresh and immediately before dispatch; provider denial/uncertainty is never bypassed by browser approval or token refresh.
+
+For an identified quota-mode browser, read-only `GET /api/ai/owner` reports `campaign.authorization: "quota-bounded"`, `campaign.authorized`, `campaign.calendarExpiresAt: null` and separate `browserExpiresAt`; `evaluation.expiresAt: null` describes **new authority**, while `evaluation.originalExpiresAt` retains the original deadline. This does not alter the original stored grant. Limits/usage remain cumulative. UI permission revocation from that browser appends `revoke-quota-campaign`, not an unrelated standing-policy revocation. No policy calendar expiry means neither immortal authentication nor guaranteed provider eligibility. [Actual gates/results](STATUS.md).
+
 ## North 150-total execution limit — candidate integration, live recovery disabled
 
 The original fixed evaluation retains its immutable historical `requestLimit: 300`; the effective central execution ceiling is **150 total reservations**, including the existing **63**, leaving **at most 87 additional**. This is a restriction, not another grant or reset. The separate standing 274/300, 26 remaining and historical unknown are unchanged. All stages, failures and unknown outcomes remain charged.

@@ -6,6 +6,10 @@ import { CareError } from "./contracts";
 import { PilotFiles } from "./subscription/files";
 import { northReviewOrigin } from "../private-preview-origin";
 import {
+  quotaCampaignSchema,
+  assertQuotaCampaignIntegrity,
+} from "./quota-campaign";
+import {
   CAMPAIGN_EXECUTION_LIMIT,
   QUESTION_MAX_STAGES,
   campaignBudget,
@@ -86,6 +90,8 @@ const eventSchema = z.strictObject({
     "failed",
     "question-open",
     "question-close",
+    "approve-quota-campaign",
+    "revoke-quota-campaign",
   ]),
   subject: z.string().min(1).max(200),
   allocationId: z.uuid().optional(),
@@ -113,6 +119,7 @@ const stateSchema = z.strictObject({
   version: z.literal(1),
   policy: standingPolicySchema.nullable(),
   evaluation: evaluationSchema.optional(),
+  quotaCampaign: quotaCampaignSchema.optional(),
   sessions: z
     .array(
       z.strictObject({
@@ -125,6 +132,7 @@ const stateSchema = z.strictObject({
         finishedAt: time.optional(),
         expiresAt: time.optional(),
         revoked: z.boolean(),
+        allocationId: z.literal(RECOVERY_EVALUATION).optional(),
       }),
     )
     .max(128),
@@ -250,6 +258,55 @@ export class StandingOwner {
   ) {
     s.events.push({ id: randomUUID(), at: this.now(), kind, subject });
   }
+  private campaignEntry(s: State, entry: State["sessions"][number]) {
+    return (
+      entry.allocationId === RECOVERY_EVALUATION ||
+      (s.evaluation?.id === RECOVERY_EVALUATION &&
+        s.evaluation.sessionId === entry.id)
+    );
+  }
+  private async quotaPolicy(s: State) {
+    return assertQuotaCampaignIntegrity(
+      s,
+      (await this.files.snapshot("evaluation-recovery.json"))?.hash,
+      this.now(),
+    );
+  }
+  private async quotaProof(s: State, proof: OwnerProof) {
+    const q = await this.quotaPolicy(s);
+    if (
+      (proof.origin ?? OWNER_ORIGIN) !== OWNER_ORIGIN ||
+      proof.recordsOwnerDigest !== q.recordsOwnerDigest ||
+      hash(proof.agent) !== q.agentHash
+    )
+      return deny("scope_denied");
+    return q;
+  }
+  /** Host-only additive policy. No historical edit, credential issue or network. */
+  async installQuotaCampaign(value: unknown) {
+    const q = quotaCampaignSchema.parse(value);
+    return this.change(async (s) => {
+      if (
+        s.quotaCampaign ||
+        s.events.some((e) => e.kind === "approve-quota-campaign")
+      )
+        return deny("quota_campaign_already_set");
+      const original = await this.files.snapshot("evaluation-recovery.json");
+      const doc = await this.recovery.read();
+      if (
+        !doc ||
+        doc.phase !== "disabled" ||
+        !doc.activation ||
+        q.recordsOwnerDigest !== doc.binding.recordsOwnerDigest ||
+        q.agentHash !== doc.binding.agentHash
+      )
+        return deny("quota_campaign_denied");
+      s.quotaCampaign = q;
+      assertQuotaCampaignIntegrity(s, original?.hash, this.now(), true);
+      this.event(s, "approve-quota-campaign", recoveryHash(q));
+      s.events.at(-1)!.allocationId = RECOVERY_EVALUATION;
+    });
+  }
   private async principal(s: State, proof: OwnerProof, admission = false) {
     if (!proof.token || !/^[a-f0-9]{64}$/.test(proof.token))
       return deny("signin_required");
@@ -341,7 +398,9 @@ export class StandingOwner {
     proof: OwnerProof,
     selected: z.infer<typeof scope>,
     enabled: boolean,
-  ) {
+  ): Promise<
+    z.infer<typeof standingPolicySchema> & { providerIdentityHash?: string }
+  > {
     const principal = await this.principal(s, proof, true);
     const entry = principal.entry;
     const p = s.policy;
@@ -350,17 +409,27 @@ export class StandingOwner {
     if (s.events.some((e) => e.kind === "provider-block"))
       return deny("provider_unavailable");
     if (!p.scopes.includes(selected)) return deny("scope_denied");
-    const fixedCampaign =
-      s.evaluation?.id === RECOVERY_EVALUATION &&
-      s.evaluation.sessionId === entry.id;
+    const fixedCampaign = this.campaignEntry(s, entry);
+    const quota = entry.allocationId
+      ? await this.quotaProof(s, proof)
+      : undefined;
+    if (
+      !entry.allocationId &&
+      s.quotaCampaign &&
+      proof.recordsOwnerDigest === s.quotaCampaign.recordsOwnerDigest
+    )
+      return deny("quota_campaign_browser_approval_required");
     if (
       (principal.recovered || fixedCampaign) &&
       (selected !== "customer" || proof.channel !== "records")
     )
       return deny("scope_denied");
     const reservations = s.events.filter((e) => e.kind === "reserve");
-    const evaluation =
-      s.evaluation?.sessionId === entry.id ? s.evaluation : null;
+    const evaluation = quota
+      ? s.evaluation!
+      : s.evaluation?.sessionId === entry.id
+        ? s.evaluation
+        : null;
     if (evaluation && (proof.origin ?? OWNER_ORIGIN) !== OWNER_ORIGIN)
       return deny("scope_denied");
     const used = reservations.filter((e) =>
@@ -393,36 +462,79 @@ export class StandingOwner {
           maxRetries: 0,
           concurrency: 1,
           scopes: ["customer"] as ("customer" | "customer-studio")[],
+          ...(quota
+            ? { providerIdentityHash: quota.providerIdentityHash }
+            : {}),
         }
       : p;
   }
-  async pair(agent: string, existingToken?: string) {
+  async pair(
+    agent: string,
+    existingToken?: string,
+    recordsOwnerDigest?: string,
+  ) {
     const token = randomBytes(32).toString("hex");
     return this.change(async (s) => {
       // A second tab/reload must not replace a valid or pending browser secret.
       // Returning the existing public request ID does not renew its cookie.
+      let campaignBrowser = false;
       if (existingToken) {
         const prior = s.sessions.find(
           (v) => v.tokenHash === hash(existingToken),
         );
-        if (
-          (prior?.id === RECOVERY_SESSION && prior.revoked) ||
+        const recoverySecret =
           (await this.recovery.read())?.activation?.tokenHash ===
-            hash(existingToken)
+          hash(existingToken);
+        if (
+          s.quotaCampaign &&
+          (prior?.allocationId === RECOVERY_EVALUATION || recoverySecret)
+        ) {
+          await this.quotaProof(s, {
+            agent,
+            recordsOwnerDigest,
+            origin: OWNER_ORIGIN,
+          });
+          if (campaignBudget(s.events).activeQuestion) return deny("busy");
+          campaignBrowser = true;
+        } else if (
+          (prior?.id === RECOVERY_SESSION && prior.revoked) ||
+          recoverySecret
         )
           return deny("evaluation_recovery_pairing_denied");
+      }
+      if (
+        s.quotaCampaign &&
+        recordsOwnerDigest === s.quotaCampaign.recordsOwnerDigest
+      ) {
+        await this.quotaProof(s, {
+          agent,
+          recordsOwnerDigest,
+          origin: OWNER_ORIGIN,
+        });
+        if (campaignBudget(s.events).activeQuestion) return deny("busy");
+        campaignBrowser = true;
       }
       const existing = await this.inspectBrowser(s, {
         token: existingToken,
         agent,
       });
-      if (existing.state === "pending-approval")
+      const priorAllocation = s.sessions.find(
+        (v) => v.tokenHash === hash(existingToken ?? ""),
+      )?.allocationId;
+      if (
+        existing.state === "pending-approval" &&
+        (!campaignBrowser || priorAllocation)
+      )
         return {
           id: existing.pairing!.id,
           token: existingToken!,
           reused: true,
         };
-      if (existing.state === "remembered" || existing.state === "finish-needed")
+      if (
+        (existing.state === "remembered" ||
+          existing.state === "finish-needed") &&
+        (!campaignBrowser || priorAllocation)
+      )
         return {
           id: s.sessions.find((v) => v.tokenHash === hash(existingToken!))!.id,
           token: existingToken!,
@@ -442,15 +554,17 @@ export class StandingOwner {
         lastSeen: this.now(),
         approvedAt: null,
         revoked: false,
+        ...(campaignBrowser ? { allocationId: RECOVERY_EVALUATION } : {}),
       });
       this.event(s, "pair", id);
+      if (campaignBrowser) s.events.at(-1)!.allocationId = RECOVERY_EVALUATION;
       return { id, token, reused: false };
     });
   }
   /** Only the local owner CLI calls this. No web approval endpoint. */
   async approve(id: string) {
     z.uuid().parse(id);
-    return this.change((s) => {
+    return this.change(async (s) => {
       const entry = s.sessions.find((v) => v.id === id);
       if (
         !entry ||
@@ -460,6 +574,22 @@ export class StandingOwner {
         this.now() < entry.createdAt
       )
         return deny("pair_expired");
+      if (entry.allocationId) {
+        const q = await this.quotaPolicy(s);
+        if (entry.agentHash !== q.agentHash) return deny("scope_denied");
+        if (
+          s.sessions.some(
+            (other) =>
+              other.id !== entry.id &&
+              other.allocationId === RECOVERY_EVALUATION &&
+              !other.revoked &&
+              other.approvedAt !== null &&
+              this.now() < other.createdAt + OWNER_MAX_AGE &&
+              this.now() < other.lastSeen + OWNER_IDLE,
+          )
+        )
+          return deny("quota_campaign_browser_already_approved");
+      }
       entry.approvedAt = this.now();
       this.event(s, "approve", id);
     });
@@ -532,13 +662,12 @@ export class StandingOwner {
       await this.additionalOrigin(s, proof.origin);
       const principal = await this.principal(s, proof);
       if (
-        (principal.recovered ||
-          (s.evaluation?.id === RECOVERY_EVALUATION &&
-            s.evaluation.sessionId === principal.entry.id)) &&
+        (principal.recovered || this.campaignEntry(s, principal.entry)) &&
         (proof.channel !== "records" || requiredScope === "customer-studio")
       )
         return deny("scope_denied");
       const entry = principal.entry;
+      if (entry.allocationId) await this.quotaProof(s, proof);
       // Bound write volume; absolute lifetime never slides.
       if (!principal.recovered && this.now() - entry.lastSeen >= 3600000) {
         entry.lastSeen = this.now();
@@ -578,10 +707,13 @@ export class StandingOwner {
     const ids = await this.change(async (s) => {
       // A cancellation is not an authentication upgrade. Never require a live
       // inference principal to kill a grant the caller cryptographically owns.
-      const bound = await this.recovery.cancellationBound(
-        proof,
-        pendingChallenge,
+      const normalCampaign = s.sessions.some(
+        (entry) =>
+          entry.allocationId && entry.tokenHash === hash(proof.token ?? ""),
       );
+      const bound = normalCampaign
+        ? null
+        : await this.recovery.cancellationBound(proof, pendingChallenge);
       const entry = bound
         ? s.sessions.find((x) => x.id === RECOVERY_SESSION)
         : await this.session(s, proof);
@@ -630,8 +762,12 @@ export class StandingOwner {
   }
   async revokePolicy(proof: OwnerProof) {
     await this.change(async (s) => {
-      await this.session(s, proof);
-      this.event(s, "revoke-policy", s.policy?.id ?? "disabled");
+      const entry = await this.session(s, proof);
+      this.event(
+        s,
+        entry.allocationId ? "revoke-quota-campaign" : "revoke-policy",
+        entry.allocationId ?? s.policy?.id ?? "disabled",
+      );
     });
     await this.disableEvaluationRecovery("policy-revoked");
   }
@@ -647,10 +783,7 @@ export class StandingOwner {
       await this.additionalOrigin(state, proof.origin);
       const policy = await this.allowed(state, proof, selected, enabled);
       const principal = await this.principal(state, proof, true);
-      if (
-        state.evaluation?.id === RECOVERY_EVALUATION &&
-        state.evaluation.sessionId === principal.entry.id
-      )
+      if (this.campaignEntry(state, principal.entry))
         assertCampaignStage(state.events, stageKey ?? "");
       return policy;
     }, ".owner-access-lock");
@@ -663,7 +796,11 @@ export class StandingOwner {
       if (!s.evaluation) return false;
       try {
         const session = await this.session(s, proof);
-        if (session.id !== s.evaluation.sessionId) return false;
+        if (
+          !this.campaignEntry(s, session) &&
+          session.id !== s.evaluation.sessionId
+        )
+          return false;
         await this.additionalOrigin(s, proof.origin);
         await this.allowed(s, proof, "customer", enabled);
         return s.evaluation.fastApplicationQuotaApproved;
@@ -685,11 +822,7 @@ export class StandingOwner {
       await this.additionalOrigin(s, proof.origin);
       await this.allowed(s, proof, "customer", enabled);
       const principal = await this.principal(s, proof, true);
-      if (
-        s.evaluation?.id !== RECOVERY_EVALUATION ||
-        s.evaluation.sessionId !== principal.entry.id
-      )
-        return false;
+      if (!this.campaignEntry(s, principal.entry)) return false;
       if (proof.channel !== "records") return deny("scope_denied");
       const subject = assertCampaignQuestionOpen(
         s.events,
@@ -711,8 +844,7 @@ export class StandingOwner {
       await this.additionalOrigin(s, proof.origin);
       const principal = await this.principal(s, proof, false);
       if (
-        s.evaluation?.id !== RECOVERY_EVALUATION ||
-        s.evaluation.sessionId !== principal.entry.id ||
+        !this.campaignEntry(s, principal.entry) ||
         proof.channel !== "records"
       )
         return deny("scope_denied");
@@ -745,13 +877,12 @@ export class StandingOwner {
         return deny("scope_denied");
       if (s.events.some((e) => e.kind === "reserve" && e.subject === key))
         return deny("already_dispatched");
-      if (
-        s.evaluation?.id === RECOVERY_EVALUATION &&
-        s.evaluation.sessionId === principal.entry.id
-      )
+      if (this.campaignEntry(s, principal.entry))
         assertCampaignStage(s.events, key);
       this.event(s, "reserve", key);
-      if (s.evaluation?.sessionId === principal.entry.id)
+      if (this.campaignEntry(s, principal.entry))
+        s.events.at(-1)!.allocationId = RECOVERY_EVALUATION;
+      else if (s.evaluation?.sessionId === principal.entry.id)
         s.events.at(-1)!.allocationId = s.evaluation.id;
     });
   }
@@ -854,6 +985,20 @@ export class StandingOwner {
     z.string().min(1).max(120).parse(reason);
     return this.files.lockedWaiting(async () => {
       const cutoff = await this.recovery.postStopCheckpoint();
+      const current = await this.state();
+      if (
+        current.quotaCampaign &&
+        !["logout", "session-revoked"].includes(reason) &&
+        !current.events.some((e) => e.kind === "revoke-quota-campaign")
+      ) {
+        this.event(
+          current,
+          "revoke-quota-campaign",
+          recoveryHash(current.quotaCampaign),
+        );
+        current.events.at(-1)!.allocationId = RECOVERY_EVALUATION;
+        await this.files.write("owner-state.json", stateSchema.parse(current));
+      }
       if (cutoff !== null) {
         const s = await this.state();
         if (
@@ -930,17 +1075,56 @@ export class StandingOwner {
       }
     }, ".owner-access-lock");
   }
+  /** Read-only host inspection of policy, not browser/provider authority. */
+  async quotaCampaignStatus() {
+    return this.files.lockedWaiting(async () => {
+      const s = await this.state();
+      if (!s.quotaCampaign) return { active: false as const };
+      const budget = campaignBudget(s.events);
+      try {
+        const q = await this.quotaPolicy(s);
+        return {
+          active: true as const,
+          campaignId: q.campaignId,
+          ownerApprovalHash: q.ownerApprovalHash,
+          authorizationHash: recoveryHash(q),
+          approvedAt: q.approvedAt,
+          browserSessionId:
+            s.sessions.find(
+              (entry) =>
+                entry.allocationId === RECOVERY_EVALUATION &&
+                !entry.revoked &&
+                entry.approvedAt !== null &&
+                this.now() < entry.createdAt + OWNER_MAX_AGE &&
+                this.now() < entry.lastSeen + OWNER_IDLE,
+            )?.id ?? null,
+          calendarExpiresAt: null,
+          used: budget.used,
+          remaining: budget.remaining,
+          held: budget.held,
+        };
+      } catch {
+        return {
+          active: false as const,
+          used: budget.used,
+          remaining: budget.remaining,
+        };
+      }
+    }, ".owner-access-lock");
+  }
   async status(proof: OwnerProof, diagnostic?: (reason: string) => void) {
     await this.files.prepare();
     const s = await this.state();
     const browser = await this.inspectBrowser(s, proof);
     diagnostic?.(browser.reason);
     let remembered = false;
+    let currentEntry: State["sessions"][number] | undefined;
     let browserCompletion: "not-verified" | "finish-needed" | "complete" =
       "not-verified";
     try {
       const entry = await this.session(s, proof);
       remembered = true;
+      currentEntry = entry;
       browserCompletion =
         entry.finishedAt === undefined ? "finish-needed" : "complete";
     } catch {
@@ -968,7 +1152,12 @@ export class StandingOwner {
     } catch {
       /* Malformed recovery cannot grant browser recognition. */
     }
+    const identifiedQuota = s.sessions.find(
+      (entry) =>
+        entry.allocationId && entry.tokenHash === hash(proof.token ?? ""),
+    );
     const evaluationBrowser =
+      !!identifiedQuota ||
       recoveryCredential ||
       (!!evaluation &&
         s.sessions.some(
@@ -982,6 +1171,15 @@ export class StandingOwner {
     const limit = evaluationBrowser
       ? (budget?.executionLimit ?? evaluation!.requestLimit)
       : (s.policy?.requestLimit ?? 0);
+    let quotaAuthorized = false;
+    if (currentEntry?.allocationId) {
+      try {
+        await this.quotaProof(s, proof);
+        quotaAuthorized = true;
+      } catch {
+        /* No authority from status. */
+      }
+    }
     return {
       remembered,
       browserCompletion,
@@ -996,13 +1194,21 @@ export class StandingOwner {
       policyId: s.policy?.id ?? null,
       requestLimit: limit,
       concurrency:
-        browser.state === "recovery-active" ? 1 : (s.policy?.concurrency ?? 0),
+        browser.state === "recovery-active" || identifiedQuota
+          ? 1
+          : (s.policy?.concurrency ?? 0),
       requestsPerMinute: s.policy?.requestsPerMinute ?? 0,
       maxRetries:
-        browser.state === "recovery-active" ? 0 : (s.policy?.maxRetries ?? 0),
+        browser.state === "recovery-active" || identifiedQuota
+          ? 0
+          : (s.policy?.maxRetries ?? 0),
       providerBlocked: s.events.some((e) => e.kind === "provider-block"),
       policy: s.policy ? "approved" : "disabled",
-      revoked: s.events.some((e) => e.kind === "revoke-policy"),
+      revoked: s.events.some(
+        (e) =>
+          e.kind === "revoke-policy" ||
+          (evaluationBrowser && e.kind === "revoke-quota-campaign"),
+      ),
       used,
       remaining: s.policy ? Math.max(0, limit - used) : 0,
       campaign:
@@ -1022,6 +1228,17 @@ export class StandingOwner {
               availableForNewQuestion: budget.availableForNewQuestion,
               questionActive: !!budget.activeQuestion,
               maxQuestionStages: QUESTION_MAX_STAGES,
+              ...(identifiedQuota
+                ? {
+                    authorization: "quota-bounded" as const,
+                    authorized: quotaAuthorized,
+                    calendarExpiresAt: null,
+                    browserExpiresAt: Math.min(
+                      identifiedQuota.createdAt + OWNER_MAX_AGE,
+                      identifiedQuota.lastSeen + OWNER_IDLE,
+                    ),
+                  }
+                : {}),
             }
           : null,
       standingAllocation: {
@@ -1044,7 +1261,8 @@ export class StandingOwner {
             id: s.evaluation.id,
             limit: budget?.executionLimit ?? s.evaluation.requestLimit,
             historicalLimit: s.evaluation.requestLimit,
-            expiresAt: s.evaluation.expiresAt,
+            expiresAt: identifiedQuota ? null : s.evaluation.expiresAt,
+            originalExpiresAt: s.evaluation.expiresAt,
             used: s.events.filter(
               (e) =>
                 e.kind === "reserve" && e.allocationId === s.evaluation!.id,
@@ -1058,7 +1276,8 @@ export class StandingOwner {
                 ).length,
             ),
             browserBound:
-              (recoveryCredential ||
+              (!!identifiedQuota ||
+                recoveryCredential ||
                 s.sessions.some(
                   (v) =>
                     v.id === s.evaluation!.sessionId &&

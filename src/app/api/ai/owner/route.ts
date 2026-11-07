@@ -175,7 +175,11 @@ export async function POST(request: Request) {
       return careResponse({ ok: true, expiresAt: finished.expiresAt });
     }
     if (parsed.data.action === "pair") {
-      const pair = await owner.pair(agent, proof.token);
+      const pair = await owner.pair(
+        agent,
+        proof.token,
+        proof.recordsOwnerDigest,
+      );
       if (!pair.reused)
         jar.set(cookieName, pair.token, { ...cookieOptions, maxAge: 300 });
       return careResponse({ id: pair.id }); // Public request ID, never the secret.

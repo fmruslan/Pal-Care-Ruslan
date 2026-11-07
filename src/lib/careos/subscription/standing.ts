@@ -7,6 +7,8 @@ import { safeFailure } from "./pilot";
 import { setTimeout as delay } from "node:timers/promises";
 import { CARE_INSTRUCTIONS } from "../providers/responses";
 import { structuredRequestBody, assertStructuredRequestSize } from "./request";
+import { subscriptionIdentityHash } from "../quota-campaign";
+import { CareError } from "../contracts";
 
 /** Refresh is serialized, inference is not. Each attempt reserves atomically in
  * the independent owner ledger. No retries of streams or uncertain dispatch. */
@@ -35,6 +37,15 @@ export async function standingStructured<T extends z.ZodType>(options: {
       options.enabled(),
       key,
     );
+    const assertIdentity = async () => {
+      if (
+        policy.providerIdentityHash &&
+        subscriptionIdentityHash(await options.files.registration()) !==
+          policy.providerIdentityHash
+      )
+        throw new CareError("careos_owner_provider_identity_denied", 403);
+    };
+    await assertIdentity();
     await owner.assertHistoricalJournal(
       await options.files.read("session.json"),
     );
@@ -51,6 +62,7 @@ export async function standingStructured<T extends z.ZodType>(options: {
     const token = await options.files.lockedWaiting(
       async () => {
         await owner.assertDispatch(proof, scope, options.enabled(), key);
+        await assertIdentity();
         return accessToken(options.files, options.transport);
       },
       ".lock",
@@ -71,6 +83,7 @@ export async function standingStructured<T extends z.ZodType>(options: {
         beforeDispatch: async () => {
           // Re-check after refresh/network delay and durably reserve before POST.
           options.signal.throwIfAborted();
+          await assertIdentity();
           await owner.reserve(proof, scope, key, options.enabled());
           reserved = true;
         },

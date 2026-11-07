@@ -277,8 +277,24 @@ export async function createNorth150App() {
               if (
                 cookie.name === "__Host-palcare-owner" &&
                 !["e".repeat(64), "d".repeat(64)].includes(cookie.value)
-              )
-                throw Error("unexpected non-synthetic owner cookie");
+              ) {
+                const state = JSON.parse(
+                  await readFile(
+                    join(
+                      home,
+                      ".config/palcare-standing-owner/owner-state.json",
+                    ),
+                    "utf8",
+                  ),
+                );
+                if (
+                  !state.sessions.some(
+                    (entry: { tokenHash: string }) =>
+                      entry.tokenHash === north150Hash(cookie.value),
+                  )
+                )
+                  throw Error("unexpected non-synthetic owner cookie");
+              }
               if (
                 cookie.name === "palcare-records" &&
                 cookie.value !== recordsToken

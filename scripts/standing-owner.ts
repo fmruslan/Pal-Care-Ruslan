@@ -14,11 +14,17 @@ try {
       "approve-policy",
       "approve-evaluation",
       "approve-review-origin",
+      "approve-quota-campaign",
     ].includes(action)
   )
     throw new Error("usage");
   const owner = new StandingOwner();
-  if (action === "approve-browser") await owner.approve(id);
+  if (action === "approve-quota-campaign") {
+    if (id !== "quota-campaign-approval.json") throw new Error("usage");
+    await owner.installQuotaCampaign(
+      await owner.files.read("quota-campaign-approval.json"),
+    );
+  } else if (action === "approve-browser") await owner.approve(id);
   else if (action === "approve-evaluation") {
     if (id !== "evaluation-approval.json") throw new Error("usage");
     await owner.approveEvaluation(
@@ -48,11 +54,13 @@ try {
     await owner.installPolicy(policy);
   }
   console.log(
-    action === "approve-review-origin"
-      ? "Exact review origin approved against the existing policy. No allowance, session or expiry was reset."
-      : action === "approve-policy"
-        ? "Exact standing policy stored. Runtime activation and provider credentials unchanged."
-        : "Browser access updated. AI permission and provider credentials unchanged.",
+    action === "approve-quota-campaign"
+      ? "Quota-bounded campaign policy stored without a calendar deadline. Historical grants/usage unchanged; normal browser approval and provider checks remain required."
+      : action === "approve-review-origin"
+        ? "Exact review origin approved against the existing policy. No allowance, session or expiry was reset."
+        : action === "approve-policy"
+          ? "Exact standing policy stored. Runtime activation and provider credentials unchanged."
+          : "Browser access updated. AI permission and provider credentials unchanged.",
   );
 } catch {
   console.error(
