@@ -183,20 +183,34 @@ export function recordsAnswer(
     context: null,
     text: explain
       ? `${
-          !records.length
-            ? "No saved purchases match those filters."
-            : query.price === "missing"
-              ? `${records
-                  .slice(0, 3)
-                  .map((r) => r.name)
-                  .join(
-                    ", ",
-                  )}${records.length > 3 ? ` and ${records.length - 3} more` : ""} ${records.length === 1 ? "has" : "have"} no recorded purchase price. The price is unknown, not zero or free, so ${records.length === 1 ? "it is" : "they are"} left out of spending totals.`
-              : `These are the ${records.length} saved purchase${records.length === 1 ? "" : "s"} matching your selection (${period}). Sample recorded amounts total ${money(result.totals.find((t) => t.origin === "sample")!.amountMinor)}; Verified Sandbox recorded amounts total ${money(result.totals.find((t) => t.origin === "sandbox")!.amountMinor)}. Purchases without a recorded price are left out of those amounts.`
+          result.comparison
+            ? `This compares recorded amounts for ${period} with ${result.comparison.from} through ${result.comparison.to} (inclusive; ${query.timezone}). Sample and Verified Sandbox are separate; unpriced/reference records are excluded from amounts.`
+            : !records.length
+              ? coverage.complete
+                ? "No saved purchases match those filters."
+                : "No matches in the available saved records; other records may be unavailable."
+              : query.price === "missing"
+                ? `${records
+                    .slice(0, 3)
+                    .map((r) => r.name)
+                    .join(
+                      ", ",
+                    )}${records.length > 3 ? ` and ${records.length - 3} more` : ""} ${records.length === 1 ? "has" : "have"} no recorded purchase price. The price is unknown, not zero or free, so ${records.length === 1 ? "it is" : "they are"} left out of spending totals.`
+                : `These are the ${records.length} saved purchase${records.length === 1 ? "" : "s"} matching your selection (${period}). Sample recorded amounts total ${money(result.totals.find((t) => t.origin === "sample")!.amountMinor)}; Verified Sandbox recorded amounts total ${money(result.totals.find((t) => t.origin === "sandbox")!.amountMinor)}. Purchases without a recorded price are left out of those amounts.`
         }${coverage.complete ? "" : " Only part of the saved library is available; these are not complete-library totals."}`
       : `${records.length} matching saved purchase${records.length === 1 ? "" : "s"} · ${period}.${coverage.complete ? "" : " Partial saved-library evidence; global totals are not established."}`,
     steps: explain
       ? [
+          ...(result.comparison
+            ? result.totals.map((total) =>
+                recordedValueComparison(
+                  total,
+                  result.comparison!.totals.find(
+                    (previous) => previous.origin === total.origin,
+                  )!,
+                ),
+              )
+            : []),
           "This explains the saved records only; no new payment or financial action was performed.",
         ]
       : [
@@ -227,6 +241,12 @@ export function recordsAnswer(
     actions: [],
     recordsResult: result,
   };
+}
+
+function recordedValueComparison(total: RecordTotal, previous: RecordTotal) {
+  const name = total.origin === "sample" ? "Sample" : "Verified Sandbox";
+  const delta = total.amountMinor - previous.amountMinor;
+  return `${name} recorded-value comparison: current ${money(total.amountMinor)} (${total.pricedCount} priced, ${total.excludedCount} excluded), previous ${money(previous.amountMinor)} (${previous.pricedCount} priced, ${previous.excludedCount} excluded); difference ${delta < 0 ? "−" : "+"}${money(Math.abs(delta))}. ${previous.amountMinor === 0 ? "Percentage growth from a zero prior value is not established." : "A recorded-value difference does not establish a cause or a complete account trend."}`;
 }
 
 /** Observed saved-data descriptions, never a model's causal/personal-spending claim. */
@@ -265,10 +285,7 @@ export function observedPatterns(result: RecordsResult): string[] {
       const previous = result.comparison.totals.find(
         (t) => t.origin === total.origin,
       )!;
-      const delta = total.amountMinor - previous.amountMinor;
-      observations.push(
-        `${name} recorded-value comparison: current ${money(total.amountMinor)} (${total.pricedCount} priced, ${total.excludedCount} excluded), previous ${money(previous.amountMinor)} (${previous.pricedCount} priced, ${previous.excludedCount} excluded); difference ${delta < 0 ? "−" : "+"}${money(Math.abs(delta))}. ${previous.amountMinor === 0 ? "Percentage growth from a zero prior value is not established." : "A recorded-value difference does not establish a cause or a complete account trend."}`,
-      );
+      observations.push(recordedValueComparison(total, previous));
     }
   }
   return observations;
