@@ -111,6 +111,11 @@ test("quota-only policy survives historical deadline, uses normal host-approved 
       standingAllocation: { used: 274, remaining: 26 },
     });
     await page.goto(OWNER_ORIGIN + "/insights");
+    // The opener sits below dynamic Studio content. Its visibility alone does
+    // not establish native client readiness while that workspace settles.
+    await expect(
+      page.getByRole("button", { name: "Customize layout", exact: true }),
+    ).toBeEnabled({ timeout: 25000 });
     const composer = page.getByRole("textbox", {
       name: "Ask about your purchases",
       exact: true,
