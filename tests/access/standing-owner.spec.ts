@@ -213,6 +213,13 @@ test("recovered browser status enables the real ordinary-language composer while
   // Care has no purchases search field: exercise the exact follow-up composer
   // that was disabled by rejecting the real server's recovery-active status.
   await page.goto(OWNER_ORIGIN + "/dashboard");
+  // The composer can mount before asynchronous owned-history restoration.
+  // Wait for the actual anchor before submitting its follow-up.
+  await expect(
+    page.locator(
+      `[data-native-north-result][data-request-id="${first.requestId}"]`,
+    ),
+  ).toBeVisible();
   await expect(
     page.getByRole("searchbox", {
       name: "Search products and documents",

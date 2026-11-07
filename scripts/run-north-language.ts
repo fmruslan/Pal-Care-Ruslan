@@ -20,7 +20,7 @@ import { assertBuild } from "./workspace.mjs";
 import { assertCiReceipt } from "./ci-receipt.mjs";
 import type { SavedRecord } from "../src/lib/careos/records/contracts";
 import {
-  CAMPAIGN_EXECUTION_LIMIT,
+  QUOTA_CAMPAIGN_EXECUTION_LIMIT as CAMPAIGN_EXECUTION_LIMIT,
   QUESTION_MAX_STAGES,
   campaignBudget,
 } from "../src/lib/careos/campaign-execution";
@@ -508,7 +508,7 @@ try {
       );
       if (
         !ids.length ||
-        ids.length > 87 ||
+        ids.length > 100 ||
         new Set(ids).size !== ids.length ||
         ids.some((id) => !catalog.has(id))
       )

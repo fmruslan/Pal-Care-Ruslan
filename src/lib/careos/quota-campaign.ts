@@ -20,8 +20,8 @@ export const quotaCampaignSchema = z.strictObject({
   approvedAt: z.number().int().nonnegative(),
   calendarExpiresAt: z.null(),
   baselineUsed: z.literal(63),
-  executionLimit: z.literal(150),
-  maxAdditional: z.literal(87),
+  executionLimit: z.literal(163),
+  maxAdditional: z.literal(100),
   scope: z.literal("customer-records-care-native-insights"),
   concurrency: z.literal(1),
   maxRetries: z.literal(0),
@@ -92,6 +92,7 @@ export function assertQuotaCampaignIntegrity(
       : approvals.length !== 1 ||
         approvals[0].subject !== recoveryHash(q) ||
         approvals[0].allocationId !== RECOVERY_EVALUATION ||
+        approvals[0].executionLimit !== q.executionLimit ||
         approvals[0].at < q.approvedAt
   )
     throw new CareError("careos_owner_quota_campaign_denied", 403);
@@ -117,7 +118,7 @@ export function assertQuotaCampaignIntegrity(
     throw new CareError("careos_owner_quota_campaign_accounting_denied", 403);
   const budget = campaignBudget(state.events);
   if (
-    budget.used > 150 ||
+    budget.used > q.executionLimit ||
     (installing && (budget.used !== 63 || budget.activeQuestion))
   )
     throw new CareError("careos_owner_quota_campaign_accounting_denied", 403);
