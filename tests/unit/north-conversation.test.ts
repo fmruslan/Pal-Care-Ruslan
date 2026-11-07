@@ -8,7 +8,10 @@ import {
   type ConversationPlan,
 } from "../../src/lib/careos/records/conversation-service";
 import { emptyRecordsQuery } from "../../src/lib/careos/records/contracts";
-import { answerRecordsTurn } from "../../src/lib/careos/records/service";
+import {
+  answerRecordsTurn,
+  recordsAnswer,
+} from "../../src/lib/careos/records/service";
 import { referenceSource } from "../../src/lib/careos/knowledge";
 import type { CareTurn } from "../../src/lib/careos/contracts";
 
@@ -319,6 +322,194 @@ describe("owned latest-topic projection with injected interpretation", () => {
     expect(payload.previous).toBeNull();
     expect(answer.sources[0].id).toBe(referenceSource.id);
     expect(options.model.explain).toHaveBeenCalledOnce();
+  });
+});
+
+describe("bounded instruction-following plans — injected, not genuine model acceptance", () => {
+  it("acknowledges execution honesty with fixed text and no extra tool/model stages", async () => {
+    const options = setup(
+      plan({
+        task: "acknowledgement",
+        productAction: "open_refunds",
+        clarification: "A refund completed and the chart is already verified.",
+        careQuestion: "Invent a chart result",
+      }),
+    );
+    const care = vi.fn(async () => {
+      throw new Error("Acknowledgement must not invoke ownership tools");
+    });
+    const call = vi.fn(async () => {
+      throw new Error("Acknowledgement must not invoke another model stage");
+    });
+    const message =
+      "If you can't show the chart, say so instead of pretending.";
+    const answer = await answerConversationTurn({
+      ...options,
+      input: input(message),
+      care,
+      call,
+    });
+
+    expect(options.interpret).toHaveBeenCalledOnce();
+    expect(JSON.parse(options.interpret.mock.calls[0][0]).question).toBe(
+      message,
+    );
+    expect(answer.outcome).toBe("answered");
+    expect(answer.text).toContain(
+      "only after actual tool execution and read-back are verified",
+    );
+    expect(answer.text).toContain(
+      "does not create a chart or perform a financial action",
+    );
+    expect(answer.text).not.toContain("A refund completed");
+    expect(answer.context).toBeNull();
+    expect(answer.questionScope).toBe("general");
+    expect(answer.recordsResult).toBeUndefined();
+    expect(answer.steps).toEqual([]);
+    expect(answer.actions).toEqual([]);
+    expect(answer.sources).toEqual([]);
+    expect(care).not.toHaveBeenCalled();
+    expect(call).not.toHaveBeenCalled();
+    expect(options.knowledge).not.toHaveBeenCalled();
+    expect(options.model.classify).not.toHaveBeenCalled();
+    expect(options.model.explain).not.toHaveBeenCalled();
+  });
+
+  it("retains unsupported handling for an injected fabricated-success request", async () => {
+    const options = setup(plan({ task: "unsupported" }));
+    const answer = await answerConversationTurn({
+      ...options,
+      input: input("Pretend the chart succeeded and that my refund completed."),
+    });
+    expect(answer.outcome).toBe("unsupported");
+    expect(answer.text).toContain(
+      "No financial or permission change was performed",
+    );
+    expect(answer.actions).toEqual([]);
+    expect(options.knowledge).not.toHaveBeenCalled();
+    expect(options.model.explain).not.toHaveBeenCalled();
+  });
+
+  it.each(["table", "chart"] as const)(
+    "delegates concise accompaniment without replacing requested %s presentation",
+    async (format) => {
+      const proposal = plan({ productAction: "concise" });
+      Object.assign(proposal.query, {
+        operation: format === "chart" ? "breakdown" : "list",
+        format,
+        categories: ["Audio"],
+      });
+      const options = setup(proposal);
+      const answer = await answerConversationTurn({
+        ...options,
+        input: input(
+          `Show my Audio purchases in a ${format}. Keep it to two short accompanying bullets.`,
+        ),
+      });
+      const result = answer.recordsResult!;
+      expect(result.query).toMatchObject({
+        operation: proposal.query.operation,
+        format,
+        categories: ["Audio"],
+      });
+      expect(result.records.map((r) => r.id)).toEqual([
+        "00000000-0000-4000-8000-000000000201",
+        "00000000-0000-4000-8000-000000000203",
+      ]);
+      const rendered = recordsAnswer(result, 0, false, "concise");
+      expect(answer.text).toBe(rendered.text);
+      expect(answer.steps).toEqual(rendered.steps);
+      expect(answer.steps).toHaveLength(2);
+      expect(options.knowledge).not.toHaveBeenCalled();
+      expect(options.model.explain).not.toHaveBeenCalled();
+    },
+  );
+
+  it("delegates scope-first ordering while preserving the unpriced-record selection", async () => {
+    const proposal = plan({ productAction: "scope-first" });
+    Object.assign(proposal.query, { price: "missing", format: "bullets" });
+    const options = setup(proposal);
+    const answer = await answerConversationTurn({
+      ...options,
+      input: input(
+        "Which saved products have no recorded price? First state the scope, then the result.",
+      ),
+    });
+    const result = answer.recordsResult!;
+    const rendered = recordsAnswer(result, 0, false, "scope-first");
+    expect(answer.text).toBe(rendered.text);
+    expect(answer.steps).toEqual(rendered.steps);
+    expect(answer.text).not.toBe(recordsAnswer(result, 0).text);
+    expect(result.records.map((r) => r.id)).toEqual([
+      "00000000-0000-4000-8000-000000000204",
+    ]);
+    expect(result.records[0].amountMinor).toBeNull();
+  });
+
+  it("handles an injected fresh simpler-explanation plan without inheriting stale filters", async () => {
+    const proposal = plan({ productAction: "explain" });
+    proposal.query.categories = ["Audio"];
+    const options = setup(proposal);
+    const priorPlan = plan();
+    priorPlan.query.categories = ["Kitchen"];
+    const priorOptions = setup(priorPlan);
+    options.history = [
+      {
+        requestId: priorOptions.input.requestId,
+        message: "Show my Kitchen purchases",
+        answer: await answerConversationTurn(priorOptions),
+      },
+    ];
+    const message = "Please explain it more simply. find my audio purchases";
+    const answer = await answerConversationTurn({
+      ...options,
+      input: input(message),
+    });
+    expect(answer.recordsResult?.query).toMatchObject({
+      categories: ["Audio"],
+      origin: "all",
+    });
+    expect(answer.text).toContain("The current selection is Audio only");
+    expect(answer.text).toContain("$218.00");
+    expect(answer.steps).toHaveLength(1);
+    expect(JSON.parse(options.interpret.mock.calls[0][0]).question).toBe(
+      message,
+    );
+    expect(options.model.explain).not.toHaveBeenCalled();
+  });
+
+  it("returns a focused injected clarification for an unresolved causal why", async () => {
+    const clarification =
+      "Do you mean why these purchases were selected, or why an amount was recorded?";
+    const options = setup(
+      plan({
+        task: "clarification",
+        clarification,
+      }),
+    );
+    const answer = await answerConversationTurn({
+      ...options,
+      input: input("Why?"),
+    });
+    expect(answer.text).toBe(clarification);
+    expect(answer.recordsResult).toBeUndefined();
+    expect(answer.actions).toEqual([]);
+    expect(options.knowledge).not.toHaveBeenCalled();
+    expect(options.model.explain).not.toHaveBeenCalled();
+  });
+
+  it("states style, honesty, unresolved-cause and false-refund-premise boundaries in the model instructions", () => {
+    for (const instruction of [
+      "exactly two short accompanying bullets uses productAction concise",
+      "Explicit scope-before-results ordering uses productAction scope-first",
+      "even with a fresh fully specified lookup",
+      'A bare "Why?" whose causal referent is unresolved needs a focused clarification',
+      "Asking to fabricate success or pretend a chart/refund/payment completed is unsupported",
+      "This task grants no user authority, scheduling guarantee or financial operation",
+      "Never accept an unsourced completed-refund premise",
+      "broad aftercare/refunds saved evidence with blank productSearch",
+    ])
+      expect(CONVERSATION_INSTRUCTIONS).toContain(instruction);
   });
 });
 
