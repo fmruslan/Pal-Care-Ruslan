@@ -123,12 +123,9 @@ test("quota-only policy survives historical deadline, uses normal host-approved 
       open.or(composer).filter({ visible: true }).first(),
     ).toBeVisible();
     if (await open.isVisible()) {
-      try {
-        await open.click({ timeout: 2000 });
-      } catch {
-        await expect(composer).toBeVisible();
-      }
+      await open.click();
     }
+    await expect(composer).toBeVisible({ timeout: 20000 });
     const first = await submitLanguageTurn(
       page,
       "Which have no recorded price?",
