@@ -18,7 +18,12 @@ import { isDeepStrictEqual } from "node:util";
 import { pathToFileURL } from "node:url";
 import { z } from "zod";
 import { StandingOwner } from "../src/lib/careos/standing-owner";
-import { recoveryReleaseSchema } from "../src/lib/careos/evaluation-recovery";
+import {
+  recoveryReleaseSchema,
+  recoveryRuntimeEvidence,
+  recoveryHash,
+  recoveryTransitionGateSchema,
+} from "../src/lib/careos/evaluation-recovery";
 import { assertCiReceipt } from "./ci-receipt.mjs";
 
 export type RecoveryFallbackOperations = {
@@ -38,18 +43,38 @@ export async function applyNorthRecoveryFallback(
 }
 
 const evidencePath =
-  "/tmp/opencode/north-language-300/recovery-compatible-fallback-063.json";
+  "/tmp/opencode/north-language-300/recovery-150/fallback.json";
 const releases = "/home/bigrus/.local/state/palcare-releases";
+export const north150FallbackRoot = `${releases}/release-north-recovery-150-compatible`;
 const dropin =
   "/home/bigrus/.config/systemd/user/palcare-preview.service.d/north-language-300.conf";
-const fallbackSchema = z.object({
-  release: recoveryReleaseSchema,
-  recoveryAware: z.literal(true),
-  startupHttpsPassed: z.literal(true),
-  oldCredentialDenied: z.literal(true),
-  injectedRecoveryLogoutPassed: z.literal(true),
+const fallbackSchema = z.strictObject({
+  fallback: recoveryTransitionGateSchema.shape.fallback,
+  executionLimit: z.literal(150),
+  questionMarkersSupported: z.literal(true),
   ciReceipt: z.unknown(),
 });
+/** Pure same-source selection gate. Older 63a cannot parse the new ledger
+ * markers and must never become a fallback after this continuation. */
+export function validateNorth150Fallback(
+  value: unknown,
+  runtime: {
+    release: z.infer<typeof recoveryReleaseSchema>;
+    ciReceiptHash: string;
+  },
+) {
+  const proof = fallbackSchema.parse(value);
+  const ci = assertCiReceipt(proof.fallback.release, proof.ciReceipt);
+  if (
+    ci.lane !== "full" ||
+    recoveryHash(proof.fallback.release) !== recoveryHash(runtime.release) ||
+    recoveryHash(ci) !== runtime.ciReceiptHash ||
+    proof.fallback.ciReceiptHash !== runtime.ciReceiptHash ||
+    proof.fallback.ciRunId !== ci.runId
+  )
+    throw Error("same_source_cap_aware_fallback_required");
+  return proof;
+}
 
 /** Local immutable-inventory continuity, not a signature against owner/root.
  * Match the freezer/launcher exclusions without following symlink directories. */
@@ -112,29 +137,40 @@ export async function managedNorthRecoveryFallback() {
       } finally {
         await handle.close();
       }
-      const proof = fallbackSchema.parse(JSON.parse(raw));
-      if (proof.release.commit === "091dc83d2fd791b06ee181aaf476c393e014c226")
-        throw Error("recovery_aware_fallback_required");
-      const ci = assertCiReceipt(proof.release, proof.ciReceipt);
-      if (ci.lane !== "full") throw Error("full_exact_source_ci_required");
-      const root = `${releases}/release-${proof.release.commit.slice(0, 7)}-north300-compatible`;
+      const proof = validateNorth150Fallback(
+        JSON.parse(raw),
+        await recoveryRuntimeEvidence(),
+      );
+      const release = proof.fallback.release;
+      const root = north150FallbackRoot;
       const build = JSON.parse(
         await readFile(`${root}/.next/palcare-build.json`, "utf8"),
       );
       if (
-        build.commit !== proof.release.commit ||
-        build.sourceHash !== proof.release.sourceHash ||
-        build.buildId !== proof.release.buildId ||
+        build.commit !== release.commit ||
+        build.sourceHash !== release.sourceHash ||
+        build.buildId !== release.buildId ||
+        (await readFile(`${root}/.next/BUILD_ID`, "utf8")).trim() !==
+          release.buildId ||
         build.dirty
       )
         throw Error("immutable_fallback_release_mismatch");
       // Validate inventory BEFORE disabling/switching too. The launcher repeats
       // inventory and actual current-role guards before loopback startup.
-      await verifyNorthRecoveryInventory(root, proof.release);
+      const sha = (bytes: Buffer) =>
+        createHash("sha256").update(bytes).digest("hex");
+      if (
+        proof.fallback.evidenceHash !==
+          sha(await readFile(`${root}-manifest.json`)) ||
+        proof.fallback.managedEntrypointHash !==
+          sha(await readFile("scripts/north-recovery-fallback.ts"))
+      )
+        throw Error("exact_fallback_inventory_and_entrypoint_required");
+      await verifyNorthRecoveryInventory(root, release);
       override = `[Service]\nExecStart=\nExecStart=/usr/bin/node --import ${root}/node_modules/tsx/dist/loader.mjs ${root}-launcher.mjs\n`;
       try {
         const existing = await readFile(dropin, "utf8");
-        const old = `${releases}/release-091dc83-north300-compatible`;
+        const old = `${releases}/release-63a877f-north300-compatible`;
         const oldOverride = `[Service]\nExecStart=\nExecStart=/usr/bin/node --import ${old}/node_modules/tsx/dist/loader.mjs ${old}-launcher.mjs\n`;
         if (existing !== override && existing !== oldOverride)
           throw Error("unknown_service_override_do_not_overwrite");

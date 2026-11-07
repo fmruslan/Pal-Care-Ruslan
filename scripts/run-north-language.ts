@@ -3,7 +3,7 @@
  * Batches reopen the SAME protected Chromium profile and owned conversation
  * hints. Completed/unknown attempts are never resubmitted. Never run in CI. */
 import { chromium, expect, type Page } from "@playwright/test";
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import {
   mkdir,
   readFile,
@@ -18,10 +18,19 @@ import { StandingOwner, OWNER_ORIGIN } from "../src/lib/careos/standing-owner";
 import { subscriptionFiles } from "../src/lib/careos/subscription/provider";
 import { assertBuild } from "./workspace.mjs";
 import { assertCiReceipt } from "./ci-receipt.mjs";
+import type { SavedRecord } from "../src/lib/careos/records/contracts";
 import {
-  recordsResultSchema,
-  type SavedRecord,
-} from "../src/lib/careos/records/contracts";
+  CAMPAIGN_EXECUTION_LIMIT,
+  QUESTION_MAX_STAGES,
+  campaignBudget,
+} from "../src/lib/careos/campaign-execution";
+import {
+  RECOVERY_EVALUATION,
+  RECOVERY_SESSION,
+  RECOVERY_DEADLINE,
+  RECOVERY_TRANSITION_FILE,
+  recoveryTransitionSchema,
+} from "../src/lib/careos/evaluation-recovery";
 import type { CareTurn } from "../src/lib/careos/contracts";
 import {
   assessLanguageAnswer,
@@ -53,7 +62,7 @@ type Event = {
   subject: string;
   at: number;
   allocationId?: string;
-  observation?: unknown;
+  observation?: { httpStatus?: number };
 };
 type HostState = {
   policy: { id: string };
@@ -91,14 +100,14 @@ type Progress = {
 };
 const [action, output, batchText] = process.argv.slice(2);
 if (
-  action !== "--run" ||
-  !output?.startsWith("/tmp/opencode/") ||
+  action !== "--run-150" ||
+  output !== "/tmp/opencode/north-language-300" ||
   !/^\d+$/.test(batchText ?? "") ||
   process.argv.length !== 5 ||
   process.env.CI
 )
   throw Error(
-    "Owner only: --run /tmp/opencode/PRIVATE_OUTPUT BATCH_ATTEMPTS (1..30)",
+    "Owner only, after separate recovery and journey acceptance: --run-150 /tmp/opencode/north-language-300 BATCH_ATTEMPTS (1..30)",
   );
 const batch = Number(batchText);
 if (batch < 1 || batch > 30) throw Error("bounded_batch_required");
@@ -440,8 +449,56 @@ try {
       hash(s.policy) !== progress.originalPolicyHash)
   )
     throw Error("campaign_authority_changed");
-  if (!progress && s.evaluation)
-    throw Error("existing_evaluation_cannot_be_replaced");
+  if (
+    !progress ||
+    !s.evaluation ||
+    progress.allocationId !== RECOVERY_EVALUATION ||
+    s.evaluation.id !== RECOVERY_EVALUATION ||
+    progress.sessionId !== RECOVERY_SESSION ||
+    s.evaluation.sessionId !== RECOVERY_SESSION ||
+    progress.deadline !== RECOVERY_DEADLINE ||
+    s.evaluation.expiresAt !== RECOVERY_DEADLINE
+  )
+    throw Error("existing_evaluation_required_no_replacement");
+  const continuationStatus = await owner.evaluationRecoveryStatus();
+  if (!continuationStatus.active || continuationStatus.phase !== "continued")
+    throw Error("separate_explicit_recovery_authorization_required");
+  // Broader batches must not precede the separately observed complete journey.
+  // This receipt records human review; it cannot activate recovery or inference.
+  const journeyPath = join(output, "journey-150-accepted.json");
+  const journeyStat = await lstat(journeyPath);
+  if (
+    !journeyStat.isFile() ||
+    journeyStat.isSymbolicLink() ||
+    journeyStat.mode & 0o077 ||
+    journeyStat.uid !== process.getuid?.()
+  )
+    throw Error("private_journey_acceptance_required");
+  const journey = JSON.parse(await readFile(journeyPath, "utf8"));
+  const transition = await owner.files.snapshot(RECOVERY_TRANSITION_FILE);
+  const transitionRecord =
+    transition && recoveryTransitionSchema.parse(transition.value);
+  if (
+    journey.evaluationId !== RECOVERY_EVALUATION ||
+    journey.sessionId !== RECOVERY_SESSION ||
+    journey.executionLimit !== CAMPAIGN_EXECUTION_LIMIT ||
+    !transition ||
+    !transitionRecord?.postStop ||
+    journey.transitionHash !== transition.hash ||
+    journey.commit !== source.commit ||
+    journey.sourceHash !== source.sourceHash ||
+    journey.buildId !== source.buildId ||
+    journey.decision !== "accept-continuous-journey" ||
+    !Number.isSafeInteger(journey.reviewedAt) ||
+    journey.reviewedAt <= transitionRecord.createdAt ||
+    journey.reviewedAt <= transitionRecord.postStop.approvedAt ||
+    journey.reviewedAt > Date.now() ||
+    journey.reviewedAt >= RECOVERY_DEADLINE ||
+    !/^[a-f0-9]{64}$/.test(journey.evidenceHash ?? "") ||
+    journey.ninthAndSimplificationPassed !== true ||
+    journey.nativeSdkReadbackPassed !== true
+  )
+    throw Error("reviewed_continuous_journey_required");
   if (progress) {
     const manifest = JSON.parse(
       await readFile(join(output, "work.json"), "utf8"),
@@ -461,11 +518,9 @@ try {
       read = ["GET", "HEAD"].includes(r.method());
     const allowedPost =
       r.method() === "POST" &&
-      (/^\/api\/ai\/owner$/.test(u.pathname) ||
-        /^\/api\/careos\/(?:records\/)?conversations(?:\/[a-f0-9-]{36}\/(?:turns|interpret))?$/.test(
-          u.pathname,
-        ) ||
-        u.pathname === "/api/intelligence/customer/plan");
+      /^\/api\/careos\/records\/conversations(?:\/[a-f0-9-]{36}\/(?:turns|interpret))?$/.test(
+        u.pathname,
+      );
     if (
       u.origin !== OWNER_ORIGIN ||
       /^\/api\/(checkout|operator|guardian|paypal|payments)(\/|$)/.test(
@@ -485,7 +540,11 @@ try {
       )
     ) {
       if (progress) {
-        if (Date.now() >= progress.deadline || used(await host()) >= 300)
+        if (
+          Date.now() >= progress.deadline ||
+          campaignBudget((await host()).events).availableForNewQuestion <
+            QUESTION_MAX_STAGES
+        )
           return route.abort("blockedbyclient");
         progress.turnTimes.push(Date.now());
         progress.pendingDispatch = {
@@ -513,132 +572,17 @@ try {
     }
     return route.continue();
   });
-  if (!progress) {
-    await writeFile(
-      join(output, "work.json"),
-      JSON.stringify(
-        {
-          campaign: LANGUAGE_CAMPAIGN,
-          source,
-          work,
-          holdout,
-          adjustedTargets: planned.targets,
-          plannedDiscoveryCalls: planned.plannedDiscoveryCalls,
-          plannedHoldoutCalls: planned.plannedHoldoutCalls,
-        },
-        null,
-        2,
-      ),
-      { mode: 0o600, flag: "wx" },
-    );
-    page = await freshPage();
-    const pair = await page.evaluate(async () => {
-      const r = await fetch("/api/ai/owner", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "pair" }),
-      });
-      if (!r.ok) throw Error("pair_failed");
-      return r.json() as Promise<{ id: string }>;
-    });
-    const created = (await host()).events.find(
-      (e) => e.kind === "pair" && e.subject === pair.id,
-    )!.at;
-    const approval = {
-      id: randomUUID(),
-      policyId: s.policy.id,
-      policyHash: hash(s.policy),
-      approvedAt: Date.now(),
-      expiresAt: created + 86400000,
-      sessionId: pair.id,
-      requestLimit: 300,
-      purpose: "north-language-300",
-      fastApplicationQuotaApproved: true,
-    };
-    await owner.files.write("evaluation-approval.json", approval);
-    await owner.approveEvaluation(approval);
-    progress = {
-      campaign: LANGUAGE_CAMPAIGN,
-      next: 0,
-      sessionId: pair.id,
-      allocationId: approval.id,
-      deadline: approval.expiresAt,
-      originalPolicyHash: hash(s.policy),
-      originalEvents: s.events,
-      snapshot: [],
-      storage: {},
-      activeGroup: null,
-      turnTimes: [],
-      createTimes: [],
-    };
-    await save();
-    const finished = await page.evaluate(
-      async () =>
-        (
-          await fetch("/api/ai/owner", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "finish" }),
-          })
-        ).ok,
-    );
-    if (!finished) throw Error("evaluation_finish_failed");
-    // A provider-free explicit saved-record query freezes the actual data, never
-    // fixture totals or the model's own interpretation as the oracle.
-    const snapshot = await page.evaluate(async () => {
-      const create = await fetch("/api/careos/records/conversations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "{}",
-      });
-      if (!create.ok) throw Error("snapshot_conversation_failed");
-      const c = await create.json();
-      const r = await fetch(`/api/careos/records/conversations/${c.id}/turns`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          requestId: crypto.randomUUID(),
-          twinId: null,
-          revision: 0,
-          message: "show all saved purchases",
-        }),
-      });
-      if (!r.ok) throw Error("snapshot_failed");
-      return r.json();
-    });
-    const result = recordsResultSchema.parse(snapshot.answer.recordsResult);
-    if (
-      result.coverage.source !== "database" ||
-      !result.coverage.complete ||
-      used(await host()) !== 0
-    )
-      throw Error("independent_database_snapshot_required");
-    progress.snapshot = result.records;
-    await writeFile(
-      join(output, "snapshot.json"),
-      JSON.stringify(
-        {
-          source,
-          observedAt: new Date().toISOString(),
-          result,
-          providerCalls: 0,
-        },
-        null,
-        2,
-      ),
-      { mode: 0o600, flag: "wx" },
-    );
-    await save();
-  }
   const initialUsed = used(await host());
   while (
     (progress.next < work.length ||
       (progress.retests?.length ?? 0) > 0 ||
       (progress.holdoutNext ?? 0) < holdout.length) &&
-    used(await host()) < 300 &&
-    used(await host()) - initialUsed < batch
+    campaignBudget((await host()).events).availableForNewQuestion >=
+      QUESTION_MAX_STAGES &&
+    used(await host()) - initialUsed + QUESTION_MAX_STAGES <= batch
   ) {
-    const isHoldout = used(await host()) >= 270;
+    // Meaningful holdouts are scheduled by reviewed work, not a usage target.
+    const isHoldout = progress.next >= work.length && !progress.retests?.length;
     const isRetest = !isHoldout && (progress.retests?.length ?? 0) > 0;
     const item = isHoldout
       ? holdout[(progress.holdoutNext ?? 0) % holdout.length]
@@ -677,7 +621,9 @@ try {
       browserStatus.evaluation.id !== progress.allocationId ||
       browserStatus.revoked ||
       browserStatus.providerBlocked ||
-      browserStatus.remaining <= 0
+      browserStatus.campaign?.executionLimit !== CAMPAIGN_EXECUTION_LIMIT ||
+      browserStatus.campaign.availableForNewQuestion < QUESTION_MAX_STAGES ||
+      browserStatus.campaign.questionActive
     )
       throw Error("actual_browser_authority_denied");
     const startedAt = Date.now();
@@ -843,7 +789,10 @@ try {
       break;
     }
   }
-  if (used(await host()) >= 300) {
+  if (
+    campaignBudget((await host()).events).availableForNewQuestion <
+    QUESTION_MAX_STAGES
+  ) {
     progress.finished = true;
     await owner.revokeSession(progress.sessionId);
     await save();
@@ -882,8 +831,12 @@ try {
   const summary = {
     campaign: LANGUAGE_CAMPAIGN,
     observedAt: new Date().toISOString(),
-    newAttempts: used(s),
-    target: 300,
+    totalAttempts: used(s),
+    baselineAttempts: 63,
+    additionalAttempts: Math.max(0, used(s) - 63),
+    historicalGrant: 300,
+    executionCeiling: CAMPAIGN_EXECUTION_LIMIT,
+    remaining: campaignBudget(s.events).remaining,
     next: progress?.next ?? 0,
     paused: progress?.paused ?? null,
     finished: progress?.finished ?? false,

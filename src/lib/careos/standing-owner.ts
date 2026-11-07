@@ -6,6 +6,14 @@ import { CareError } from "./contracts";
 import { PilotFiles } from "./subscription/files";
 import { northReviewOrigin } from "../private-preview-origin";
 import {
+  CAMPAIGN_EXECUTION_LIMIT,
+  QUESTION_MAX_STAGES,
+  campaignBudget,
+  assertCampaignQuestionOpen,
+  assertCampaignStage,
+  assertCampaignQuestionClose,
+} from "./campaign-execution";
+import {
   EvaluationRecovery,
   RECOVERY_EVALUATION,
   RECOVERY_SESSION,
@@ -76,6 +84,8 @@ const eventSchema = z.strictObject({
     "completed",
     "unknown",
     "failed",
+    "question-open",
+    "question-close",
   ]),
   subject: z.string().min(1).max(200),
   allocationId: z.uuid().optional(),
@@ -340,8 +350,11 @@ export class StandingOwner {
     if (s.events.some((e) => e.kind === "provider-block"))
       return deny("provider_unavailable");
     if (!p.scopes.includes(selected)) return deny("scope_denied");
+    const fixedCampaign =
+      s.evaluation?.id === RECOVERY_EVALUATION &&
+      s.evaluation.sessionId === entry.id;
     if (
-      principal.recovered &&
+      (principal.recovered || fixedCampaign) &&
       (selected !== "customer" || proof.channel !== "records")
     )
       return deny("scope_denied");
@@ -353,8 +366,11 @@ export class StandingOwner {
     const used = reservations.filter((e) =>
       evaluation ? e.allocationId === evaluation.id : !e.allocationId,
     ).length;
-    if (used >= (evaluation?.requestLimit ?? p.requestLimit))
-      return deny("quota_exhausted");
+    const limit =
+      evaluation?.id === RECOVERY_EVALUATION
+        ? Math.min(evaluation.requestLimit, CAMPAIGN_EXECUTION_LIMIT)
+        : (evaluation?.requestLimit ?? p.requestLimit);
+    if (used >= limit) return deny("quota_exhausted");
     if (
       reservations.filter(
         (e) =>
@@ -371,7 +387,7 @@ export class StandingOwner {
       p.requestsPerMinute
     )
       return deny("rate_limited");
-    return principal.recovered
+    return principal.recovered || fixedCampaign
       ? {
           ...p,
           maxRetries: 0,
@@ -516,7 +532,9 @@ export class StandingOwner {
       await this.additionalOrigin(s, proof.origin);
       const principal = await this.principal(s, proof);
       if (
-        principal.recovered &&
+        (principal.recovered ||
+          (s.evaluation?.id === RECOVERY_EVALUATION &&
+            s.evaluation.sessionId === principal.entry.id)) &&
         (proof.channel !== "records" || requiredScope === "customer-studio")
       )
         return deny("scope_denied");
@@ -621,12 +639,20 @@ export class StandingOwner {
     proof: OwnerProof,
     selected: z.infer<typeof scope>,
     enabled: boolean,
+    stageKey?: string,
   ) {
     // Same cross-process lock as logout/revocation/accounting, not the provider lock.
     return this.files.lockedWaiting(async () => {
       const state = await this.state();
       await this.additionalOrigin(state, proof.origin);
-      return this.allowed(state, proof, selected, enabled);
+      const policy = await this.allowed(state, proof, selected, enabled);
+      const principal = await this.principal(state, proof, true);
+      if (
+        state.evaluation?.id === RECOVERY_EVALUATION &&
+        state.evaluation.sessionId === principal.entry.id
+      )
+        assertCampaignStage(state.events, stageKey ?? "");
+      return policy;
     }, ".owner-access-lock");
   }
   /** Server-only quota selection, not inference authority or a visitor flag.
@@ -646,6 +672,58 @@ export class StandingOwner {
         throw error;
       }
     }, ".owner-access-lock");
+  }
+  /** Holds worst-case whole-question capacity before any provider refresh/call.
+   * Only append markers; never rewrite attempts or the historical grant. */
+  async beginCampaignQuestion(
+    proof: OwnerProof,
+    requestId: string,
+    conversationId: string,
+    enabled: boolean,
+  ) {
+    return this.change(async (s) => {
+      await this.additionalOrigin(s, proof.origin);
+      await this.allowed(s, proof, "customer", enabled);
+      const principal = await this.principal(s, proof, true);
+      if (
+        s.evaluation?.id !== RECOVERY_EVALUATION ||
+        s.evaluation.sessionId !== principal.entry.id
+      )
+        return false;
+      if (proof.channel !== "records") return deny("scope_denied");
+      const subject = assertCampaignQuestionOpen(
+        s.events,
+        requestId,
+        conversationId,
+      );
+      this.event(s, "question-open", subject);
+      s.events.at(-1)!.allocationId = RECOVERY_EVALUATION;
+      return true;
+    });
+  }
+  /** Releases only demonstrably unstarted held slots, never charged attempts. */
+  async finishCampaignQuestion(
+    proof: OwnerProof,
+    requestId: string,
+    conversationId: string,
+  ) {
+    return this.change(async (s) => {
+      await this.additionalOrigin(s, proof.origin);
+      const principal = await this.principal(s, proof, false);
+      if (
+        s.evaluation?.id !== RECOVERY_EVALUATION ||
+        s.evaluation.sessionId !== principal.entry.id ||
+        proof.channel !== "records"
+      )
+        return deny("scope_denied");
+      const subject = assertCampaignQuestionClose(
+        s.events,
+        requestId,
+        conversationId,
+      );
+      this.event(s, "question-close", subject);
+      s.events.at(-1)!.allocationId = RECOVERY_EVALUATION;
+    });
   }
   async reserve(
     proof: OwnerProof,
@@ -667,6 +745,11 @@ export class StandingOwner {
         return deny("scope_denied");
       if (s.events.some((e) => e.kind === "reserve" && e.subject === key))
         return deny("already_dispatched");
+      if (
+        s.evaluation?.id === RECOVERY_EVALUATION &&
+        s.evaluation.sessionId === principal.entry.id
+      )
+        assertCampaignStage(s.events, key);
       this.event(s, "reserve", key);
       if (s.evaluation?.sessionId === principal.entry.id)
         s.events.at(-1)!.allocationId = s.evaluation.id;
@@ -769,15 +852,33 @@ export class StandingOwner {
   /** Must succeed durably BEFORE a controlled fallback. No swallowing failure. */
   async disableEvaluationRecovery(reason = "controlled-fallback") {
     z.string().min(1).max(120).parse(reason);
-    return this.files.lockedWaiting(
-      () => this.recovery.disable(reason),
-      ".owner-access-lock",
-    );
+    return this.files.lockedWaiting(async () => {
+      const cutoff = await this.recovery.postStopCheckpoint();
+      if (cutoff !== null) {
+        const s = await this.state();
+        if (
+          !s.events
+            .slice(cutoff)
+            .some(
+              (e) =>
+                e.subject === RECOVERY_SESSION &&
+                ["logout", "revoke-session"].includes(e.kind),
+            )
+        ) {
+          // The original grant is already terminal and remains byte-exact.
+          // A fresh restriction after the approved cutoff stops continuation.
+          this.event(s, "revoke-session", RECOVERY_SESSION);
+          await this.files.write("owner-state.json", stateSchema.parse(s));
+        }
+      }
+      return this.recovery.disable(reason);
+    }, ".owner-access-lock");
   }
   /** No bearer token or issuance: engineering queue inspection, not dispatch authority. */
   async evaluationRecoveryStatus() {
     return this.files.lockedWaiting(async () => {
       const s = await this.state();
+      const budget = campaignBudget(s.events);
       const base = {
         active: false,
         evaluationId: RECOVERY_EVALUATION,
@@ -786,15 +887,14 @@ export class StandingOwner {
           s.sessions.find((x) => x.id === RECOVERY_SESSION)?.revoked === true,
         expiresAt: RECOVERY_DEADLINE,
         baselineUsed: 63,
-        maxAdditional: 237,
-        remaining: Math.max(
-          0,
-          300 -
-            s.events.filter(
-              (e) =>
-                e.kind === "reserve" && e.allocationId === RECOVERY_EVALUATION,
-            ).length,
-        ),
+        historicalLimit: budget.historicalLimit,
+        executionLimit: budget.executionLimit,
+        maxAdditional: CAMPAIGN_EXECUTION_LIMIT - 63,
+        used: budget.used,
+        remaining: budget.remaining,
+        held: budget.held,
+        availableForNewQuestion: budget.availableForNewQuestion,
+        questionActive: !!budget.activeQuestion,
       };
       try {
         const doc = await this.recovery.read();
@@ -807,9 +907,24 @@ export class StandingOwner {
             eventHash: doc.binding.checkpointEventHash,
           },
         };
-        if (doc.phase !== "active") return { ...base, ...audit };
+        const cutoff = await this.recovery.postStopCheckpoint();
+        if (doc.phase !== "active" && cutoff === null)
+          return { ...base, ...audit };
         const valid = await this.recovery.validate(s, doc);
-        return { ...base, ...audit, active: true, remaining: valid.remaining };
+        return {
+          ...base,
+          ...audit,
+          active: true,
+          phase: cutoff === null ? doc.phase : "continued",
+          revocationCutoff:
+            cutoff === null
+              ? audit.revocationCutoff
+              : {
+                  eventCount: cutoff,
+                  eventHash: recoveryHash(s.events.slice(0, cutoff)),
+                },
+          remaining: Math.min(valid.remaining, budget.remaining),
+        };
       } catch {
         return { ...base, phase: "invalid-or-ineligible" };
       }
@@ -862,8 +977,10 @@ export class StandingOwner {
             v.tokenHash === hash(proof.token ?? ""),
         ));
     const used = evaluationBrowser ? evaluationUsed : originalUsed;
+    const budget =
+      evaluation?.id === RECOVERY_EVALUATION ? campaignBudget(s.events) : null;
     const limit = evaluationBrowser
-      ? evaluation!.requestLimit
+      ? (budget?.executionLimit ?? evaluation!.requestLimit)
       : (s.policy?.requestLimit ?? 0);
     return {
       remembered,
@@ -888,6 +1005,25 @@ export class StandingOwner {
       revoked: s.events.some((e) => e.kind === "revoke-policy"),
       used,
       remaining: s.policy ? Math.max(0, limit - used) : 0,
+      campaign:
+        evaluationBrowser && budget
+          ? {
+              historicalLimit: budget.historicalLimit,
+              executionLimit: budget.executionLimit,
+              historicalRemaining: Math.max(
+                0,
+                budget.historicalLimit - budget.used,
+              ),
+              baselineUsed: 63,
+              maxAdditional: CAMPAIGN_EXECUTION_LIMIT - 63,
+              used: budget.used,
+              remaining: budget.remaining,
+              held: budget.held,
+              availableForNewQuestion: budget.availableForNewQuestion,
+              questionActive: !!budget.activeQuestion,
+              maxQuestionStages: QUESTION_MAX_STAGES,
+            }
+          : null,
       standingAllocation: {
         used: originalUsed,
         remaining: s.policy
@@ -906,7 +1042,8 @@ export class StandingOwner {
       evaluation: s.evaluation
         ? {
             id: s.evaluation.id,
-            limit: s.evaluation.requestLimit,
+            limit: budget?.executionLimit ?? s.evaluation.requestLimit,
+            historicalLimit: s.evaluation.requestLimit,
             expiresAt: s.evaluation.expiresAt,
             used: s.events.filter(
               (e) =>
@@ -914,7 +1051,7 @@ export class StandingOwner {
             ).length,
             remaining: Math.max(
               0,
-              s.evaluation.requestLimit -
+              (budget?.executionLimit ?? s.evaluation.requestLimit) -
                 s.events.filter(
                   (e) =>
                     e.kind === "reserve" && e.allocationId === s.evaluation!.id,
