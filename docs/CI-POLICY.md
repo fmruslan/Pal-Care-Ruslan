@@ -6,6 +6,8 @@ Small wording/color/spacing changes must not automatically pay the full ~20–25
 
 ## Lanes
 
+The CI-only provisioning candidate selects the GitHub-hosted Ubuntu 24.04 runner's existing official HTTPS Ubuntu fallbacks rather than its intermittently slow Azure archive entry. `scripts/ci-ubuntu-mirrors.mjs` preserves suites/components/signing configuration, rejects unknown inputs and cannot run outside explicit hosted CI. The existing browser/engine and test commands are unchanged. Dependency installation has a provisional **ten-minute** step bound inside the unchanged job budgets; timeouts/errors remain fatal, never a skipped-success gate. This is a full-risk infrastructure change; local transform tests do not prove runner compatibility or faster installation. [Actual failures, evidence and acceptance](STATUS.md).
+
 | Lane | Automatic scope | Required evidence |
 | --- | --- | --- |
 | **fast** | Modified ordinary Markdown; approved existing UI snapshots; AST-proven text/static-class-only edits in the small allowlisted Care presenters; named display-copy values in `consumer.ts`; safe existing color/spacing/type/size CSS declarations with unchanged selectors/rules | Repository/format/lint/type checks, all unit tests (including classifier/gate regressions), production build, desktop-light/mobile-dark focused Care/Studio/provenance/keyboard/200%-text/Axe and appearance/visual checks. No database/provider operations. |
