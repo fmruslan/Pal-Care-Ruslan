@@ -723,6 +723,12 @@ export class StandingOwner {
       ".owner-access-lock",
     );
   }
+  /** Exact host-only release transition; no web endpoint or token issuance. */
+  async transitionEvaluationRecovery(value: unknown) {
+    return this.files.lockedRecoveryTransition(async () =>
+      this.recovery.transition(await this.state(), value),
+    );
+  }
   /** Server-private fixed manifest. Never return this from an HTTP endpoint. */
   async evaluationRecoveryBinding() {
     return this.files.lockedWaiting(async () => {

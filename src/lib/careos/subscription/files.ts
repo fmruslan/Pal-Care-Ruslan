@@ -1,13 +1,21 @@
 import { constants } from "node:fs";
 import { lstat, mkdir, open, rename, realpath, unlink } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
 import { setTimeout as delay } from "node:timers/promises";
 
 export class PilotError extends Error {
   constructor(public code: string) {
     super(code);
+  }
+}
+/** Publication may already be visible. Never release the transition's owner
+ * lock or retry automatically; explicit host inspection is required. */
+export class PilotTransitionPublicationUncertainError extends PilotError {
+  constructor(cause: unknown) {
+    super("pilot_transition_publication_uncertain_inspect_owner_lock");
+    this.cause = cause;
   }
 }
 const token = z.string().min(1).max(32768);
@@ -47,6 +55,7 @@ type FileName =
   | "standing-approval.json"
   | "evaluation-approval.json"
   | "evaluation-recovery.json"
+  | "evaluation-recovery-transition.json"
   | "north-review-origin-approval.json"
   | "north-review-origin-request.json";
 
@@ -67,6 +76,10 @@ export class PilotFiles {
       throw new PilotError("pilot_unsafe_directory");
   }
   async read(name: FileName): Promise<unknown | null> {
+    return (await this.snapshot(name))?.value ?? null;
+  }
+  /** Same protected descriptor supplies both parsed data and exact byte digest. */
+  async snapshot(name: FileName) {
     let handle;
     try {
       handle = await open(
@@ -91,7 +104,11 @@ export class PilotFiles {
       )
         throw new PilotError("pilot_unsafe_file");
       try {
-        return JSON.parse(await handle.readFile("utf8"));
+        const raw = await handle.readFile("utf8");
+        return {
+          value: JSON.parse(raw) as unknown,
+          hash: createHash("sha256").update(raw).digest("hex"),
+        };
       } catch {
         throw new PilotError("pilot_file_invalid_json");
       }
@@ -120,8 +137,17 @@ export class PilotFiles {
     } finally {
       await handle.close();
     }
+    await this.publishSnapshot(temp, name);
+    await this.syncDirectory();
+  }
+  protected async publishSnapshot(temp: string, name: FileName) {
     await rename(temp, join(this.directory, name));
-    const directory = await open(this.directory, "r");
+  }
+  protected async openDirectory() {
+    return open(this.directory, "r");
+  }
+  private async syncDirectory() {
+    const directory = await this.openDirectory();
     try {
       await directory.sync();
     } finally {
@@ -135,7 +161,10 @@ export class PilotFiles {
   async locked<T>(
     work: () => Promise<T>,
     name: ".lock" | ".evaluation-lock" | ".owner-access-lock" = ".lock",
+    mode?: "recovery-transition",
   ): Promise<T> {
+    if (mode && name !== ".owner-access-lock")
+      throw new PilotError("pilot_invalid_transition_lock");
     await this.prepare();
     let lock;
     try {
@@ -150,11 +179,28 @@ export class PilotFiles {
     } catch {
       throw new PilotError("pilot_locked_inspect_before_recovery");
     }
+    let retain = false;
     try {
+      if (mode === "recovery-transition") {
+        // Establish a durable denial sentinel BEFORE authority publication.
+        // A crash/uncertain publication leaves this same lock across restart.
+        retain = true;
+        await lock.sync();
+        await this.syncDirectory();
+        retain = false;
+      }
       return await work();
+    } catch (error) {
+      if (
+        mode === "recovery-transition" &&
+        error instanceof PilotTransitionPublicationUncertainError
+      )
+        retain = true;
+      throw error;
     } finally {
       await lock.close();
-      await unlink(join(/* turbopackIgnore: true */ this.directory, name));
+      if (!retain)
+        await unlink(join(/* turbopackIgnore: true */ this.directory, name));
     }
   }
   async hostId() {
@@ -179,17 +225,22 @@ export class PilotFiles {
     name: ".lock" | ".owner-access-lock" = ".lock",
     signal?: AbortSignal,
     waitMs = 2000,
+    mode?: "recovery-transition",
   ): Promise<T> {
     const until = Date.now() + waitMs;
     for (;;) {
       signal?.throwIfAborted();
       let entered = false;
       try {
-        return await this.locked(async () => {
-          entered = true;
-          signal?.throwIfAborted();
-          return work();
-        }, name);
+        return await this.locked(
+          async () => {
+            entered = true;
+            signal?.throwIfAborted();
+            return work();
+          },
+          name,
+          mode,
+        );
       } catch (error) {
         if (
           entered ||
@@ -201,6 +252,17 @@ export class PilotFiles {
         await delay(20, undefined, { signal });
       }
     }
+  }
+  /** Opt-in only for the one-shot transition. Ordinary locks keep their existing
+   * behavior. Uncertain publication deliberately strands .owner-access-lock. */
+  async lockedRecoveryTransition<T>(work: () => Promise<T>) {
+    return this.lockedWaiting(
+      work,
+      ".owner-access-lock",
+      undefined,
+      2000,
+      "recovery-transition",
+    );
   }
   async registration() {
     const raw = await this.read("registration.json");

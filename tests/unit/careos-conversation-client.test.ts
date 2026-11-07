@@ -6,6 +6,10 @@ import {
   readUnsent,
 } from "@/components/careos/conversation-client";
 import { ownerSendState } from "@/components/careos/owner-status";
+import {
+  browserAccessSchema,
+  browserAccessMessage,
+} from "@/components/careos/browser-access-state";
 
 const snapshot = {
   input: {
@@ -57,6 +61,39 @@ describe("CareOS browser recovery hints", () => {
       "provider",
     );
     expect(ownerSendState({ remembered: true })).toBe("unavailable");
+  });
+  it("recognizes the server's recovered browser state without bypassing permission, remaining allowance or provider denial", () => {
+    const status = {
+      remembered: true,
+      browserAccess: "recovery-active",
+      browserCompletion: "complete",
+      originalBrowserRevoked: true,
+      recoveryActive: true,
+      liveEnabled: true,
+      policy: "approved",
+      revoked: false,
+      providerBlocked: false,
+      remaining: 237,
+      provider: "Connected; capacity not checked",
+    };
+    expect(browserAccessSchema.parse(status.browserAccess)).toBe(
+      "recovery-active",
+    );
+    expect(browserAccessMessage["recovery-active"]).toContain(
+      "original browser credential remains revoked",
+    );
+    expect(ownerSendState(status)).toBe("ready");
+    expect(ownerSendState({ ...status, remembered: false })).toBe("signin");
+    expect(ownerSendState({ ...status, liveEnabled: false })).toBe("disabled");
+    expect(ownerSendState({ ...status, policy: "disabled" })).toBe("disabled");
+    expect(ownerSendState({ ...status, revoked: true })).toBe("disabled");
+    expect(ownerSendState({ ...status, remaining: 0 })).toBe("exhausted");
+    expect(ownerSendState({ ...status, providerBlocked: true })).toBe(
+      "provider",
+    );
+    expect(
+      ownerSendState({ ...status, browserAccess: "invented-recovery" }),
+    ).toBe("unavailable");
   });
   it("retains the exact envelope but never restores a sending state", () => {
     const restored = readPending(JSON.stringify(snapshot), 2000);

@@ -9,6 +9,7 @@ export const browserAccessSchema = z.enum([
   "revoked",
   "finish-needed",
   "remembered",
+  "recovery-active",
 ]);
 export type BrowserAccess = z.infer<typeof browserAccessSchema>;
 export const browserAccessMessage: Record<BrowserAccess, string> = {
@@ -26,6 +27,8 @@ export const browserAccessMessage: Record<BrowserAccess, string> = {
   "finish-needed":
     "Host approval is complete. Finish remembering this browser before its temporary cookie expires.",
   remembered: "This browser is remembered.",
+  "recovery-active":
+    "This browser is using approved same-evaluation recovery. The original browser credential remains revoked; limits and expiry are unchanged.",
 };
 export function browserActionError(code: string) {
   const messages: Record<string, string> = {

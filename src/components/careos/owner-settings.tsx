@@ -134,11 +134,13 @@ export function OwnerSettings() {
         <div>
           <dt className="font-semibold">Browser access</dt>
           <dd>
-            {status?.remembered
-              ? status.browserCompletion === "complete"
-                ? "Remembered"
-                : "Verified for this visit — finish remembering below"
-              : "Not verified"}
+            {status?.browserAccess === "recovery-active"
+              ? "Recovered evaluation browser"
+              : status?.remembered
+                ? status.browserCompletion === "complete"
+                  ? "Remembered"
+                  : "Verified for this visit — finish remembering below"
+                : "Not verified"}
           </dd>
         </div>
         <div>
