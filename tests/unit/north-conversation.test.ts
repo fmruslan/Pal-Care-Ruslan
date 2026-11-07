@@ -139,27 +139,26 @@ describe("owned latest-topic projection with injected interpretation", () => {
       recordsResult: {
         query: unpricedTurn.answer.recordsResult!.query,
         comparison: null,
-        records: [
-          {
-            name: "Raspberry Pi 5",
-            model: "5",
-            purchasedOn: "2026-10-07",
-            origin: "sample",
-            amountMinor: null,
-          },
-        ],
+        recordIndexes: [0],
+        recordCount: 1,
         complete: true,
       },
+    });
+    expect(payload.facts[0]).toEqual({
+      name: "Raspberry Pi 5",
+      model: "5",
+      category: "Computing",
+      purchasedOn: "2026-10-07",
+      origin: "sample",
+      amountMinor: null,
     });
     expect(
       payload.history.map((turn: { question: string }) => turn.question),
     ).toEqual(options.history.map((turn) => turn.message));
     expect(
-      payload.history.every(
-        (turn: { plan: { careQuestion: string } }) =>
-          turn.plan.careQuestion === "",
-      ),
+      payload.history.every((turn: object) => !Object.hasOwn(turn, "plan")),
     ).toBe(true);
+    expect(payload.coverage.derivedHistoricalPlans).toBe("omitted");
     expect(JSON.stringify(options.history)).toBe(originalHistory);
     expect(answer.recordsResult?.query.price).toBe("missing");
     expect(answer.recordsResult?.records.map((record) => record.id)).toEqual([
@@ -200,11 +199,13 @@ describe("owned latest-topic projection with injected interpretation", () => {
     });
     const payload = JSON.parse(options.interpret.mock.calls[0][0]);
     expect(answer.recordsResult?.records).toHaveLength(13);
-    expect(payload.currentTopic.recordsResult.records).toHaveLength(12);
+    expect(payload.currentTopic.recordsResult.recordIndexes).toHaveLength(12);
+    expect(payload.currentTopic.recordsResult.recordCount).toBe(13);
     expect(payload.currentTopic.recordsResult.complete).toBe(false);
-    for (const record of payload.currentTopic.recordsResult.records) {
+    for (const record of payload.facts) {
       expect(Object.keys(record).sort()).toEqual([
         "amountMinor",
+        "category",
         "model",
         "name",
         "origin",
@@ -306,9 +307,8 @@ describe("owned latest-topic projection with injected interpretation", () => {
     });
     expect(payload.currentTopic.context).not.toHaveProperty("twinId");
     expect(payload.history).toHaveLength(1);
-    expect(payload.history[0].plan.careQuestion).toBe(
-      careTurn.answer.conversationPlan!.careQuestion,
-    );
+    expect(payload.history[0].answerIn).toBe("currentTopic");
+    expect(payload.history[0]).not.toHaveProperty("plan");
     expect(payload.previous).toBeNull();
     expect(answer.sources[0].id).toBe(referenceSource.id);
     expect(options.model.explain).toHaveBeenCalledOnce();
@@ -448,7 +448,7 @@ describe("model-first conversation, with application-owned facts and no keyword 
       "00000000-0000-4000-8000-000000000202",
     ]);
     expect(
-      JSON.parse(next.interpret.mock.calls[0][0]).previous.records,
+      JSON.parse(next.interpret.mock.calls[0][0]).previous.recordIndexes,
     ).toHaveLength(4);
   });
   it("this-month versus last-month uses a full previous calendar month, not a three-day implicit period", async () => {

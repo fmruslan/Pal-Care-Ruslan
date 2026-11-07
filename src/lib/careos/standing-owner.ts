@@ -5,6 +5,14 @@ import { z } from "zod";
 import { CareError } from "./contracts";
 import { PilotFiles } from "./subscription/files";
 import { northReviewOrigin } from "../private-preview-origin";
+import {
+  EvaluationRecovery,
+  RECOVERY_EVALUATION,
+  RECOVERY_SESSION,
+  RECOVERY_DEADLINE,
+  recoveryHash,
+  type RecoveryHistoryEvidence,
+} from "./evaluation-recovery";
 
 export const OWNER_COOKIE = "__Host-palcare-owner";
 export const OWNER_ORIGIN = "https://greatbison.tail9e8802.ts.net:8444";
@@ -112,8 +120,17 @@ const stateSchema = z.strictObject({
     .max(128),
   events: z.array(eventSchema).max(3000),
 });
-type State = z.infer<typeof stateSchema>;
-export type OwnerProof = { token?: string; agent: string; origin?: string };
+export type OwnerState = z.infer<typeof stateSchema>;
+type State = OwnerState;
+export type OwnerProof = {
+  token?: string;
+  agent: string;
+  origin?: string;
+  /** Server-derived from the independent, unchanged records cookie. */
+  recordsOwnerDigest?: string;
+  /** Only records runtime callers set this, never an HTTP body/header flag. */
+  channel?: "records";
+};
 export const reviewOriginApprovalSchema = z.strictObject({
   version: z.literal(1),
   origin: z.literal(northReviewOrigin),
@@ -131,15 +148,34 @@ export const ownerFiles = () =>
 const deny = (code: string): never => {
   throw new CareError(`careos_owner_${code}`, 403);
 };
+/** Pure host engineering helper for the PRESERVED capture, not current authority. */
+export function evaluationRecoveryCheckpoint(value: unknown) {
+  const s = stateSchema.parse(value);
+  const original = s.sessions.find((x) => x.id === RECOVERY_SESSION);
+  if (!original || !s.policy || !s.evaluation)
+    return deny("evaluation_recovery_denied");
+  return {
+    ownerStateHash: recoveryHash(s),
+    eventCount: s.events.length,
+    eventHash: recoveryHash(s.events),
+    policyHash: recoveryHash(s.policy),
+    evaluationHash: recoveryHash(s.evaluation),
+    originalSessionHash: recoveryHash(original),
+  };
+}
 
 /** Host-private logical append-only journal. Never pruned, reset or auto-recovered.
  * Atomic/fsynced snapshots retain every event. Host/root can alter files: this is
  * not tamper-proof storage. A crashed active reservation blocks new dispatch. */
 export class StandingOwner {
+  private recovery: EvaluationRecovery;
   constructor(
     public files = ownerFiles(),
     private now = () => Date.now(),
-  ) {}
+    recovery?: EvaluationRecovery,
+  ) {
+    this.recovery = recovery ?? new EvaluationRecovery(files, now);
+  }
   private async state(): Promise<State> {
     return stateSchema.parse(
       (await this.files.read("owner-state.json")) ?? {
@@ -153,8 +189,10 @@ export class StandingOwner {
   private async change<T>(work: (s: State) => T) {
     return this.files.lockedWaiting(async () => {
       const s = await this.state();
+      const before = JSON.stringify(s);
       const result = await work(s);
-      await this.files.write("owner-state.json", stateSchema.parse(s));
+      if (JSON.stringify(s) !== before)
+        await this.files.write("owner-state.json", stateSchema.parse(s));
       return result;
     }, ".owner-access-lock");
   }
@@ -202,10 +240,18 @@ export class StandingOwner {
   ) {
     s.events.push({ id: randomUUID(), at: this.now(), kind, subject });
   }
-  private session(s: State, proof: OwnerProof) {
+  private async principal(s: State, proof: OwnerProof, admission = false) {
     if (!proof.token || !/^[a-f0-9]{64}$/.test(proof.token))
       return deny("signin_required");
     const entry = s.sessions.find((v) => v.tokenHash === hash(proof.token!));
+    if (!entry) {
+      try {
+        const recovered = await this.recovery.resolve(s, proof, admission);
+        return { entry: recovered.original, recovered: true };
+      } catch {
+        return deny("signin_required");
+      }
+    }
     if (
       !entry ||
       entry.revoked ||
@@ -217,19 +263,28 @@ export class StandingOwner {
       this.now() >= entry.lastSeen + OWNER_IDLE
     )
       return deny("signin_required");
-    return entry;
+    return { entry, recovered: false };
   }
-  private inspectBrowser(s: State, proof: OwnerProof) {
+  private async session(s: State, proof: OwnerProof) {
+    return (await this.principal(s, proof)).entry;
+  }
+  private async inspectBrowser(s: State, proof: OwnerProof) {
     if (!proof.token)
       return { state: "missing-cookie" as const, reason: "missing-cookie" };
     const entry = /^[a-f0-9]{64}$/.test(proof.token)
       ? s.sessions.find((v) => v.tokenHash === hash(proof.token!))
       : undefined;
-    if (!entry)
-      return {
-        state: "cookie-rejected" as const,
-        reason: "unknown-or-malformed-cookie",
-      };
+    if (!entry) {
+      try {
+        await this.principal(s, proof);
+        return { state: "recovery-active" as const, reason: "accepted" };
+      } catch {
+        return {
+          state: "cookie-rejected" as const,
+          reason: "unknown-or-malformed-cookie",
+        };
+      }
+    }
     if (entry.agentHash !== hash(proof.agent))
       return {
         state: "cookie-rejected" as const,
@@ -271,19 +326,25 @@ export class StandingOwner {
       reason: "accepted",
     };
   }
-  private allowed(
+  private async allowed(
     s: State,
     proof: OwnerProof,
     selected: z.infer<typeof scope>,
     enabled: boolean,
   ) {
-    const entry = this.session(s, proof);
+    const principal = await this.principal(s, proof, true);
+    const entry = principal.entry;
     const p = s.policy;
     if (!enabled || !p || s.events.some((e) => e.kind === "revoke-policy"))
       return deny("ai_disabled");
     if (s.events.some((e) => e.kind === "provider-block"))
       return deny("provider_unavailable");
     if (!p.scopes.includes(selected)) return deny("scope_denied");
+    if (
+      principal.recovered &&
+      (selected !== "customer" || proof.channel !== "records")
+    )
+      return deny("scope_denied");
     const reservations = s.events.filter((e) => e.kind === "reserve");
     const evaluation =
       s.evaluation?.sessionId === entry.id ? s.evaluation : null;
@@ -310,14 +371,35 @@ export class StandingOwner {
       p.requestsPerMinute
     )
       return deny("rate_limited");
-    return p;
+    return principal.recovered
+      ? {
+          ...p,
+          maxRetries: 0,
+          concurrency: 1,
+          scopes: ["customer"] as ("customer" | "customer-studio")[],
+        }
+      : p;
   }
   async pair(agent: string, existingToken?: string) {
     const token = randomBytes(32).toString("hex");
-    return this.change((s) => {
+    return this.change(async (s) => {
       // A second tab/reload must not replace a valid or pending browser secret.
       // Returning the existing public request ID does not renew its cookie.
-      const existing = this.inspectBrowser(s, { token: existingToken, agent });
+      if (existingToken) {
+        const prior = s.sessions.find(
+          (v) => v.tokenHash === hash(existingToken),
+        );
+        if (
+          (prior?.id === RECOVERY_SESSION && prior.revoked) ||
+          (await this.recovery.read())?.activation?.tokenHash ===
+            hash(existingToken)
+        )
+          return deny("evaluation_recovery_pairing_denied");
+      }
+      const existing = await this.inspectBrowser(s, {
+        token: existingToken,
+        agent,
+      });
       if (existing.state === "pending-approval")
         return {
           id: existing.pairing!.id,
@@ -426,12 +508,21 @@ export class StandingOwner {
       this.event(s, "approve-evaluation", approval.id);
     });
   }
-  async authenticate(proof: OwnerProof) {
+  async authenticate(
+    proof: OwnerProof,
+    requiredScope?: "customer" | "customer-studio",
+  ) {
     return this.change(async (s) => {
       await this.additionalOrigin(s, proof.origin);
-      const entry = this.session(s, proof);
+      const principal = await this.principal(s, proof);
+      if (
+        principal.recovered &&
+        (proof.channel !== "records" || requiredScope === "customer-studio")
+      )
+        return deny("scope_denied");
+      const entry = principal.entry;
       // Bound write volume; absolute lifetime never slides.
-      if (this.now() - entry.lastSeen >= 3600000) {
+      if (!principal.recovered && this.now() - entry.lastSeen >= 3600000) {
         entry.lastSeen = this.now();
         this.event(s, "touch", entry.id);
       }
@@ -439,11 +530,11 @@ export class StandingOwner {
     });
   }
   async finishBrowser(proof: OwnerProof) {
-    return this.change((s) => {
-      const browser = this.inspectBrowser(s, proof);
+    return this.change(async (s) => {
+      const browser = await this.inspectBrowser(s, proof);
       if (browser.state !== "finish-needed" && browser.state !== "remembered")
         return deny(browser.state.replaceAll("-", "_"));
-      const entry = this.session(s, proof);
+      const entry = await this.session(s, proof);
       if (entry.finishedAt === undefined) {
         entry.finishedAt = this.now();
         this.event(s, "finish-browser", entry.id);
@@ -456,25 +547,75 @@ export class StandingOwner {
     });
   }
   async revokeSession(id: string) {
-    return this.change((s) => {
+    await this.change((s) => {
       const entry = s.sessions.find((v) => v.id === id);
       if (!entry) return deny("signin_required");
       entry.revoked = true;
       this.event(s, "revoke-session", id);
     });
+    if (id === RECOVERY_SESSION)
+      await this.disableEvaluationRecovery("session-revoked");
   }
-  async logout(proof: OwnerProof) {
-    return this.change((s) => {
-      const entry = this.session(s, proof);
-      entry.revoked = true;
-      this.event(s, "logout", entry.id);
+  async logout(proof: OwnerProof, pendingChallenge?: string): Promise<void> {
+    const ids = await this.change(async (s) => {
+      // A cancellation is not an authentication upgrade. Never require a live
+      // inference principal to kill a grant the caller cryptographically owns.
+      const bound = await this.recovery.cancellationBound(
+        proof,
+        pendingChallenge,
+      );
+      const entry = bound
+        ? s.sessions.find((x) => x.id === RECOVERY_SESSION)
+        : await this.session(s, proof);
+      if (!entry) return deny("evaluation_recovery_cancel_failed");
+      const alreadyCancelled =
+        !!bound &&
+        s.events
+          .slice(bound.checkpointEventCount)
+          .some(
+            (e) =>
+              e.subject === RECOVERY_SESSION &&
+              ["logout", "revoke-session"].includes(e.kind),
+          );
+      const entries = [entry];
+      // Preserve ordinary logout if this same browser also presents a separate
+      // valid normal credential. Cancellation must not leave that login live.
+      if (
+        bound &&
+        proof.token &&
+        s.sessions.some(
+          (x) =>
+            x.id !== RECOVERY_SESSION && x.tokenHash === hash(proof.token!),
+        )
+      ) {
+        try {
+          entries.push(await this.session(s, proof));
+        } catch (error) {
+          if (
+            !(error instanceof CareError) ||
+            error.code !== "careos_owner_signin_required"
+          )
+            throw error;
+        }
+      }
+      for (const selected of entries) {
+        // A holder of the same records cookie may cancel repeatedly, but must
+        // not fill the shared owner journal with redundant revocation events.
+        if (selected.id === RECOVERY_SESSION && alreadyCancelled) continue;
+        selected.revoked = true;
+        this.event(s, "logout", selected.id);
+      }
+      return entries.map((x) => x.id);
     });
+    if (ids.includes(RECOVERY_SESSION))
+      await this.disableEvaluationRecovery("logout");
   }
   async revokePolicy(proof: OwnerProof) {
-    return this.change((s) => {
-      this.session(s, proof);
+    await this.change(async (s) => {
+      await this.session(s, proof);
       this.event(s, "revoke-policy", s.policy?.id ?? "disabled");
     });
+    await this.disableEvaluationRecovery("policy-revoked");
   }
   async assertDispatch(
     proof: OwnerProof,
@@ -495,10 +636,10 @@ export class StandingOwner {
       const s = await this.state();
       if (!s.evaluation) return false;
       try {
-        const session = this.session(s, proof);
+        const session = await this.session(s, proof);
         if (session.id !== s.evaluation.sessionId) return false;
         await this.additionalOrigin(s, proof.origin);
-        this.allowed(s, proof, "customer", enabled);
+        await this.allowed(s, proof, "customer", enabled);
         return s.evaluation.fastApplicationQuotaApproved;
       } catch (error) {
         if (error instanceof CareError) return false;
@@ -515,11 +656,19 @@ export class StandingOwner {
     z.string().min(1).max(200).parse(key);
     return this.change(async (s) => {
       await this.additionalOrigin(s, proof.origin);
-      this.allowed(s, proof, selected, enabled);
+      await this.allowed(s, proof, selected, enabled);
+      const principal = await this.principal(s, proof, true);
+      if (
+        principal.recovered &&
+        !/^customer:[a-f0-9-]{36}:(north_conversation_v1|careos_care)$/.test(
+          key,
+        )
+      )
+        return deny("scope_denied");
       if (s.events.some((e) => e.kind === "reserve" && e.subject === key))
         return deny("already_dispatched");
       this.event(s, "reserve", key);
-      if (s.evaluation?.sessionId === this.session(s, proof).id)
+      if (s.evaluation?.sessionId === principal.entry.id)
         s.events.at(-1)!.allocationId = s.evaluation.id;
     });
   }
@@ -528,7 +677,7 @@ export class StandingOwner {
     outcome: "completed" | "failed" | "unknown",
     observation?: unknown,
   ) {
-    return this.change((s) => {
+    const allocation = await this.change((s) => {
       if (
         !s.events.some((e) => e.kind === "reserve" && e.subject === key) ||
         s.events.some(
@@ -546,7 +695,12 @@ export class StandingOwner {
       if (observation)
         s.events.at(-1)!.observation =
           eventSchema.shape.observation.parse(observation);
+      return allocationId;
     });
+    // Journal outcome is durable first. Even failed recovery-file I/O cannot
+    // resurrect admission: the central validator rejects this journal tail.
+    if (allocation === RECOVERY_EVALUATION && outcome !== "completed")
+      await this.disableEvaluationRecovery(`provider-${outcome}`);
   }
   async assertHistoricalJournal(value: unknown) {
     const s = await this.state();
@@ -557,20 +711,114 @@ export class StandingOwner {
       return deny("history_mismatch");
   }
   async blockProvider() {
-    return this.change((s) => {
+    await this.change((s) => {
       this.event(s, "provider-block", "permission-or-usage-denied");
     });
+    await this.disableEvaluationRecovery("provider-blocked");
+  }
+  /** Host-only preparation; the CLI verifies actual owner answer/release receipts. */
+  async prepareEvaluationRecovery(value: unknown) {
+    return this.files.lockedWaiting(
+      async () => this.recovery.prepare(await this.state(), value),
+      ".owner-access-lock",
+    );
+  }
+  /** Server-private fixed manifest. Never return this from an HTTP endpoint. */
+  async evaluationRecoveryBinding() {
+    return this.files.lockedWaiting(async () => {
+      const doc = await this.recovery.read();
+      if (!doc) return deny("evaluation_recovery_denied");
+      await this.recovery.validate(await this.state(), doc, false);
+      return { binding: doc.binding, bindingHash: recoveryHash(doc.binding) };
+    }, ".owner-access-lock");
+  }
+  async requestEvaluationRecovery(
+    proof: OwnerProof,
+    evidence: RecoveryHistoryEvidence,
+  ) {
+    return this.files.lockedWaiting(
+      async () => this.recovery.request(await this.state(), proof, evidence),
+      ".owner-access-lock",
+    );
+  }
+  async approveEvaluationRecovery(id: string, bindingHash: string) {
+    z.uuid().parse(id);
+    digest.parse(bindingHash);
+    return this.files.lockedWaiting(
+      async () => this.recovery.approve(await this.state(), id, bindingHash),
+      ".owner-access-lock",
+    );
+  }
+  async finishEvaluationRecovery(
+    proof: OwnerProof,
+    challenge: string | undefined,
+    evidence: RecoveryHistoryEvidence,
+  ) {
+    return this.files.lockedWaiting(
+      async () =>
+        this.recovery.finish(await this.state(), proof, challenge, evidence),
+      ".owner-access-lock",
+    );
+  }
+  /** Must succeed durably BEFORE a controlled fallback. No swallowing failure. */
+  async disableEvaluationRecovery(reason = "controlled-fallback") {
+    z.string().min(1).max(120).parse(reason);
+    return this.files.lockedWaiting(
+      () => this.recovery.disable(reason),
+      ".owner-access-lock",
+    );
+  }
+  /** No bearer token or issuance: engineering queue inspection, not dispatch authority. */
+  async evaluationRecoveryStatus() {
+    return this.files.lockedWaiting(async () => {
+      const s = await this.state();
+      const base = {
+        active: false,
+        evaluationId: RECOVERY_EVALUATION,
+        sessionId: RECOVERY_SESSION,
+        originalBrowserRevoked:
+          s.sessions.find((x) => x.id === RECOVERY_SESSION)?.revoked === true,
+        expiresAt: RECOVERY_DEADLINE,
+        baselineUsed: 63,
+        maxAdditional: 237,
+        remaining: Math.max(
+          0,
+          300 -
+            s.events.filter(
+              (e) =>
+                e.kind === "reserve" && e.allocationId === RECOVERY_EVALUATION,
+            ).length,
+        ),
+      };
+      try {
+        const doc = await this.recovery.read();
+        if (!doc) return { ...base, phase: "absent" };
+        const audit = {
+          phase: doc.phase,
+          activationSequence: doc.activation?.sequence ?? null,
+          revocationCutoff: {
+            eventCount: doc.binding.checkpointEventCount,
+            eventHash: doc.binding.checkpointEventHash,
+          },
+        };
+        if (doc.phase !== "active") return { ...base, ...audit };
+        const valid = await this.recovery.validate(s, doc);
+        return { ...base, ...audit, active: true, remaining: valid.remaining };
+      } catch {
+        return { ...base, phase: "invalid-or-ineligible" };
+      }
+    }, ".owner-access-lock");
   }
   async status(proof: OwnerProof, diagnostic?: (reason: string) => void) {
     await this.files.prepare();
     const s = await this.state();
-    const browser = this.inspectBrowser(s, proof);
+    const browser = await this.inspectBrowser(s, proof);
     diagnostic?.(browser.reason);
     let remembered = false;
     let browserCompletion: "not-verified" | "finish-needed" | "complete" =
       "not-verified";
     try {
-      const entry = this.session(s, proof);
+      const entry = await this.session(s, proof);
       remembered = true;
       browserCompletion =
         entry.finishedAt === undefined ? "finish-needed" : "complete";
@@ -586,13 +834,27 @@ export class StandingOwner {
           (e) => e.kind === "reserve" && e.allocationId === evaluation.id,
         ).length
       : 0;
+    // Identification for rejected-credential status is NOT authorization. A
+    // disabled recovery credential must never advertise the original 26 slots.
+    let recoveryCredential = false;
+    try {
+      const doc = await this.recovery.read();
+      recoveryCredential =
+        !!doc?.activation &&
+        doc.activation.tokenHash === hash(proof.token ?? "") &&
+        doc.binding.evaluationId === evaluation?.id &&
+        doc.binding.sessionId === evaluation?.sessionId;
+    } catch {
+      /* Malformed recovery cannot grant browser recognition. */
+    }
     const evaluationBrowser =
-      !!evaluation &&
-      s.sessions.some(
-        (v) =>
-          v.id === evaluation.sessionId &&
-          v.tokenHash === hash(proof.token ?? ""),
-      );
+      recoveryCredential ||
+      (!!evaluation &&
+        s.sessions.some(
+          (v) =>
+            v.id === evaluation.sessionId &&
+            v.tokenHash === hash(proof.token ?? ""),
+        ));
     const used = evaluationBrowser ? evaluationUsed : originalUsed;
     const limit = evaluationBrowser
       ? evaluation!.requestLimit
@@ -601,12 +863,20 @@ export class StandingOwner {
       remembered,
       browserCompletion,
       browserAccess: browser.state,
+      originalBrowserRevoked:
+        (recoveryCredential &&
+          s.sessions.find((x) => x.id === RECOVERY_SESSION)?.revoked ===
+            true) ||
+        browser.state === "revoked",
+      recoveryActive: browser.state === "recovery-active",
       pairing: browser.pairing ?? null,
       policyId: s.policy?.id ?? null,
       requestLimit: limit,
-      concurrency: s.policy?.concurrency ?? 0,
+      concurrency:
+        browser.state === "recovery-active" ? 1 : (s.policy?.concurrency ?? 0),
       requestsPerMinute: s.policy?.requestsPerMinute ?? 0,
-      maxRetries: s.policy?.maxRetries ?? 0,
+      maxRetries:
+        browser.state === "recovery-active" ? 0 : (s.policy?.maxRetries ?? 0),
       providerBlocked: s.events.some((e) => e.kind === "provider-block"),
       policy: s.policy ? "approved" : "disabled",
       revoked: s.events.some((e) => e.kind === "revoke-policy"),
@@ -645,11 +915,13 @@ export class StandingOwner {
                 ).length,
             ),
             browserBound:
-              s.sessions.some(
-                (v) =>
-                  v.id === s.evaluation!.sessionId &&
-                  v.tokenHash === hash(proof.token ?? ""),
-              ) && remembered,
+              (recoveryCredential ||
+                s.sessions.some(
+                  (v) =>
+                    v.id === s.evaluation!.sessionId &&
+                    v.tokenHash === hash(proof.token ?? ""),
+                )) &&
+              remembered,
           }
         : null,
     };

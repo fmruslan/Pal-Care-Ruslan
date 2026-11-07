@@ -79,45 +79,100 @@ export async function verifyLanguageHistory(
     await expect(previous).toBeVisible();
     await previous.click();
 
-    const restored = page.locator(
-      `[data-native-north-result][data-request-id="${expectedRequestId}"]`,
+    return await readLanguageHistoryResult(
+      page,
+      expectedRequestId,
+      expectedIds,
+      attemptedWrites,
     );
-    await expect(restored).toBeVisible();
-    await expect(active).toHaveCount(1);
-    await expect(active).toHaveAttribute("data-request-id", expectedRequestId);
-    const records = restored.locator("[data-records-result]");
-    await expect(records).toBeVisible();
-    // Responsive presentations can expose the same identity through both table
-    // and card links. Compare exact visible record identities, not link count.
-    const purchases = records
-      .locator('a[href^="/vault/"]')
-      .filter({ visible: true });
-    const more = records.getByRole("button", {
-      name: /^Show more purchases \(/,
-    });
-    while (await more.isVisible()) {
-      const before = await purchases.count();
-      await more.click();
-      await expect(purchases).not.toHaveCount(before);
-    }
-    const readIds = () =>
-      purchases.evaluateAll((links) =>
-        [
-          ...new Set(
-            links.map((link) =>
-              link.getAttribute("href")!.slice("/vault/".length),
-            ),
-          ),
-        ].sort(),
-      );
-    await expect.poll(readIds).toEqual([...expectedIds].sort());
-    const renderedIds = await readIds();
-    const requestId = await restored.getAttribute("data-request-id");
-    expect(requestId).toBe(expectedRequestId);
-    expect(renderedIds).toEqual([...expectedIds].sort());
-    expect(attemptedWrites).toEqual([]);
-    return { requestId: requestId!, renderedIds, attemptedWrites };
   } finally {
     await page.unroute("**/*", guard);
   }
+}
+
+/** Explicitly select an existing owned result, never replay a completed turn.
+ * Unique visible question text is required; exact request/records read-back
+ * rejects an ambiguous or wrong selection. History inspection is GET-only. */
+export async function selectLanguageHistory(
+  page: Page,
+  expectedRequestId: string,
+  expectedMessage: string,
+  expectedIds: string[],
+): Promise<LanguageHistoryEvidence> {
+  const attemptedWrites: string[] = [];
+  const guard = async (route: Route) => {
+    const request = route.request();
+    if (!["GET", "HEAD"].includes(request.method())) {
+      attemptedWrites.push(`${request.method()} ${request.url()}`);
+      await route.abort("blockedbyclient");
+      return;
+    }
+    await route.fallback();
+  };
+  await page.route("**/*", guard);
+  try {
+    await page.getByRole("button", { name: "History", exact: true }).click();
+    const choice = page
+      .getByRole("region", { name: "Previous North results", exact: true })
+      .getByRole("button", { name: expectedMessage, exact: true });
+    await expect(choice).toHaveCount(1);
+    await choice.click();
+    return await readLanguageHistoryResult(
+      page,
+      expectedRequestId,
+      expectedIds,
+      attemptedWrites,
+    );
+  } finally {
+    await page.unroute("**/*", guard);
+  }
+}
+
+async function readLanguageHistoryResult(
+  page: Page,
+  expectedRequestId: string,
+  expectedIds: string[],
+  attemptedWrites: string[],
+): Promise<LanguageHistoryEvidence> {
+  const active = page
+    .locator("[data-native-north-result]")
+    .filter({ visible: true });
+  const restored = page.locator(
+    `[data-native-north-result][data-request-id="${expectedRequestId}"]`,
+  );
+  await expect(restored).toBeVisible();
+  await expect(active).toHaveCount(1);
+  await expect(active).toHaveAttribute("data-request-id", expectedRequestId);
+  const records = restored.locator("[data-records-result]");
+  await expect(records).toBeVisible();
+  // Responsive presentations can expose the same identity through both table
+  // and card links. Compare exact visible record identities, not link count.
+  const purchases = records
+    .locator('a[href^="/vault/"]')
+    .filter({ visible: true });
+  const more = records.getByRole("button", {
+    name: /^Show more purchases \(/,
+  });
+  while (await more.isVisible()) {
+    const before = await purchases.count();
+    await more.click();
+    await expect(purchases).not.toHaveCount(before);
+  }
+  const readIds = () =>
+    purchases.evaluateAll((links) =>
+      [
+        ...new Set(
+          links.map((link) =>
+            link.getAttribute("href")!.slice("/vault/".length),
+          ),
+        ),
+      ].sort(),
+    );
+  await expect.poll(readIds).toEqual([...expectedIds].sort());
+  const renderedIds = await readIds();
+  const requestId = await restored.getAttribute("data-request-id");
+  expect(requestId).toBe(expectedRequestId);
+  expect(renderedIds).toEqual([...expectedIds].sort());
+  expect(attemptedWrites).toEqual([]);
+  return { requestId: requestId!, renderedIds, attemptedWrites };
 }

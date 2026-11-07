@@ -5,6 +5,8 @@ import { PilotFiles } from "./files";
 import { streamStructured } from "./pilot";
 import { safeFailure } from "./pilot";
 import { setTimeout as delay } from "node:timers/promises";
+import { CARE_INSTRUCTIONS } from "../providers/responses";
+import { structuredRequestBody, assertStructuredRequestSize } from "./request";
 
 /** Refresh is serialized, inference is not. Each attempt reserves atomically in
  * the independent owner ledger. No retries of streams or uncertain dispatch. */
@@ -28,6 +30,16 @@ export async function standingStructured<T extends z.ZodType>(options: {
     const policy = await owner.assertDispatch(proof, scope, options.enabled());
     await owner.assertHistoricalJournal(
       await options.files.read("session.json"),
+    );
+    // Reject a local wire-size failure before token acquisition/refresh. The
+    // pilot repeats this exact guard before client construction and reservation.
+    assertStructuredRequestSize(
+      structuredRequestBody({
+        payload: options.payload,
+        prompt: options.prompt ?? CARE_INSTRUCTIONS,
+        schema: options.schema,
+        name: options.name,
+      }),
     );
     const token = await options.files.lockedWaiting(
       async () => {

@@ -3,17 +3,25 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import {
   assertOwnerRequest,
-  OWNER_COOKIE,
+  OWNER_ORIGIN,
   StandingOwner,
   ownerCookieName,
 } from "@/lib/careos/standing-owner";
 import {
   standingOwnerMode,
   configuredOwnerOrigin,
+  standingProof,
 } from "@/lib/careos/standing-runtime";
 import { subscriptionFiles } from "@/lib/careos/subscription/provider";
 import { CareError } from "@/lib/careos/contracts";
 import { careError, careResponse, readJson } from "@/lib/careos/security";
+import { recordsRuntime } from "@/lib/careos/records/runtime";
+import {
+  RECOVERY_COOKIE,
+  checkRecoveryHistory,
+  type RecoveryHistoryEvidence,
+} from "@/lib/careos/evaluation-recovery";
+import type { OwnerProof } from "@/lib/careos/standing-owner";
 
 export const runtime = "nodejs";
 async function context(request: Request, mutation: boolean) {
@@ -34,24 +42,14 @@ async function context(request: Request, mutation: boolean) {
 export async function GET(request: Request) {
   const diagnosticId = randomUUID();
   try {
-    const { owner, jar, agent, origin, cookieName } = await context(
-      request,
-      false,
-    );
-    const status = await owner.status(
-      {
-        token: jar.get(cookieName)?.value ?? jar.get(OWNER_COOKIE)?.value,
-        agent,
-        origin,
-      },
-      (reason) => {
-        // Protected service journal only. Never log headers, tokens, hashes or UA.
-        if (reason !== "accepted")
-          console.info(
-            JSON.stringify({ ownerAccess: "status", diagnosticId, reason }),
-          );
-      },
-    );
+    const { owner } = await context(request, false);
+    const status = await owner.status(await standingProof(), (reason) => {
+      // Protected service journal only. Never log headers, tokens, hashes or UA.
+      if (reason !== "accepted")
+        console.info(
+          JSON.stringify({ ownerAccess: "status", diagnosticId, reason }),
+        );
+    });
     let provider = "Verify this browser to view the connection";
     if (status.remembered) {
       const registration = await subscriptionFiles().registration();
@@ -83,7 +81,14 @@ export async function GET(request: Request) {
   }
 }
 const actionSchema = z.strictObject({
-  action: z.enum(["pair", "finish", "logout", "revoke"]),
+  action: z.enum([
+    "pair",
+    "finish",
+    "logout",
+    "revoke",
+    "evaluation-recovery-request",
+    "evaluation-recovery-finish",
+  ]),
 });
 const cookieOptions = {
   httpOnly: true,
@@ -91,19 +96,84 @@ const cookieOptions = {
   sameSite: "strict" as const,
   path: "/",
 };
+/** DB reads are OUTSIDE the owner lock: store claims use DB -> owner ordering. */
+async function recoveryHistory(
+  owner: StandingOwner,
+  proof: OwnerProof,
+): Promise<RecoveryHistoryEvidence> {
+  const { binding } = await owner.evaluationRecoveryBinding();
+  if (
+    proof.origin !== OWNER_ORIGIN ||
+    proof.recordsOwnerDigest !== binding.recordsOwnerDigest
+  )
+    throw new CareError("careos_owner_evaluation_recovery_denied", 403);
+  const { store } = recordsRuntime();
+  return checkRecoveryHistory(binding, proof, (id, digest) =>
+    store.get(id, digest),
+  );
+}
 export async function POST(request: Request) {
   try {
-    const { owner, jar, agent, origin, cookieName } = await context(
-      request,
-      true,
-    );
+    const { owner, jar, agent, cookieName } = await context(request, true);
     const parsed = actionSchema.safeParse(await readJson(request));
     if (!parsed.success) throw new CareError("careos_invalid_request", 400);
-    const proof = {
-      token: jar.get(cookieName)?.value ?? jar.get(OWNER_COOKIE)?.value,
-      agent,
-      origin,
-    };
+    const proof = await standingProof();
+    if (parsed.data.action === "logout") {
+      try {
+        await owner.logout(proof, jar.get(RECOVERY_COOKIE)?.value);
+      } catch (error) {
+        // Only an actually unbound stale cookie can be discarded without a
+        // persisted cancellation. Failed journal/cap writes remain errors.
+        if (
+          !(error instanceof CareError) ||
+          error.code !== "careos_owner_signin_required"
+        )
+          throw error;
+      } finally {
+        jar.set(RECOVERY_COOKIE, "", { ...cookieOptions, maxAge: 0 });
+        jar.set(cookieName, "", { ...cookieOptions, maxAge: 0 });
+      }
+      return careResponse({ ok: true });
+    }
+    if (
+      parsed.data.action === "evaluation-recovery-request" ||
+      parsed.data.action === "evaluation-recovery-finish"
+    ) {
+      if (process.env.CAREOS_STANDING_AI_ENABLED !== "true")
+        throw new CareError("careos_owner_ai_disabled", 403);
+      // The revoked AI cookie is not used even to identify recovery. Only the
+      // separate valid records cookie, fixed owned history and host approval.
+      const recoveryProof = { ...proof, token: undefined };
+      const evidence = await recoveryHistory(owner, recoveryProof);
+      if (parsed.data.action === "evaluation-recovery-request") {
+        const pending = await owner.requestEvaluationRecovery(
+          recoveryProof,
+          evidence,
+        );
+        jar.set(RECOVERY_COOKIE, pending.token, {
+          ...cookieOptions,
+          maxAge: Math.max(
+            0,
+            Math.floor((pending.expiresAt - Date.now()) / 1000),
+          ),
+        });
+        return careResponse({ id: pending.id });
+      }
+      const finished = await owner.finishEvaluationRecovery(
+        recoveryProof,
+        jar.get(RECOVERY_COOKIE)?.value,
+        evidence,
+      );
+      jar.set(RECOVERY_COOKIE, "", { ...cookieOptions, maxAge: 0 });
+      jar.set(cookieName, finished.token, {
+        ...cookieOptions,
+        maxAge: Math.max(
+          0,
+          Math.floor((finished.expiresAt - Date.now()) / 1000),
+        ),
+      });
+      return careResponse({ ok: true, expiresAt: finished.expiresAt });
+    }
     if (parsed.data.action === "pair") {
       const pair = await owner.pair(agent, proof.token);
       if (!pair.reused)
@@ -116,18 +186,6 @@ export async function POST(request: Request) {
         ...cookieOptions,
         maxAge: Math.max(0, Math.floor((expiresAt - Date.now()) / 1000)),
       });
-    } else if (parsed.data.action === "logout") {
-      // A stale/expired local cookie can always be cleared; valid sessions are revoked.
-      try {
-        await owner.logout(proof);
-      } catch (error) {
-        if (
-          !(error instanceof CareError) ||
-          error.code !== "careos_owner_signin_required"
-        )
-          throw error;
-      }
-      jar.set(cookieName, "", { ...cookieOptions, maxAge: 0 });
     } else await owner.revokePolicy(proof);
     return careResponse({ ok: true });
   } catch (error) {

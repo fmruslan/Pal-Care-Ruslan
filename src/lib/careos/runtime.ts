@@ -61,9 +61,10 @@ export function careRuntime() {
 
 export async function assertCustomerRuntimeAccess(
   config: ReturnType<typeof parseCareConfig>,
+  channel?: "records",
 ) {
   if (config.mode === "subscription" && standingOwnerMode()) {
-    await assertStandingOwner();
+    await assertStandingOwner(channel);
     return;
   }
   if (config.mode === "subscription")

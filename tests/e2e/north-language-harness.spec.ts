@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import {
   submitLanguageTurn,
+  selectLanguageHistory,
   verifyLanguageHistory,
 } from "../../scripts/north-language-browser";
 import {
@@ -9,6 +10,64 @@ import {
 } from "../../src/lib/careos/records/service";
 import { emptyRecordsQuery } from "../../src/lib/careos/records/contracts";
 import { demoData } from "../../src/lib/demo/fixtures";
+
+test("language recovery selects an accepted owned anchor without replay, then submits a genuinely new question (injected, zero provider calls)", async ({
+  page,
+}) => {
+  const posts: {
+    requestId: string;
+    followupRequestId?: string;
+    message: string;
+  }[] = [];
+  await page.route(
+    /\/api\/careos\/(?:records\/)?conversations\/[^/]+\/(turns|interpret)$/,
+    async (route) => {
+      const request = route.request().postDataJSON();
+      posts.push(request);
+      const query = {
+        ...emptyRecordsQuery("2026-11-06"),
+        categories:
+          request.message === "Show my Kitchen purchases"
+            ? ["Kitchen" as const]
+            : request.message === "Only Audio"
+              ? ["Audio" as const]
+              : [],
+      };
+      const answer = recordsAnswer(
+        querySavedRecords(demoData, query),
+        request.revision,
+      );
+      await route.fulfill({
+        json: {
+          requestId: request.requestId,
+          message: request.message,
+          answer,
+        },
+      });
+    },
+  );
+  await page.goto("/dashboard");
+  const original = await (
+    await submitLanguageTurn(page, "Back to all saved purchases")
+  ).json();
+  await submitLanguageTurn(page, "Show my Kitchen purchases");
+  const expectedIds = original.answer.recordsResult.records.map(
+    (record: { id: string }) => record.id,
+  );
+  const history = await selectLanguageHistory(
+    page,
+    original.requestId,
+    original.message,
+    expectedIds,
+  );
+  expect(history.attemptedWrites).toEqual([]);
+  expect(posts).toHaveLength(2);
+  await submitLanguageTurn(page, "Only Audio");
+  expect(posts).toHaveLength(3);
+  expect(posts[2].requestId).not.toBe(original.requestId);
+  expect(posts[2].followupRequestId).toBe(original.requestId);
+  expect(posts[2].message).toBe("Only Audio");
+});
 
 for (const kind of ["search", "follow-up"] as const) {
   test(`language runner waits for a late ${kind} input without dispatching early`, async ({
