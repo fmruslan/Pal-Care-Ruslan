@@ -43,7 +43,7 @@ export async function applyNorthRecoveryFallback(
 }
 
 const evidencePath =
-  "/tmp/opencode/north-language-300/recovery-150/fallback.json";
+  "/tmp/opencode/north-language-300/quota-policy/fallback.json";
 const releases = "/home/bigrus/.local/state/palcare-releases";
 export const north150FallbackRoot = `${releases}/release-north-recovery-150-compatible`;
 const dropin =
