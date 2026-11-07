@@ -61,8 +61,8 @@ async function fixture() {
     approvedAt: clock.now(),
     calendarExpiresAt: null,
     baselineUsed: 63,
-    executionLimit: 150,
-    maxAdditional: 87,
+    executionLimit: 163,
+    maxAdditional: 100,
     scope: "customer-records-care-native-insights",
     concurrency: 1,
     maxRetries: 0,
@@ -141,7 +141,7 @@ afterEach(async () => {
 });
 
 describe("additive quota-only policy using established browser approval", () => {
-  it("preserves the old disabled grant/deadline/revocations, requires a new approved browser and keeps 63/150", async () => {
+  it("preserves the old disabled grant/deadline/revocations, requires a new approved browser and keeps 63/163", async () => {
     const f = await fixture(),
       before = await f.read();
     const { proof, pair } = await f.authorize();
@@ -161,9 +161,9 @@ describe("additive quota-only policy using established browser approval", () => 
     );
     expect(await f.owner.status(proof)).toMatchObject({
       remembered: true,
-      requestLimit: 150,
+      requestLimit: 163,
       used: 63,
-      remaining: 87,
+      remaining: 100,
       maxRetries: 0,
       concurrency: 1,
       standingAllocation: { used: 274, remaining: 26 },
@@ -206,7 +206,7 @@ describe("additive quota-only policy using established browser approval", () => 
     await f.restart().finishCampaignQuestion(proof, request, conversation);
     expect(campaignBudget((await f.read()).events)).toMatchObject({
       used: 64,
-      remaining: 86,
+      remaining: 99,
       held: 0,
     });
     f.clock.advance(OWNER_IDLE);
@@ -214,8 +214,8 @@ describe("additive quota-only policy using established browser approval", () => 
     expect(await f.owner.status(proof)).toMatchObject({
       remembered: false,
       used: 64,
-      remaining: 86,
-      requestLimit: 150,
+      remaining: 99,
+      requestLimit: 163,
     });
   });
   it("does not authorize a pending browser, change a pending secret on reload or bypass host approval", async () => {
@@ -235,7 +235,7 @@ describe("additive quota-only policy using established browser approval", () => 
     await expect(f.owner.finishBrowser(proof)).rejects.toThrow();
     expect(await f.owner.status(proof)).toMatchObject({
       used: 63,
-      remaining: 87,
+      remaining: 100,
       remembered: false,
     });
     f.clock.advance(300001);
@@ -289,7 +289,7 @@ describe("additive quota-only policy using established browser approval", () => 
       ).toHaveLength(274);
     },
   );
-  it.each([149, 150])(
+  it.each([162, 163])(
     "rejects a complete new question at %i without replenishment or a standing charge",
     async (target) => {
       const f = await fixture(),
@@ -302,15 +302,15 @@ describe("additive quota-only policy using established browser approval", () => 
       expect(await f.read()).toEqual(before);
       expect(await f.owner.status(proof)).toMatchObject({
         used: target,
-        remaining: 150 - target,
+        remaining: 163 - target,
         standingAllocation: { used: 274, remaining: 26 },
       });
     },
   );
-  it("converts the 148 two-slot hold to exactly 150 and closes at exhaustion", async () => {
+  it("converts the 161 two-slot hold to exactly 163 and closes at exhaustion", async () => {
     const f = await fixture(),
       { proof } = await f.authorize();
-    await f.fill(148);
+    await f.fill(161);
     const request = randomUUID(),
       conversation = randomUUID();
     await f.owner.beginCampaignQuestion(proof, request, conversation, true);
@@ -327,7 +327,7 @@ describe("additive quota-only policy using established browser approval", () => 
     }
     await f.owner.finishCampaignQuestion(proof, request, conversation);
     expect(campaignBudget((await f.read()).events)).toMatchObject({
-      used: 150,
+      used: 163,
       remaining: 0,
       held: 0,
     });

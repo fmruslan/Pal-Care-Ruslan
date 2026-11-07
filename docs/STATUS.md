@@ -1,5 +1,11 @@
 # Implementation status
 
+## North 100-additional revision — owner approved, activation pending
+
+The owner explicitly increased the remaining allowance from 87 to **100 provider attempts**, yielding **163 cumulative including the unchanged 63**. No quota-only policy has yet been installed, so this revises the pending authorization rather than replacing an activated grant. The single additive approval now records the exact 163 ceiling; old grants, original expiry/disabled status/revocations, standing 274/300 accounting and historical unknown remain unchanged. No calendar deadline, automatic replenishment, new provider identity, paid fallback, finance or public authority is added.
+
+Previous policy PR #9 merged as `0cb5d5330eaf9f032da1b43113200cd0f6081ba7`: exact-head run [42401747863](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/42401747863) passed after a retained native-job connection-reset/port-leak failure and failed-job rerun. Its exact-main run [42404816941](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/42404816941) passed both foundations but failed an existing WebKit composer response timeout; it is **not release-verified**. The running immutable preview remains unchanged. Current 163-boundary targeted checks and exact-commit delivery evidence are recorded separately; genuine usage is still **63 / 163**, with **100 additional** available only after activation/provider/browser checks.
+
 ## North quota-only authorization — newly approved policy, candidate verification
 
 **Owner direction / scope:** the latest owner message supersedes execution under the earlier fixed-expiry proposal. It explicitly authorizes one separately auditable campaign policy with **no fixed calendar expiration**, retaining **63 consumed / 150 total / at most 87 additional** attempts. This is not an edit or extension of the old grant: its November 7 deadline, disabled recovery document, original revoked session, all prior results/unknowns and the immutable historical 300 allocation remain exact. The original standing **274/300 / 26 remaining / one unknown** remains separate. No new provider/database credential, paid fallback, money movement, public exposure or automatic capacity renewal is authorized.

@@ -1,5 +1,7 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
+**Latest owner-approved quota revision:** the still-uninstalled `quotaCampaign` now requires **163 execution ceiling / 100 additional / 63 baseline**. Its single append-only approval event records `executionLimit: 163`; only that explicit authorization changes the budget projection. Legacy grants/recovery remain capped at their original 150 execution ceiling, with all historical records untouched. No automatic reset, replacement policy or replenishment is supported. Activation remains pending.
+
 ## Quota-bounded North policy — approved candidate, live activation pending
 
 The latest owner authorization adds a strict, one-time `quotaCampaign` record to the existing host owner state: fixed campaign ID, **63 baseline / 150 execution ceiling / at most 87 additional**, `calendarExpiresAt: null`, zero retries, one concurrent question, original state/history hashes and pinned existing provider identity. There is no HTTP policy-approval endpoint. Host-only `scripts/standing-owner.ts approve-quota-campaign quota-campaign-approval.json` reads the one protected approval file and refuses replacement/replenishment. Old `evaluation`, revoked session and disabled recovery-file bytes are not edited; the old November 7 expiry stays historical.

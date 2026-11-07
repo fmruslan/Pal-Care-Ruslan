@@ -99,7 +99,7 @@ test("quota-only policy survives historical deadline, uses normal host-approved 
     expect(status).toMatchObject({
       remembered: true,
       used: 63,
-      remaining: 87,
+      remaining: 100,
       maxRetries: 0,
       concurrency: 1,
       campaign: {
@@ -173,7 +173,7 @@ test("quota-only policy survives historical deadline, uses normal host-approved 
     const ledger = (await f.files.read("owner-state.json")) as OwnerState;
     expect(campaignBudget(ledger.events)).toMatchObject({
       used: 67,
-      remaining: 83,
+      remaining: 96,
       held: 0,
     });
     expect(ledger.policy).toEqual(f.state.policy);
@@ -190,7 +190,7 @@ test("quota-only policy survives historical deadline, uses normal host-approved 
     expect(await f.owner.quotaCampaignStatus()).toMatchObject({
       active: false,
       used: 67,
-      remaining: 83,
+      remaining: 96,
     });
     const after = (await f.files.read("owner-state.json")) as OwnerState;
     expect(after.events.some((e) => e.kind === "revoke-policy")).toBe(false);

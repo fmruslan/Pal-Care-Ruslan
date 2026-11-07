@@ -2,6 +2,7 @@ import { z } from "zod";
 import { CareError } from "./contracts";
 
 export const CAMPAIGN_EXECUTION_LIMIT = 150;
+export const QUOTA_CAMPAIGN_EXECUTION_LIMIT = 163;
 export const CAMPAIGN_HISTORICAL_LIMIT = 300;
 export const QUESTION_MAX_STAGES = 2;
 const allocation = "feb8831c-702b-476e-91e3-d0034ceb645d";
@@ -14,6 +15,7 @@ export type CampaignExecutionEvent = {
   readonly at: number;
   readonly id?: string;
   readonly observation?: { readonly httpStatus?: number };
+  readonly executionLimit?: typeof QUOTA_CAMPAIGN_EXECUTION_LIMIT;
 };
 type Stage = {
   key: string;
@@ -30,7 +32,8 @@ type Question = {
 };
 export type CampaignBudget = {
   historicalLimit: typeof CAMPAIGN_HISTORICAL_LIMIT;
-  executionLimit: typeof CAMPAIGN_EXECUTION_LIMIT;
+  executionLimit:
+    typeof CAMPAIGN_EXECUTION_LIMIT | typeof QUOTA_CAMPAIGN_EXECUTION_LIMIT;
   used: number;
   remaining: number;
   held: number;
@@ -93,12 +96,22 @@ function assertClose(question: Question | undefined, expected: string) {
  * These helpers neither authenticate callers nor grant provider authority. */
 function derive(events: readonly CampaignExecutionEvent[]) {
   let used = 0;
+  let executionLimit: CampaignBudget["executionLimit"] =
+    CAMPAIGN_EXECUTION_LIMIT;
   let marked = false;
   let lastAt = -1;
   let active: Question | undefined;
   const requests = new Set<string>();
   for (const event of events) {
     if (event.allocationId !== allocation) continue;
+    // Only the explicit additive authorization changes the projection. Legacy
+    // grants and their earlier 150 ceiling remain unchanged. Authentication and
+    // the authorization hash are independently checked by StandingOwner.
+    if (
+      event.kind === "approve-quota-campaign" &&
+      event.executionLimit === QUOTA_CAMPAIGN_EXECUTION_LIMIT
+    )
+      executionLimit = QUOTA_CAMPAIGN_EXECUTION_LIMIT;
     const isMarker = ["question-open", "question-close"].includes(event.kind);
     const isAttempt = ["reserve", "completed", "failed", "unknown"].includes(
       event.kind,
@@ -127,7 +140,7 @@ function derive(events: readonly CampaignExecutionEvent[]) {
         if (
           active ||
           requests.has(identity.requestId) ||
-          used + QUESTION_MAX_STAGES > CAMPAIGN_EXECUTION_LIMIT
+          used + QUESTION_MAX_STAGES > executionLimit
         )
           deny("invalid_ledger");
         requests.add(identity.requestId);
@@ -142,7 +155,7 @@ function derive(events: readonly CampaignExecutionEvent[]) {
       // Count EVERY allocation reservation, independent of its outcome/key.
       used++;
       assertStage(active, event.subject);
-      if (used > CAMPAIGN_EXECUTION_LIMIT) deny("invalid_ledger");
+      if (used > executionLimit) deny("invalid_ledger");
       active!.stages.push({ key: event.subject, at: event.at });
     } else if (marked) {
       const stage = active?.stages.find((s) => s.key === event.subject);
@@ -153,10 +166,10 @@ function derive(events: readonly CampaignExecutionEvent[]) {
     }
   }
   const held = active ? QUESTION_MAX_STAGES - active.stages.length : 0;
-  const remaining = Math.max(0, CAMPAIGN_EXECUTION_LIMIT - used);
+  const remaining = Math.max(0, executionLimit - used);
   const budget: CampaignBudget = {
     historicalLimit: CAMPAIGN_HISTORICAL_LIMIT,
-    executionLimit: CAMPAIGN_EXECUTION_LIMIT,
+    executionLimit,
     used,
     remaining,
     held,

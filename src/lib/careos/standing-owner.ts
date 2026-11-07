@@ -71,6 +71,7 @@ const evaluationSchema = evaluationApprovalSchema.extend({
   baselineEventHash: digest,
 });
 const eventSchema = z.strictObject({
+  executionLimit: z.literal(163).optional(),
   id: z.uuid(),
   at: time,
   kind: z.enum([
@@ -305,6 +306,7 @@ export class StandingOwner {
       assertQuotaCampaignIntegrity(s, original?.hash, this.now(), true);
       this.event(s, "approve-quota-campaign", recoveryHash(q));
       s.events.at(-1)!.allocationId = RECOVERY_EVALUATION;
+      s.events.at(-1)!.executionLimit = q.executionLimit;
     });
   }
   private async principal(s: State, proof: OwnerProof, admission = false) {
@@ -437,7 +439,10 @@ export class StandingOwner {
     ).length;
     const limit =
       evaluation?.id === RECOVERY_EVALUATION
-        ? Math.min(evaluation.requestLimit, CAMPAIGN_EXECUTION_LIMIT)
+        ? Math.min(
+            evaluation.requestLimit,
+            quota?.executionLimit ?? CAMPAIGN_EXECUTION_LIMIT,
+          )
         : (evaluation?.requestLimit ?? p.requestLimit);
     if (used >= limit) return deny("quota_exhausted");
     if (
