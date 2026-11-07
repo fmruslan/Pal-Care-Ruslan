@@ -129,7 +129,9 @@ test("expiry revokes access and clearing content does not clear spending counter
   );
   await assert.rejects(s.get(expired.id, o), { status: 404 });
 });
-test("session turn quota is persistent across instances", async () => {
+test("session turn quota is persistent across instances", async (t) => {
+  const now = Date.now();
+  t.mock.method(Date, "now", () => now);
   const s = store(),
     o = owner(),
     c = await s.create(o);
@@ -144,7 +146,10 @@ test("session turn quota is persistent across instances", async () => {
   }
   await assert.rejects(store().claim(c.id, o, input()), { status: 429 });
 });
-test("evaluation-only quota selection retains bucket identities, ordinary limits, leases and immediate revocation", async () => {
+test("evaluation-only quota selection retains bucket identities, ordinary limits, leases and immediate revocation", async (t) => {
+  // Keep every assertion in the same minute/hour even across real CI rollovers.
+  const now = Date.now();
+  t.mock.method(Date, "now", () => now);
   const evaluationOwner = owner(),
     ordinaryOwner = owner();
   let approved = true;
@@ -195,6 +200,35 @@ test("evaluation-only quota selection retains bucket identities, ordinary limits
   });
   for (let n = 1; n < 11; n++) await fast().create(evaluationOwner);
   await assert.rejects(store().create(evaluationOwner), { status: 429 });
+});
+test("minute rollover creates a new quota bucket while preserving the prior bucket and ordinary limit", async (t) => {
+  let now = Math.floor(Date.now() / 3600000) * 3600000 + 59999;
+  t.mock.method(Date, "now", () => now);
+  const minute = Math.floor(now / 60000),
+    o = owner(),
+    c = await store().create(o);
+  const turn = async () => {
+    const i = input();
+    await store().claim(c.id, o, i);
+    await store().finish(c.id, o, {
+      requestId: i.requestId,
+      message: i.message,
+      answer: deterministicAnswer(demoData, i),
+    });
+  };
+  for (let n = 0; n < 6; n++) await turn();
+  await assert.rejects(store().claim(c.id, o, input()), { status: 429 });
+  now += 2;
+  for (let n = 0; n < 6; n++) await turn();
+  await assert.rejects(store().claim(c.id, o, input()), { status: 429 });
+  const counters = await pool.query(
+    "select key, amount from care_buckets where key=any($1::text[]) order by key",
+    [[`turn:owner:${o}:${minute}`, `turn:owner:${o}:${minute + 1}`]],
+  );
+  assert.deepEqual(counters.rows, [
+    { key: `turn:owner:${o}:${minute}`, amount: 6 },
+    { key: `turn:owner:${o}:${minute + 1}`, amount: 6 },
+  ]);
 });
 test("paid reservations are atomic across concurrent sessions and survive unknown outcomes", async () => {
   const s = store();
