@@ -1226,7 +1226,10 @@ export class StandingOwner {
                 budget.historicalLimit - budget.used,
               ),
               baselineUsed: 63,
-              maxAdditional: CAMPAIGN_EXECUTION_LIMIT - 63,
+              maxAdditional:
+                identifiedQuota && s.quotaCampaign
+                  ? s.quotaCampaign.maxAdditional
+                  : CAMPAIGN_EXECUTION_LIMIT - 63,
               used: budget.used,
               remaining: budget.remaining,
               held: budget.held,

@@ -182,7 +182,7 @@ export function recordsAnswer(
     questionScope: "library",
     context: null,
     text: explain
-      ? `${
+      ? `${query.categories.length ? `The current selection is ${query.categories.join(" + ")} only. ` : ""}${
           result.comparison
             ? `This compares recorded amounts for ${period} with ${result.comparison.from} through ${result.comparison.to} (inclusive; ${query.timezone}). Sample and Verified Sandbox are separate; unpriced/reference records are excluded from amounts.`
             : !records.length

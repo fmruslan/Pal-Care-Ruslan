@@ -144,6 +144,9 @@ describe("additive quota-only policy using established browser approval", () => 
   it("preserves the old disabled grant/deadline/revocations, requires a new approved browser and keeps 63/163", async () => {
     const f = await fixture(),
       before = await f.read();
+    expect(
+      await f.owner.status({ token: north150Token, agent: f.agent }),
+    ).toMatchObject({ campaign: { maxAdditional: 87 } });
     const { proof, pair } = await f.authorize();
     expect(pair.token).not.toBe(north150Token);
     expect(await f.owner.authenticate(proof)).toBe(pair.id);
@@ -172,6 +175,7 @@ describe("additive quota-only policy using established browser approval", () => 
         authorization: "quota-bounded",
         authorized: true,
         calendarExpiresAt: null,
+        maxAdditional: 100,
       },
       evaluation: {
         expiresAt: null,

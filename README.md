@@ -1,5 +1,7 @@
 # Pal Care
 
+**Genuine evaluation:** simplification is fixed and passed its counted retest. **102/163 attempts used; 61 remain.** Branded-product lookup and complaint-scope clarity defects are retained and have focused fixes under verification; no manufacturer manual or refund was fabricated. [Current results](docs/STATUS.md).
+
 **Real North testing is active:** the ninth context transition and a complete seven-question receipt → totals → corrected filters → native chart → sourced care → all purchases → History journey passed on private `ab16f86`. Simplification kept the correct records but merely repeated its answer; that genuine defect is retained and a small fix is under verification. **73/163 attempts used; 90 remain.** [Evidence and limits](docs/STATUS.md).
 
 **Latest North budget approval:** **100 additional provider attempts / 163 cumulative including the original 63**, without resetting accounting or changing historical grants. The uninstalled quota policy is being updated; activation and genuine retests remain pending. The previous 150/87 proposal and CI evidence below are historical. [Current status](docs/STATUS.md).
