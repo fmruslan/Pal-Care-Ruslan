@@ -75,6 +75,143 @@ function comparisonResult(
 }
 
 describe("grounded saved-record explanations — pure presentation", () => {
+  it.each(["table", "chart", "bullets"] as const)(
+    "uses exactly two concise provenance bullets without changing the %s records or query",
+    (format) => {
+      const result = querySavedRecords(
+        demoData,
+        {
+          ...emptyRecordsQuery(day),
+          operation: format === "chart" ? "breakdown" : "total",
+          format,
+        },
+        observedAt,
+      );
+      const before = JSON.stringify(result);
+      const answer = recordsAnswer(result, 2, false, "concise");
+
+      expect(answer.steps).toEqual([
+        "Sample: $307.00 (3 priced, 1 excluded).",
+        "Verified Sandbox: $0.00 (0 priced, 0 excluded).",
+      ]);
+      expect(answer.text).toContain("unknown is not zero");
+      expect(answer.text).toContain("No financial operation was performed");
+      expect(result.records).toHaveLength(4);
+      expect(
+        result.records.find((r) => r.name === "Raspberry Pi 5"),
+      ).toMatchObject({ amountMinor: null });
+      expect(answer.recordsResult).toBe(result);
+      expect(answer.recordsResult?.query.format).toBe(format);
+      expect(JSON.stringify(result)).toBe(before);
+      expect(answer.sources).toEqual([]);
+      expect(answer.actions).toEqual([]);
+    },
+  );
+
+  it("places applied category, provenance, dates and evidence scope before the count", () => {
+    const result = querySavedRecords(
+      demoData,
+      {
+        ...emptyRecordsQuery(day),
+        categories: ["Audio"],
+        origin: "sample",
+        from: "2026-10-01",
+        to: day,
+        receipt: "missing",
+        document: "present",
+        price: "present",
+        search: "speaker",
+      },
+      observedAt,
+    );
+    const before = JSON.stringify(result);
+    const answer = recordsAnswer(result, 2, false, "scope-first");
+
+    expect(
+      answer.text.startsWith(
+        'Scope: Audio only; Sample only; 2026-10-01 through 2026-11-03 (inclusive; UTC); receipts: missing; saved documents: present; recorded price: present; search: "speaker". 1 matching saved purchase',
+      ),
+    ).toBe(true);
+    expect(answer.recordsResult).toBe(result);
+    expect(JSON.stringify(result)).toBe(before);
+  });
+
+  it("states all-saved scope first when no category, provenance or date filter applies", () => {
+    const result = querySavedRecords(
+      demoData,
+      emptyRecordsQuery(day),
+      observedAt,
+    );
+    const answer = recordsAnswer(result, 2, false, "scope-first");
+
+    expect(
+      answer.text.startsWith(
+        "Scope: all saved purchases; Sample and Verified Sandbox; all saved dates. 4 matching saved purchases",
+      ),
+    ).toBe(true);
+  });
+
+  it.each(["concise", "scope-first"] as const)(
+    "retains partial-coverage and comparison evidence in %s presentation",
+    (presentation) => {
+      const result = comparisonResult(
+        [
+          record(1, "sample", 14900, "2026-11-02"),
+          record(2, "sample", null, "2026-11-02"),
+          record(3, "sandbox", 2000, "2026-11-02"),
+        ],
+        [
+          record(4, "sample", 8900, "2026-10-02"),
+          record(5, "sandbox", 3000, "2026-10-02"),
+          record(6, "sandbox", null, "2026-10-02"),
+        ],
+      );
+      result.coverage.complete = false;
+      const before = JSON.stringify(result);
+      const answer = recordsAnswer(result, 2, false, presentation);
+      const steps = answer.steps.join(" ");
+
+      expect(answer.text).toContain("2026-11-01 through 2026-11-03");
+      expect(answer.text).toContain("2026-10-01 through 2026-10-31");
+      expect(answer.text).toMatch(
+        /not complete-library totals|global totals are not established/,
+      );
+      expect(steps).toContain("$149.00 (1 priced, 1 excluded)");
+      expect(steps).toContain("previous $89.00 (1 priced, 0 excluded)");
+      expect(steps).toContain("difference +$60.00");
+      expect(steps).toContain("$20.00 (1 priced, 0 excluded)");
+      expect(steps).toContain("previous $30.00 (1 priced, 1 excluded)");
+      expect(steps).toContain("difference −$10.00");
+      expect(`${answer.text} ${steps}`).toContain("does not establish a cause");
+      if (presentation === "concise") expect(answer.steps).toHaveLength(2);
+      expect(answer.recordsResult).toBe(result);
+      expect(JSON.stringify(result)).toBe(before);
+    },
+  );
+
+  it("keeps an empty partial comparison and zero-prior warning within two concise bullets", () => {
+    const result = comparisonResult(
+      [],
+      [
+        record(1, "sample", null, "2026-10-02"),
+        record(2, "sandbox", 3000, "2026-10-02"),
+      ],
+    );
+    result.coverage.complete = false;
+    const answer = recordsAnswer(result, 2, true, "concise");
+
+    expect(answer.steps).toEqual([
+      "Sample: $0.00 (0 priced, 0 excluded); previous $0.00 (0 priced, 1 excluded); difference +$0.00.",
+      "Verified Sandbox: $0.00 (0 priced, 0 excluded); previous $30.00 (1 priced, 0 excluded); difference −$30.00.",
+    ]);
+    expect(answer.text).toContain("not complete-library totals");
+    expect(answer.text).toContain(
+      "Percentage growth from a zero prior value is not established",
+    );
+    expect(answer.text).not.toContain("No saved purchases match");
+    expect(answer.recordsResult?.comparison).toBe(result.comparison);
+  });
+
   it("states the applied Audio-only category without implying Kitchen is selected", () => {
     const result = querySavedRecords(
       demoData,

@@ -169,13 +169,14 @@ export function recordsAnswer(
   result: RecordsResult,
   revision: number,
   explain = false,
+  presentation: "standard" | "concise" | "scope-first" = "standard",
 ): CareAnswer {
   const { query, coverage, records } = result;
   const period =
     query.from || query.to
       ? `${query.from ?? "earliest available"} through ${query.to ?? query.referenceDate} (inclusive; ${query.timezone})`
       : "all saved dates";
-  return {
+  const answer: CareAnswer = {
     outcome: "answered",
     mode: "deterministic",
     revision,
@@ -241,11 +242,53 @@ export function recordsAnswer(
     actions: [],
     recordsResult: result,
   };
+  if (presentation === "standard") return answer;
+  const scope = `Scope: ${[
+    query.categories.length
+      ? `${query.categories.join(" + ")} only`
+      : "all saved purchases",
+    query.origin === "all"
+      ? "Sample and Verified Sandbox"
+      : query.origin === "sample"
+        ? "Sample only"
+        : "Verified Sandbox only",
+    period,
+    ...(query.receipt === "any" ? [] : [`receipts: ${query.receipt}`]),
+    ...(query.document === "any" ? [] : [`saved documents: ${query.document}`]),
+    ...(query.price === "any" ? [] : [`recorded price: ${query.price}`]),
+    ...(query.search ? [`search: ${JSON.stringify(query.search)}`] : []),
+  ].join("; ")}.`;
+  const comparison = result.comparison
+    ? ` Compared with ${result.comparison.from} through ${result.comparison.to} (inclusive; ${query.timezone}).`
+    : "";
+  if (presentation === "scope-first")
+    return { ...answer, text: `${scope}${comparison} ${answer.text}` };
+  return {
+    ...answer,
+    text: `${scope}${comparison} ${records.length} matching saved purchase${records.length === 1 ? "" : "s"}. Unpriced/reference records are excluded from amounts; unknown is not zero.${coverage.complete ? "" : " Only part of the saved library is available; these are not complete-library totals."}${result.comparison ? " A recorded-value difference does not establish a cause or a complete account trend." : ""}${result.comparison?.totals.some((total) => total.amountMinor === 0) ? " Percentage growth from a zero prior value is not established." : ""} No financial operation was performed.`,
+    steps: result.totals.map((total) =>
+      result.comparison
+        ? recordedValueComparison(
+            total,
+            result.comparison.totals.find(
+              (previous) => previous.origin === total.origin,
+            )!,
+            true,
+          )
+        : `${total.origin === "sample" ? "Sample" : "Verified Sandbox"}: ${money(total.amountMinor)} (${total.pricedCount} priced, ${total.excludedCount} excluded).`,
+    ),
+  };
 }
 
-function recordedValueComparison(total: RecordTotal, previous: RecordTotal) {
+function recordedValueComparison(
+  total: RecordTotal,
+  previous: RecordTotal,
+  concise = false,
+) {
   const name = total.origin === "sample" ? "Sample" : "Verified Sandbox";
   const delta = total.amountMinor - previous.amountMinor;
+  if (concise)
+    return `${name}: ${money(total.amountMinor)} (${total.pricedCount} priced, ${total.excludedCount} excluded); previous ${money(previous.amountMinor)} (${previous.pricedCount} priced, ${previous.excludedCount} excluded); difference ${delta < 0 ? "−" : "+"}${money(Math.abs(delta))}.`;
   return `${name} recorded-value comparison: current ${money(total.amountMinor)} (${total.pricedCount} priced, ${total.excludedCount} excluded), previous ${money(previous.amountMinor)} (${previous.pricedCount} priced, ${previous.excludedCount} excluded); difference ${delta < 0 ? "−" : "+"}${money(Math.abs(delta))}. ${previous.amountMinor === 0 ? "Percentage growth from a zero prior value is not established." : "A recorded-value difference does not establish a cause or a complete account trend."}`;
 }
 

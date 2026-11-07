@@ -1,5 +1,7 @@
 # Pal Care
 
+**Actual North campaign:** **148/163 attempts used; 15 remain for targeted retests.** The core journey, simplification, branded manual lookup and explicit Audio scope passed genuine tests. Remaining brevity/order/over-refusal findings are retained; small instruction-following fixes are under release verification. [Current evidence](docs/STATUS.md).
+
 **Genuine evaluation:** simplification is fixed and passed its counted retest. **102/163 attempts used; 61 remain.** Branded-product lookup and complaint-scope clarity defects are retained and have focused fixes under verification; no manufacturer manual or refund was fabricated. [Current results](docs/STATUS.md).
 
 **Real North testing is active:** the ninth context transition and a complete seven-question receipt → totals → corrected filters → native chart → sourced care → all purchases → History journey passed on private `ab16f86`. Simplification kept the correct records but merely repeated its answer; that genuine defect is retained and a small fix is under verification. **73/163 attempts used; 90 remain.** [Evidence and limits](docs/STATUS.md).
