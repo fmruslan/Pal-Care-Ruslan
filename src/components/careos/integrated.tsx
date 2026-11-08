@@ -621,6 +621,7 @@ export function IntegratedNorthView({
                   headingLevel={collectionPage ? 2 : 3}
                   presentation="inline"
                   result={answer!.recordsResult}
+                  intent={answer!.recordsPresentation}
                   autoApply={s.recordsSubmission === active.requestId}
                   onAutoApplyStarted={s.consumeRecords}
                   onNavigate={s.navigate}

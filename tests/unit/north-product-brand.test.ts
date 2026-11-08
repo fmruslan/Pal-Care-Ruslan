@@ -84,6 +84,32 @@ function setup(
 }
 
 describe("North product brand lookup — injected plans, no provider calls", () => {
+  it("does not replace the resolved October18 Sample receipt with the available October22 Sandbox purchase", async () => {
+    const options = setup("Forma F-01", {
+      from: "2026-10-18",
+      to: "2026-10-18",
+    });
+    const proposal = await options.interpret();
+    options.interpret.mockResolvedValue({
+      ...proposal,
+      productAction: "receipt",
+    });
+    options.input.message =
+      "Find my Sample Forma F-01 headphones receipt from 2026-10-18. It is not the verified Sandbox purchase.";
+    const answer = await answerConversationTurn(options);
+    expect(answer.context).toMatchObject({
+      twinId: sampleId,
+      origin: "sample",
+      purchasedOn: "2026-10-18",
+    });
+    expect(answer.purchaseChoices).toBeUndefined();
+    expect(answer.actions).toContainEqual({
+      label: "Open receipt",
+      href: "/documents/00000000-0000-4000-8000-000000000301",
+    });
+    expect(JSON.stringify(answer)).not.toContain(sandboxId);
+    expect(purchases().twins.some((t) => t.id === sandboxId)).toBe(true);
+  });
   it.each(["Forma headphones", "Forma headphones F-01"])(
     "finds the exact Sample branded headphones but honestly reports the manual missing: %s",
     async (search) => {

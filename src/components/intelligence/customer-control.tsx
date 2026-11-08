@@ -14,17 +14,26 @@ import {
   type InsightsRun,
 } from "./use-insights-conversation";
 import type { RecordsResult } from "@/lib/careos/records/contracts";
+import type { AgReportState } from "ag-studio";
+import { stateFingerprint } from "@/lib/intelligence/customer-observation";
 type RecordsRun = (
   result: RecordsResult,
   signal: AbortSignal,
   // Legacy callers may omit identity, but cannot establish correlated proof.
   requestId?: string,
+  restoreState?: AgReportState,
+) => Promise<AgReportState>;
+type ApplyRecords = (
+  result: RecordsResult,
+  signal: AbortSignal,
+  requestId?: string,
+  originalRequestId?: string,
 ) => Promise<void>;
 type Control = ReturnType<typeof useInsightsConversation> & {
   connected: boolean;
   register: (run: InsightsRun, reset?: () => void) => () => void;
   registerRecords: (run: RecordsRun) => () => void;
-  applyRecords: RecordsRun;
+  applyRecords: ApplyRecords;
   cancelRecords: () => void;
   registerDeparture: (release: () => void) => () => void;
   prepareDeparture: () => void;
@@ -43,6 +52,11 @@ export function InsightsControlProvider({ children }: { children: ReactNode }) {
   const handler = useRef<InsightsRun | null>(null);
   const recordsHandler = useRef<RecordsRun | null>(null);
   const recordsAction = useRef<AbortController | null>(null);
+  // Presentation-only, per mounted customer host. Never a browser-supplied
+  // server result or authority. Missing snapshots fail rather than recreate.
+  const verifiedRecords = useRef(
+    new Map<string, { result: string; state: AgReportState }>(),
+  );
   const departure = useRef(new Set<() => void>());
   const [connected, setConnected] = useState(false);
   const resetHandler = useRef<(() => void) | undefined>(undefined);
@@ -69,19 +83,47 @@ export function InsightsControlProvider({ children }: { children: ReactNode }) {
     };
   }, []);
   const applyRecords = useCallback(
-    async (result: RecordsResult, signal: AbortSignal, requestId?: string) => {
+    async (
+      result: RecordsResult,
+      signal: AbortSignal,
+      requestId?: string,
+      originalRequestId?: string,
+    ) => {
       if (!recordsHandler.current) throw new Error("insights_not_ready");
+      const saved = originalRequestId
+        ? verifiedRecords.current.get(originalRequestId)
+        : undefined;
+      if (
+        originalRequestId &&
+        (!saved || saved.result !== stateFingerprint(result))
+      )
+        throw new Error("insights_original_state_unavailable");
       recordsAction.current?.abort();
       const controller = new AbortController();
       recordsAction.current = controller;
       try {
-        await recordsHandler.current(
+        const state = await recordsHandler.current(
           result,
           AbortSignal.any([signal, controller.signal]),
           requestId,
+          saved ? structuredClone(saved.state) : undefined,
         );
         if (controller.signal.aborted || signal.aborted)
           throw new Error("insights_cancelled");
+        if (
+          requestId &&
+          !originalRequestId &&
+          !verifiedRecords.current.has(requestId)
+        ) {
+          verifiedRecords.current.set(requestId, {
+            result: stateFingerprint(result),
+            state: structuredClone(state),
+          });
+          if (verifiedRecords.current.size > 40)
+            verifiedRecords.current.delete(
+              verifiedRecords.current.keys().next().value!,
+            );
+        }
       } finally {
         if (recordsAction.current === controller) recordsAction.current = null;
       }

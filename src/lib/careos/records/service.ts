@@ -21,6 +21,7 @@ import {
 } from "./query";
 import { emptyRecordsQuery } from "./contracts";
 import { ownedFollowupHistory } from "./followup";
+import { prohibitsChartExecution } from "../interaction-limits";
 
 const hash = (value: unknown) =>
   createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -209,6 +210,7 @@ export function recordsAnswer(
                   result.comparison!.totals.find(
                     (previous) => previous.origin === total.origin,
                   )!,
+                  result,
                 ),
               )
             : []),
@@ -273,6 +275,7 @@ export function recordsAnswer(
             result.comparison.totals.find(
               (previous) => previous.origin === total.origin,
             )!,
+            result,
             true,
           )
         : `${total.origin === "sample" ? "Sample" : "Verified Sandbox"}: ${money(total.amountMinor)} (${total.pricedCount} priced, ${total.excludedCount} excluded).`,
@@ -283,13 +286,20 @@ export function recordsAnswer(
 function recordedValueComparison(
   total: RecordTotal,
   previous: RecordTotal,
+  result: RecordsResult,
   concise = false,
 ) {
   const name = total.origin === "sample" ? "Sample" : "Verified Sandbox";
   const delta = total.amountMinor - previous.amountMinor;
+  const first = `${result.query.from ?? "earliest available"} through ${result.query.to ?? result.query.referenceDate}`;
+  const second = `${result.comparison!.from} through ${result.comparison!.to}`;
+  const conclusion =
+    delta === 0
+      ? `Both periods have equal recorded ${name} value.`
+      : `${delta > 0 ? first : second} had ${money(Math.abs(delta))} more recorded ${name} value than ${delta > 0 ? second : first}.`;
   if (concise)
-    return `${name}: ${money(total.amountMinor)} (${total.pricedCount} priced, ${total.excludedCount} excluded); previous ${money(previous.amountMinor)} (${previous.pricedCount} priced, ${previous.excludedCount} excluded); difference ${delta < 0 ? "−" : "+"}${money(Math.abs(delta))}.`;
-  return `${name} recorded-value comparison: current ${money(total.amountMinor)} (${total.pricedCount} priced, ${total.excludedCount} excluded), previous ${money(previous.amountMinor)} (${previous.pricedCount} priced, ${previous.excludedCount} excluded); difference ${delta < 0 ? "−" : "+"}${money(Math.abs(delta))}. ${previous.amountMinor === 0 ? "Percentage growth from a zero prior value is not established." : "A recorded-value difference does not establish a cause or a complete account trend."}`;
+    return `${name}: ${first}: ${money(total.amountMinor)} (${total.pricedCount} priced, ${total.excludedCount} excluded); ${second}: ${money(previous.amountMinor)} (${previous.pricedCount} priced, ${previous.excludedCount} excluded). ${conclusion}`;
+  return `${name} recorded-value comparison: ${first}: ${money(total.amountMinor)} (${total.pricedCount} priced, ${total.excludedCount} excluded); ${second}: ${money(previous.amountMinor)} (${previous.pricedCount} priced, ${previous.excludedCount} excluded). ${conclusion} ${previous.amountMinor === 0 ? "Percentage growth from a zero prior value is not established." : "A recorded-value difference does not establish a cause or a complete account trend."}`;
 }
 
 /** Observed saved-data descriptions, never a model's causal/personal-spending claim. */
@@ -328,7 +338,7 @@ export function observedPatterns(result: RecordsResult): string[] {
       const previous = result.comparison.totals.find(
         (t) => t.origin === total.origin,
       )!;
-      observations.push(recordedValueComparison(total, previous));
+      observations.push(recordedValueComparison(total, previous, result));
     }
   }
   return observations;
@@ -346,6 +356,9 @@ export async function answerRecordsTurn(options: {
     options.input.followupRequestId,
   );
   const now = (options.now ?? (() => new Date()))();
+  const presentation = prohibitsChartExecution(options.input.message)
+    ? { recordsPresentation: { action: "inspect" as const } }
+    : {};
   if (
     recordsRequestAllowed(options.input.message) &&
     /\bwarrant(?:y|ies)\b/.test(normalizeRecordsLanguage(options.input.message))
@@ -404,16 +417,20 @@ export async function answerRecordsTurn(options: {
     return {
       ...answer,
       text: `Same saved result. ${answer.text}`,
+      ...presentation,
     };
   }
-  return recordsAnswer(
-    querySavedRecords(
-      await options.load(),
-      resolution.query,
-      now.toISOString(),
+  return {
+    ...recordsAnswer(
+      querySavedRecords(
+        await options.load(),
+        resolution.query,
+        now.toISOString(),
+      ),
+      options.input.revision,
     ),
-    options.input.revision,
-  );
+    ...presentation,
+  };
 }
 
 export function warrantyRecordsAnswer(

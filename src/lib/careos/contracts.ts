@@ -72,6 +72,11 @@ export type CareAnswer = {
   conversationPlan?: import("./records/conversation-service").ConversationPlan;
   /** Application-computed saved-record result; never model-supplied facts. */
   recordsResult?: import("./records/contracts").RecordsResult;
+  /** Server-owned result presentation intent, never model-supplied native state. */
+  recordsPresentation?: {
+    action: "inspect" | "restore";
+    originalRequestId?: string;
+  };
   recordsTopic?: "reset";
   /** Strict model proposal retained for individual evaluation, never proof of
    * provider completion or financial authority. Runtime accounting is separate. */

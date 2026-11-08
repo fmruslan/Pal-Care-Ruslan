@@ -54,7 +54,10 @@ export function recordsQueryContinuation(message: string) {
   return (
     followup.test(s) ||
     shortFollowup.test(s) ||
-    /\b(?:those|these) (?:purchases|records|items|products|results)\b|\b(?:that|this) (?:analysis|selection|result|breakdown|comparison)\b|\b(?:from|of|within|among|for) (?:those|these|them)\b/.test(
+    /\b(?:previous|original|earlier|saved) (?:chart|result|analysis)\b/.test(
+      s,
+    ) ||
+    /\b(?:those|these) (?:purchases|records|items|products|results)\b|\b(?:that|this) (?:(?:selected|saved) )?(?:analysis|selection|result|chart|breakdown|comparison)\b|\b(?:from|of|within|among|for) (?:those|these|them)\b/.test(
       s,
     ) ||
     /^(?:put|make|format|list|show|turn|return).{0,50}\b(?:those|that|results|them)\b.{0,40}\b(?:list|bullet|table|card)s?\b/.test(

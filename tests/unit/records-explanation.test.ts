@@ -177,11 +177,19 @@ describe("grounded saved-record explanations — pure presentation", () => {
         /not complete-library totals|global totals are not established/,
       );
       expect(steps).toContain("$149.00 (1 priced, 1 excluded)");
-      expect(steps).toContain("previous $89.00 (1 priced, 0 excluded)");
-      expect(steps).toContain("difference +$60.00");
+      expect(steps).toContain(
+        "2026-10-01 through 2026-10-31: $89.00 (1 priced, 0 excluded)",
+      );
+      expect(steps).toContain(
+        "2026-11-01 through 2026-11-03 had $60.00 more recorded Sample value",
+      );
       expect(steps).toContain("$20.00 (1 priced, 0 excluded)");
-      expect(steps).toContain("previous $30.00 (1 priced, 1 excluded)");
-      expect(steps).toContain("difference −$10.00");
+      expect(steps).toContain(
+        "2026-10-01 through 2026-10-31: $30.00 (1 priced, 1 excluded)",
+      );
+      expect(steps).toContain(
+        "2026-10-01 through 2026-10-31 had $10.00 more recorded Verified Sandbox value",
+      );
       expect(`${answer.text} ${steps}`).toContain("does not establish a cause");
       if (presentation === "concise") expect(answer.steps).toHaveLength(2);
       expect(answer.recordsResult).toBe(result);
@@ -201,8 +209,8 @@ describe("grounded saved-record explanations — pure presentation", () => {
     const answer = recordsAnswer(result, 2, true, "concise");
 
     expect(answer.steps).toEqual([
-      "Sample: $0.00 (0 priced, 0 excluded); previous $0.00 (0 priced, 1 excluded); difference +$0.00.",
-      "Verified Sandbox: $0.00 (0 priced, 0 excluded); previous $30.00 (1 priced, 0 excluded); difference −$30.00.",
+      "Sample: 2026-11-01 through 2026-11-03: $0.00 (0 priced, 0 excluded); 2026-10-01 through 2026-10-31: $0.00 (0 priced, 1 excluded). Both periods have equal recorded Sample value.",
+      "Verified Sandbox: 2026-11-01 through 2026-11-03: $0.00 (0 priced, 0 excluded); 2026-10-01 through 2026-10-31: $30.00 (1 priced, 0 excluded). 2026-10-01 through 2026-10-31 had $30.00 more recorded Verified Sandbox value than 2026-11-01 through 2026-11-03.",
     ]);
     expect(answer.text).toContain("not complete-library totals");
     expect(answer.text).toContain(
@@ -284,10 +292,10 @@ describe("grounded saved-record explanations — pure presentation", () => {
     expect(answer.text).toContain("2026-10-01 through 2026-10-31");
     expect(answer.text).toContain("unpriced/reference records are excluded");
     expect(answer.steps[0]).toContain(
-      "Sample recorded-value comparison: current $149.00 (1 priced, 1 excluded), previous $89.00 (1 priced, 0 excluded); difference +$60.00.",
+      "Sample recorded-value comparison: 2026-11-01 through 2026-11-03: $149.00 (1 priced, 1 excluded); 2026-10-01 through 2026-10-31: $89.00 (1 priced, 0 excluded). 2026-11-01 through 2026-11-03 had $60.00 more recorded Sample value",
     );
     expect(answer.steps[1]).toContain(
-      "Verified Sandbox recorded-value comparison: current $20.00 (1 priced, 0 excluded), previous $30.00 (1 priced, 1 excluded); difference −$10.00.",
+      "Verified Sandbox recorded-value comparison: 2026-11-01 through 2026-11-03: $20.00 (1 priced, 0 excluded); 2026-10-01 through 2026-10-31: $30.00 (1 priced, 1 excluded). 2026-10-01 through 2026-10-31 had $10.00 more recorded Verified Sandbox value",
     );
     expect(answer.steps[0]).toContain(
       "does not establish a cause or a complete account trend",
@@ -312,10 +320,10 @@ describe("grounded saved-record explanations — pure presentation", () => {
     expect(answer.text).not.toContain("No saved purchases match");
     expect(answer.text).toContain("not complete-library totals");
     expect(answer.steps[0]).toContain(
-      "Sample recorded-value comparison: current $0.00 (0 priced, 0 excluded), previous $89.00 (1 priced, 1 excluded); difference −$89.00.",
+      "Sample recorded-value comparison: 2026-11-01 through 2026-11-03: $0.00 (0 priced, 0 excluded); 2026-10-01 through 2026-10-31: $89.00 (1 priced, 1 excluded). 2026-10-01 through 2026-10-31 had $89.00 more recorded Sample value",
     );
     expect(answer.steps[1]).toContain(
-      "Verified Sandbox recorded-value comparison: current $0.00 (0 priced, 0 excluded), previous $30.00 (1 priced, 1 excluded); difference −$30.00.",
+      "Verified Sandbox recorded-value comparison: 2026-11-01 through 2026-11-03: $0.00 (0 priced, 0 excluded); 2026-10-01 through 2026-10-31: $30.00 (1 priced, 1 excluded). 2026-10-01 through 2026-10-31 had $30.00 more recorded Verified Sandbox value",
     );
     expect(answer.recordsResult?.comparison).toBe(result.comparison);
     expect(answer.sources).toEqual([]);
