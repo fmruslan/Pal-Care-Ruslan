@@ -17,6 +17,7 @@ import {
 } from "../../src/lib/careos/evaluation-recovery";
 import {
   quotaCampaignSchema,
+  quotaCampaignExtensionSchema,
   subscriptionIdentityHash,
 } from "../../src/lib/careos/quota-campaign";
 import { campaignBudget } from "../../src/lib/careos/campaign-execution";
@@ -105,7 +106,7 @@ async function fixture() {
         allocationId: RECOVERY_EVALUATION,
         ...(kind === "completed" ? { observation: { httpStatus: 200 } } : {}),
       });
-    let used = 63;
+    let used = campaignBudget(s.events).used;
     while (used < target) {
       const request = randomUUID(),
         marker = `customer:${request}:question:${randomUUID()}`;
@@ -132,12 +133,289 @@ async function fixture() {
     read,
     authorize,
     fill,
+    async extension() {
+      const s = await read();
+      return quotaCampaignExtensionSchema.parse({
+        version: 1,
+        campaignId: RECOVERY_EVALUATION,
+        approvedAt: clock.now(),
+        ownerApprovalHash: north150Hash(
+          "explicit second additional 100 approval",
+        ),
+        calendarExpiresAt: null,
+        baselineUsed: 163,
+        executionLimit: 263,
+        maxAdditional: 100,
+        previousAuthorizationHash: recoveryHash(s.quotaCampaign),
+        checkpointEventCount: s.events.length,
+        checkpointEventHash: recoveryHash(s.events),
+      });
+    },
     restart: () => new StandingOwner(f.files, clock.now),
   };
 }
 afterEach(async () => {
   for (const root of roots.splice(0))
     await rm(root, { recursive: true, force: true });
+});
+
+describe("one exact additive 163 to 263 amendment", () => {
+  async function exhausted() {
+    const f = await fixture();
+    const old = await f.authorize();
+    await f.fill(163);
+    await f.owner.revokeSession(old.pair.id);
+    return { ...f, old };
+  }
+  async function extend() {
+    const f = await exhausted();
+    const before = await f.read();
+    const extension = await f.extension();
+    await f.owner.installQuotaCampaignExtension(extension);
+    const pair = await f.owner.pair(f.agent, f.old.proof.token, f.recordsOwner);
+    const proof = { ...f.old.proof, token: pair.token };
+    await expect(f.owner.authenticate(proof)).rejects.toThrow();
+    await f.owner.approve(pair.id);
+    await f.owner.finishBrowser(proof);
+    return { ...f, before, extension, proof, pair };
+  }
+  it("preserves original policy, all 163 charges and revoked browsers; binds the new authorization across restart", async () => {
+    const f = await extend();
+    const after = await f.read();
+    expect(after.quotaCampaign).toEqual(f.before.quotaCampaign);
+    expect(after.policy).toEqual(f.before.policy);
+    expect(after.evaluation).toEqual(f.before.evaluation);
+    expect(after.sessions.slice(0, f.before.sessions.length)).toEqual(
+      f.before.sessions,
+    );
+    expect(after.events.slice(0, f.before.events.length)).toEqual(
+      f.before.events,
+    );
+    expect((await f.files.snapshot("evaluation-recovery.json"))!.hash).toBe(
+      f.grant!.hash,
+    );
+    expect(after.events[f.before.events.length]).toMatchObject({
+      kind: "approve-quota-campaign-extension",
+      executionLimit: 263,
+      subject: recoveryHash(f.extension),
+      allocationId: RECOVERY_EVALUATION,
+    });
+    expect(await f.restart().quotaCampaignStatus()).toMatchObject({
+      active: true,
+      executionLimit: 263,
+      baselineUsed: 163,
+      maxAdditional: 100,
+      used: 163,
+      remaining: 100,
+      authorizationHash: recoveryHash(f.extension),
+      ownerApprovalHash: f.extension.ownerApprovalHash,
+    });
+    expect(await f.restart().status(f.proof)).toMatchObject({
+      requestLimit: 263,
+      used: 163,
+      remaining: 100,
+      campaign: { authorized: true, baselineUsed: 163, maxAdditional: 100 },
+      standingAllocation: { used: 274, remaining: 26 },
+      unknown: 1,
+    });
+    const request = randomUUID(),
+      conversation = randomUUID();
+    await f
+      .restart()
+      .beginCampaignQuestion(f.proof, request, conversation, true);
+    expect(
+      await f
+        .restart()
+        .assertDispatch(
+          f.proof,
+          "customer",
+          true,
+          `customer:${request}:north_conversation_v1`,
+        ),
+    ).toMatchObject({
+      requestLimit: 263,
+      concurrency: 1,
+      maxRetries: 0,
+      providerIdentityHash: f.approval.providerIdentityHash,
+    });
+    await f.restart().finishCampaignQuestion(f.proof, request, conversation);
+    await expect(f.restart().authenticate(f.old.proof)).rejects.toThrow();
+    await expect(
+      f.owner.installQuotaCampaignExtension(f.extension),
+    ).rejects.toThrow("already_set");
+  });
+  it("converts the 261 two-stage hold to exactly 263, then denies without replenishment", async () => {
+    const f = await extend();
+    await f.fill(261);
+    const request = randomUUID(),
+      conversation = randomUUID();
+    await f
+      .restart()
+      .beginCampaignQuestion(f.proof, request, conversation, true);
+    expect(campaignBudget((await f.read()).events)).toMatchObject({
+      used: 261,
+      held: 2,
+    });
+    for (const stage of ["north_conversation_v1", "careos_care"]) {
+      await f
+        .restart()
+        .reserve(f.proof, "customer", `customer:${request}:${stage}`, true);
+      await f.restart().settle(`customer:${request}:${stage}`, "completed", {
+        httpStatus: 200,
+      });
+    }
+    await f.restart().finishCampaignQuestion(f.proof, request, conversation);
+    expect(campaignBudget((await f.read()).events)).toMatchObject({
+      used: 263,
+      remaining: 0,
+      held: 0,
+    });
+    const before = await f.read();
+    await expect(
+      f
+        .restart()
+        .beginCampaignQuestion(f.proof, randomUUID(), randomUUID(), true),
+    ).rejects.toThrow();
+    expect(await f.read()).toEqual(before);
+  });
+  it("denies a new question at 262 with no hold", async () => {
+    const f = await extend();
+    await f.fill(262);
+    await expect(
+      f
+        .restart()
+        .beginCampaignQuestion(f.proof, randomUUID(), randomUUID(), true),
+    ).rejects.toThrow();
+    expect(campaignBudget((await f.read()).events)).toMatchObject({
+      used: 262,
+      remaining: 1,
+      held: 0,
+    });
+  });
+  it("cannot apply the amendment before the 163 checkpoint or retroactively fund an old question", async () => {
+    const f = await extend();
+    const events = structuredClone((await f.read()).events);
+    const [approval] = events.splice(f.before.events.length, 1);
+    events.splice(786, 0, approval);
+    expect(() => campaignBudget(events)).toThrow("invalid_ledger");
+    const prefix = structuredClone(f.before.events);
+    const request = randomUUID();
+    prefix.push({
+      id: randomUUID(),
+      at: f.clock.now(),
+      kind: "question-open",
+      subject: `customer:${request}:question:${randomUUID()}`,
+      allocationId: RECOVERY_EVALUATION,
+    });
+    prefix.push(approval);
+    expect(() => campaignBudget(prefix)).toThrow("invalid_ledger");
+  });
+  it.each(["agent", "records", "channel", "origin"])(
+    "retains the inherited %s boundary",
+    async (field) => {
+      const f = await extend();
+      const bad = { ...f.proof };
+      if (field === "agent") bad.agent = "different-browser";
+      if (field === "records") bad.recordsOwnerDigest = "0".repeat(64);
+      if (field === "channel") bad.channel = undefined;
+      if (field === "origin") bad.origin = "https://example.invalid";
+      await expect(
+        f
+          .restart()
+          .beginCampaignQuestion(bad, randomUUID(), randomUUID(), true),
+      ).rejects.toThrow();
+      expect(campaignBudget((await f.read()).events).used).toBe(163);
+    },
+  );
+  it.each(["policy", "provider", "campaign", "session"])(
+    "fails closed on %s revocation after extension",
+    async (kind) => {
+      const f = await extend();
+      if (kind === "policy") await f.owner.revokePolicy(f.proof);
+      if (kind === "provider") await f.owner.blockProvider();
+      if (kind === "campaign") await f.owner.disableEvaluationRecovery();
+      if (kind === "session") await f.owner.revokeSession(f.pair.id);
+      await expect(
+        f
+          .restart()
+          .beginCampaignQuestion(f.proof, randomUUID(), randomUUID(), true),
+      ).rejects.toThrow();
+      expect(campaignBudget((await f.read()).events).used).toBe(163);
+    },
+  );
+  it.each([
+    "baseline",
+    "prefix",
+    "previous",
+    "owner",
+    "cap",
+    "deadline",
+    "provider",
+    "policy",
+    "browser",
+    "unsettled",
+  ])("rejects invalid %s installation without writes", async (kind) => {
+    const f = await exhausted();
+    if (kind === "baseline" || kind === "browser" || kind === "unsettled") {
+      const s = await f.read();
+      if (kind === "baseline")
+        s.events.splice(
+          s.events.findLastIndex((e) => e.kind === "question-open"),
+          6,
+        );
+      if (kind === "browser")
+        s.sessions.find((s) => s.id === f.old.pair.id)!.revoked = false;
+      if (kind === "unsettled")
+        s.events.splice(
+          s.events.findLastIndex((e) => e.kind === "question-close"),
+          1,
+        );
+      await f.files.write("owner-state.json", s);
+    }
+    if (kind === "provider") await f.owner.blockProvider();
+    if (kind === "policy") {
+      const s = await f.read();
+      s.events.push({
+        id: randomUUID(),
+        at: f.clock.now(),
+        kind: "revoke-policy",
+        subject: s.policy!.id,
+      });
+      await f.files.write("owner-state.json", s);
+    }
+    const extension = (await f.extension()) as Record<string, unknown>;
+    if (kind === "prefix") extension.checkpointEventHash = "0".repeat(64);
+    if (kind === "previous")
+      extension.previousAuthorizationHash = "0".repeat(64);
+    if (kind === "owner")
+      extension.ownerApprovalHash = f.approval.ownerApprovalHash;
+    if (kind === "cap") extension.executionLimit = 300;
+    if (kind === "deadline") extension.calendarExpiresAt = Date.now();
+    const before = await f.read();
+    await expect(
+      f.owner.installQuotaCampaignExtension(extension),
+    ).rejects.toThrow();
+    expect(await f.read()).toEqual(before);
+  });
+  it.each(["prefix", "approval", "missing-extension", "stale-original"])(
+    "denies tampered %s authorization on restart",
+    async (kind) => {
+      const f = await extend();
+      const s = await f.read();
+      if (kind === "prefix") s.events[800].subject += "changed";
+      if (kind === "approval")
+        s.events[f.before.events.length].subject = recoveryHash(f.approval);
+      if (kind === "missing-extension") delete s.quotaCampaignExtension;
+      if (kind === "stale-original")
+        s.quotaCampaignExtension!.previousAuthorizationHash = "0".repeat(64);
+      await f.files.write("owner-state.json", s);
+      await expect(
+        f
+          .restart()
+          .beginCampaignQuestion(f.proof, randomUUID(), randomUUID(), true),
+      ).rejects.toThrow();
+    },
+  );
 });
 
 describe("additive quota-only policy using established browser approval", () => {

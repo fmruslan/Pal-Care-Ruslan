@@ -7,6 +7,8 @@ import { PilotFiles } from "./subscription/files";
 import { northReviewOrigin } from "../private-preview-origin";
 import {
   quotaCampaignSchema,
+  quotaCampaignExtensionSchema,
+  assertQuotaCampaignExtensionIntegrity,
   assertQuotaCampaignIntegrity,
 } from "./quota-campaign";
 import {
@@ -71,7 +73,7 @@ const evaluationSchema = evaluationApprovalSchema.extend({
   baselineEventHash: digest,
 });
 const eventSchema = z.strictObject({
-  executionLimit: z.literal(163).optional(),
+  executionLimit: z.union([z.literal(163), z.literal(263)]).optional(),
   id: z.uuid(),
   at: time,
   kind: z.enum([
@@ -92,6 +94,7 @@ const eventSchema = z.strictObject({
     "question-open",
     "question-close",
     "approve-quota-campaign",
+    "approve-quota-campaign-extension",
     "revoke-quota-campaign",
   ]),
   subject: z.string().min(1).max(200),
@@ -121,6 +124,7 @@ const stateSchema = z.strictObject({
   policy: standingPolicySchema.nullable(),
   evaluation: evaluationSchema.optional(),
   quotaCampaign: quotaCampaignSchema.optional(),
+  quotaCampaignExtension: quotaCampaignExtensionSchema.optional(),
   sessions: z
     .array(
       z.strictObject({
@@ -309,6 +313,32 @@ export class StandingOwner {
       s.events.at(-1)!.executionLimit = q.executionLimit;
     });
   }
+  /** Host-only, once-only exact amendment; browser approval remains separate. */
+  async installQuotaCampaignExtension(value: unknown) {
+    const x = quotaCampaignExtensionSchema.parse(value);
+    return this.change(async (s) => {
+      if (
+        s.quotaCampaignExtension ||
+        s.events.some((e) => e.kind === "approve-quota-campaign-extension")
+      )
+        return deny("quota_campaign_extension_already_set");
+      await this.quotaPolicy(s);
+      if (
+        !s.policy ||
+        s.sessions.some(
+          (entry) =>
+            entry.allocationId === RECOVERY_EVALUATION && !entry.revoked,
+        )
+      )
+        return deny("quota_campaign_extension_denied");
+      s.quotaCampaignExtension = x;
+      assertQuotaCampaignExtensionIntegrity(s, this.now(), true);
+      this.event(s, "approve-quota-campaign-extension", recoveryHash(x));
+      s.events.at(-1)!.allocationId = RECOVERY_EVALUATION;
+      s.events.at(-1)!.executionLimit = x.executionLimit;
+      await this.quotaPolicy(s);
+    });
+  }
   private async principal(s: State, proof: OwnerProof, admission = false) {
     if (!proof.token || !/^[a-f0-9]{64}$/.test(proof.token))
       return deny("signin_required");
@@ -464,6 +494,7 @@ export class StandingOwner {
     return principal.recovered || fixedCampaign
       ? {
           ...p,
+          requestLimit: limit,
           maxRetries: 0,
           concurrency: 1,
           scopes: ["customer"] as ("customer" | "customer-studio")[],
@@ -1092,7 +1123,12 @@ export class StandingOwner {
           active: true as const,
           campaignId: q.campaignId,
           ownerApprovalHash: q.ownerApprovalHash,
-          authorizationHash: recoveryHash(q),
+          authorizationHash: recoveryHash(
+            s.quotaCampaignExtension ?? s.quotaCampaign,
+          ),
+          executionLimit: q.executionLimit,
+          baselineUsed: q.baselineUsed,
+          maxAdditional: q.maxAdditional,
           approvedAt: q.approvedAt,
           browserSessionId:
             s.sessions.find(
@@ -1225,7 +1261,7 @@ export class StandingOwner {
                 0,
                 budget.historicalLimit - budget.used,
               ),
-              baselineUsed: 63,
+              baselineUsed: s.quotaCampaignExtension?.baselineUsed ?? 63,
               maxAdditional:
                 identifiedQuota && s.quotaCampaign
                   ? s.quotaCampaign.maxAdditional
