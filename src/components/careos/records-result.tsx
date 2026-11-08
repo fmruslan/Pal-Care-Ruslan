@@ -84,6 +84,8 @@ export function RecordsResultView({
     setApplying(true);
     setChartStatus("");
     try {
+      if (intent?.action === "restore" && !intent.originalRequestId)
+        throw new Error("insights_original_identity_missing");
       await applyRecords(
         recordsResultSchema.parse(raw),
         AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]),

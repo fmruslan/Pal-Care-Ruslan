@@ -22,6 +22,7 @@ test("recorded chart restoration and no-new-chart instruction use original SDK s
 }) => {
   test.setTimeout(90000);
   const history: CareTurn[] = [];
+  let omitOriginalIdentity = false;
   await page.route(
     /\/api\/careos\/(?:records\/)?conversations\/[^/]+\/(turns|interpret)$/,
     async (route) => {
@@ -69,6 +70,11 @@ test("recorded chart restoration and no-new-chart instruction use original SDK s
           throw Error("no provider");
         },
       });
+      if (
+        omitOriginalIdentity &&
+        answer.recordsPresentation?.action === "restore"
+      )
+        delete answer.recordsPresentation.originalRequestId;
       const turn = {
         requestId: input.requestId,
         message: input.message,
@@ -155,6 +161,23 @@ test("recorded chart restoration and no-new-chart instruction use original SDK s
   // same owned result must now fail visibly, never recreate the chart.
   await page.goto("/dashboard");
   await page.reload();
+  await submitLanguageTurn(
+    page,
+    "Go back to the previous chart result without rerunning it or making a new chart.",
+  );
+  await expect(
+    page.getByText(
+      "The original verified native state is unavailable or restoration could not be verified.",
+      { exact: false },
+    ),
+  ).toBeVisible();
+  expect(await studio.getAttribute("data-native-readback")).toBeNull();
+  await expect(
+    studio
+      .locator(".ag-studio-layout-widget-title")
+      .filter({ hasText: "Recorded value (USD)" }),
+  ).toHaveCount(0);
+  omitOriginalIdentity = true;
   await submitLanguageTurn(
     page,
     "Go back to the previous chart result without rerunning it or making a new chart.",
