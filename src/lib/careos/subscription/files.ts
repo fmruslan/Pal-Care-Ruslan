@@ -55,6 +55,7 @@ type FileName =
   | "standing-approval.json"
   | "evaluation-approval.json"
   | "quota-campaign-approval.json"
+  | "quota-campaign-extension-approval.json"
   | "evaluation-recovery.json"
   | "evaluation-recovery-transition.json"
   | "north-review-origin-approval.json"

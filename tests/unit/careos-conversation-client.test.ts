@@ -51,6 +51,19 @@ describe("CareOS browser recovery hints", () => {
       provider: "Refresh needed before authorized use",
     };
     expect(ownerSendState(status)).toBe("ready");
+    expect(
+      ownerSendState({
+        ...status,
+        remaining: 100,
+        campaign: {
+          executionLimit: 263,
+          availableForNewQuestion: 100,
+          questionActive: false,
+          maxQuestionStages: 2,
+          authorized: true,
+        },
+      }),
+    ).toBe("ready");
     expect(ownerSendState({ ...status, remembered: false })).toBe("signin");
     expect(ownerSendState({ ...status, revoked: true })).toBe("disabled");
     expect(ownerSendState({ ...status, remaining: 0 })).toBe("exhausted");

@@ -36,6 +36,80 @@ export const quotaCampaignSchema = z.strictObject({
   providerIdentityHash: digest,
 });
 export type QuotaCampaign = z.infer<typeof quotaCampaignSchema>;
+/** One exact amendment, not a renewable allowance or replacement policy. */
+export const quotaCampaignExtensionSchema = z.strictObject({
+  version: z.literal(1),
+  campaignId: z.literal(RECOVERY_EVALUATION),
+  approvedAt: z.number().int().nonnegative(),
+  ownerApprovalHash: digest,
+  calendarExpiresAt: z.null(),
+  baselineUsed: z.literal(163),
+  executionLimit: z.literal(263),
+  maxAdditional: z.literal(100),
+  previousAuthorizationHash: digest,
+  checkpointEventCount: z.number().int().positive(),
+  checkpointEventHash: digest,
+});
+export type QuotaCampaignExtension = z.infer<
+  typeof quotaCampaignExtensionSchema
+>;
+
+export function assertQuotaCampaignExtensionIntegrity(
+  state: OwnerState,
+  now: number,
+  installing = false,
+) {
+  const x = state.quotaCampaignExtension;
+  const q = state.quotaCampaign;
+  const prefix = state.events.slice(0, x?.checkpointEventCount ?? 0);
+  const approvals = state.events.filter(
+    (e) => e.kind === "approve-quota-campaign-extension",
+  );
+  const checkpoint = campaignBudget(prefix);
+  const reserves = prefix.filter(
+    (e) => e.kind === "reserve" && e.allocationId === RECOVERY_EVALUATION,
+  );
+  if (
+    !x ||
+    !q ||
+    x.previousAuthorizationHash !== recoveryHash(q) ||
+    x.ownerApprovalHash === q.ownerApprovalHash ||
+    x.approvedAt < q.approvedAt ||
+    x.approvedAt > now ||
+    prefix.length !== x.checkpointEventCount ||
+    recoveryHash(prefix) !== x.checkpointEventHash ||
+    prefix.some((e) => e.at > x.approvedAt) ||
+    checkpoint.executionLimit !== 163 ||
+    checkpoint.used !== 163 ||
+    checkpoint.activeQuestion ||
+    new Set(reserves.map((e) => e.subject)).size !== 163 ||
+    reserves.some(
+      (e) =>
+        prefix.filter(
+          (v) =>
+            v.subject === e.subject &&
+            ["completed", "failed", "unknown"].includes(v.kind),
+        ).length !== 1,
+    ) ||
+    state.sessions.some(
+      (s) =>
+        s.allocationId === RECOVERY_EVALUATION &&
+        prefix.some((e) => e.kind === "pair" && e.subject === s.id) &&
+        !s.revoked,
+    ) ||
+    (installing
+      ? approvals.length !== 0 || prefix.length !== state.events.length
+      : approvals.length !== 1 ||
+        state.events[x.checkpointEventCount] !== approvals[0] ||
+        approvals[0].subject !== recoveryHash(x) ||
+        approvals[0].allocationId !== RECOVERY_EVALUATION ||
+        approvals[0].executionLimit !== 263 ||
+        approvals[0].at < x.approvedAt ||
+        approvals[0].at > now)
+  )
+    throw new CareError("careos_owner_quota_campaign_extension_denied", 403);
+  return x;
+}
 export function subscriptionIdentityHash(registration: Registration | null) {
   if (!registration)
     throw new CareError("careos_owner_provider_identity_denied", 403);
@@ -116,11 +190,19 @@ export function assertQuotaCampaignIntegrity(
     })
   )
     throw new CareError("careos_owner_quota_campaign_accounting_denied", 403);
+  const extensionEvents = state.events.some(
+    (e) => e.kind === "approve-quota-campaign-extension",
+  );
+  const extension = state.quotaCampaignExtension
+    ? assertQuotaCampaignExtensionIntegrity(state, now)
+    : undefined;
+  if (extensionEvents && !extension)
+    throw new CareError("careos_owner_quota_campaign_extension_denied", 403);
   const budget = campaignBudget(state.events);
   if (
-    budget.used > q.executionLimit ||
+    budget.used > (extension?.executionLimit ?? q.executionLimit) ||
     (installing && (budget.used !== 63 || budget.activeQuestion))
   )
     throw new CareError("careos_owner_quota_campaign_accounting_denied", 403);
-  return q;
+  return extension ? { ...q, ...extension } : q;
 }

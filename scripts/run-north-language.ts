@@ -74,6 +74,7 @@ type Work = {
   input: string;
   goal: Goal;
   expected: string;
+  semanticOnly?: boolean;
 };
 type Progress = {
   campaign: string;
@@ -97,6 +98,9 @@ type Progress = {
   groupRequestIds?: Record<string, string[]>;
   reviewedCaseIds?: string[];
   reviewedNext?: number;
+  executionBaseline?: number;
+  supplementalWork?: Work[];
+  supplementalWorkHash?: string;
 };
 const [action, output, batchText] = process.argv.slice(2);
 if (
@@ -266,6 +270,7 @@ let context:
   page: Page | undefined;
 let stopReason: string | undefined;
 let campaignBrowserId: string | undefined;
+let executionCeiling: number = CAMPAIGN_EXECUTION_LIMIT;
 let journalFailed = false;
 const errors: string[] = [],
   forbidden: string[] = [];
@@ -466,6 +471,12 @@ try {
   if (!authorization.active || !authorization.browserSessionId)
     throw Error("approved_quota_policy_and_authenticated_browser_required");
   campaignBrowserId = authorization.browserSessionId;
+  executionCeiling = authorization.executionLimit;
+  if (
+    progress.executionBaseline !== undefined &&
+    progress.executionBaseline !== authorization.baselineUsed
+  )
+    throw Error("approved_execution_baseline_required");
   // Broader batches must not precede the separately observed complete journey.
   // This records observed journey review, never authority or human acceptance.
   const journeyPath = join(output, "journey-150-accepted.json");
@@ -481,7 +492,7 @@ try {
   if (
     journey.evaluationId !== RECOVERY_EVALUATION ||
     journey.sessionId !== RECOVERY_SESSION ||
-    journey.executionLimit !== CAMPAIGN_EXECUTION_LIMIT ||
+    journey.executionLimit !== executionCeiling ||
     journey.authorizationHash !== authorization.authorizationHash ||
     journey.commit !== source.commit ||
     journey.sourceHash !== source.sourceHash ||
@@ -506,6 +517,25 @@ try {
       const catalog = new Map<string, Work>(
         [...work, ...holdout].map((item) => [item.id, item]),
       );
+      if (progress.supplementalWork) {
+        if (
+          progress.supplementalWork.length > 100 ||
+          hash(progress.supplementalWork) !== progress.supplementalWorkHash
+        )
+          throw Error("reviewed_supplemental_case_hash_required");
+        for (const item of progress.supplementalWork) {
+          if (
+            catalog.has(item.id) ||
+            !/^[A-Za-z0-9-]{1,100}$/.test(item.id) ||
+            !/^[A-Za-z0-9-]{1,100}$/.test(item.group) ||
+            !item.input.trim() ||
+            item.input.length > 2000 ||
+            !item.expected.trim()
+          )
+            throw Error("distinct_bounded_supplemental_case_required");
+          catalog.set(item.id, item);
+        }
+      }
       if (
         !ids.length ||
         ids.length > 100 ||
@@ -634,7 +664,7 @@ try {
       browserStatus.evaluation.id !== progress.allocationId ||
       browserStatus.revoked ||
       browserStatus.providerBlocked ||
-      browserStatus.campaign?.executionLimit !== CAMPAIGN_EXECUTION_LIMIT ||
+      browserStatus.campaign?.executionLimit !== executionCeiling ||
       browserStatus.campaign.authorization !== "quota-bounded" ||
       browserStatus.campaign.authorized !== true ||
       browserStatus.campaign.availableForNewQuestion < QUESTION_MAX_STAGES ||
@@ -701,6 +731,7 @@ try {
           body.answer,
           observation,
         );
+        if (item.semanticOnly) assessment.semanticReviewRequired = true;
         if (item.id.replace(/(?:-R\d+)+$/, "") === "NC-22-3") {
           if (!priorRequestId) throw Error("owned_previous_result_required");
           const beforeHistory = used(await host());
@@ -751,6 +782,10 @@ try {
       category: item.category,
       input: item.input,
       expected: item.expected,
+      assessmentScope: item.semanticOnly
+        ? "Rendering/transport checks only; independent semantic review required"
+        : "Existing frozen goal checks plus semantic review",
+      supplementalWorkHash: progress.supplementalWorkHash,
       startedAt,
       finishedAt: Date.now(),
       source: await checkpoint(),
@@ -848,10 +883,13 @@ try {
     campaign: LANGUAGE_CAMPAIGN,
     observedAt: new Date().toISOString(),
     totalAttempts: used(s),
-    baselineAttempts: 63,
-    additionalAttempts: Math.max(0, used(s) - 63),
+    baselineAttempts: progress?.executionBaseline ?? 63,
+    additionalAttempts: Math.max(
+      0,
+      used(s) - (progress?.executionBaseline ?? 63),
+    ),
     historicalGrant: 300,
-    executionCeiling: CAMPAIGN_EXECUTION_LIMIT,
+    executionCeiling,
     remaining: campaignBudget(s.events).remaining,
     next: progress?.next ?? 0,
     paused: progress?.paused ?? null,

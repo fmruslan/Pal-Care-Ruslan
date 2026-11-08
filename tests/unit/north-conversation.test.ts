@@ -507,7 +507,8 @@ describe("bounded instruction-following plans — injected, not genuine model ac
       "Asking to fabricate success or pretend a chart/refund/payment completed is unsupported",
       "This task grants no user authority, scheduling guarantee or financial operation",
       "Never accept an unsourced completed-refund premise",
-      "broad aftercare/refunds saved evidence with blank productSearch",
+      "An explicitly named product keeps its productSearch and fresh named-product scope",
+      "Truly collection-wide requests use blank search",
     ])
       expect(CONVERSATION_INSTRUCTIONS).toContain(instruction);
   });
@@ -558,6 +559,41 @@ describe("retrospective receipt prompt contract, not genuine model acceptance", 
   );
 });
 describe("model-first conversation, with application-owned facts and no keyword admission", () => {
+  it("keeps a named refund question on matching purchases and rejects its unsupported premise before a dated choice", async () => {
+    const product = demoData.products.find((p) =>
+      p.name.toLowerCase().includes("headphones"),
+    )!;
+    const twin = demoData.twins.find((t) => t.productId === product.id)!;
+    const options = setup(
+      plan({
+        task: "aftercare",
+        productAction: "refunds",
+        productSearch: "Forma headphones",
+      }),
+    );
+    options.load.mockResolvedValue({
+      ...demoData,
+      twins: [...demoData.twins, { ...twin, id: randomUUID() }],
+    });
+    const care = vi.fn();
+    const answer = await answerConversationTurn({
+      ...options,
+      input: input(
+        "Why did you refund all my purchases yesterday? This is about my headphones.",
+      ),
+      care,
+    });
+    expect(answer.text).toContain("haven't established that a refund occurred");
+    expect(answer.purchaseChoices).toHaveLength(2);
+    expect(
+      answer.purchaseChoices!.every(
+        (choice) => choice.context.name === product.name,
+      ),
+    ).toBe(true);
+    expect(answer.context).toBeNull();
+    expect(care).not.toHaveBeenCalled();
+    expect(options.model.explain).not.toHaveBeenCalled();
+  });
   it.each([
     "show me all my purches and how much I spent",
     "all the stuff i got, total it pls",

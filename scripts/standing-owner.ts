@@ -15,11 +15,18 @@ try {
       "approve-evaluation",
       "approve-review-origin",
       "approve-quota-campaign",
+      "approve-quota-campaign-extension",
     ].includes(action)
   )
     throw new Error("usage");
   const owner = new StandingOwner();
-  if (action === "approve-quota-campaign") {
+  if (action === "approve-quota-campaign-extension") {
+    if (id !== "quota-campaign-extension-approval.json")
+      throw new Error("usage");
+    await owner.installQuotaCampaignExtension(
+      await owner.files.read("quota-campaign-extension-approval.json"),
+    );
+  } else if (action === "approve-quota-campaign") {
     if (id !== "quota-campaign-approval.json") throw new Error("usage");
     await owner.installQuotaCampaign(
       await owner.files.read("quota-campaign-approval.json"),
@@ -54,13 +61,15 @@ try {
     await owner.installPolicy(policy);
   }
   console.log(
-    action === "approve-quota-campaign"
-      ? "Quota-bounded campaign policy stored without a calendar deadline. Historical grants/usage unchanged; normal browser approval and provider checks remain required."
-      : action === "approve-review-origin"
-        ? "Exact review origin approved against the existing policy. No allowance, session or expiry was reset."
-        : action === "approve-policy"
-          ? "Exact standing policy stored. Runtime activation and provider credentials unchanged."
-          : "Browser access updated. AI permission and provider credentials unchanged.",
+    action === "approve-quota-campaign-extension"
+      ? "Exact owner-approved 100-attempt amendment stored. All previous grants and charges retained; normal browser approval and provider checks remain required."
+      : action === "approve-quota-campaign"
+        ? "Quota-bounded campaign policy stored without a calendar deadline. Historical grants/usage unchanged; normal browser approval and provider checks remain required."
+        : action === "approve-review-origin"
+          ? "Exact review origin approved against the existing policy. No allowance, session or expiry was reset."
+          : action === "approve-policy"
+            ? "Exact standing policy stored. Runtime activation and provider credentials unchanged."
+            : "Browser access updated. AI permission and provider credentials unchanged.",
   );
 } catch {
   console.error(

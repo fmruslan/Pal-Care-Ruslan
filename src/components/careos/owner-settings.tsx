@@ -29,7 +29,7 @@ const statusSchema = z.object({
   campaign: z
     .object({
       historicalLimit: z.literal(300),
-      executionLimit: z.union([z.literal(150), z.literal(163)]),
+      executionLimit: z.union([z.literal(150), z.literal(163), z.literal(263)]),
       historicalRemaining: z.number().int().nonnegative(),
       held: z.number().int().nonnegative(),
       authorized: z.boolean().optional(),

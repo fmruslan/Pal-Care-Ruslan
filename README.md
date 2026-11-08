@@ -1,5 +1,7 @@
 # Pal Care
 
+**Next North evaluation approved:** **100 more counted attempts**, raising the cumulative ceiling from exhausted **163** to **263** without resetting previous grants/results. One exact auditable amendment is under verification; it is not active yet. The next campaign prioritizes unresolved refund/history/scheduling cases, dates/comparisons and genuine long conversations, with a full report at completion. [Actual status](docs/STATUS.md).
+
 **Actual North campaign:** **148/163 attempts used; 15 remain for targeted retests.** The core journey, simplification, branded manual lookup and explicit Audio scope passed genuine tests. Remaining brevity/order/over-refusal findings are retained; small instruction-following fixes are under release verification. [Current evidence](docs/STATUS.md).
 
 **Genuine evaluation:** simplification is fixed and passed its counted retest. **102/163 attempts used; 61 remain.** Branded-product lookup and complaint-scope clarity defects are retained and have focused fixes under verification; no manufacturer manual or refund was fabricated. [Current results](docs/STATUS.md).
