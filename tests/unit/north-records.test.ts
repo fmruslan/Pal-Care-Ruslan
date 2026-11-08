@@ -566,7 +566,7 @@ describe("North saved-record query foundation — provider-free, no financial wr
       "Percentage growth from a zero prior value is not established",
     );
     expect(recordsAnswer(r, 1).steps.join(" ")).toContain(
-      "difference +$307.00",
+      "2026-10-01 through 2026-10-31 had $307.00 more recorded Sample value",
     );
   });
   it("describes category patterns from inspectable recorded amounts, not model guesses or catalog prices", () => {

@@ -1,5 +1,7 @@
 # Pal Care
 
+**North defect correction — under verification:** the latest genuine campaign finished **100 additional attempts / 99 questions: 91 pass, five partial, three fail**, exhausted at **263/263**, with the test browser revoked. Focused fixes target exact Sample receipt identity, explanation without native execution, owned chart restoration, explicit reminder limitations, date comparisons and pending-eCheck uncertainty. No new live calls, allocation or financial permission. Earlier campaign counters below are historical. [Current implementation and release gates](docs/STATUS.md).
+
 **Next North evaluation approved:** **100 more counted attempts**, raising the cumulative ceiling from exhausted **163** to **263** without resetting previous grants/results. One exact auditable amendment is under verification; it is not active yet. The next campaign prioritizes unresolved refund/history/scheduling cases, dates/comparisons and genuine long conversations, with a full report at completion. [Actual status](docs/STATUS.md).
 
 **Actual North campaign:** **148/163 attempts used; 15 remain for targeted retests.** The core journey, simplification, branded manual lookup and explicit Audio scope passed genuine tests. Remaining brevity/order/over-refusal findings are retained; small instruction-following fixes are under release verification. [Current evidence](docs/STATUS.md).

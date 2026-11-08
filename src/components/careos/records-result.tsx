@@ -54,6 +54,7 @@ export function RecordsResultView({
   onAutoApplyStarted,
   presentation = "transcript",
   headingLevel = 3,
+  intent,
 }: {
   result: RecordsResult;
   /** Actual rendered turn identity; presentation evidence, never authority. */
@@ -63,6 +64,7 @@ export function RecordsResultView({
   onAutoApplyStarted?: () => void;
   presentation?: "inline" | "transcript";
   headingLevel?: 2 | 3;
+  intent?: import("@/lib/careos/contracts").CareAnswer["recordsPresentation"];
 }) {
   const ResultHeading = headingLevel === 2 ? "h2" : "h3";
   const [shown, setShown] = useState(10);
@@ -82,14 +84,19 @@ export function RecordsResultView({
     setApplying(true);
     setChartStatus("");
     try {
+      if (intent?.action === "restore" && !intent.originalRequestId)
+        throw new Error("insights_original_identity_missing");
       await applyRecords(
         recordsResultSchema.parse(raw),
         AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]),
         requestId,
+        intent?.action === "restore" ? intent.originalRequestId : undefined,
       );
       controller.signal.throwIfAborted();
       setChartStatus(
-        "Native chart, separate USD KPIs, filters and matching purchase rows were executed and verified in Insights. Purchase records are unchanged.",
+        intent?.action === "restore"
+          ? "Original saved native state restored and verified in Insights, including chart, KPIs, filters and matching purchase rows. No fresh chart was created. Purchase records are unchanged."
+          : "Native chart, separate USD KPIs, filters and matching purchase rows were executed and verified in Insights. Purchase records are unchanged.",
       );
       if (presentation === "inline") {
         const title = [
@@ -103,16 +110,24 @@ export function RecordsResultView({
       }
     } catch {
       setChartStatus(
-        "The native chart could not be verified or was stopped. An already-applied view may remain; no rollback, success or automatic retry is implied. Saved records are unchanged.",
+        intent?.action === "restore"
+          ? "The original verified native state is unavailable or restoration could not be verified. No fresh chart was created. Select the original result in History; restoration is not confirmed."
+          : "The native chart could not be verified or was stopped. An already-applied view may remain; no rollback, success or automatic retry is implied. Saved records are unchanged.",
       );
     } finally {
       active.current = null;
       setApplying(false);
     }
-  }, [applyRecords, raw, presentation, requestId]);
+  }, [applyRecords, raw, presentation, requestId, intent]);
   useEffect(() => () => active.current?.abort(), []);
   useEffect(() => {
-    if (!autoApply || raw.query.format !== "chart" || started.current) return;
+    if (
+      !autoApply ||
+      intent?.action === "inspect" ||
+      raw.query.format !== "chart" ||
+      started.current
+    )
+      return;
     if (pathname !== "/insights") {
       router.push("/insights");
       return;
@@ -131,6 +146,7 @@ export function RecordsResultView({
     return () => cancelAnimationFrame(frame);
   }, [
     autoApply,
+    intent?.action,
     raw.query.format,
     pathname,
     router,
@@ -262,7 +278,7 @@ export function RecordsResultView({
       {result.comparison && (
         <section className="space-y-2">
           <ResultHeading className="font-semibold">
-            Previous period: {result.comparison.from} through{" "}
+            Comparison period: {result.comparison.from} through{" "}
             {result.comparison.to}
           </ResultHeading>
           <Totals
@@ -270,13 +286,13 @@ export function RecordsResultView({
             partial={!result.coverage.complete}
           />
           <p className="text-sm text-muted-foreground">
-            {result.comparison.records.length} purchases in the previous period.
-            Recorded values only; no causal trend or complete account history is
-            inferred.
+            {result.comparison.records.length} purchases in the comparison
+            period. Recorded values only; no causal trend or complete account
+            history is inferred.
           </p>
           <details>
             <summary className="min-h-11 cursor-pointer py-3">
-              Inspect previous-period purchases
+              Inspect comparison-period purchases
             </summary>
             <ul className="list-disc pl-5">
               {result.comparison.records.map((r) => (
@@ -295,7 +311,7 @@ export function RecordsResultView({
           </details>
         </section>
       )}
-      {result.query.format === "chart" && (
+      {result.query.format === "chart" && intent?.action !== "inspect" && (
         <p
           role="status"
           className="rounded-xl border p-3 text-sm text-muted-foreground"
@@ -305,13 +321,17 @@ export function RecordsResultView({
         </p>
       )}
       <div className="flex flex-wrap gap-2">
-        {insights.connected && (
+        {insights.connected && intent?.action !== "inspect" && (
           <Button
             variant="intelligence"
             disabled={applying}
             onClick={() => void applyChart()}
           >
-            {applying ? "Applying saved analysis…" : "Show native chart"}
+            {applying
+              ? "Applying saved analysis…"
+              : intent?.action === "restore"
+                ? "Restore original native state"
+                : "Show native chart"}
           </Button>
         )}
         {applying && (

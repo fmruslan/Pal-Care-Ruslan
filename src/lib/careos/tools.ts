@@ -137,6 +137,7 @@ export function deterministicAnswer(
   guardian: GuardianView[] = [],
   recall?: RecallEvidence,
   activity?: PurchaseActivity,
+  resolvedIdentity = false,
 ): CareAnswer {
   const record = input.twinId ? findTwin(data, input.twinId) : undefined;
   const answer: CareAnswer = {
@@ -169,7 +170,11 @@ export function deterministicAnswer(
   if (!record) return purchaseSelection(data, input);
   const { twin, documents, product } = record;
   const twinHref = `/vault/${twin.id}`;
-  if (verifiedReceiptRequest(input.message) && twin.origin !== "sandbox")
+  if (
+    !resolvedIdentity &&
+    verifiedReceiptRequest(input.message) &&
+    twin.origin !== "sandbox"
+  )
     return purchaseSelection(
       data,
       input,

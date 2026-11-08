@@ -29,9 +29,21 @@ export function libraryQuestionPending(message: string) {
 
 /** Preserve existing native view requests; explicit product tasks use care even on Insights. */
 export function verifiedReceiptRequest(message: string) {
+  const positive = message.replace(
+    /\b(?:not|rather than|instead of)\s+(?:(?:my|the|a)\s+)?(?:(?:paypal|verified|sandbox)\s*)+(?:purchase|payment|receipt)?/gi,
+    "",
+  );
   return (
-    /\b(paypal|verified|sandbox)\b/i.test(message) &&
+    /\b(paypal|verified|sandbox)\b/i.test(positive) &&
     /\b(receipt|invoice|proof of payment)\b/i.test(message)
+  );
+}
+
+/** Conservative action veto, not a natural-language task router. The model can
+ * also select explain; neither path may silently execute an inherited chart. */
+export function prohibitsChartExecution(message: string) {
+  return /\b(?:without|do not|don't|don’t|never)\b[^.!?;]{0,100}\b(?:creating|create|making|make|executing|execute|running|run|adding|add|showing|show)\s+(?:(?:a|an|any|another|new|fresh|native)\s+)*chart\b/i.test(
+    message,
   );
 }
 

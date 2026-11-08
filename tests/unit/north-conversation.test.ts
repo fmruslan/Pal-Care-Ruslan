@@ -14,6 +14,13 @@ import {
 } from "../../src/lib/careos/records/service";
 import { referenceSource } from "../../src/lib/careos/knowledge";
 import type { CareTurn } from "../../src/lib/careos/contracts";
+import { withTenProductFixtures } from "../../src/lib/care/demo/catalog";
+import { querySavedRecords } from "../../src/lib/careos/records/service";
+import {
+  verifiedReceiptRequest,
+  prohibitsChartExecution,
+} from "../../src/lib/careos/interaction-limits";
+import { recordsTaskCandidate } from "../../src/lib/careos/records/query";
 
 const now = () => new Date("2026-11-03T12:00:00Z");
 const input = (message: string) => ({
@@ -78,6 +85,202 @@ function setup(proposal: ConversationPlan) {
     now,
   };
 }
+
+describe("recorded genuine campaign defects — injected interpretation, no provider", () => {
+  it("keeps the exact Sample receipt identity despite negated verified/Sandbox words", async () => {
+    const message =
+      "Find my Sample Forma F-01 headphones receipt from 2026-10-18. It is not the verified Sandbox purchase.";
+    const proposal = plan({
+      task: "product",
+      productSearch: "Forma F-01",
+      productAction: "receipt",
+    });
+    proposal.query.origin = "sample";
+    proposal.query.from = proposal.query.to = "2026-10-18";
+    const options = setup(proposal);
+    const answer = await answerConversationTurn({
+      ...options,
+      input: input(message),
+    });
+    expect(verifiedReceiptRequest(message)).toBe(false);
+    expect(
+      verifiedReceiptRequest("Show my verified Sandbox headphones receipt"),
+    ).toBe(true);
+    expect(answer.context?.twinId).toBe(demoData.twins[0].id);
+    expect(answer.context?.origin).toBe("sample");
+    expect(answer.purchaseChoices).toBeUndefined();
+    const receipt = demoData.documents.find(
+      (d) => d.twinId === demoData.twins[0].id && d.kind === "receipt",
+    )!;
+    expect(
+      answer.actions.some((a) => a.href === `/documents/${receipt.id}`),
+    ).toBe(true);
+    expect(receipt.content).toContain("149.00");
+    expect(options.model.explain).not.toHaveBeenCalled();
+  });
+
+  async function chartHistory() {
+    const q = {
+      ...emptyRecordsQuery("2026-11-08"),
+      categories: ["Audio" as const],
+      format: "chart" as const,
+      operation: "breakdown" as const,
+    };
+    const result = querySavedRecords(demoData, q);
+    return [
+      {
+        requestId: randomUUID(),
+        message: "Show my Audio purchases as a chart",
+        answer: recordsAnswer(result, 0),
+      },
+    ];
+  }
+  it.each(["explain", "summary"] as const)(
+    "prevents inherited chart execution even with productAction %s",
+    async (productAction) => {
+      const history = await chartHistory();
+      expect(
+        prohibitsChartExecution(
+          "Go back to the previous chart result without rerunning it or making a new chart.",
+        ),
+      ).toBe(true);
+      expect(
+        prohibitsChartExecution("Show my Audio purchases as a chart"),
+      ).toBe(false);
+      expect(
+        recordsTaskCandidate(
+          "What purchase scope does this selected result use? Explain it without creating another chart.",
+          history[0].answer.recordsResult!.query,
+          false,
+        ),
+      ).toBe(true);
+      const proposal = plan({ relation: "followup", productAction });
+      Object.assign(proposal.query, history[0].answer.recordsResult!.query);
+      delete (proposal.query as Record<string, unknown>).version;
+      delete (proposal.query as Record<string, unknown>).referenceDate;
+      delete (proposal.query as Record<string, unknown>).timezone;
+      const options = setup(proposal);
+      const answer = await answerConversationTurn({
+        ...options,
+        history,
+        input: input(
+          "What purchase scope does this selected result use? Explain it without creating another chart.",
+        ),
+      });
+      expect(answer.recordsPresentation).toEqual({ action: "inspect" });
+      expect(answer.recordsResult?.records.map((r) => r.id)).toEqual(
+        history[0].answer.recordsResult!.records.map((r) => r.id),
+      );
+      expect(answer.text).toContain("Audio only");
+      expect(answer.text).toContain("$218.00");
+    },
+  );
+  it("resolves restoration only from owned history, reusing the exact saved result without mutation", async () => {
+    const history = await chartHistory();
+    const original = structuredClone(history);
+    const options = setup(plan({ task: "restore", relation: "followup" }));
+    expect(
+      recordsTaskCandidate(
+        "Go back to the previous chart result without rerunning it or making a new chart.",
+        history[0].answer.recordsResult!.query,
+        false,
+      ),
+    ).toBe(true);
+    const answer = await answerConversationTurn({
+      ...options,
+      history,
+      input: input(
+        "Go back to the previous chart result without rerunning it or making a new chart.",
+      ),
+    });
+    expect(answer.recordsResult).toBe(history[0].answer.recordsResult);
+    expect(answer.recordsPresentation).toEqual({
+      action: "restore",
+      originalRequestId: history[0].requestId,
+    });
+    expect(answer.text).toContain("not yet verified");
+    expect(history).toEqual(original);
+    for (const ambiguous of [
+      [],
+      [...history, { ...history[0], requestId: randomUUID() }],
+    ]) {
+      const result = await answerConversationTurn({
+        ...options,
+        history: ambiguous,
+      });
+      expect(result.recordsPresentation).toBeUndefined();
+      expect(result.recordsResult).toBeUndefined();
+      expect(result.text).toContain("Which saved chart");
+    }
+  });
+  it.each([
+    "Tomorrow at 09:00 UTC, automatically show me that same result and remind me to check it.",
+    "Do that tomorrow, yesterday. If you cannot schedule or send reminders, say so explicitly; don't just ask me to choose a date.",
+  ])("explicitly discloses unsupported scheduling: %s", async (message) => {
+    const options = setup(plan({ task: "unsupported" }));
+    const answer = await answerConversationTurn({
+      ...options,
+      input: input(message),
+    });
+    expect(answer.text).toContain(
+      "cannot schedule reminders or deliver future notifications",
+    );
+    expect(answer.text).toContain("Nothing was scheduled");
+    expect(answer.actions).toEqual([]);
+  });
+  it("answers both comparison questions with chronological dates and a direct higher-by amount", async () => {
+    const data = withTenProductFixtures(structuredClone(demoData));
+    const proposal = plan({
+      comparison: { from: "2026-10-16", to: "2026-10-31" },
+    });
+    Object.assign(proposal.query, {
+      operation: "compare",
+      format: "table",
+      from: "2026-10-01",
+      to: "2026-10-15",
+    });
+    const options = setup(proposal);
+    for (const message of [
+      "Ignore those filters. Compare all purchases from 2026-10-01 through 2026-10-15 against 2026-10-16 through 2026-10-31. Separate Sample and Verified Sandbox and exclude unpriced references from spending.",
+      "Which of those two periods had more recorded Sample spending, and by how much? Keep the same periods.",
+    ]) {
+      const answer = await answerConversationTurn({
+        ...options,
+        load: async () => data,
+        input: input(message),
+      });
+      expect(answer.recordsResult?.totals[0].amountMinor).toBe(15800);
+      expect(answer.recordsResult?.comparison?.totals[0].amountMinor).toBe(
+        278494,
+      );
+      expect(answer.steps.join(" ")).toContain(
+        "2026-10-16 through 2026-10-31 had $2,626.94 more recorded Sample value than 2026-10-01 through 2026-10-15",
+      );
+      expect(answer.steps.join(" ")).not.toContain("previous");
+    }
+  });
+  it("vetoes unrelated verified payment evidence for the original pending-eCheck question", async () => {
+    const options = setup(
+      plan({ task: "aftercare", productAction: "payment" }),
+    );
+    const care = vi.fn();
+    const answer = await answerConversationTurn({
+      ...options,
+      care,
+      input: input(
+        "Is the pending eCheck a verified completed purchase? Do not treat it as completed without saved provider evidence.",
+      ),
+    });
+    expect(answer.outcome).toBe("unavailable");
+    expect(answer.text).toContain("completion remains unverified");
+    expect(answer.text).toContain(
+      "different verified Sandbox purchase is not evidence",
+    );
+    expect(answer.actions).toEqual([]);
+    expect(answer.recordsResult).toBeUndefined();
+    expect(care).not.toHaveBeenCalled();
+  });
+});
 describe("owned latest-topic projection with injected interpretation", () => {
   async function topicHistory() {
     const careOptions = setup(

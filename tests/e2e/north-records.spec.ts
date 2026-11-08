@@ -354,13 +354,15 @@ test("comparison plus table retrieves prior-period evidence; a plain total keeps
     to: "2026-09-30",
     records: [],
   });
-  await expect(comparison.article).toContainText("Previous period:");
+  await expect(comparison.article).toContainText(
+    "Comparison period: 2026-09-01 through 2026-09-30",
+  );
   const plainTotal = await ask(page, "Total?");
   expect(plainTotal.turn.answer.recordsResult?.snapshotId).toBe(
     comparison.turn.answer.recordsResult?.snapshotId,
   );
   expect(plainTotal.turn.answer.recordsResult?.comparison).toBeNull();
-  await expect(plainTotal.article).not.toContainText("Previous period:");
+  await expect(plainTotal.article).not.toContainText("Comparison period:");
   await expect(plainTotal.article).toContainText("$218.00");
 });
 

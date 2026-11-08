@@ -1334,6 +1334,7 @@ export function CareOSProvider({
                           <RecordsResultView
                             requestId={turn.requestId}
                             result={turn.answer.recordsResult}
+                            intent={turn.answer.recordsPresentation}
                             autoApply={recordsSubmission === turn.requestId}
                             onAutoApplyStarted={() =>
                               setRecordsSubmission((current) =>

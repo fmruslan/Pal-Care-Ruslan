@@ -535,6 +535,7 @@ export function CustomerStudio({
     signal: AbortSignal,
     recordIds?: string[],
     requestId?: string,
+    restoreOnly = false,
   ) {
     // Clear before any SDK mutation (including an identical-state request).
     // State-update events alone cannot invalidate proof for a fresh execution.
@@ -547,7 +548,7 @@ export function CustomerStudio({
     const next = commandSelection(command, filtersRef.current);
     if (command.operation !== "evidence" && command.operation !== "widget")
       select(next.filters, next.page);
-    if (command.operation === "widget") {
+    if (command.operation === "widget" && !restoreOnly) {
       const state = current.getState();
       const id = `extra-${command.widget}`;
       const updated = {
@@ -830,18 +831,19 @@ export function CustomerStudio({
     if (!ready) return;
     const controller = new AbortController();
     const unregister = registerRecords(
-      async (result, callerSignal, requestId?: string) => {
+      async (result, callerSignal, requestId, restoreState) => {
         // Invalidate even when saved-result validation fails before apply runs.
         if (canvas.current) delete canvas.current.dataset.nativeReadback;
         const signal = AbortSignal.any([controller.signal, callerSignal]);
         if (!api.current || signal.aborted)
           throw new Error("insights_not_ready");
-        const expected = recordsChartState(
+        const validated = recordsChartState(
           api.current.getState(),
           result,
           dataset.purchases,
           compact,
         );
+        const expected = restoreState ?? validated;
         api.current.setState(expected);
         if (
           stateFingerprint(api.current.getState()) !==
@@ -865,11 +867,13 @@ export function CustomerStudio({
           signal,
           ids,
           requestId,
+          !!restoreState,
         );
         if (signal.aborted) throw new Error("insights_cancelled");
         setNotice(
-          `Saved analysis chart verified: ${ids.length} matching purchases; Sample and Verified Sandbox values remain separate. Unpriced/reference exclusions are shown in North.`,
+          `${restoreState ? "Original native state restored and verified" : "Saved analysis chart verified"}: ${ids.length} matching purchases; Sample and Verified Sandbox values remain separate. Unpriced/reference exclusions are shown in North.`,
         );
+        return structuredClone(api.current.getState());
       },
     );
     return () => {
