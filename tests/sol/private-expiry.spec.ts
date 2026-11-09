@@ -60,6 +60,7 @@ test("expired AI leaves saved pages and native analytics useful without bootstra
     ).toBeDisabled();
     await dialog.getByRole("button", { name: "Close North Star" }).click();
   }
+  await page.getByText("Filters & sort", { exact: true }).click();
   const group = page.getByRole("group", { name: "Purchase evidence filters" });
   await expect(
     group.getByRole("button", { name: "All", exact: true }),
