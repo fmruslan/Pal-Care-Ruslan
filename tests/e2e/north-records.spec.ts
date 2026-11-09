@@ -847,7 +847,7 @@ test("reopening a completed chart preserves manual native filters and still perm
       }),
     });
   await expect(sample.locator(".ag-studio-value-widget-content")).toHaveText(
-    "89.00",
+    "$89.00",
   );
   await selectHistory(dialog, first.turn.message, first.turn.requestId);
   await first.article
