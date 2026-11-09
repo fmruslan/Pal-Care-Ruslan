@@ -72,7 +72,19 @@ for (const width of [375, 430, 1440]) {
     });
     const draft = "Preserve this draft while the native workspace initializes";
     try {
-      await page.goto("/purchases");
+      // Check the legacy entry before starting the client-navigation journey.
+      // A hard goto after searching would unload in-flight Next RSC prefetches.
+      await page.goto("/purchases?view=documents");
+      await expect(
+        page.getByRole("combobox", { name: "Appearance", exact: true }),
+      ).toBeEnabled();
+      await expect(nav.locator('[aria-current="page"]')).toHaveText(
+        "Documents",
+      );
+      await nav
+        .getByRole("link", { name: "Purchases", exact: true })
+        .press("Enter");
+      await expect(page).toHaveURL(/\/purchases$/);
       await page.getByRole("button", { name: "History", exact: true }).click();
       await dialog
         .getByLabel("Ask about your purchases", { exact: true })
@@ -136,10 +148,6 @@ for (const width of [375, 430, 1440]) {
             (url.pathname === "/purchases" &&
               url.searchParams.get("view") === "documents")),
       );
-      await expect(nav.locator('[aria-current="page"]')).toHaveText(
-        "Documents",
-      );
-      await page.goto("/purchases?view=documents");
       await expect(nav.locator('[aria-current="page"]')).toHaveText(
         "Documents",
       );

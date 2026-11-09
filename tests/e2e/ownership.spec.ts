@@ -9,7 +9,7 @@ import type { CareTurn } from "../../src/lib/careos/contracts";
 
 const twin = "00000000-0000-4000-8000-000000000201";
 
-test("Care itself shows compact shared pills and SVG milestones, with exact-card evidence and scoped focus restoration", async ({
+test("Care shows known-only compact SVG milestones, with exact-card evidence and scoped focus restoration", async ({
   page,
 }) => {
   const writes: string[] = [];
@@ -29,45 +29,177 @@ test("Care itself shows compact shared pills and SVG milestones, with exact-card
   ).toBe(await cards.count());
   for (const card of await cards.all()) {
     await expect(card.locator("[data-ownership-pill]")).toBeVisible();
-    for (const topic of [
-      "purchase",
-      "delivery",
-      "price-window",
-      "return-window",
-      "warranty",
-    ])
+    const rail = card.locator("[data-care-timeline]");
+    const milestones = rail.locator("[data-care-milestone]");
+    await expect(rail.getByRole("region")).toHaveAccessibleName(
+      /ownership summary.*Compressed spacing is not elapsed time/,
+    );
+    for (const state of ["unknown", "unavailable", "not-applicable"])
       await expect(
-        card.locator(`[data-care-milestone="${topic}"]`),
-      ).toHaveCount(1);
-    expect(
-      await card.locator("[data-care-timeline] svg").count(),
-    ).toBeGreaterThanOrEqual(5);
+        rail.locator(`[data-milestone-state="${state}"]`),
+      ).toHaveCount(0);
+    await expect(card.locator('[data-care-milestone="purchase"]')).toHaveCount(
+      1,
+    );
+    await expect(
+      card.locator('[data-care-milestone="purchase"]'),
+    ).toBeVisible();
+    // Every displayed milestone keeps its decorative SVG; missing facts do not
+    // create extra steps just to satisfy an arbitrary five-icon minimum.
+    await expect(rail.locator("ol > li > svg")).toHaveCount(
+      await milestones.count(),
+    );
+    await expect(rail.locator("svg:not([aria-hidden='true'])")).toHaveCount(0);
+    await expect(card.locator("[data-ownership-unknowns]")).toHaveCount(0);
   }
   const card = page.getByRole("main").locator(`[data-care-product="${twin}"]`);
-  const delivery = card.locator('[data-care-milestone="delivery"]');
-  await expect(delivery).not.toBeVisible();
-  await card.locator("[data-ownership-unknowns] > summary").press("Enter");
-  await expect(delivery).toBeVisible();
-  await delivery.focus();
+  await expect(card.locator("[data-care-milestone]")).toHaveCount(1);
+  const purchase = card.locator('[data-care-milestone="purchase"]');
+  await expect(purchase).toHaveAttribute("data-milestone-state", "recorded");
+  await purchase.focus();
   await page.keyboard.press("Enter");
-  const panel = page.getByRole("dialog", { name: "Delivery", exact: true });
+  const panel = page.getByRole("dialog", { name: "Purchased", exact: true });
   await expect(panel).toHaveAttribute("data-ownership-twin", twin);
-  await expect(panel).toContainText("not delivery evidence");
+  await expect(panel).toContainText("Sample purchase record");
   await page.keyboard.press("Escape");
-  await expect(delivery).toBeFocused();
+  await expect(purchase).toBeFocused();
   const other = cards.last();
   const otherTwin = (await other.getAttribute("data-care-product"))!;
-  const warranty = other.locator('[data-care-milestone="warranty"]');
-  if (!(await warranty.isVisible()))
-    await other.locator("[data-ownership-unknowns] > summary").press("Enter");
-  await warranty.focus();
+  expect(otherTwin).not.toBe(twin);
+  const otherPill = other.locator("[data-ownership-pill]");
+  await otherPill.focus();
   await page.keyboard.press("Enter");
   await expect(page.locator("[data-ownership-panel]")).toHaveAttribute(
     "data-ownership-twin",
     otherTwin,
   );
   await page.keyboard.press("Escape");
-  await expect(warranty).toBeFocused();
+  await expect(otherPill).toBeFocused();
+  expect(writes).toEqual([]);
+});
+
+test("Care Details retains every unknown milestone, full source facts and keyboard-accessible evidence without inventing dates", async ({
+  page,
+}) => {
+  const writes: string[] = [];
+  page.on("request", (request) => {
+    if (!["GET", "HEAD"].includes(request.method())) writes.push(request.url());
+  });
+  await page.goto("/dashboard");
+  await page
+    .getByRole("main")
+    .locator(`[data-care-product="${twin}"]`)
+    .getByRole("link", { name: "Details", exact: true })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`/vault/${twin}$`));
+  const ownership = page.locator("#ownership");
+  const revision = (await ownership.getAttribute("data-ownership-revision"))!;
+  const unknowns = ownership.locator("[data-ownership-unknowns]");
+  const summary = unknowns.locator("summary");
+  const facts = [
+    [
+      "shipment",
+      "Shipment",
+      "not-applicable",
+      "No merchant tracking or carrier feed is connected",
+    ],
+    [
+      "delivery",
+      "Delivery",
+      "not-applicable",
+      "a completed payment is not delivery evidence",
+    ],
+    ["price", "Price protection", "unknown", "Protection not verified"],
+    [
+      "price-window",
+      "Price-adjustment deadline",
+      "unknown",
+      "No applicable price-adjustment deadline is established",
+    ],
+    [
+      "return-window",
+      "Return deadline",
+      "unknown",
+      "No confirmed return deadline",
+    ],
+    ["returns", "Return progress", "unknown", "No supported return progress"],
+    [
+      "refunds",
+      "Refund",
+      "unknown",
+      "Purchase payment evidence is not refund evidence",
+    ],
+    [
+      "warranty",
+      "Warranty expiration",
+      "unknown",
+      "No verified warranty expiration dates",
+    ],
+    [
+      "safety",
+      "Safety assessment",
+      "unknown",
+      "Missing evidence is not a safety all-clear",
+    ],
+  ] as const;
+  await expect(summary).toHaveText(
+    `Other milestones · unknown or not applicable (${facts.length})`,
+  );
+  await expect(unknowns).not.toHaveAttribute("open", "");
+  for (const [topic] of facts)
+    await expect(
+      unknowns.locator(`[data-ownership-milestone="${topic}"]`),
+    ).not.toBeVisible();
+  await summary.focus();
+  await summary.press("Enter");
+  await expect(summary).toBeFocused();
+  await expect(unknowns).toHaveAttribute("open", "");
+  await expect(unknowns).toContainText("Missing evidence is not an all-clear");
+  await expect(unknowns.locator("[data-ownership-milestone]")).toHaveCount(
+    facts.length,
+  );
+  for (const [topic, title, state, detail] of facts) {
+    const milestone = unknowns.locator(`[data-ownership-milestone="${topic}"]`);
+    await expect(milestone).toBeVisible();
+    await expect(milestone).toHaveAttribute("data-milestone-state", state);
+    await expect(milestone).toHaveAttribute("data-milestone-verified", "false");
+    await expect(milestone).toHaveAttribute("aria-haspopup", "dialog");
+    await milestone.focus();
+    await milestone.press("Enter");
+    const panel = page.getByRole("dialog", { name: title, exact: true });
+    await expect(panel).toHaveAttribute("data-ownership-twin", twin);
+    await expect(panel).toHaveAttribute("data-ownership-topic", topic);
+    await expect(panel).toHaveAttribute("data-ownership-revision", revision);
+    await expect(panel).toContainText(detail);
+    await expect(
+      panel.locator(`[data-ownership-fact="${twin}:${topic}"]`),
+    ).toContainText("Event date not established");
+    await page.keyboard.press("Escape");
+    await expect(milestone).toBeFocused();
+  }
+  const fullDetails = ownership.locator("details").filter({
+    has: page.getByText("Expand dates, sources & actions", { exact: true }),
+  });
+  await fullDetails.locator("summary").press("Enter");
+  await expect(fullDetails).toHaveAttribute("open", "");
+  await expect(fullDetails.locator("[data-ownership-fact]")).toHaveCount(
+    facts.length + 1,
+  );
+  for (const [topic, , , detail] of facts) {
+    const fact = fullDetails.locator(
+      `[data-ownership-fact="${twin}:${topic}"]`,
+    );
+    await expect(fact).toBeVisible();
+    await expect(fact).toContainText(detail);
+    await expect(fact).toContainText("Event date not established");
+  }
+  const purchase = fullDetails.locator(
+    `[data-ownership-fact="${twin}:purchase"]`,
+  );
+  await expect(purchase).toContainText("Sample purchase record");
+  await expect(
+    purchase.getByRole("link", { name: "View original receipt", exact: true }),
+  ).toHaveAttribute("href", "/documents/00000000-0000-4000-8000-000000000301");
   expect(writes).toEqual([]);
 });
 
@@ -78,6 +210,8 @@ test("injected North highlights the homepage milestone beside its answer, valida
   const scope = page
     .getByRole("main")
     .locator(`[data-ownership-surface="care"][data-ownership-twin="${twin}"]`);
+  const deliveryMilestone = scope.locator('[data-care-milestone="delivery"]');
+  await expect(deliveryMilestone).toHaveCount(0);
   const revision = (await scope.getAttribute("data-ownership-revision"))!;
   const {
     version: _v,
@@ -141,9 +275,16 @@ test("injected North highlights the homepage milestone beside its answer, valida
   );
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(scope).toHaveAttribute("data-care-focused", "delivery");
-  await expect(
-    scope.locator('[data-care-milestone="delivery"]'),
-  ).toHaveAttribute("aria-current", "step");
+  await expect(deliveryMilestone).toHaveAttribute("aria-current", "step");
+  await expect(deliveryMilestone).toHaveAttribute(
+    "data-milestone-state",
+    "not-applicable",
+  );
+  await expect(deliveryMilestone).toHaveAttribute(
+    "data-milestone-verified",
+    "false",
+  );
+  await expect(deliveryMilestone).toBeVisible();
   await expect(scope.locator("[data-care-focus-evidence]")).toContainText(
     "not delivery evidence",
   );
@@ -169,6 +310,7 @@ test("injected North highlights the homepage milestone beside its answer, valida
     .first()
     .click();
   await expect(scope).not.toHaveAttribute("data-care-focused", "delivery");
+  await expect(deliveryMilestone).toHaveCount(0);
   expect(dispatches).toBe(1);
 });
 
@@ -260,9 +402,16 @@ test("deep-linked warranty and return milestones preserve exact dates, editable 
   await warranty
     .getByRole("button", { name: "Close ownership evidence", exact: true })
     .click();
+  // Wait for modal close/focus restoration before the summary's keyboard toggle.
+  // Otherwise the closing dialog can take focus back before Enter opens it.
+  await expect(warranty).toHaveCount(0);
+  await expect(page.locator("[data-ownership-pill]")).toBeFocused();
   await page
     .locator("#ownership [data-ownership-unknowns] > summary")
     .press("Enter");
+  await expect(
+    page.locator("#ownership [data-ownership-unknowns]"),
+  ).toHaveAttribute("open", "");
   await page.locator('[data-ownership-milestone="return-window"]').click();
   await expect(
     page.getByRole("dialog", { name: "Return deadline", exact: true }),

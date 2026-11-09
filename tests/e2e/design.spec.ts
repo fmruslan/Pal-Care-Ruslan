@@ -279,6 +279,7 @@ test("keyboard theme selection, reduced motion and mobile navigation remain acce
       "Care",
       "Purchases",
       "Insights",
+      "Documents",
     ]);
     for (const link of await nav.getByRole("link").all()) {
       const box = await link.boundingBox();

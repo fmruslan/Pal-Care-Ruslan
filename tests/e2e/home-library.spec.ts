@@ -62,6 +62,10 @@ test("unified search opens the exact receipt directly and restores search state 
     if (r.method() !== "GET" && r.method() !== "HEAD") forbidden.push(r.url());
   });
   await page.goto("/purchases");
+  // The server-rendered search field is visible before its draft state hydrates.
+  await expect(
+    page.getByRole("combobox", { name: "Appearance", exact: true }),
+  ).toBeEnabled();
   await search(page).fill("kettle receipt");
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(page.getByRole("status")).toContainText(

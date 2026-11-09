@@ -215,7 +215,7 @@ test("North keeps the exact Care purchase and original answer across Care, Purch
     .last()
     .getAttribute("data-request-id");
   const count = turns.length;
-  for (const destination of ["Purchases", "Insights", "Care"]) {
+  for (const destination of ["Purchases", "Documents", "Insights", "Care"]) {
     await page
       .getByRole("navigation", { name: "Main navigation", exact: true })
       .getByRole("link", { name: destination, exact: true })
