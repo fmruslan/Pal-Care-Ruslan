@@ -3,6 +3,102 @@ import type { CustomerPurchase } from "@/lib/intelligence/customer-model";
 import { money, displayDate } from "@/lib/demo/presentation";
 import { Badge } from "../ui/badge";
 import { ProductArt } from "../product-art";
+import { selectionEvidence } from "@/lib/intelligence/customer-presentation";
+
+/** A custom Studio evidence view, never a replacement for native charts. */
+export function CustomerEvidence({
+  purchases,
+}: {
+  purchases: CustomerPurchase[];
+}) {
+  const facts = selectionEvidence(purchases);
+  const groups = [
+    { label: "Saved purchases", value: facts.purchases, x: 48 },
+    { label: "Saved documents", value: facts.documents, x: 160 },
+    { label: "Care products", value: facts.careProducts, x: 272 },
+  ];
+  return (
+    <>
+      <p className="text-sm leading-6 text-muted-foreground">
+        The evidence behind this selection, linked to its original purchases.
+      </p>
+      <svg
+        viewBox="0 0 320 90"
+        aria-hidden="true"
+        focusable="false"
+        className="my-3 h-24 w-full max-w-md text-intelligence-foreground"
+      >
+        <path
+          d="M48 44H272"
+          fill="none"
+          stroke="currentColor"
+          strokeOpacity=".25"
+          strokeWidth="2"
+          strokeDasharray="4 5"
+        />
+        {groups.map(({ label, value, x }) => (
+          <g key={label}>
+            <circle
+              cx={x}
+              cy="44"
+              r="25"
+              fill="var(--card)"
+              stroke="currentColor"
+              strokeOpacity=".4"
+            />
+            <text
+              x={x}
+              y="50"
+              textAnchor="middle"
+              fill="currentColor"
+              fontSize="18"
+              fontWeight="600"
+            >
+              {value}
+            </text>
+          </g>
+        ))}
+      </svg>
+      <dl
+        className="grid grid-cols-3 gap-3 text-sm"
+        data-testid="selection-evidence-counts"
+      >
+        {groups.map(({ label, value }) => (
+          <div key={label}>
+            <dt className="text-muted-foreground">{label}</dt>
+            <dd className="mt-1 text-lg font-semibold">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="mt-3 text-xs leading-5 text-muted-foreground">
+        {facts.verified} Verified Sandbox · {facts.purchases - facts.verified}{" "}
+        Sample. Care products count distinct linked guidance pages, not warranty
+        coverage.
+        {facts.careUnavailable
+          ? " Some care evidence is unavailable; counts are partial."
+          : ""}
+      </p>
+      <ul className="mt-2 flex flex-wrap gap-x-4 text-sm">
+        {purchases.slice(0, 2).map((purchase) => (
+          <li key={purchase.id}>
+            <Link
+              href={purchase.href}
+              className="inline-flex min-h-11 items-center text-primary underline underline-offset-4"
+            >
+              {purchase.name} · {displayDate(purchase.purchasedOn)}
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <details className="mt-3 border-t text-sm">
+        <summary className="min-h-11 cursor-pointer py-3 font-semibold">
+          View all selected records · {facts.purchases}
+        </summary>
+        <CustomerRecords purchases={purchases} />
+      </details>
+    </>
+  );
+}
 
 export function CustomerRecords({
   purchases,

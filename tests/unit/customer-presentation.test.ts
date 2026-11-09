@@ -3,6 +3,8 @@ import { customerDataset } from "../../src/lib/intelligence/customer-model";
 import {
   purchaseHighlights,
   purchaseTotals,
+  selectionEvidence,
+  studioSelectionConfirmation,
 } from "../../src/lib/intelligence/customer-presentation";
 import { demoData } from "../../src/lib/demo/fixtures";
 import { referenceSource } from "../../src/lib/careos/knowledge";
@@ -18,6 +20,42 @@ function purchases() {
 }
 
 describe("customer presentation keeps saved evidence authoritative", () => {
+  it("summarizes unique selected evidence and excludes unknown prices without losing purchases", () => {
+    const rows = purchases();
+    const original = selectionEvidence(rows);
+    rows[0].documentLinks.push(...rows[0].documentLinks);
+    rows[0].documentCount = 999;
+    expect(selectionEvidence([...rows, rows[0]])).toEqual(original);
+    expect(original.unpriced).toBe(1);
+    expect(original.careProducts).toBe(1);
+    expect(original.sandboxMinor).toBe(0);
+    expect(original.sampleMinor).toBe(
+      rows.reduce((sum, p) => sum + (p.amountMinor ?? 0), 0),
+    );
+  });
+
+  it("keeps unavailable care distinct and confirms exact provenance values", () => {
+    const rows = purchases().map((p) => ({
+      ...p,
+      careStatus: "unavailable" as const,
+    }));
+    expect(selectionEvidence(rows).careUnavailable).toBe(true);
+    expect(selectionEvidence(rows).careProducts).toBe(0);
+    const sandbox = {
+      ...rows[0],
+      origin: "sandbox" as const,
+      amountMinor: 12900,
+    };
+    expect(
+      studioSelectionConfirmation([sandbox], "North updated this view"),
+    ).toContain("1 purchase · Sample $0.00 · Verified Sandbox $129.00");
+    expect(studioSelectionConfirmation(rows, "Chart verified")).toContain(
+      "1 unpriced excluded from values",
+    );
+    expect(studioSelectionConfirmation([], "Chart verified")).toBe(
+      "Chart verified · 0 purchases · Sample $0.00 · Verified Sandbox $0.00.",
+    );
+  });
   it("uses actual loaded-window purchases and unique saved document links", () => {
     const rows = purchases();
     expect(purchaseTotals(rows)).toEqual({

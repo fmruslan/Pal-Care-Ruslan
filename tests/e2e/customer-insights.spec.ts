@@ -114,7 +114,9 @@ function nativeWidget(page: Page, title: string) {
     .locator(".ag-studio-layout-widget")
     .filter({
       has: page.locator(".ag-studio-layout-widget-title").filter({
-        hasText: new RegExp(`^${title}$`),
+        hasText: new RegExp(
+          `^${title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+        ),
       }),
     });
 }
@@ -189,6 +191,7 @@ async function openWorkspace(page: Page) {
       .first(),
   ).toBeVisible({ timeout: 20_000 });
   await assertSelection(page, records);
+  await page.getByText("Keyboard category shortcuts", { exact: true }).click();
   return records;
 }
 
@@ -366,11 +369,39 @@ test("native purchase grid, chart and KPI share provenance filters and real cate
   const records = await openWorkspace(page);
   await expect(viewButton(page, "Documents & Care")).toBeEnabled();
   await expect(viewButton(page, "Price Adjustments")).toBeEnabled();
+  await expect(
+    nativeWidget(page, "Recorded value (USD)").locator("canvas").first(),
+  ).toBeVisible();
+  const evidence = page.getByTestId("insight-documents-care");
+  await expect(
+    evidence.getByRole("heading", { name: "Evidence & Care", exact: true }),
+  ).toBeVisible();
+  await expect(evidence.getByTestId("selection-evidence-counts")).toContainText(
+    "Saved documents",
+  );
+  await expect(evidence.locator("details").first()).not.toHaveAttribute("open");
   await page.screenshot({
     path: `test-results/customer-insights/${test.info().project.name}-purchases.png`,
     fullPage: true,
     animations: "disabled",
   });
+  // Trigger the native chart's series-node listener, not the app's shortcut.
+  const nativeSeries = nativeWidget(page, "Purchases by category").getByRole(
+    "img",
+    { name: "interactive chart", exact: true },
+  );
+  await nativeSeries.focus();
+  // Focus changes the native accessible name to the current datum.
+  await page.keyboard.press("Home");
+  await page.keyboard.press("Enter");
+  await assertSelection(
+    page,
+    records.filter((record) => record.category === "Audio"),
+  );
+  await page
+    .getByRole("button", { name: "Clear filters", exact: true })
+    .click();
+  await assertSelection(page, records);
   await evidenceButton(page, "sandbox").click();
   const sandbox = records.filter((record) => record.origin === "sandbox");
   await assertSelection(page, sandbox);
@@ -422,7 +453,9 @@ test("search and evidence buttons update the real native selection without chang
   page,
 }) => {
   const records = await openWorkspace(page);
-  const totals = page.getByRole("definition");
+  const totals = page
+    .getByLabel("Saved purchase totals")
+    .getByRole("definition");
   const before = await totals.allTextContents();
   const search = page.getByRole("searchbox", { name: "Search purchases" });
   await search.fill("headphones");
@@ -593,6 +626,9 @@ test("one North Star host executes real Studio tools for categories, documents, 
   await expect(turn.answer).toContainText("dashboard state was checked");
   await closeAssistant(page);
   await inspectTools(page);
+  await expect(page.getByTestId("studio-verified-action")).toContainText(
+    `North updated this view · ${records.length} purchases`,
+  );
   await expect(nativeWidget(page, "Purchases by category")).toHaveClass(
     /ag-studio-layout-widget-selected/,
   );
@@ -604,6 +640,7 @@ test("one North Star host executes real Studio tools for categories, documents, 
     .getByRole("button", { name: "Audio", exact: true })
     .click();
   await assertSelection(page, categoryScope);
+  await expect(page.getByTestId("studio-verified-action")).toHaveCount(0);
   turn = await ask(page, "Show me the evidence behind that number.");
   await expect(turn.answer).toContainText(
     `${categoryScope.length} saved purchases`,
@@ -696,7 +733,9 @@ test("one North Star host executes real Studio tools for categories, documents, 
   await expect(
     adjustments.getByText(usd(total), { exact: true }),
   ).toBeVisible();
-  await expect(adjustments).toContainText("Not proposed savings");
+  await expect(adjustments).toContainText(
+    "Proposed or illustrative savings are not money recovered",
+  );
   await page.screenshot({
     path: `test-results/customer-insights/${test.info().project.name}-adjustments.png`,
     fullPage: true,
@@ -734,7 +773,7 @@ test("browser-local layout add/save/restore is idempotent and does not restore p
   const charts = page
     .getByTestId("customer-studio")
     .locator(".ag-studio-chart-widget");
-  await expect(charts).toHaveCount(1);
+  await expect(charts).toHaveCount(2);
   await page
     .getByRole("button", { name: "Customize layout", exact: true })
     .click();
@@ -742,9 +781,9 @@ test("browser-local layout add/save/restore is idempotent and does not restore p
     .getByLabel("Add a useful widget", { exact: true })
     .selectOption("category-chart");
   await page.getByRole("button", { name: "Add widget", exact: true }).click();
-  await expect(charts).toHaveCount(2);
+  await expect(charts).toHaveCount(3);
   await page.getByRole("button", { name: "Add widget", exact: true }).click();
-  await expect(charts).toHaveCount(2);
+  await expect(charts).toHaveCount(3);
   await page
     .getByRole("button", { name: "Finish layout editing", exact: true })
     .click();
@@ -768,11 +807,11 @@ test("browser-local layout add/save/restore is idempotent and does not restore p
     ),
   ).toEqual(["extra-category-chart"]);
   await page.getByRole("button", { name: "Reset views", exact: true }).click();
-  await expect(charts).toHaveCount(1);
+  await expect(charts).toHaveCount(2);
   await assertSelection(page, records);
   // A fresh document retains the saved browser-local layout, not the open SDK.
   await openWorkspace(page);
-  await expect(charts).toHaveCount(1);
+  await expect(charts).toHaveCount(2);
   await evidenceButton(page, "sandbox").click();
   const sandbox = records.filter((record) => record.origin === "sandbox");
   await assertSelection(page, sandbox);
@@ -782,7 +821,7 @@ test("browser-local layout add/save/restore is idempotent and does not restore p
   await expect(
     page.getByRole("status").filter({ hasText: "Saved layout restored" }),
   ).toBeVisible();
-  await expect(charts).toHaveCount(2);
+  await expect(charts).toHaveCount(3);
   await expect(evidenceButton(page, "sandbox")).toHaveAttribute(
     "aria-pressed",
     "true",
@@ -807,7 +846,7 @@ test("browser-local layout add/save/restore is idempotent and does not restore p
   await expect(
     page.getByRole("status").filter({ hasText: "No valid saved layout" }),
   ).toBeVisible();
-  await expect(charts).toHaveCount(2);
+  await expect(charts).toHaveCount(3);
   await assertSelection(page, sandbox);
 });
 

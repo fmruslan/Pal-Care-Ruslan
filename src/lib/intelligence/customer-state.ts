@@ -183,7 +183,10 @@ export function widgetDefinition(widget: InsightWidget) {
           "documentCount",
         ].map((id) => ({ id: `purchases.${id}` })),
       },
-      format: { title: { enabled: true, text: "Saved purchases" } },
+      format: {
+        title: { enabled: true, text: "Saved purchases" },
+        style: { columnAutoSize: true, headerRow: { wrapText: true } },
+      },
     };
   if (widget === "category-chart")
     return {
@@ -192,7 +195,14 @@ export function widgetDefinition(widget: InsightWidget) {
         categoryKey: [{ id: "purchases.category" }],
         valueKey: [{ id: "purchases.count", aggregation: "sum" as const }],
       },
-      format: { title: { enabled: true, text: "Purchases by category" } },
+      format: {
+        title: { enabled: true, text: "Purchases by category" },
+        style: {
+          theme: {
+            bar: { series: { label: { enabled: true, color: "#172336" } } },
+          },
+        },
+      },
     };
   return { type: widget, dataMapping: {} };
 }
@@ -252,23 +262,33 @@ export function customerReport(compact = false): AgReportState {
         [
           ...defaultCustomerWidgetIds[id],
           ...(id === "purchases"
-            ? ["extra-sample-value", "extra-sandbox-value"]
+            ? [
+                "extra-sample-value",
+                "extra-sandbox-value",
+                "extra-recorded-value-chart",
+              ]
             : []),
         ].map((widgetId) => [widgetId, expectedCustomerWidget(id, widgetId)]),
       ),
       widgetLayout: {
         count: position(
           0,
-          id === "purchases" ? (compact ? 12 : 6) : 0,
+          id === "purchases" && compact ? 16 : 0,
           id === "purchases" ? 8 : 6,
-          id === "purchases" ? 6 : 10,
+          id === "purchases" ? 8 : 10,
         ),
         ...(id === "purchases"
           ? {
-              "extra-sample-value": position(0, 0, 12, 6),
-              "extra-sandbox-value": position(12, compact ? 6 : 0, 12, 6),
-              categories: position(8, compact ? 18 : 6, 16, 20),
-              grid: position(0, compact ? 38 : 26, 24, 22),
+              "extra-sample-value": position(8, 0, 8, 8),
+              "extra-sandbox-value": position(16, compact ? 8 : 0, 8, 8),
+              "extra-recorded-value-chart": position(
+                0,
+                compact ? 24 : 8,
+                14,
+                20,
+              ),
+              categories: position(14, compact ? 44 : 8, 10, 20),
+              grid: position(0, compact ? 64 : 28, 24, 24),
             }
           : {}),
         ...(id === "documents"
@@ -279,9 +299,9 @@ export function customerReport(compact = false): AgReportState {
           : {}),
         evidence: position(
           0,
-          id === "purchases" ? (compact ? 60 : 48) : compact ? 34 : 24,
+          id === "purchases" ? (compact ? 88 : 52) : compact ? 34 : 24,
           24,
-          25,
+          22,
         ),
       },
     })),

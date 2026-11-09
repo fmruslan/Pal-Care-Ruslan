@@ -123,10 +123,26 @@ export function CareCalendarRail({
         data-care-calendar-viewport
       >
         <div className="care-rail-track">
-          <div className="care-rail-line" aria-hidden="true" />
+          <svg
+            className="care-rail-line"
+            aria-hidden="true"
+            focusable="false"
+            width="100%"
+            height="2"
+            preserveAspectRatio="none"
+          >
+            <line
+              x1="0"
+              y1="1"
+              x2="100%"
+              y2="1"
+              stroke="currentColor"
+              strokeWidth="2"
+            />
+          </svg>
           {weeks.map((days, week) => (
             <div key={days[0]} className="care-rail-week">
-              <div className="care-rail-week-label">
+              <div className="care-rail-week-label" data-care-week={week + 1}>
                 <span className="font-semibold text-foreground">
                   Week {week + 1}
                 </span>

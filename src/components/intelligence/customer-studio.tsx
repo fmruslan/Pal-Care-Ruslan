@@ -44,7 +44,11 @@ import {
 import type { CareAnswer } from "@/lib/careos/contracts";
 import { money } from "@/lib/demo/presentation";
 import { Button } from "../ui/button";
-import { CustomerRecords } from "./customer-records";
+import { CustomerRecords, CustomerEvidence } from "./customer-records";
+import {
+  selectionEvidence,
+  studioSelectionConfirmation,
+} from "@/lib/intelligence/customer-presentation";
 import { useInsightsControl } from "./customer-control";
 import { AskCareOS } from "../careos/provider";
 import { AssistantName } from "../assistant-name";
@@ -110,6 +114,8 @@ function PurchaseWidget(
           .map((r) => r["purchases.id"] ?? r.id)
           .filter((id): id is string => typeof id === "string");
         if (
+          selected.length !== result.results.rows.length ||
+          new Set(selected).size !== selected.length ||
           selected.some(
             (id) => !params.context.dataset.purchases.some((p) => p.id === id),
           )
@@ -178,7 +184,7 @@ function PurchaseWidget(
           <p className="mt-2 text-sm text-muted-foreground">
             {adjustmentUnavailable
               ? "Adjustment evidence could not be read completely. No zero-refund conclusion is established."
-              : "Independently verified Sandbox refunds for purchases in this selection. Not proposed savings."}
+              : "Independently verified Sandbox refunds only. Proposed or illustrative savings are not money recovered."}
           </p>
         </div>
         {!adjustmentUnavailable && (
@@ -199,6 +205,10 @@ function PurchaseWidget(
     return (
       <div className="h-full overflow-auto p-5" data-testid="insight-attention">
         <h2 className="text-base font-semibold">What needs attention?</h2>
+        <p className="mt-2 text-sm font-medium">
+          {purchases.filter((p) => p.attentionCount > 0).length} selected
+          purchases with recorded aftercare items
+        </p>
         <p className="my-3 text-sm text-muted-foreground">
           {params.context.dataset.evidenceAvailable.attention
             ? "Only recorded aftercare items appear here. Missing documents do not create a deadline or a safety warning."
@@ -218,10 +228,8 @@ function PurchaseWidget(
       className="h-full overflow-auto p-5"
       data-testid="insight-documents-care"
     >
-      <h2 className="mb-3 text-base font-semibold">
-        Your purchases & source records
-      </h2>
-      <CustomerRecords purchases={purchases} />
+      <h2 className="mb-3 text-base font-semibold">Evidence & Care</h2>
+      <CustomerEvidence purchases={purchases} />
     </div>
   );
 }
@@ -289,6 +297,7 @@ export function CustomerStudio({
   const observations = useRef(new Map<string, WidgetObservation>());
   const rowListeners = useRef(new Set<() => void>());
   const [notice, setNotice] = useState("");
+  const [verifiedAction, setVerifiedAction] = useState("");
   const [tools, setTools] = useState<string[]>([]);
   const [edit, setEdit] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -413,7 +422,18 @@ export function CustomerStudio({
             { id: "id", name: "Purchase record", format: "textFormat" },
             { id: "name", name: "Purchase", format: "textFormat" },
             { id: "category", name: "Category", format: "textFormat" },
-            { id: "purchasedOn", name: "Purchase date", format: "textFormat" },
+            {
+              id: "purchasedOn",
+              name: "Purchase date",
+              format: "textFormat",
+              createValueFormatter: () => (value) =>
+                new Intl.DateTimeFormat("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                  timeZone: "UTC",
+                }).format(new Date(String(value).slice(0, 10) + "T00:00:00Z")),
+            },
             {
               id: "provenance",
               name: "Purchase evidence",
@@ -423,6 +443,15 @@ export function CustomerStudio({
               id: "paidUsd",
               name: "Recorded amount (USD)",
               format: "currencyFormat",
+              formatOptions: {
+                format: new Intl.NumberFormat("en-US", {
+                  style: "currency",
+                  currency: "USD",
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                }),
+              },
+              blankValue: "Price not recorded",
             },
             {
               id: "documentCount",
@@ -433,11 +462,27 @@ export function CustomerStudio({
               id: "sampleUsd",
               name: "Sample (USD)",
               format: "currencyFormat",
+              formatOptions: {
+                format: new Intl.NumberFormat("en-US", {
+                  style: "currency",
+                  currency: "USD",
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                }),
+              },
             },
             {
               id: "sandboxUsd",
               name: "Verified Sandbox (USD)",
               format: "currencyFormat",
+              formatOptions: {
+                format: new Intl.NumberFormat("en-US", {
+                  style: "currency",
+                  currency: "USD",
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                }),
+              },
             },
             {
               id: "careCount",
@@ -465,7 +510,7 @@ export function CustomerStudio({
           id,
           label:
             id === "documents-care"
-              ? "Documents & Care"
+              ? "Evidence & Care"
               : id === "attention"
                 ? "Attention & Next Steps"
                 : "Adjustment Evidence",
@@ -540,6 +585,7 @@ export function CustomerStudio({
     // Clear before any SDK mutation (including an identical-state request).
     // State-update events alone cannot invalidate proof for a fresh execution.
     if (canvas.current) delete canvas.current.dataset.nativeReadback;
+    setVerifiedAction("");
     if (signal.aborted || !api.current) throw new Error("insights_cancelled");
     const executionGeneration = ++nativeExecutionRef.current;
     const current = api.current;
@@ -834,6 +880,7 @@ export function CustomerStudio({
       async (result, callerSignal, requestId, restoreState) => {
         // Invalidate even when saved-result validation fails before apply runs.
         if (canvas.current) delete canvas.current.dataset.nativeReadback;
+        setVerifiedAction("");
         const signal = AbortSignal.any([controller.signal, callerSignal]);
         if (!api.current || signal.aborted)
           throw new Error("insights_not_ready");
@@ -870,8 +917,13 @@ export function CustomerStudio({
           !!restoreState,
         );
         if (signal.aborted) throw new Error("insights_cancelled");
-        setNotice(
-          `${restoreState ? "Original native state restored and verified" : "Saved analysis chart verified"}: ${ids.length} matching purchases; Sample and Verified Sandbox values remain separate. Unpriced/reference exclusions are shown in North.`,
+        setVerifiedAction(
+          studioSelectionConfirmation(
+            dataset.purchases.filter((p) => ids.includes(p.id)),
+            restoreState
+              ? "Original native state restored and verified"
+              : "Saved analysis chart verified",
+          ),
         );
         return structuredClone(api.current.getState());
       },
@@ -889,6 +941,7 @@ export function CustomerStudio({
     return register(
       async (message, requestId, signal, recovery) => {
         if (!api.current) throw new Error("insights_not_ready");
+        setVerifiedAction("");
         let plan: CustomerPlan;
         const beforePlanning = stateFingerprint(api.current.getState());
         if (recovery.plan) plan = validateCustomerPlan(recovery.plan);
@@ -1010,8 +1063,8 @@ export function CustomerStudio({
                 ]
               : [],
         };
-        setNotice(
-          "North Star changed this view and checked the result. Purchase records are unchanged.",
+        setVerifiedAction(
+          studioSelectionConfirmation(selected, "North updated this view"),
         );
         return answer;
       },
@@ -1024,6 +1077,7 @@ export function CustomerStudio({
   }, [ready, register, dataset, live, compact]);
 
   const selected = dataset.purchases.filter((p) => rows.includes(p.id));
+  const selectedEvidence = selectionEvidence(selected);
   const selectedAdjustmentIds = new Set(
     selected.flatMap((p) => p.adjustmentIds),
   );
@@ -1036,9 +1090,9 @@ export function CustomerStudio({
         <div>
           <h2 className="text-lg font-semibold">Your interactive Insights</h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Ask North Star to explore these records, or choose a view below.{" "}
+            Real charts. Linked evidence. A view you can make your own.{" "}
             {live
-              ? "Private live planning requires your Studio scope."
+              ? "Ask North to change the view; private live planning requires your Studio scope."
               : "Suggested questions use actual Studio tools with scripted planning · no live AI."}
           </p>
         </div>
@@ -1063,96 +1117,105 @@ export function CustomerStudio({
           </Button>
         ))}
       </div>
-      <fieldset
-        disabled={!ready || phase !== "idle" || adding}
-        className="mb-4 flex min-w-0 flex-wrap items-end gap-3 rounded-2xl border bg-card p-4"
-      >
-        <legend className="px-2 text-sm font-semibold">
-          Explore your purchases
-        </legend>
-        <div className="min-w-0 max-w-full text-sm">
-          <span>Purchase evidence</span>
-          <span
-            className="mt-2 flex flex-wrap gap-1 rounded-xl bg-neutral p-1"
-            role="group"
-            aria-label="Purchase evidence filters"
-          >
-            {(
-              [
-                ["all", "All"],
-                ["sandbox", "Verified Sandbox"],
-                ["sample", "Samples"],
-              ] as const
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={filters.origin === value}
-                onClick={() => select({ ...filtersRef.current, origin: value })}
-                className={`min-h-11 rounded-lg px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${filters.origin === value ? "bg-secondary text-primary shadow-card" : "text-muted-foreground hover:bg-card"}`}
-              >
-                {label}
-              </button>
-            ))}
-          </span>
-        </div>
-        <label className="min-w-0 flex-1 basis-44 text-sm">
-          Search purchases
-          <input
-            type="search"
-            value={filters.query}
-            onChange={(e) =>
-              select({ ...filtersRef.current, query: e.target.value })
-            }
-            placeholder="Product, model or category"
-            className="mt-2 block min-h-11 w-full rounded-xl border border-input bg-card px-3"
-          />
-        </label>
-        <label className="min-w-0 max-w-full text-sm">
-          Category
-          <select
-            aria-label="Category"
-            className="mt-2 block min-h-11 w-full max-w-full rounded-xl border border-input bg-card px-3"
-            value={filters.category}
-            onChange={(e) =>
-              select({ ...filtersRef.current, category: e.target.value })
-            }
-          >
-            <option value="all">All categories</option>
-            {[...new Set(dataset.purchases.map((p) => p.category))].map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
-        </label>
-        <label className="min-w-0 text-sm">
-          From
-          <input
-            type="date"
-            className="mt-2 block min-h-11 w-full rounded-xl border border-input bg-card px-3"
-            value={filters.from}
-            onChange={(e) =>
-              select({ ...filtersRef.current, from: e.target.value })
-            }
-          />
-        </label>
-        <label className="min-w-0 text-sm">
-          Through
-          <input
-            type="date"
-            className="mt-2 block min-h-11 w-full rounded-xl border border-input bg-card px-3"
-            value={filters.to}
-            onChange={(e) =>
-              select({ ...filtersRef.current, to: e.target.value })
-            }
-          />
-        </label>
-        <Button
-          variant="outline"
-          onClick={() => select({ ...emptyPurchaseFilters })}
+      <details className="mb-2 text-sm">
+        <summary className="min-h-11 cursor-pointer py-3 font-medium">
+          Filters & sort
+        </summary>
+        <fieldset
+          disabled={!ready || phase !== "idle" || adding}
+          className="mb-4 flex min-w-0 flex-wrap items-end gap-3 rounded-2xl border bg-card p-4"
         >
-          Clear filters
-        </Button>
-      </fieldset>
+          <legend className="px-2 text-sm font-semibold">
+            Explore your purchases
+          </legend>
+          <div className="min-w-0 max-w-full text-sm">
+            <span>Purchase evidence</span>
+            <span
+              className="mt-2 flex flex-wrap gap-1 rounded-xl bg-neutral p-1"
+              role="group"
+              aria-label="Purchase evidence filters"
+            >
+              {(
+                [
+                  ["all", "All"],
+                  ["sandbox", "Verified Sandbox"],
+                  ["sample", "Samples"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={filters.origin === value}
+                  onClick={() =>
+                    select({ ...filtersRef.current, origin: value })
+                  }
+                  className={`min-h-11 rounded-lg px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${filters.origin === value ? "bg-secondary text-primary shadow-card" : "text-muted-foreground hover:bg-card"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </span>
+          </div>
+          <label className="min-w-0 flex-1 basis-44 text-sm">
+            Search purchases
+            <input
+              type="search"
+              value={filters.query}
+              onChange={(e) =>
+                select({ ...filtersRef.current, query: e.target.value })
+              }
+              placeholder="Product, model or category"
+              className="mt-2 block min-h-11 w-full rounded-xl border border-input bg-card px-3"
+            />
+          </label>
+          <label className="min-w-0 max-w-full text-sm">
+            Category
+            <select
+              aria-label="Category"
+              className="mt-2 block min-h-11 w-full max-w-full rounded-xl border border-input bg-card px-3"
+              value={filters.category}
+              onChange={(e) =>
+                select({ ...filtersRef.current, category: e.target.value })
+              }
+            >
+              <option value="all">All categories</option>
+              {[...new Set(dataset.purchases.map((p) => p.category))].map(
+                (c) => (
+                  <option key={c}>{c}</option>
+                ),
+              )}
+            </select>
+          </label>
+          <label className="min-w-0 text-sm">
+            From
+            <input
+              type="date"
+              className="mt-2 block min-h-11 w-full rounded-xl border border-input bg-card px-3"
+              value={filters.from}
+              onChange={(e) =>
+                select({ ...filtersRef.current, from: e.target.value })
+              }
+            />
+          </label>
+          <label className="min-w-0 text-sm">
+            Through
+            <input
+              type="date"
+              className="mt-2 block min-h-11 w-full rounded-xl border border-input bg-card px-3"
+              value={filters.to}
+              onChange={(e) =>
+                select({ ...filtersRef.current, to: e.target.value })
+              }
+            />
+          </label>
+          <Button
+            variant="outline"
+            onClick={() => select({ ...emptyPurchaseFilters })}
+          >
+            Clear filters
+          </Button>
+        </fieldset>
+      </details>
       <p
         aria-label="Personal Insights filter scope"
         className="mb-4 text-sm text-muted-foreground"
@@ -1167,59 +1230,68 @@ export function CustomerStudio({
         {filters.care ? " · supported care" : ""}
         {filters.attention ? " · recorded attention items" : ""}
         {filters.verified ? " · verified adjustments only" : ""}
-        {filters.query ? ` · matching “${filters.query}”` : ""}. Chart
-        selections cross-filter the other widgets; Clear filters also clears
-        chart selections.
+        {filters.query ? ` · matching “${filters.query}”` : ""}
+        {crossCategory ? ` · chart selection: ${crossCategory}` : ""}.
+        {selectedEvidence.unpriced
+          ? ` ${selectedEvidence.unpriced} unpriced purchase excluded from monetary values, not purchase counts.`
+          : ""}{" "}
+        Select a chart category to cross-filter; Clear filters clears the
+        selection.
       </p>
       {page === "purchases" && (
-        <div
-          role="group"
-          aria-label="Chart category selection"
-          className="mb-4 flex flex-wrap items-center gap-2"
-        >
-          <span className="text-sm text-muted-foreground">
-            Cross-filter by category:
-          </span>
-          {[...new Set(dataset.purchases.map((p) => p.category))].map(
-            (category) => (
-              <Button
-                key={category}
-                size="sm"
-                variant="outline"
-                aria-pressed={crossCategory === category}
-                disabled={!ready || phase !== "idle" || adding}
-                onClick={() => {
-                  const current = api.current!;
-                  const state = current.getState();
-                  current.setState({
-                    ...state,
-                    pages: state.pages.map((p) =>
-                      p.id !== "purchases"
-                        ? p
-                        : {
-                            ...p,
-                            crossFilter: {
-                              values: {
-                                categories: [
-                                  {
-                                    group: 0,
-                                    type: "value",
-                                    field: { id: "purchases.category" },
-                                    values: [category],
-                                  },
-                                ],
+        <details className="mb-2 text-sm">
+          <summary className="min-h-11 cursor-pointer py-3 font-medium">
+            Keyboard category shortcuts
+          </summary>
+          <div
+            role="group"
+            aria-label="Chart category selection"
+            className="mb-4 flex flex-wrap items-center gap-2"
+          >
+            <span className="text-sm text-muted-foreground">
+              Cross-filter by category:
+            </span>
+            {[...new Set(dataset.purchases.map((p) => p.category))].map(
+              (category) => (
+                <Button
+                  key={category}
+                  size="sm"
+                  variant="outline"
+                  aria-pressed={crossCategory === category}
+                  disabled={!ready || phase !== "idle" || adding}
+                  onClick={() => {
+                    const current = api.current!;
+                    const state = current.getState();
+                    current.setState({
+                      ...state,
+                      pages: state.pages.map((p) =>
+                        p.id !== "purchases"
+                          ? p
+                          : {
+                              ...p,
+                              crossFilter: {
+                                values: {
+                                  categories: [
+                                    {
+                                      group: 0,
+                                      type: "value",
+                                      field: { id: "purchases.category" },
+                                      values: [category],
+                                    },
+                                  ],
+                                },
                               },
                             },
-                          },
-                    ),
-                  });
-                }}
-              >
-                {category}
-              </Button>
-            ),
-          )}
-        </div>
+                      ),
+                    });
+                  }}
+                >
+                  {category}
+                </Button>
+              ),
+            )}
+          </div>
+        </details>
       )}
       <div className="mb-4 flex flex-wrap gap-2">
         <Button
@@ -1329,11 +1401,20 @@ export function CustomerStudio({
           </p>
         </div>
       )}
+      {verifiedAction && (
+        <p
+          role="status"
+          data-testid="studio-verified-action"
+          className="mb-3 rounded-xl border border-intelligence-border bg-intelligence px-4 py-3 text-sm font-medium text-intelligence-foreground"
+        >
+          ✓ {verifiedAction}
+        </p>
+      )}
       <div
         ref={canvas}
         data-testid="customer-studio"
         inert={phase !== "idle" || adding}
-        className="ag-theme-mode relative h-[760px] min-w-0 overflow-hidden rounded-2xl border"
+        className="ag-theme-mode relative h-[900px] min-w-0 overflow-hidden rounded-2xl border"
         data-ag-theme-mode={resolvedTheme === "dark" ? "dark" : "light"}
       >
         {canvasWidth > 0 && (
@@ -1360,13 +1441,21 @@ export function CustomerStudio({
             }}
             onStateUpdated={(event) => {
               if (canvas.current) delete canvas.current.dataset.nativeReadback;
+              setVerifiedAction("");
               if (
                 insightPages.includes(event.state.selectedPageId as InsightPage)
               )
                 setPage(event.state.selectedPageId as InsightPage);
-              const selectedCategory = event.state.pages.find(
+              const categorySelections = event.state.pages.find(
                 (p) => p.id === "purchases",
-              )?.crossFilter?.values?.categories?.[0];
+              )?.crossFilter?.values;
+              const selectedCategory = Object.values(categorySelections ?? {})
+                .flat()
+                .find(
+                  (value) =>
+                    value.type === "value" &&
+                    value.field.id === "purchases.category",
+                );
               setCrossCategory(
                 selectedCategory?.type === "value" &&
                   typeof selectedCategory.values[0] === "string"
@@ -1384,9 +1473,8 @@ export function CustomerStudio({
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
         Actual AG Studio 3.0.0 · local evaluation, vendor notices retained.
-        Public judging license coverage is not yet established. Recorded amounts
-        include labeled fictional samples; this is not a spending or coverage
-        statement.
+        Sponsor judging key not yet issued/configured. Recorded amounts include
+        labeled fictional samples; this is not a spending or coverage statement.
       </p>
       {notice && (
         <p role="status" className="mt-4 text-sm">
