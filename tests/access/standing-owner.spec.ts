@@ -470,7 +470,7 @@ test("owner settings replace testing requests without making saved records depen
     ["/dashboard", "Care for what you own."],
     ["/purchases", "Your products"],
     ["/vault", "Your products"],
-    ["/documents", "Your products"],
+    ["/documents", "Your documents"],
     ["/insights", "Insights"],
   ]) {
     await page.goto(OWNER_ORIGIN + path);
