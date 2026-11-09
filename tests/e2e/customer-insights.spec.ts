@@ -11,8 +11,8 @@ import type { GuardianOverview } from "../../src/lib/price-guardian/contracts";
 // These are real local SDK/browser checks with scripted planning, not model or
 // PayPal acceptance. The existing config supplies fixtures or a dedicated test DB.
 const dataSource = process.env.E2E_DATA_SOURCE ?? "fixtures";
-const primaryLabels = ["Care", "Purchases", "Insights"];
-const primaryPaths = ["/dashboard", "/purchases", "/insights"];
+const primaryLabels = ["Care", "Purchases", "Insights", "Documents"];
+const primaryPaths = ["/dashboard", "/purchases", "/insights", "/documents"];
 const headphoneId = "00000000-0000-4000-8000-000000000201";
 const piId = "00000000-0000-4000-8000-000000000204";
 
@@ -310,7 +310,7 @@ const usd = (minor: number) =>
     minor / 100,
   );
 
-test("customer navigation keeps three visible destinations and secondary exploration", async ({
+test("customer navigation keeps four visible destinations and quieter tools", async ({
   page,
 }) => {
   await page.goto("/dashboard");
@@ -343,16 +343,14 @@ test("customer navigation keeps three visible destinations and secondary explora
       page.getByRole("button", { name: "Ask North Star", exact: true }),
     ).toHaveCount(1);
   }
-  const explore = page.locator("summary").filter({ hasText: /^Explore$/ });
+  const explore = page.locator("summary").filter({ hasText: /^More tools$/ });
   await explore.focus();
   await explore.press("Enter");
-  const secondary = page.getByRole("navigation", { name: "More to explore" });
-  await expect(secondary.getByRole("link")).toHaveText([
-    "Demo shop",
-    "Price Guardian",
-    "Safety & recalls",
-    "Replacements",
-  ]);
+  const secondary = page.getByRole("navigation", { name: "More tools" });
+  await expect(secondary.getByRole("link")).toHaveCount(4);
+  for (const href of ["/shop", "/guardian", "/safety", "/replacements"])
+    await expect(secondary.locator(`a[href="${href}"]`)).toBeVisible();
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.keyboard.press("Tab");
   await expect(secondary.getByRole("link").first()).toBeFocused();
   for (const link of await navigation.getByRole("link").all()) {

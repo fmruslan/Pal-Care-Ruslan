@@ -15,10 +15,12 @@ import { Button } from "./ui/button";
 import { displayDate, money } from "@/lib/demo/presentation";
 import type { homeLibrary, LibraryPurchase } from "@/lib/demo/library";
 import {
+  DOCUMENT_CATEGORIES,
   libraryHref,
   withLibraryReturn,
   type LibraryQuery,
 } from "@/lib/library-navigation";
+import { documentClassificationLabels } from "@/lib/document-classification";
 
 const selectClass =
   "min-h-11 max-w-full rounded-xl border border-input bg-card px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
@@ -28,15 +30,18 @@ export function LibrarySearch({
   query,
   categories,
   searchIndex = [],
+  purchases = [],
 }: {
   query: LibraryQuery;
   categories: string[];
   searchIndex?: string[];
+  purchases?: LibraryPurchase[];
 }) {
   const filtered =
     query.category !== "all" ||
     query.source !== "all" ||
     query.documents !== "all" ||
+    query.product !== "all" ||
     query.sort !== "newest";
   return (
     <>
@@ -46,9 +51,18 @@ export function LibrarySearch({
         searchIndex={searchIndex}
       />
       <NorthCollection>
-        <WorkspaceSearchForm key={libraryHref(query)} className="my-3">
+        <WorkspaceSearchForm
+          key={libraryHref(query)}
+          action={query.view === "documents" ? "/documents" : "/purchases"}
+          className="my-3"
+        >
           <input type="hidden" name="q" value={query.q} />
           <input type="hidden" name="view" value={query.view} />
+          <input
+            type="hidden"
+            name="documentCategory"
+            value={query.documentCategory}
+          />
           <details className="group min-w-0">
             <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl text-sm font-medium text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
               <SlidersHorizontal className="size-4" aria-hidden="true" />
@@ -59,6 +73,28 @@ export function LibrarySearch({
               />
             </summary>
             <div className="flex flex-wrap items-end gap-3 rounded-2xl border bg-card p-4">
+              {query.view === "documents" && (
+                <label className="flex min-w-0 flex-col gap-1 text-xs text-muted-foreground">
+                  Dated purchase
+                  <select
+                    name="product"
+                    aria-label="Dated purchase"
+                    defaultValue={query.product}
+                    className={`${selectClass} w-full sm:max-w-80`}
+                  >
+                    <option value="all">All dated purchases</option>
+                    {purchases.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name} · {displayDate(p.purchasedOn)} ·{" "}
+                        {p.origin === "sandbox" ? "Verified Sandbox" : "Sample"}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {query.view !== "documents" && (
+                <input type="hidden" name="product" value={query.product} />
+              )}
               <label className="flex min-w-0 flex-col gap-1 text-xs text-muted-foreground">
                 Category
                 <select
@@ -123,6 +159,7 @@ export function LibrarySearch({
                 {[
                   query.q && `“${query.q}”`,
                   query.category !== "all" && query.category,
+                  query.product !== "all" && "Exact dated purchase",
                   query.source !== "all" &&
                     `Purchase source: ${query.source === "sandbox" ? "Verified Sandbox" : "Sample"}`,
                   query.documents !== "all" &&
@@ -134,7 +171,7 @@ export function LibrarySearch({
                   .join(" · ")}
               </span>
               <Link
-                href="/purchases"
+                href={query.view === "documents" ? "/documents" : "/purchases"}
                 className="inline-flex min-h-11 items-center font-semibold text-primary underline underline-offset-4"
               >
                 Clear filters
@@ -164,8 +201,8 @@ export function LibraryPurchaseCard({
       <Link
         href={href}
         className="library-product-link group relative grid grid-cols-[5rem_minmax(0,1fr)] items-center gap-3 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring sm:block"
-        aria-label={`View details for ${p.name}, ${displayDate(p.purchasedOn)}, ${p.origin === "sandbox" ? "Verified Sandbox" : "Sample"}`}
       >
+        <span className="sr-only">View details for {p.name}, </span>
         <div className="library-product-art">
           <ProductArt kind={p.illustration ?? "computer"} size="compact" />
         </div>
@@ -238,12 +275,13 @@ export function LibraryDocuments({
   from: string;
 }) {
   return (
-    <div className="space-y-3" data-testid="library-documents">
-      {items.map(({ document: d, purchase: p }) => (
+    <div className="space-y-2" data-testid="library-documents">
+      {items.map(({ document: d, purchase: p, classification }) => (
         <article
           key={d.id}
-          className="flex flex-wrap items-center gap-3 rounded-2xl border bg-card p-4 sm:p-5"
+          className="flex flex-wrap items-center gap-3 rounded-xl border bg-card px-3 py-2 sm:px-4"
           data-document-id={d.id}
+          data-document-category={classification}
         >
           <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-secondary">
             <FileText className="size-5 text-primary" aria-hidden="true" />
@@ -258,19 +296,18 @@ export function LibraryDocuments({
               </Link>
             </h3>
             <p className="text-sm text-muted-foreground">
-              {p.name} · {displayDate(p.purchasedOn)}
+              <Link
+                href={withLibraryReturn(p.href, from)}
+                className="hover:text-primary hover:underline"
+              >
+                {p.name} · {displayDate(p.purchasedOn)}
+              </Link>
             </p>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
               {d.origin === "sandbox"
                 ? "Verified Sandbox receipt"
                 : "Sample document"}{" "}
-              ·{" "}
-              {d.kind === "care-card"
-                ? "Care card"
-                : d.kind === "policy"
-                  ? "Policy"
-                  : "Receipt"}{" "}
-              · Plain text
+              · {documentClassificationLabels[classification]} · Plain text
             </p>
           </div>
           <Link
@@ -303,13 +340,20 @@ export function LibraryResults({
           {library.purchaseCount === 1 ? "" : "s"} · {library.documentCount}{" "}
           document{library.documentCount === 1 ? "" : "s"}
           {query.q ? ` matching “${query.q}”` : ""}
+          <span
+            className="mt-1 block text-xs"
+            data-testid="purchase-provenance-counts"
+          >
+            {library.provenanceCounts.sandbox} Verified Sandbox ·{" "}
+            {library.provenanceCounts.sample} Sample
+          </span>
         </p>
         <Link
-          href={
-            query.view === "documents"
-              ? "/purchases"
-              : "/purchases?view=documents"
-          }
+          href={libraryHref(query, {
+            view: query.view === "documents" ? "purchases" : "documents",
+            documentCategory: "all",
+            page: 1,
+          })}
           className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-input bg-card px-3 text-sm font-semibold text-primary hover:bg-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         >
           {query.view === "documents" ? (
@@ -325,6 +369,28 @@ export function LibraryResults({
           )}
         </Link>
       </div>
+      {query.view === "documents" && (
+        <nav
+          aria-label="Document categories"
+          className="mb-4 flex flex-wrap gap-2"
+        >
+          {DOCUMENT_CATEGORIES.map(({ value, label }) => (
+            <Link
+              key={value}
+              href={libraryHref(query, { documentCategory: value, page: 1 })}
+              aria-current={
+                query.documentCategory === value ? "page" : undefined
+              }
+              className={`inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 text-sm ${query.documentCategory === value ? "border-primary bg-secondary font-semibold text-secondary-foreground" : "border-input bg-card text-muted-foreground hover:text-primary"}`}
+            >
+              {label}
+              <span className="tabular-nums">
+                {library.documentCategoryCounts[value]}
+              </span>
+            </Link>
+          ))}
+        </nav>
+      )}
       {!library.valid && (
         <p role="alert" className="mb-4 rounded-xl border bg-card p-4 text-sm">
           These search or filter options aren’t supported. Clear filters to
@@ -354,6 +420,7 @@ export function LibraryResults({
             </div>
           ) : (
             <LibraryEmpty
+              documents={false}
               label={
                 library.purchaseCount
                   ? "No purchases on this page"
@@ -369,12 +436,33 @@ export function LibraryResults({
           className={query.view === "documents" ? "" : "mt-8"}
         >
           <h2 className="section-title mb-4">
-            {query.q ? "Matching documents" : "All documents"}
+            {query.view === "documents"
+              ? (DOCUMENT_CATEGORIES.find(
+                  (c) => c.value === query.documentCategory,
+                )?.label ?? "All documents")
+              : "Matching documents"}
           </h2>
+          {query.view === "documents" &&
+            query.documentCategory === "all" &&
+            library.documentCategoryCounts.other > 0 && (
+              <p className="mb-3 text-xs leading-5 text-muted-foreground">
+                Includes {library.documentCategoryCounts.other} Other records:
+                ownership, price, delivery and other notes are not manuals or
+                coverage.
+              </p>
+            )}
+          {query.view === "documents" && query.documentCategory === "care" && (
+            <p className="mb-3 text-sm leading-6 text-muted-foreground">
+              Only saved care documents appear here. A sample care card is not a
+              manufacturer manual. Official Raspberry Pi guidance is stored
+              separately in Product care and is not counted in this library.
+            </p>
+          )}
           {library.documents.length ? (
             <LibraryDocuments items={library.documents} from={from} />
           ) : (
             <LibraryEmpty
+              documents={query.view === "documents"}
               label={
                 library.documentCount
                   ? "No documents on this page"
@@ -421,7 +509,13 @@ export function LibraryResults({
     </>
   );
 }
-function LibraryEmpty({ label }: { label: string }) {
+function LibraryEmpty({
+  label,
+  documents,
+}: {
+  label: string;
+  documents: boolean;
+}) {
   return (
     <div className="rounded-2xl border bg-card p-6">
       <BookOpen className="mb-3 size-6 text-primary" aria-hidden="true" />
@@ -429,13 +523,15 @@ function LibraryEmpty({ label }: { label: string }) {
       <p className="mt-2 text-sm text-muted-foreground">
         {label.includes("on this page")
           ? "Use the page controls below to see the other matching records."
-          : "Try another search, or return to all saved purchases. Missing documents and manufacturer manuals aren’t automatically supplied."}
+          : documents
+            ? "No saved documents match this category and these filters. Try another category or clear the filters. Missing warranties and manufacturer manuals aren’t automatically supplied."
+            : "Try another search, or return to all saved purchases. Missing documents and manufacturer manuals aren’t automatically supplied."}
       </p>
       <Link
-        href="/purchases"
+        href={documents ? "/documents" : "/purchases"}
         className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary"
       >
-        Show all purchases
+        {documents ? "Show all documents" : "Show all purchases"}
         <ArrowRight className="size-4" aria-hidden="true" />
       </Link>
     </div>

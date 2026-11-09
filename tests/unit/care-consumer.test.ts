@@ -20,13 +20,13 @@ import { consumerScenario } from "../../src/lib/care/demo/consumer";
 
 const dataOf = () =>
   withConsumerDemoFixtures(withTenProductFixtures(structuredClone(demoData)));
-const feedOf = (data = dataOf()) =>
+const feedOf = (data = dataOf(), clock = "2026-11-05T12:00:00Z") =>
   careFeed({
     data,
     knowledge: [],
     guardian: emptyOverview(),
     activity: { items: [], unavailable: [] },
-    now: new Date("2026-11-05T12:00:00Z"),
+    now: new Date(clock),
   });
 describe("consumer Care uses human presentation, never invented authority", () => {
   it("formats the actual saved return deadline in UTC and keeps expired windows closed", () => {
@@ -36,24 +36,26 @@ describe("consumer Care uses human presentation, never invented authority", () =
     if (scenario.kind !== "return-window")
       throw Error("return fixture required");
     const shifted = { ...scenario, endsAt: "2026-12-02T23:30:00-05:00" };
-    expect(consumerScenario(shifted, true).status).toBe("Return ends Dec 3");
-    expect(consumerScenario(shifted, false).status).toBe(
-      "Return window closed",
+    expect(consumerScenario(shifted, true, "2026-11-09T12:00:00Z").status).toBe(
+      "Return ends Dec 3",
     );
+    expect(
+      consumerScenario(shifted, false, "2026-12-03T04:30:00Z").status,
+    ).toBe("Return window closed");
     expect(scenario.endsAt).not.toBe(shifted.endsAt);
   });
   it("uses concise labels derived from saved deadlines and never calls a sample refund complete", () => {
     const feed = feedOf();
     for (const [id, label] of [
-      [201, "Price drop found"],
+      [201, "Catalog price example"],
       [202, "Delivery expected"],
       [203, "Safety review"],
-      [204, "Price review"],
+      [204, "Illustrative price window"],
       [205, "Warranty details"],
-      [206, "Return in progress"],
+      [206, "Return progress example"],
       [207, "Return ends Nov 8"],
       [208, "Refund example"],
-      [209, "Price watch active"],
+      [209, "Price check example"],
       [210, "Return ends Nov 7"],
     ] as const) {
       const view = feed.ownership.find((v) => v.twinId === demoId(id))!;
@@ -87,15 +89,15 @@ describe("consumer Care uses human presentation, never invented authority", () =
     expect(
       facts.every(
         (f) =>
-          !/simulated|recorded|fictional dispatch/i.test(
+          !/Price watch active|Price drop found|Protected|Refund complete/i.test(
             f.consumer!.status + " " + f.consumer!.summary,
           ),
       ),
     ).toBe(true);
     expect(careProductCards(feed, "attention")).toHaveLength(5);
-    expect(careProductCards(feed, "watching")).toHaveLength(1);
+    expect(careProductCards(feed, "watching")).toHaveLength(0);
     expect(careProductCards(feed, "protected")).toHaveLength(3);
-    expect(careProductCards(feed, "completed")).toHaveLength(1);
+    expect(careProductCards(feed, "completed")).toHaveLength(0);
     for (const card of cards)
       expect(careMilestones(card.view!)[0].topic).toBe("purchase");
     const boots = cards.find((c) => c.item.purchase.id === demoId(206))!;
@@ -164,7 +166,7 @@ describe("consumer Care uses human presentation, never invented authority", () =
     );
     const headphones = feed.ownership.find((v) => v.twinId === demoId(201))!;
     expect(headphones.facts[0].consumer!.summary).toContain(
-      "$20.00 lower catalog price",
+      "$20.00 lower simulated catalog price",
     );
     expect(headphones.facts[0].consumer!.nextStep).toContain(
       "not eligibility or money saved",
@@ -202,7 +204,7 @@ describe("consumer Care uses human presentation, never invented authority", () =
     [206, "returns", "View return progress"],
     [208, "refunds", "View refund details"],
     [205, "warranty", "View warranty"],
-    [202, "delivery", "Track delivery"],
+    [202, "delivery", "View delivery details"],
     [203, "safety", "Check safety details"],
   ] as const)(
     "North shares the exact scenario/source and next step for %i",
@@ -222,7 +224,151 @@ describe("consumer Care uses human presentation, never invented authority", () =
       "stitching-defect",
     );
     expect(boots.facts[0].detail).toContain("Inspection pending");
-    expect(boots.facts[0].detail).toContain("no refund is confirmed");
+    expect(boots.facts[0].detail).toContain(
+      "No live return progress or refund is confirmed",
+    );
+  });
+  it.each([207, 210])(
+    "evaluates the exact exclusive return cutoff for %i, not the frozen pack date",
+    (id) => {
+      const data = dataOf();
+      const scenario = data.demoCare!.scenarios.find(
+        (s) => s.twinId === demoId(id),
+      )!;
+      if (scenario.kind !== "return-window")
+        throw Error("return fixture required");
+      for (const offset of [-1, 0, 1]) {
+        const clock = new Date(
+          Date.parse(scenario.endsAt) + offset,
+        ).toISOString();
+        const feed = feedOf(data, clock);
+        const view = feed.ownership.find((v) => v.twinId === demoId(id))!;
+        const fact = view.facts.find((f) => f.topic === "return-window")!;
+        expect(fact.state).toBe(offset < 0 ? "attention" : "expired");
+        expect(fact.consumer!.status).toBe(
+          offset < 0
+            ? `Return ends Nov ${id === 207 ? 8 : 7}`
+            : "Return window closed",
+        );
+        expect(fact.date).toBe(scenario.endsAt);
+        expect(fact.simulation!.asOf).toBe(data.demoCare!.asOf);
+        expect(view.asOf).toBe(clock);
+        expect(fact.detail).toContain(
+          offset < 0 ? "demo days remaining" : "Example window closed",
+        );
+        const card = careProductCards(feed).find(
+          (c) => c.item.purchase.id === demoId(id),
+        )!;
+        expect(card.item.status).toBe(fact.status);
+        const answer = careStatusAnswer(feed, 1, [demoId(id)], "return-window");
+        expect(answer.steps.join(" ")).toContain(fact.consumer!.status);
+        expect(answer.ownershipAsOf).toBe(clock);
+      }
+    },
+  );
+  it.each([-1, 0, 1])(
+    "never infers kettle delivery at the arrival estimate offset %i ms",
+    (offset) => {
+      const clock = new Date(
+        Date.parse("2026-11-07T18:00:00Z") + offset,
+      ).toISOString();
+      const feed = feedOf(dataOf(), clock);
+      const fact = feed.ownership
+        .find((v) => v.twinId === demoId(202))!
+        .facts.find((f) => f.topic === "delivery")!;
+      expect(fact.consumer!.status).toBe(
+        offset < 0 ? "Delivery expected" : "Delivery unconfirmed",
+      );
+      expect(fact.state).toBe("recorded");
+      expect(fact.verified).toBe(false);
+      expect(fact.date).toBe("2026-11-07T18:00:00Z");
+      if (offset >= 0)
+        expect(fact.detail).toContain(
+          "estimate has passed; delivery remains unconfirmed",
+        );
+      expect(
+        careStatusAnswer(feed, 1, [demoId(202)], "delivery").steps.join(" "),
+      ).toContain(fact.consumer!.status);
+    },
+  );
+  it.each([204, 205, 209])(
+    "expires the illustrative price/warranty window for %i exactly at its saved cutoff",
+    (id) => {
+      const data = dataOf();
+      const scenario = data.demoCare!.scenarios.find(
+        (s) => s.twinId === demoId(id),
+      )!;
+      if (!("endsAt" in scenario)) throw Error("dated fixture required");
+      for (const offset of [-1, 0, 1]) {
+        const feed = feedOf(
+          data,
+          new Date(Date.parse(scenario.endsAt) + offset).toISOString(),
+        );
+        const fact = feed.ownership
+          .find((v) => v.twinId === demoId(id))!
+          .facts.find((f) => f.simulation)!;
+        expect(fact.state === "expired").toBe(offset >= 0);
+        expect(fact.date).toBe(scenario.endsAt);
+        expect(fact.verified).toBe(false);
+      }
+    },
+  );
+  it("on November 9 retains source/history snapshots while closing both returns and disclosing missing delivery/price evidence", () => {
+    const data = dataOf(),
+      before = structuredClone(data);
+    const original = feedOf(data);
+    const current = feedOf(data, "2026-11-09T12:00:00Z");
+    for (const id of [207, 210]) {
+      const view = current.ownership.find((v) => v.twinId === demoId(id))!;
+      expect(view.pill.attention).toBe(false);
+      expect(view.facts.find((f) => f.consumer)!.consumer!.status).toBe(
+        "Return window closed",
+      );
+    }
+    const pi = current.ownership.find((v) => v.twinId === demoId(204))!;
+    expect(pi.facts.find((f) => f.consumer)!.consumer!.summary).toContain(
+      "purchase price is still missing; eligibility is unverified",
+    );
+    const phone = current.ownership.find((v) => v.twinId === demoId(209))!;
+    expect(phone.facts.find((f) => f.consumer)!.consumer!.summary).toContain(
+      "No external tracker is connected",
+    );
+    expect(careProductCards(current, "watching")).toEqual([]);
+    expect(careProductCards(current, "protected")).toHaveLength(3);
+    expect(
+      careProductCards(current, "protected").every((card) =>
+        card.view!.facts.some(
+          (fact) =>
+            fact.topic === "warranty" && fact.simulation && !fact.verified,
+        ),
+      ),
+    ).toBe(true);
+    expect(careProductCards(current, "completed")).toEqual([]);
+    for (const view of current.ownership) {
+      const old = original.ownership.find((v) => v.twinId === view.twinId)!;
+      expect(view.asOf).toBe(current.observedAt);
+      expect(view.history).toEqual(old.history);
+      expect(view.simulation).toEqual(old.simulation);
+    }
+    expect(data).toEqual(before);
+  });
+  it.each(["not-a-date", ""])(
+    "rejects invalid evaluation clock %s without substituting the scenario clock",
+    (clock) => {
+      expect(() => feedOf(dataOf(), clock)).toThrow("invalid_care_clock");
+      expect(() =>
+        consumerScenario(dataOf().demoCare!.scenarios[0], true, clock),
+      ).toThrow("invalid_care_clock");
+    },
+  );
+  it("keeps unchanged simulated evidence revisions stable across harmless current-clock refreshes", () => {
+    const first = feedOf(dataOf(), "2026-11-09T12:00:00Z");
+    const second = feedOf(dataOf(), "2026-11-09T12:01:00Z");
+    expect(first.observedAt).not.toBe(second.observedAt);
+    for (const view of first.ownership)
+      expect(
+        second.ownership.find((v) => v.twinId === view.twinId)!.revision,
+      ).toBe(view.revision);
   });
   it("the reviewed SQL, source manifest and operator hashes remain exact", async () => {
     expect(await consumerProposal()).toMatchObject({

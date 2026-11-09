@@ -88,11 +88,12 @@ describe("Care read-only domain", () => {
       }),
     ).toThrow();
   });
-  it("keeps three destinations with the library and exact documents under Purchases", () => {
+  it("keeps four destinations with dated Twins under Purchases and distinct Documents", () => {
     expect(customerNavigation.map((n) => n.label)).toEqual([
       "Care",
       "Purchases",
       "Insights",
+      "Documents",
     ]);
     expect(customerSection("/vault/" + id(201))?.label).toBe("Purchases");
     expect(libraryHref(parseLibraryQuery({ q: "kettle receipt" }))).toBe(

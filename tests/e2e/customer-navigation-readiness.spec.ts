@@ -89,10 +89,13 @@ for (const width of [375, 430, 1440]) {
         .getByRole("link", { name: "Purchases", exact: true })
         .press("Enter");
       await expect(page).toHaveURL(/\/purchases$/);
-      await page
-        .getByRole("link", { name: "All documents", exact: true })
+      await nav
+        .getByRole("link", { name: "Documents", exact: true })
         .press("Enter");
-      await expect(page).toHaveURL(/\/purchases\?view=documents$/);
+      await expect(page).toHaveURL(/\/documents$/);
+      await expect(nav.locator('[aria-current="page"]')).toHaveText(
+        "Documents",
+      );
       releaseImport();
       await page.getByRole("button", { name: "History", exact: true }).click();
       await expect(
@@ -110,10 +113,36 @@ for (const width of [375, 430, 1440]) {
         .getByRole("link", { name: "Purchases", exact: true })
         .press("Enter");
       await expect(page).toHaveURL(/\/purchases$/);
-      await page
-        .getByRole("link", { name: "All documents", exact: true })
+      await nav
+        .getByRole("link", { name: "Documents", exact: true })
         .press("Enter");
-      await expect(page).toHaveURL(/\/purchases\?view=documents$/);
+      await expect(page).toHaveURL(/\/documents$/);
+      await expect(nav.locator('[aria-current="page"]')).toHaveText(
+        "Documents",
+      );
+      const field = page.getByRole("searchbox", {
+        name: "Search products and documents",
+        exact: true,
+      });
+      await field.fill("receipt");
+      await expect(
+        page.getByRole("button", { name: "Ask North Star", exact: true }),
+      ).toHaveText(/Ask North/);
+      await page.getByRole("button", { name: "Search", exact: true }).click();
+      await expect(page).toHaveURL(
+        (url) =>
+          url.searchParams.get("q") === "receipt" &&
+          (url.pathname === "/documents" ||
+            (url.pathname === "/purchases" &&
+              url.searchParams.get("view") === "documents")),
+      );
+      await expect(nav.locator('[aria-current="page"]')).toHaveText(
+        "Documents",
+      );
+      await page.goto("/purchases?view=documents");
+      await expect(nav.locator('[aria-current="page"]')).toHaveText(
+        "Documents",
+      );
       expect(errors).toEqual([]);
       expect(prohibited).toEqual([]);
     } finally {

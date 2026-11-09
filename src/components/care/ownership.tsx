@@ -133,6 +133,57 @@ function FactDetails({ fact }: { fact: OwnershipFact }) {
   );
 }
 
+function unestablishedMilestone(fact: OwnershipFact) {
+  return ["unknown", "unavailable", "not-applicable"].includes(fact.state);
+}
+
+function OtherMilestones({
+  facts,
+  surface,
+}: {
+  facts: OwnershipFact[];
+  surface: "care" | "product";
+}) {
+  const journey = useJourney();
+  if (!facts.length || !journey) return null;
+  return (
+    <details
+      className="mt-1 text-xs text-muted-foreground"
+      data-ownership-unknowns
+    >
+      <summary className="min-h-11 cursor-pointer rounded-lg py-3 font-semibold focus-visible:outline-2 focus-visible:outline-ring">
+        Other milestones · unknown or not applicable ({facts.length})
+      </summary>
+      <p className="mb-2 leading-6">
+        Missing evidence is not an all-clear. Open a milestone for its sources
+        and available actions.
+      </p>
+      <ul className="space-y-1">
+        {facts.map((fact) => (
+          <li key={fact.id}>
+            <button
+              data-care-milestone={surface === "care" ? fact.topic : undefined}
+              data-ownership-milestone={
+                surface === "product" ? fact.topic : undefined
+              }
+              data-milestone-state={fact.state}
+              data-milestone-verified={fact.verified}
+              aria-haspopup="dialog"
+              onClick={(event) => journey.show(fact.topic, event.currentTarget)}
+              className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-left hover:bg-secondary focus-visible:outline-2 focus-visible:outline-ring"
+            >
+              <OwnershipIcon topic={fact.topic} className="size-4 shrink-0" />
+              <span>
+                {careMilestoneLabel(fact)} · {fact.status}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
+}
+
 export function OwnershipScope({
   view,
   children,
@@ -487,9 +538,7 @@ export function OwnershipPill({ compact = false }: { compact?: boolean }) {
           ? "verified"
           : fact?.topic === "return-window" || fact?.topic === "safety"
             ? "deadline"
-            : ["warranty", "price"].includes(fact?.topic ?? "") &&
-                fact?.consumer?.status !== "Price watch active" &&
-                fact?.consumer?.status !== "Price review"
+            : fact?.topic === "warranty"
               ? "protection"
               : "neutral"
       }
@@ -555,7 +604,7 @@ export function OwnershipSummary({
       </p>
     );
   const { view, show, focused } = journey;
-  const milestones = careMilestones(
+  const candidates = careMilestones(
     view,
     focused ?? (secondary ? null : topic),
   ).filter(
@@ -566,6 +615,10 @@ export function OwnershipSummary({
       fact.topic === focused ||
       (["returns", "refunds"].includes(fact.topic) &&
         ["recorded", "attention"].includes(fact.state)),
+  );
+  // A fresh North focus remains immediately visible, including an honest gap.
+  const milestones = candidates.filter(
+    (fact) => !unestablishedMilestone(fact) || fact.topic === focused,
   );
   const next = careNextWindow(view);
   const selected = focused ? view.facts.filter((f) => f.topic === focused) : [];
@@ -754,6 +807,8 @@ export function OwnershipTimeline() {
       </p>
     );
   const { view, show } = journey;
+  const milestones = view.facts.filter((fact) => !unestablishedMilestone(fact));
+  const otherMilestones = view.facts.filter(unestablishedMilestone);
   return (
     <section
       id="ownership"
@@ -783,7 +838,7 @@ export function OwnershipTimeline() {
         tabIndex={0}
       >
         <ol className="flex min-w-full items-stretch">
-          {view.facts.map((fact, index) => (
+          {milestones.map((fact, index) => (
             <li key={fact.id} className="relative w-40 shrink-0 grow sm:w-44">
               <svg
                 viewBox="0 0 160 32"
@@ -792,7 +847,7 @@ export function OwnershipTimeline() {
                 className="absolute left-0 top-1 h-8 w-full overflow-visible text-border"
               >
                 <path
-                  d={`M${index === 0 ? 80 : 0} 16H${index === view.facts.length - 1 ? 80 : 160}`}
+                  d={`M${index === 0 ? 80 : 0} 16H${index === milestones.length - 1 ? 80 : 160}`}
                   stroke="currentColor"
                   strokeWidth="2"
                   fill="none"
@@ -803,6 +858,7 @@ export function OwnershipTimeline() {
               </svg>
               <button
                 data-ownership-milestone={fact.topic}
+                aria-haspopup="dialog"
                 onClick={(event) => show(fact.topic, event.currentTarget)}
                 className="group relative flex min-h-40 w-full flex-col items-center rounded-xl px-2 py-1 text-center transition-colors hover:bg-secondary motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
               >
@@ -827,6 +883,7 @@ export function OwnershipTimeline() {
           ))}
         </ol>
       </div>
+      <OtherMilestones facts={otherMilestones} surface="product" />
       <details className="mt-3 border-t pt-1">
         <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold">
           Expand dates, sources & actions

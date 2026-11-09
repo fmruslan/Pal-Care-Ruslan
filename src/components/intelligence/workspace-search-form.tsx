@@ -5,9 +5,12 @@ import type { ComponentProps } from "react";
 import { useWorkspaceDeparture } from "./customer-control";
 
 /** GET navigation keeps the root North host alive; it never submits a turn. */
-export function WorkspaceSearchForm(
-  props: Omit<ComponentProps<typeof Form>, "onSubmit" | "action">,
-) {
+export function WorkspaceSearchForm({
+  action = "/purchases",
+  ...props
+}: Omit<ComponentProps<typeof Form>, "onSubmit" | "action"> & {
+  action?: "/purchases" | "/documents";
+}) {
   const departure = useWorkspaceDeparture();
-  return <Form {...props} action="/purchases" onSubmit={() => departure?.()} />;
+  return <Form {...props} action={action} onSubmit={() => departure?.()} />;
 }

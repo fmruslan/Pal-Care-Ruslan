@@ -25,13 +25,13 @@ import { emptyRecordsQuery } from "../../src/lib/careos/records/contracts";
 
 const now = new Date("2026-11-05T12:00:00Z");
 const data = () => withTenProductFixtures(structuredClone(demoData));
-const feedOf = (records = data()) =>
+const feedOf = (records = data(), evaluatedAt = now) =>
   careFeed({
     data: records,
     knowledge: [],
     guardian: emptyOverview(),
     activity: { items: [], unavailable: [] },
-    now,
+    now: evaluatedAt,
   });
 
 describe("ten-product evidence and price separation", () => {
@@ -235,7 +235,7 @@ describe("ten-product evidence and price separation", () => {
     ).toBe(true);
     expect(careProductCards(feed, "attention")).toHaveLength(4);
     expect(careProductCards(feed, "protected")).toHaveLength(3);
-    expect(careProductCards(feed, "watching")).toHaveLength(1);
+    expect(careProductCards(feed, "watching")).toHaveLength(0);
     expect(careProductCards(feed, "completed")).toHaveLength(0);
   });
   it("retains both headphones identities under one card without borrowing sample coverage", () => {
@@ -259,13 +259,25 @@ describe("ten-product evidence and price separation", () => {
     ).toBeUndefined();
     expect(feed.purchases).toHaveLength(11);
   });
-  it("excludes an expired simulated warranty and does not move the snapshot clock", () => {
+  it("retains expired warranty information without moving the original snapshot clock", () => {
     const saved = data();
-    saved.demoCare!.asOf = "2030-11-05T12:00:00Z";
-    const feed = feedOf(saved);
-    expect(careProductCards(feed, "protected")).toHaveLength(0);
+    const later = new Date("2030-11-05T12:00:00Z");
+    const feed = feedOf(saved, later);
+    expect(careProductCards(feed, "protected")).toHaveLength(3);
+    expect(
+      careProductCards(feed, "protected").every((card) =>
+        card.view!.facts.some(
+          (fact) =>
+            fact.topic === "warranty" &&
+            fact.simulation &&
+            fact.state === "expired" &&
+            !fact.verified,
+        ),
+      ),
+    ).toBe(true);
     expect(careProductCards(feed, "watching")).toHaveLength(0);
-    expect(feed.observedAt).toBe(now.toISOString());
+    expect(feed.observedAt).toBe(later.toISOString());
+    expect(saved.demoCare!.asOf).toBe(tenProductPack.asOf);
   });
   it("answers source-backed retail and lower-price questions with exact purchase scope", () => {
     const feed = feedOf();
@@ -294,6 +306,19 @@ describe("ten-product evidence and price separation", () => {
     expect(
       answer.steps.every((s) => s.includes("Simulated examples as of")),
     ).toBe(true);
+  });
+  it("North closing windows excludes ended sample deadlines using the current UTC view clock", () => {
+    const feed = feedOf(data(), new Date("2026-11-09T12:00:00Z"));
+    const answer = careStatusAnswer(
+      feed,
+      1,
+      feed.purchases.map((p) => p.id),
+      "closing-windows",
+    );
+    expect(answer.careSelection).toEqual([]);
+    expect(answer.steps).toEqual([]);
+    expect(answer.outcome).toBe("missing");
+    expect(answer.text).toContain("current UTC view time");
   });
   it("never represents the speaker notice as an official recall match", () => {
     const feed = feedOf();

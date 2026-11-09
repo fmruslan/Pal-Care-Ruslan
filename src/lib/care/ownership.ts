@@ -60,6 +60,7 @@ export function ownershipView(options: {
   protection?: ProtectionView;
 }): OwnershipView {
   const { purchase: p, data, saved, asOf } = options;
+  if (!Number.isFinite(Date.parse(asOf))) throw Error("invalid_care_clock");
   const record = findTwin(data, p.id);
   if (!record) throw Error("ownership_not_found");
   const findings = options.findings.filter((f) => f.purchase.id === p.id);

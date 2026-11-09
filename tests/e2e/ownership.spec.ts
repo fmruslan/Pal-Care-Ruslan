@@ -45,6 +45,9 @@ test("Care itself shows compact shared pills and SVG milestones, with exact-card
   }
   const card = page.getByRole("main").locator(`[data-care-product="${twin}"]`);
   const delivery = card.locator('[data-care-milestone="delivery"]');
+  await expect(delivery).not.toBeVisible();
+  await card.locator("[data-ownership-unknowns] > summary").press("Enter");
+  await expect(delivery).toBeVisible();
   await delivery.focus();
   await page.keyboard.press("Enter");
   const panel = page.getByRole("dialog", { name: "Delivery", exact: true });
@@ -55,6 +58,8 @@ test("Care itself shows compact shared pills and SVG milestones, with exact-card
   const other = cards.last();
   const otherTwin = (await other.getAttribute("data-care-product"))!;
   const warranty = other.locator('[data-care-milestone="warranty"]');
+  if (!(await warranty.isVisible()))
+    await other.locator("[data-ownership-unknowns] > summary").press("Enter");
   await warranty.focus();
   await page.keyboard.press("Enter");
   await expect(page.locator("[data-ownership-panel]")).toHaveAttribute(
@@ -213,6 +218,9 @@ test("ownership pill, complete timeline, evidence and keyboard are useful withou
   ).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(pill).toBeFocused();
+  await page
+    .locator("#ownership [data-ownership-unknowns] > summary")
+    .press("Enter");
   await page.locator('[data-ownership-milestone="delivery"]').click();
   const delivery = page.getByRole("dialog", { name: "Delivery", exact: true });
   await expect(delivery).toContainText("Fictional goods do not ship");
@@ -252,6 +260,9 @@ test("deep-linked warranty and return milestones preserve exact dates, editable 
   await warranty
     .getByRole("button", { name: "Close ownership evidence", exact: true })
     .click();
+  await page
+    .locator("#ownership [data-ownership-unknowns] > summary")
+    .press("Enter");
   await page.locator('[data-ownership-milestone="return-window"]').click();
   await expect(
     page.getByRole("dialog", { name: "Return deadline", exact: true }),
@@ -279,6 +290,9 @@ test("ownership reflows at 320px and enlarged text while horizontal milestones r
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(321);
+  await page
+    .locator("#ownership [data-ownership-unknowns] > summary")
+    .press("Enter");
   await page.locator('[data-ownership-milestone="safety"]').click();
   const panel = page.getByRole("dialog", {
     name: "Safety assessment",

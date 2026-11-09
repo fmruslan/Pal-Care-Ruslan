@@ -1,24 +1,18 @@
-import { redirect, RedirectType } from "next/navigation";
-import {
-  libraryHref,
-  parseLibraryQuery,
-  type LibraryParams,
-} from "@/lib/library-navigation";
+import Purchases from "../purchases/page";
+import type { LibraryParams } from "@/lib/library-navigation";
 
-export const metadata = { title: "Documents" };
+export const metadata = { title: "Documents · Your library" };
+
+/** Canonical document library; the legacy Purchases view remains compatible. */
 export default async function Documents({
   searchParams,
 }: {
-  searchParams: Promise<LibraryParams>;
+  searchParams?: Promise<LibraryParams>;
 }) {
-  const query = parseLibraryQuery(await searchParams);
-  if (!query.valid)
-    redirect(
-      "/purchases?view=documents&source=unsupported",
-      RedirectType.replace,
-    );
-  redirect(
-    libraryHref(query, { view: query.q ? "purchases" : "documents" }),
-    RedirectType.replace,
+  const params = (await searchParams) ?? {};
+  return (
+    <Purchases
+      searchParams={Promise.resolve({ ...params, view: "documents" })}
+    />
   );
 }

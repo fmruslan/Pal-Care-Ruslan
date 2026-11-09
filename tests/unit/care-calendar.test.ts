@@ -17,7 +17,7 @@ import {
   validateCalendarRows,
 } from "../../src/lib/intelligence/care-calendar-state";
 import { careStatusAnswer } from "../../src/lib/care/answer";
-const feedOf = () =>
+const feedOf = (clock = "2026-11-05T12:00:00Z") =>
   careFeed({
     data: withConsumerDemoFixtures(
       withTenProductFixtures(structuredClone(demoData)),
@@ -25,7 +25,7 @@ const feedOf = () =>
     knowledge: [],
     guardian: emptyOverview(),
     activity: { items: [], unavailable: [] },
-    now: new Date("2026-11-05T12:00:00Z"),
+    now: new Date(clock),
   });
 describe("shared rolling Care calendar", () => {
   it("uses supported borderless Studio presentation without changing event rows or Insights grid layout", () => {
@@ -109,6 +109,41 @@ describe("shared rolling Care calendar", () => {
     expect(upcomingCareEvents(calendar)).toEqual([]);
     expect(calendar.events.length).toBeGreaterThan(0);
     expect(calendar.events.every((e) => e.evidence === "Demo")).toBe(true);
+  });
+  it("uses the same November 9 evaluation clock as cards/North and ages November dates out of December", () => {
+    const november = feedOf("2026-11-09T12:00:00Z"),
+      december = feedOf("2026-12-01T00:00:00Z");
+    const calendar = careCalendar(november);
+    expect(calendar.today).toBe("2026-11-09");
+    expect(
+      upcomingCareEvents(calendar).some((e) =>
+        ["Return deadline", "Estimated delivery"].includes(e.kind),
+      ),
+    ).toBe(false);
+    const later = careCalendar(december);
+    expect(later.today).toBe("2026-12-01");
+    expect(later.endExclusive).toBe("2026-12-31");
+    expect(upcomingCareEvents(later)).toEqual([]);
+    expect(later.events.map((e) => [e.id, e.date])).toEqual(
+      calendar.events.map((e) => [e.id, e.date]),
+    );
+    const answer = careStatusAnswer(
+      december,
+      1,
+      december.purchases.map((p) => p.id),
+      "upcoming-care",
+    );
+    expect(answer.steps).toEqual([]);
+    expect(answer.text).toContain("No dated events are saved in this window");
+    expect(answer.ownershipAsOf).toBe(december.observedAt);
+  });
+  it("rejects invalid clocks rather than falling back to frozen scenario dates", () => {
+    expect(() => careCalendarDays(new Date(NaN))).toThrow(
+      "invalid_calendar_clock",
+    );
+    expect(() => careCalendar(feedOf(), new Date(NaN))).toThrow(
+      "invalid_calendar_clock",
+    );
   });
   it("same dated facts produce exact Twin/milestone links, separate source counts and no payment-to-care inference", () => {
     const calendar = careCalendar(feedOf());

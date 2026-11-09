@@ -84,6 +84,8 @@ export function withDemoOwnership(
   view: OwnershipView,
   data: DemoData,
 ): OwnershipView {
+  const evaluatedAt = Date.parse(view.asOf);
+  if (!Number.isFinite(evaluatedAt)) throw Error("invalid_care_clock");
   if (!data.demoCare) return view;
   const pack = validateDemoPack(data.demoCare);
   const s = pack.scenarios.find((row) => row.twinId === view.twinId);
@@ -105,12 +107,15 @@ export function withDemoOwnership(
   if (view.pill.attention) return view;
   const active =
     "startsAt" in s &&
-    Date.parse(pack.asOf) >= Date.parse(s.startsAt) &&
-    Date.parse(pack.asOf) < Date.parse(s.endsAt);
+    evaluatedAt >= Date.parse(s.startsAt) &&
+    evaluatedAt < Date.parse(s.endsAt);
+  const pending = "startsAt" in s && evaluatedAt < Date.parse(s.startsAt);
+  const deliveryDue =
+    s.kind === "delivery" && evaluatedAt >= Date.parse(s.estimatedAt);
   const ending =
     active &&
     "endsAt" in s &&
-    Date.parse(s.endsAt) - Date.parse(pack.asOf) <= 7 * 86400000;
+    Date.parse(s.endsAt) - evaluatedAt <= 7 * 86400000;
   const topic =
     s.kind === "gap"
       ? "price"
@@ -139,44 +144,46 @@ export function withDemoOwnership(
   const label =
     s.kind === "warranty"
       ? active
-        ? `${s.extended ? "Extended warranty" : "Protected"} · simulated`
-        : "Warranty expired · simulated"
+        ? `${s.extended ? "Extended warranty example" : "Warranty example"} · simulated`
+        : pending
+          ? "Warranty not started · simulated"
+          : "Warranty expired · simulated"
       : s.kind === "return-window"
-        ? `${active ? (ending ? "Return ending" : "Return window") : "Return expired"} · simulated`
+        ? `${active ? (ending ? "Return ending" : "Return window") : pending ? "Return not started" : "Return expired"} · simulated`
         : s.kind === "delivery"
-          ? "In transit · simulated"
+          ? `${deliveryDue ? "Delivery unconfirmed" : "Delivery estimate"} · simulated`
           : s.kind === "safety"
             ? "Simulated notice"
             : s.kind === "gap"
               ? "Protection not verified"
               : !active
-                ? "Price window expired · simulated"
+                ? `${pending ? "Price window not started" : "Price window expired"} · simulated`
                 : drop
-                  ? "Price drop · simulated"
-                  : "Monitoring · simulated";
+                  ? "Illustrative price window · simulated"
+                  : "Price check example · simulated";
   const detail =
     s.kind === "delivery"
-      ? `Fictional delivery sequence: ${s.updates.map((u) => `${u.at}: ${u.status}`).join("; ")}. Estimated arrival ${s.estimatedAt}, not a promise or confirmed carrier movement. No goods actually ship.`
+      ? `Fictional delivery sequence: ${s.updates.map((u) => `${u.at}: ${u.status}`).join("; ")}. Estimated arrival ${s.estimatedAt}, not a promise or confirmed carrier movement. ${deliveryDue ? "The estimate has passed; delivery remains unconfirmed. " : ""}No goods actually ship.`
       : s.kind === "price"
         ? `${s.terms} Simulated catalog: ${s.observations.map((o) => `${money(o.priceMinor)} on ${o.at}`).join(" → ")}. Hypothetical purchase basis ${money(s.hypotheticalPurchaseMinor)}; ${drop ? `${money(Math.max(0, s.hypotheticalPurchaseMinor - s.observations[1].priceMinor))} illustrative difference, not savings.` : "No simulated catalog drop."} Independent real retail references are separate. Example cutoff ${s.endsAt}, exclusive.`
         : s.kind === "return-window"
-          ? `${s.terms} Example cutoff ${s.endsAt}, exclusive. ${active ? `${Math.ceil((Date.parse(s.endsAt) - Date.parse(pack.asOf)) / 86400000)} demo days remaining.` : "Example window closed."} Item condition: ${s.condition}. Nothing was requested or sent.`
+          ? `${s.terms} Example cutoff ${s.endsAt}, exclusive. ${active ? `${Math.ceil((Date.parse(s.endsAt) - evaluatedAt) / 86400000)} demo days remaining (rounded up, evaluated in UTC).` : pending ? "Example window has not started." : "Example window closed."} Item condition: ${s.condition}. Nothing was requested or sent.`
           : s.kind === "warranty"
             ? `${s.terms} Example expiration ${s.endsAt}, exclusive.`
             : s.terms;
   const fact: OwnershipFact = {
-    consumer: consumerScenario(s, active),
+    consumer: consumerScenario(s, active, view.asOf),
     summary:
       s.kind === "safety"
         ? "No official recall match established. Review exact identifiers."
         : s.kind === "gap"
           ? "No applicable protection policy is saved."
           : s.kind === "delivery"
-            ? `Fictional dispatch recorded; estimated arrival ${s.estimatedAt.slice(0, 10)}.`
+            ? `Fictional dispatch recorded; ${deliveryDue ? "estimate passed, delivery unconfirmed" : "estimated arrival"} ${s.estimatedAt.slice(0, 10)}.`
             : s.kind === "warranty"
               ? `Example term ends ${s.endsAt.slice(0, 10)}; exclusions apply.`
               : s.kind === "return-window"
-                ? `Example closes ${s.endsAt.slice(0, 10)}; condition ${s.condition}.`
+                ? `Example ${active || pending ? "closes" : "closed"} ${s.endsAt.slice(0, 10)}; condition ${s.condition}.`
                 : drop
                   ? "Two simulated catalog checks show a drop; review example terms."
                   : "Saved simulated price checks; no external tracker is connected.",
@@ -187,7 +194,7 @@ export function withDemoOwnership(
         ? "Simulated safety investigation"
         : "Simulated Care example",
     status: label,
-    detail: `${detail} Simulated examples as of ${pack.asOf}; actual purchase/coverage status is unchanged.`,
+    detail: `${detail} Simulated examples as of ${pack.asOf}; deadlines evaluated against the current UTC view time. Actual purchase/coverage status is unchanged.`,
     provenance: "Fictional demonstration · not external verification",
     date:
       "endsAt" in s ? s.endsAt : s.kind === "delivery" ? s.estimatedAt : null,
@@ -197,9 +204,11 @@ export function withDemoOwnership(
       ? "attention"
       : s.kind === "gap"
         ? "unknown"
-        : "endsAt" in s && !active
-          ? "expired"
-          : "recorded",
+        : pending
+          ? "upcoming"
+          : "endsAt" in s && !active
+            ? "expired"
+            : "recorded",
     sources: [
       { label: "Simulated example evidence", href: `/documents/${doc.id}` },
       ...(s.kind === "safety"

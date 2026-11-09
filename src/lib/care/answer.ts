@@ -182,7 +182,7 @@ export function careStatusAnswer(
           }
         : null,
       text: matching.some(({ fact }) => fact.consumer)
-        ? `Here's what's happening and what you can do next. Events marked Demo are fictional, shown as of ${feed.demoAsOf}; no real delivery, coverage or refund is confirmed.${unavailable ? " Some information is unavailable." : ""}`
+        ? `Here's what's happening and what you can do next, evaluated at ${feed.observedAt} UTC. Events marked Demo are fictional source snapshots from ${feed.demoAsOf}; no real delivery, coverage or refund is confirmed.${unavailable ? " Some information is unavailable." : ""}`
         : `${known ? "Here is what the shared ownership records show." : "No verified outcome or deadline is established in the available evidence."}${unavailable ? " Some evidence is unavailable or incomplete; absence is not confirmed." : ""}${normalized === "returns" ? " I can help prepare a return enquiry; nothing is submitted." : ""} These are source-linked facts, not permission to send requests or money.`,
       steps: matching
         .slice(0, 16)

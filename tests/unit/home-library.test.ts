@@ -14,7 +14,16 @@ import {
 import type { DemoData } from "../../src/db/schema";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { LibraryResults } from "../../src/components/home-library";
+import {
+  LibraryPurchaseCard,
+  LibraryResults,
+} from "../../src/components/home-library";
+import {
+  withTenProductFixtures,
+  tenProductPack,
+} from "../../src/lib/care/demo/catalog";
+import { withConsumerDemoFixtures } from "../../src/lib/care/demo/consumer-evidence";
+import { classifyLibraryDocument } from "../../src/lib/document-classification";
 
 const query = (q = "", rest = {}) => parseLibraryQuery({ q, ...rest });
 const id = (n: number) =>
@@ -56,6 +65,20 @@ function sandboxData() {
       origin: "sample",
       content: "Sample policy",
     },
+  );
+  return data;
+}
+
+function completeLibraryData() {
+  const data = withConsumerDemoFixtures(
+    withTenProductFixtures(structuredClone(demoData)),
+  );
+  const sandbox = sandboxData();
+  data.twins.push({ ...sandbox.twins.at(-1)!, id: id(2205) });
+  data.documents.push(
+    ...sandbox.documents
+      .slice(-2)
+      .map((d, i) => ({ ...d, id: id(1305 + i), twinId: id(2205) })),
   );
   return data;
 }
@@ -175,6 +198,18 @@ describe("read-only Home library", () => {
     expect(result.purchases[0].amountMinor).toBeNull();
     expect(result.purchases[0].receiptHref).toBeNull();
   });
+  it("keeps the legacy accessible-name prefix without overriding visible card text", () => {
+    const purchase = homeLibrary(demoData, query("headphones")).purchases[0];
+    const html = renderToStaticMarkup(
+      createElement(LibraryPurchaseCard, { purchase, from: "/purchases" }),
+    );
+    expect(html).toContain(
+      '<span class="sr-only">View details for Everyday headphones, </span>',
+    );
+    expect(html).not.toContain('aria-label="View details for');
+    expect(html).toContain("Forma");
+    expect(html).toContain("F-01");
+  });
   it("searches the whole bounded library before pagination and sorts stably", () => {
     const data = structuredClone(demoData);
     data.twins = Array.from({ length: 30 }, (_, i) => ({
@@ -232,20 +267,37 @@ describe("read-only Home library", () => {
 });
 
 describe("bounded library URLs", () => {
-  it("round-trips filter/view/page state and keeps search unified", () => {
+  it("round-trips filter/view/page state and keeps document search in Documents", () => {
     const q = query("kettle receipt", {
       category: "Kitchen",
       source: "sample",
       sort: "oldest",
       page: "2",
       view: "documents",
+      documentCategory: "receipts",
+      product: id(202),
     });
-    expect(q.view).toBe("purchases");
+    expect(q.view).toBe("documents");
     const href = libraryHref(q);
+    expect(href).toMatch(/^\/documents\?/);
+    expect(href).toContain("documentCategory=receipts");
+    expect(href).toContain(`product=${id(202)}`);
     expect(libraryReturn(href)).toBe(href);
     expect(
       withLibraryReturn(`/vault/${id(202)}`, href, "#documents"),
     ).toContain(`?from=${encodeURIComponent(href)}#documents`);
+  });
+  it("canonicalizes legacy document-view returns without losing filters", () => {
+    expect(
+      libraryReturn(
+        `/purchases?view=documents&q=kettle&category=Kitchen&documentCategory=receipts&product=${id(202)}&source=sample&page=2`,
+      ),
+    ).toBe(
+      `/documents?q=kettle&category=Kitchen&source=sample&documentCategory=receipts&product=${id(202)}&page=2`,
+    );
+    expect(libraryReturn("/documents?q=receipt")).toBe("/documents?q=receipt");
+    expect(parseLibraryQuery({ documentCategory: "manual" }).valid).toBe(false);
+    expect(parseLibraryQuery({ product: "headphones" }).valid).toBe(false);
   });
   it.each([
     "https://evil.test/dashboard",
@@ -263,5 +315,164 @@ describe("bounded library URLs", () => {
       "constructor",
       "prototype",
     ]);
+  });
+});
+
+describe("organized Documents library", () => {
+  it("preserves all 25 documents, exact identities and associations with data-derived provenance", () => {
+    const data = completeLibraryData();
+    const first = homeLibrary(data, query("", { view: "documents" }));
+    expect(first.totalDocuments).toBe(25);
+    expect(first.provenanceCounts).toEqual({ sandbox: 1, sample: 10 });
+    expect(first.documentCategoryCounts).toEqual({
+      all: 25,
+      receipts: 9,
+      warranties: 3,
+      care: 1,
+      returns: 5,
+      other: 7,
+    });
+    const loaded = Array.from(
+      { length: first.pages },
+      (_, i) =>
+        homeLibrary(data, query("", { view: "documents", page: String(i + 1) }))
+          .documents,
+    ).flat();
+    expect(loaded.map((d) => d.document.id).sort()).toEqual(
+      data.documents.map((d) => d.id).sort(),
+    );
+    for (const item of loaded) {
+      expect(item.document).toEqual(
+        data.documents.find((d) => d.id === item.document.id),
+      );
+      expect(item.document.twinId).toBe(item.purchase.id);
+    }
+    expect(first.complete).toBe(true);
+    const html = renderToStaticMarkup(
+      createElement(LibraryResults, {
+        library: first,
+        query: query("", { view: "documents" }),
+      }),
+    );
+    expect(html).toContain("1 Verified Sandbox · 10 Sample");
+    const warrantyScope = homeLibrary(
+      data,
+      query("", { view: "documents", documentCategory: "warranties" }),
+    );
+    expect(warrantyScope.purchaseCount).toBe(3);
+    expect(warrantyScope.provenanceCounts).toEqual({ sandbox: 0, sample: 3 });
+  });
+
+  it("filters exact dated Twins rather than combining both headphones histories", () => {
+    const data = completeLibraryData();
+    const sample = homeLibrary(
+      data,
+      query("headphones", {
+        view: "documents",
+        documentCategory: "warranties",
+        product: id(201),
+      }),
+    );
+    expect(sample.documents.map((d) => d.document.id)).toEqual([id(501)]);
+    const verified = homeLibrary(
+      data,
+      query("headphones", {
+        view: "documents",
+        documentCategory: "warranties",
+        product: id(2205),
+      }),
+    );
+    expect(verified.documents).toEqual([]);
+    expect(verified.documentCategoryCounts.all).toBe(2);
+    expect(verified.valid).toBe(true);
+    expect(
+      homeLibrary(data, query("", { view: "documents", product: id(999) }))
+        .valid,
+    ).toBe(false);
+  });
+
+  it("does not classify ambiguous ownership, delivery or price notes as care manuals", () => {
+    const data = completeLibraryData();
+    const result = homeLibrary(
+      data,
+      query("", { view: "documents", documentCategory: "care" }),
+    );
+    expect(result.documents.map((d) => d.document.id)).toEqual([id(303)]);
+    expect(
+      homeLibrary(data, query("manual", { view: "documents" })).documents,
+    ).toEqual([]);
+    expect(
+      homeLibrary(
+        data,
+        query("raspberry", { view: "documents", documentCategory: "care" }),
+      ).documents,
+    ).toEqual([]);
+    expect(
+      homeLibrary(
+        data,
+        query("2026-10-18", {
+          view: "documents",
+          documentCategory: "warranties",
+        }),
+      ).documents.map((d) => d.document.id),
+    ).toEqual([id(501)]);
+  });
+
+  it("requires exact trusted document/content/Twin/product binding, never a warranty title", () => {
+    const data = completeLibraryData();
+    const purchase = homeLibrary(data, query()).allPurchases.find(
+      (p) => p.id === id(201),
+    )!;
+    const doc = data.documents.find(
+      (d) =>
+        d.id ===
+        tenProductPack.scenarios.find((s) => s.twinId === purchase.id)!
+          .documentId,
+    )!;
+    expect(classifyLibraryDocument(doc, purchase)).toBe("warranties");
+    for (const changed of [
+      { ...doc, content: "Warranty manufacturer manual" },
+      { ...doc, id: id(999), title: "Warranty" },
+      { ...doc, twinId: id(2205) },
+    ]) {
+      expect(classifyLibraryDocument(changed, purchase)).toBe("other");
+    }
+    expect(
+      classifyLibraryDocument(doc, { ...purchase, productId: id(104) }),
+    ).toBe("other");
+    expect(
+      classifyLibraryDocument(doc, { ...purchase, origin: "sandbox" }),
+    ).toBe("other");
+  });
+
+  it("composes document category, metadata, source and pagination without broadening empties", () => {
+    const data = completeLibraryData();
+    const q = query("receipt", {
+      view: "documents",
+      documentCategory: "receipts",
+      source: "sandbox",
+      product: id(2205),
+      page: "2",
+    });
+    const result = homeLibrary(data, q);
+    expect(result.documentCount).toBe(1);
+    expect(result.page).toBe(1);
+    expect(result.documents[0].document.id).toBe(id(1305));
+    const emptyQuery = query("", {
+      view: "documents",
+      documentCategory: "care",
+      product: id(2205),
+    });
+    const html = renderToStaticMarkup(
+      createElement(LibraryResults, {
+        library: homeLibrary(data, emptyQuery),
+        query: emptyQuery,
+      }),
+    );
+    expect(html).toContain("No saved documents");
+    expect(html).toContain(
+      "manufacturer manuals aren’t automatically supplied",
+    );
+    expect(html).not.toContain("data-document-id=");
   });
 });

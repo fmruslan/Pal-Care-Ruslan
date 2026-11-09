@@ -9,7 +9,7 @@ const search = (page: import("@playwright/test").Page) =>
     exact: true,
   });
 
-test("product-first Purchases retains three visible header destinations and an actionable product on the first mobile screen", async ({
+test("product-first Purchases retains four visible header destinations and an actionable product on the first mobile screen", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 664 });
@@ -22,6 +22,7 @@ test("product-first Purchases retains three visible header destinations and an a
     "Care",
     "Purchases",
     "Insights",
+    "Documents",
   ]);
   await expect(nav).toBeVisible();
   await expect(
@@ -94,7 +95,7 @@ test("All documents is one action away; legacy routes preserve filters and docum
 }) => {
   await page.goto("/purchases");
   await page.getByRole("link", { name: "All documents", exact: true }).click();
-  await expect(page).toHaveURL(/\/purchases\?view=documents$/);
+  await expect(page).toHaveURL(/\/documents$/);
   await expect(
     page.getByRole("heading", { name: "All documents", exact: true }),
   ).toBeVisible();
@@ -105,7 +106,12 @@ test("All documents is one action away; legacy routes preserve filters and docum
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Matching purchases", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "All documents", exact: true }),
   ).toBeVisible();
+  await expect(page.locator("[data-purchase-card]")).toHaveCount(0);
+  await expect(page).toHaveURL(/\/documents\?q=kettle\+receipt$/);
   await page.goto("/vault?q=kettle&category=Kitchen");
   await expect(
     page.getByRole("combobox", { name: "Appearance", exact: true }),
@@ -125,10 +131,134 @@ test("All documents is one action away; legacy routes preserve filters and docum
     page.getByRole("combobox", { name: "Appearance", exact: true }),
   ).toBeEnabled();
   await expect(page.locator('input[id="library-search"]')).toHaveCount(1);
-  await expect(page).toHaveURL(/\/purchases\?view=documents$/);
+  await expect(page).toHaveURL(/\/documents$/);
   expect(
     (await request.get(`/api/documents/${receipt}/download`)).status(),
   ).toBe(200);
+});
+
+test("Documents categories compose with metadata and exact dated purchase filters without leaving document view", async ({
+  page,
+}) => {
+  const mutations: string[] = [];
+  page.on("request", (request) => {
+    if (!["GET", "HEAD"].includes(request.method()))
+      mutations.push(request.url());
+  });
+  await page.goto("/documents");
+  const categories = page.getByRole("navigation", {
+    name: "Document categories",
+    exact: true,
+  });
+  await expect(categories.getByRole("link")).toHaveText([
+    /^Receipts\s*\d+$/,
+    /^Warranties & coverage\s*\d+$/,
+    /^Care guides & manuals\s*\d+$/,
+    /^Returns & policies\s*\d+$/,
+    /^All documents\s*\d+$/,
+  ]);
+  await categories.getByRole("link", { name: /^Receipts/ }).click();
+  await expect(page).toHaveURL(/\/documents\?documentCategory=receipts$/);
+  await page
+    .locator("summary")
+    .filter({ hasText: /^Filters & sort/ })
+    .click();
+  await page
+    .getByRole("combobox", { name: "Dated purchase", exact: true })
+    .selectOption(kettle);
+  await page
+    .getByRole("combobox", { name: "Purchase source", exact: true })
+    .selectOption("sample");
+  await page
+    .getByRole("button", { name: "Apply filters", exact: true })
+    .click();
+  await expect(page).toHaveURL(
+    (url) =>
+      url.searchParams.get("view") === "documents" &&
+      url.searchParams.get("product") === kettle &&
+      url.searchParams.get("documentCategory") === "receipts",
+  );
+  await expect(page.locator("[data-document-id]")).toHaveCount(1);
+  await expect(page.locator("[data-document-id]")).toHaveAttribute(
+    "data-document-id",
+    receipt,
+  );
+  await search(page).fill("kettle receipt");
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page).toHaveURL(
+    (url) =>
+      url.pathname === "/documents" &&
+      url.searchParams.get("product") === kettle &&
+      url.searchParams.get("source") === "sample" &&
+      url.searchParams.get("documentCategory") === "receipts" &&
+      url.searchParams.get("q") === "kettle receipt",
+  );
+  await expect(page.locator("[data-purchase-card]")).toHaveCount(0);
+  await page
+    .getByTestId("library-documents")
+    .getByRole("link", { name: /^Open Kettle/ })
+    .click();
+  await expect(page).toHaveURL((url) => {
+    const from = new URL(
+      url.searchParams.get("from")!,
+      "https://palcare.invalid",
+    );
+    return (
+      url.pathname === `/documents/${receipt}` &&
+      from.pathname === "/documents" &&
+      from.searchParams.get("product") === kettle &&
+      from.searchParams.get("documentCategory") === "receipts"
+    );
+  });
+  await page.goBack();
+  await expect(search(page)).toHaveValue("kettle receipt");
+  await categories
+    .getByRole("link", { name: /^Warranties & coverage/ })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "No matching documents", exact: true }),
+  ).toBeVisible();
+  await expect(page.locator("[data-document-id]")).toHaveCount(0);
+  await expect(
+    page.getByRole("link", { name: "Show all documents", exact: true }),
+  ).toHaveAttribute("href", "/documents");
+  expect(mutations).toEqual([]);
+});
+
+test("legacy Documents view retains category, product, source and page through canonical pagination", async ({
+  page,
+}) => {
+  await page.goto(
+    `/purchases?view=documents&documentCategory=receipts&product=${kettle}&source=sample&page=2`,
+  );
+  await expect(
+    page.getByRole("heading", { name: "Your documents", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Receipts", exact: true }),
+  ).toBeVisible();
+  await expect(page.locator("[data-document-id]")).toHaveCount(1);
+  const categories = page.getByRole("navigation", {
+    name: "Document categories",
+    exact: true,
+  });
+  await expect(
+    categories.getByRole("link", { name: /^Care guides & manuals/ }),
+  ).toHaveAttribute(
+    "href",
+    `/documents?source=sample&documentCategory=care&product=${kettle}`,
+  );
+  await categories
+    .getByRole("link", { name: /^Care guides & manuals/ })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "No saved documents", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Official Raspberry Pi guidance is stored separately", {
+      exact: false,
+    }),
+  ).toBeVisible();
 });
 
 test("visible product sections, dated receipt, source labels and safe return navigation", async ({
@@ -240,6 +370,7 @@ test("library, product and document reflow at 320px and 200% text with keyboard-
   for (const path of [
     "/purchases",
     "/purchases?view=documents",
+    "/documents",
     `/vault/${kettle}`,
     `/documents/${receipt}`,
   ]) {
