@@ -26,6 +26,7 @@ describe("saved records → native Studio state contract (domain, not browser ex
     "uses known native widgets, exact identities/mappings/layout and separated values, compact=%s",
     (compact) => {
       const initial = customerReport(compact);
+      const original = structuredClone(initial);
       const state = recordsChartState(initial, result, data.purchases, compact);
       expect(state.selectedPageId).toBe("purchases");
       for (const widget of recordsChartWidgets)
@@ -54,7 +55,8 @@ describe("saved records → native Studio state contract (domain, not browser ex
         initial.pages.find((p) => p.id === "purchases")?.widgets?.[
           "extra-recorded-value-chart"
         ],
-      ).toBeUndefined();
+      ).toEqual(page.widgets?.["extra-recorded-value-chart"]);
+      expect(initial).toEqual(original);
       expect(
         initial.pages.find((p) => p.id === "purchases")?.widgets?.[
           "extra-sample-value"
