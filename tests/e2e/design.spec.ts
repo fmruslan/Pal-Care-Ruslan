@@ -279,6 +279,7 @@ test("keyboard theme selection, reduced motion and mobile navigation remain acce
       "Care",
       "Purchases",
       "Insights",
+      "Documents",
     ]);
     for (const link of await nav.getByRole("link").all()) {
       const box = await link.boundingBox();
@@ -292,7 +293,7 @@ test("keyboard theme selection, reduced motion and mobile navigation remain acce
     await page
       .getByRole("link", { name: "All documents", exact: true })
       .click();
-    await expect(page).toHaveURL(/\/purchases\?view=documents$/);
+    await expect(page).toHaveURL(/\/documents$/);
   }
   expect(
     await page.evaluate(

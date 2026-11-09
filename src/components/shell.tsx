@@ -31,6 +31,7 @@ const customerIcons = {
   "/dashboard": LayoutDashboard,
   "/purchases": Package,
   "/insights": ChartNoAxesCombined,
+  "/documents": FileText,
 };
 
 const navigation = customerNavigation.map((link) => ({
@@ -154,7 +155,7 @@ export function Shell({
                     key={href}
                     href={href}
                     aria-current={selected === href ? "page" : undefined}
-                    className={`inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-semibold transition-colors sm:px-4 ${selected === href ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
+                    className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg px-1 text-sm font-semibold transition-colors sm:px-4 ${selected === href ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"}`}
                   >
                     {label}
                   </WorkspaceNavigationLink>
@@ -162,7 +163,7 @@ export function Shell({
               </nav>
               <details className="customer-explore relative justify-self-end">
                 <summary className="flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center gap-2 rounded-xl px-3 text-sm font-medium text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
-                  <span className="sr-only sm:not-sr-only">Explore</span>
+                  <span className="sr-only sm:not-sr-only">More tools</span>
                   <MoreHorizontal
                     className="size-4 sm:hidden"
                     aria-hidden="true"
@@ -173,19 +174,27 @@ export function Shell({
                   />
                 </summary>
                 <nav
-                  aria-label="More to explore"
+                  aria-label="More tools"
                   className="absolute right-0 z-50 mt-2 w-[min(18rem,calc(100vw-2.5rem))] rounded-2xl border bg-card p-2 shadow-card"
                 >
-                  {customerExploreNavigation.map(({ href, label }) => (
-                    <WorkspaceNavigationLink
-                      key={href}
-                      href={href}
-                      aria-current={active === href ? "page" : undefined}
-                      className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
-                    >
-                      {label}
-                    </WorkspaceNavigationLink>
-                  ))}
+                  {customerExploreNavigation.map(
+                    ({ href, label, description }) => (
+                      <WorkspaceNavigationLink
+                        key={href}
+                        href={href}
+                        aria-current={active === href ? "page" : undefined}
+                        className="flex min-h-11 flex-col items-start rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+                      >
+                        <span>{label}</span>
+                        <span
+                          id={`customer-tool-${href.slice(1)}`}
+                          className="mt-1 text-xs leading-5 font-normal"
+                        >
+                          {description}
+                        </span>
+                      </WorkspaceNavigationLink>
+                    ),
+                  )}
                 </nav>
               </details>
             </div>
@@ -230,23 +239,31 @@ export function Shell({
               ) : (
                 <details className="lg:relative">
                   <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-xl border border-input bg-card px-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
-                    Explore
+                    More tools
                     <ChevronDown className="size-4" aria-hidden="true" />
                   </summary>
                   <nav
-                    aria-label="More to explore"
+                    aria-label="More tools"
                     className="absolute right-5 z-50 mt-2 w-[min(18rem,calc(100vw-2.5rem))] rounded-2xl border bg-card p-2 shadow-card lg:right-0"
                   >
-                    {customerExploreNavigation.map(({ href, label }) => (
-                      <Link
-                        key={href}
-                        href={href}
-                        aria-current={active === href ? "page" : undefined}
-                        className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
-                      >
-                        {label}
-                      </Link>
-                    ))}
+                    {customerExploreNavigation.map(
+                      ({ href, label, description }) => (
+                        <Link
+                          key={href}
+                          href={href}
+                          aria-current={active === href ? "page" : undefined}
+                          className="flex min-h-11 flex-col items-start rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
+                        >
+                          <span>{label}</span>
+                          <span
+                            id={`customer-tool-${href.slice(1)}`}
+                            className="mt-1 text-xs leading-5 font-normal"
+                          >
+                            {description}
+                          </span>
+                        </Link>
+                      ),
+                    )}
                   </nav>
                 </details>
               )}

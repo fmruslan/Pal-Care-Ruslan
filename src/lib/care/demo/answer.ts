@@ -36,7 +36,7 @@ export function demoEvidenceAnswer(
             !f.date
           )
             return false;
-          const now = Date.parse(f.simulation?.asOf ?? feed.observedAt);
+          const now = Date.parse(feed.observedAt);
           const remaining = Date.parse(f.date) - now;
           return (
             remaining > 0 &&
@@ -73,7 +73,7 @@ export function demoEvidenceAnswer(
     careSelection: selected,
     text:
       topic === "closing-windows"
-        ? "These saved windows are approaching their stated cutoffs. Simulated examples use their disclosed scenario date, not today's actual eligibility. No request was submitted."
+        ? `${windows.length ? "These saved windows are approaching their stated cutoffs" : "No approaching saved return or warranty cutoff was found in the available records"}, evaluated against the current UTC view time. Simulated examples retain their original snapshot and do not establish actual eligibility. No request was submitted.`
         : "Retail reference prices are dated snapshots, not live prices or amounts paid. Comparable products are not verified identical. A lower listing alone never establishes a price-drop event, merchant eligibility or savings; identity, merchant policy, timing and condition still require validation.",
     steps:
       topic === "closing-windows"

@@ -240,9 +240,8 @@ export function careProductCards(
               ...card.item,
               status: fact.status,
               detail: fact.detail,
-              group: fact.demoCompletion
-                ? ("completed" as const)
-                : fact.state === "attention"
+              group:
+                fact.state === "attention"
                   ? ("action" as const)
                   : ("tracking" as const),
               action: fact.action!,
@@ -256,18 +255,13 @@ export function careProductCards(
     selected === "all" ||
     (selected === "attention" && card.group === "action") ||
     (selected === "completed" && card.group === "completed") ||
-    (selected === "watching" &&
-      (card.protection.monitoring ||
-        (!!card.view?.simulation &&
-          card.view.pill.label === "Monitoring · simulated"))) ||
+    // Saved simulated checks never establish a running external watch.
+    (selected === "watching" && card.protection.monitoring) ||
+    // Legacy URL name retained; the customer label is Coverage info, not a
+    // protection promise. Simulated/expired warranty details keep their labels.
     (selected === "protected" &&
-      ((card.protection.policyVerified &&
-        !!card.protection.deadline &&
-        Date.parse(card.protection.deadline) > Date.parse(feed.observedAt)) ||
-        card.view?.facts.some(
-          (f) =>
-            f.topic === "warranty" && f.simulation && f.state === "recorded",
-        )));
+      ((card.protection.policyVerified && !!card.protection.deadline) ||
+        card.view?.facts.some((f) => f.topic === "warranty" && f.simulation)));
   const groups = new Map<string, typeof all>();
   for (const card of all) {
     const p = card.item.purchase;

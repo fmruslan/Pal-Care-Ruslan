@@ -76,7 +76,7 @@ export function NorthWorkspaceSlot() {
       />
       {assistant?.integrated &&
         !assistant.integrated.isOpen &&
-        !["/dashboard", "/purchases"].includes(pathname) && (
+        !["/dashboard", "/purchases", "/documents"].includes(pathname) && (
           <div className="my-5 flex flex-wrap items-center gap-3">
             <Button
               variant="intelligence"
@@ -131,9 +131,7 @@ export function NorthSearch({
     if (forceSearch || isLiteralLibrarySearch(text, searchIndex) || !north) {
       north?.close();
       north?.setDraft("");
-      router.push(
-        libraryHref(query, { q: text.trim(), page: 1, view: "purchases" }),
-      );
+      router.push(libraryHref(query, { q: text.trim(), page: 1 }));
     } else {
       if (north.busy || north.pending) {
         north.openHistory();
@@ -149,7 +147,7 @@ export function NorthSearch({
       <form
         role="search"
         aria-label="Search or ask North"
-        className="north-unified-search flex min-w-0 items-center gap-2 rounded-2xl border border-intelligence-border bg-card px-3 shadow-sm focus-within:ring-2 focus-within:ring-intelligence-foreground"
+        className="north-unified-search flex min-w-0 flex-wrap items-center gap-2 rounded-2xl border border-intelligence-border bg-card px-3 shadow-sm focus-within:ring-2 focus-within:ring-intelligence-foreground"
         onSubmit={(e) => {
           e.preventDefault();
           if (!composing.current) submit(true);
@@ -207,8 +205,9 @@ export function NorthSearch({
               north.ask(text);
             } else north?.open();
           }}
-          className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-intelligence-foreground"
+          className="inline-flex min-h-11 max-w-full shrink-0 items-center justify-center gap-1 rounded-xl px-2 text-sm font-semibold text-intelligence-foreground"
         >
+          <span>Ask North</span>
           <span aria-hidden="true" className="text-2xl">
             ☆
           </span>
@@ -323,9 +322,9 @@ export function IntegratedNorthView({
   state: IntegratedNorthState;
 }) {
   const pathname = usePathname();
-  // Care retains its page heading/cards beside North; only Purchases replaces
-  // its collection. Keep one page-level heading through recovery and History.
-  const collectionPage = pathname === "/purchases";
+  // Care retains its page heading/cards beside North; collection routes replace
+  // their collection. Keep one page-level heading through recovery and History.
+  const collectionPage = ["/purchases", "/documents"].includes(pathname);
   const QuestionHeading = collectionPage ? "h1" : "h2";
   const historyOpen = s.historyOpen,
     setHistoryOpen = s.setHistoryOpen;

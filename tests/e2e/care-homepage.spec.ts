@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 
 const headphones = "00000000-0000-4000-8000-000000000201";
 
-test("Care is the default and has three calm destinations, factual cards and no automatic model calls", async ({
+test("Care is the default and has four calm destinations, factual cards and no automatic model calls", async ({
   page,
 }) => {
   const writes: string[] = [];
@@ -20,7 +20,7 @@ test("Care is the default and has three calm destinations, factual cards and no 
     page
       .getByRole("navigation", { name: "Main navigation", exact: true })
       .getByRole("link"),
-  ).toHaveText(["Care", "Purchases", "Insights"]);
+  ).toHaveText(["Care", "Purchases", "Insights", "Documents"]);
   await expect(page.locator("[data-north-search]")).toHaveCount(1);
   const main = page.getByRole("main");
   const calendar = page.getByRole("region", {
@@ -88,6 +88,7 @@ test("quiet card opens its exact purchase and honest protection evidence plus ed
     .getByRole("link", { name: "Details", exact: true })
     .click();
   await expect(page).toHaveURL(new RegExp(`/vault/${headphones}$`));
+  await page.locator("[data-ownership-unknowns] summary").click();
   await page.locator('[data-ownership-milestone="price"]').click();
   const evidence = page.getByRole("dialog", {
     name: "Price protection",
@@ -176,7 +177,7 @@ test("Completed has no invented outcomes and legacy library links preserve their
   ).toHaveValue("kettle");
   await expect(page.locator("[data-purchase-card]")).toHaveCount(1);
   await page.goto("/documents");
-  await expect(page).toHaveURL(/\/purchases\?view=documents$/);
+  await expect(page).toHaveURL(/\/documents$/);
 });
 
 test("North keeps the exact Care purchase and original answer across Care, Purchases and Insights without replay", async ({
@@ -214,7 +215,7 @@ test("North keeps the exact Care purchase and original answer across Care, Purch
     .last()
     .getAttribute("data-request-id");
   const count = turns.length;
-  for (const destination of ["Purchases", "Insights", "Care"]) {
+  for (const destination of ["Purchases", "Documents", "Insights", "Care"]) {
     await page
       .getByRole("navigation", { name: "Main navigation", exact: true })
       .getByRole("link", { name: destination, exact: true })

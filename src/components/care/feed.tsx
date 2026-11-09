@@ -17,6 +17,79 @@ import {
 } from "./ownership";
 
 type ProductCard = ReturnType<typeof careProductCards>[number];
+
+/** Links always come from the particular dated purchase, never its group. */
+function GroupedPurchaseHistory({
+  members,
+  selected,
+}: {
+  members: ProductCard["members"];
+  selected: ProductCard["item"]["purchase"];
+}) {
+  if (members.length < 2) return null;
+  const identity = (member: ProductCard["members"][number]) => (
+    <>
+      {member.origin === "sandbox" ? "Verified Sandbox" : "Sample"} ·{" "}
+      {member.amountMinor === null
+        ? "Price not added"
+        : money(member.amountMinor)}{" "}
+      · {displayDate(member.purchasedOn)}
+    </>
+  );
+  return (
+    <div
+      className="mt-2 text-sm text-muted-foreground"
+      data-care-purchase-history
+    >
+      {members
+        .filter((member) => member.origin === "sandbox")
+        .map((member) => {
+          return member.receiptHref ? (
+            <Link
+              key={member.id}
+              href={member.receiptHref}
+              data-care-direct-receipt={member.id}
+              className="inline-flex min-h-11 items-center text-primary underline underline-offset-4"
+            >
+              {identity(member)} · View receipt
+            </Link>
+          ) : null;
+        })}
+      <p className="text-xs leading-6">
+        Care shown: {identity(selected)} only. Each purchase keeps its own
+        sources and history.
+      </p>
+      <details>
+        <summary className="inline-flex min-h-11 cursor-pointer items-center rounded-lg focus-visible:outline-2 focus-visible:outline-ring">
+          {members.length} purchases · receipts & history
+        </summary>
+        <ul className="space-y-1">
+          {members.map((member) => {
+            return (
+              <li key={member.id} data-care-history-purchase={member.id}>
+                <Link
+                  className="inline-flex min-h-11 items-center text-primary underline"
+                  href={member.href}
+                >
+                  {identity(member)} · Purchase & history
+                </Link>
+                {member.receiptHref && (
+                  <Link
+                    className="ml-3 inline-flex min-h-11 items-center text-primary underline"
+                    href={member.receiptHref}
+                  >
+                    {identity(member)} · Receipt
+                  </Link>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </details>
+    </div>
+  );
+}
+
 function ConsumerCareCard({ item, view, members }: ProductCard) {
   const p = item.purchase;
   const fact = view!.facts.find(
@@ -59,32 +132,7 @@ function ConsumerCareCard({ item, view, members }: ProductCard) {
         <p className="mt-2 text-[0.9375rem] leading-6 text-foreground">
           {fact.consumer!.summary}
         </p>
-        {members.length > 1 && (
-          <details className="mt-1 text-sm text-muted-foreground">
-            <summary className="inline-flex min-h-11 cursor-pointer items-center rounded-lg focus-visible:outline-2 focus-visible:outline-ring">
-              {members.length} purchases · receipts & history
-            </summary>
-            <ul className="space-y-1">
-              {members.map((member) => (
-                <li key={member.id}>
-                  <Link
-                    className="inline-flex min-h-11 items-center text-primary underline"
-                    href={member.href}
-                  >
-                    {displayDate(member.purchasedOn)} ·{" "}
-                    {member.origin === "sandbox"
-                      ? "Verified Sandbox payment"
-                      : "Sample purchase"}{" "}
-                    ·{" "}
-                    {member.amountMinor === null
-                      ? "Price not added"
-                      : money(member.amountMinor)}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
+        <GroupedPurchaseHistory members={members} selected={p} />
         <div className="mt-auto pt-3">
           <OwnershipSummary topic={fact.topic} secondary />
           <div className="mt-2 border-t pt-2">
@@ -230,32 +278,7 @@ function CareCard({
             </Link>
           </div>
         </div>
-        {members.length > 1 && (
-          <details className="mt-1 text-xs text-muted-foreground">
-            <summary className="inline-flex min-h-11 cursor-pointer items-center">
-              {members.length} dated purchases · select receipt/history
-            </summary>
-            <ul>
-              {members.map((member) => (
-                <li key={member.id}>
-                  <Link
-                    className="inline-flex min-h-11 items-center text-primary underline"
-                    href={member.href}
-                  >
-                    {displayDate(member.purchasedOn)} ·{" "}
-                    {member.origin === "sandbox"
-                      ? "Verified Sandbox payment"
-                      : "Sample purchase"}{" "}
-                    ·{" "}
-                    {member.amountMinor === null
-                      ? "Amount unavailable"
-                      : money(member.amountMinor)}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
+        <GroupedPurchaseHistory members={members} selected={p} />
         <div
           className={`${simulated ? "mt-1 pt-1" : "mt-2 pt-2"} border-t border-border/60`}
         >
@@ -346,7 +369,9 @@ export function CareFeedView({
                 ? "No verified price-protection monitoring is active."
                 : selected === "attention"
                   ? "No actionable care findings in the available records."
-                  : "No saved purchases are available."}
+                  : selected === "protected"
+                    ? "No coverage information is saved."
+                    : "No saved purchases are available."}
           </h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {selected === "completed"
@@ -438,7 +463,7 @@ export function CareFilters({
           ["all", "All purchases"],
           ["attention", "Needs attention"],
           ["watching", "Watching"],
-          ...(feed?.demoAsOf ? [["protected", "Protected"] as const] : []),
+          ...(feed?.demoAsOf ? [["protected", "Coverage info"] as const] : []),
           ["completed", "Completed"],
         ] as const
       ).map(([value, label]) => (

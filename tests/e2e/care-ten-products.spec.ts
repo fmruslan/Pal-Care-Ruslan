@@ -1,6 +1,39 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
+// Server projections use the current clock, not the immutable November 5 pack.
+// Do not freeze only the browser: that would disagree with server-owned facts.
+const cutoff = (value: string) => Date.now() >= Date.parse(value);
+const currentDemoStatuses = (): Record<string, string> => ({
+  201: "Catalog price example",
+  202: cutoff("2026-11-07T18:00:00Z")
+    ? "Delivery unconfirmed"
+    : "Delivery expected",
+  203: "Safety review",
+  204: cutoff("2026-11-10T12:00:00Z")
+    ? "Price review window closed"
+    : "Illustrative price window",
+  205: cutoff("2029-10-20T12:00:00Z")
+    ? "Warranty period ended"
+    : "Warranty details",
+  206: "Return progress example",
+  207: cutoff("2026-11-08T12:00:00Z")
+    ? "Return window closed"
+    : "Return ends Nov 8",
+  208: "Refund example",
+  209: cutoff("2026-11-15T12:00:00Z")
+    ? "Price review window closed"
+    : "Price check example",
+  210: cutoff("2026-11-07T12:00:00Z")
+    ? "Return window closed"
+    : "Return ends Nov 7",
+});
+const currentAttentionCount = () =>
+  2 +
+  Number(!cutoff("2026-11-10T12:00:00Z")) +
+  Number(!cutoff("2026-11-08T12:00:00Z")) +
+  Number(!cutoff("2026-11-07T12:00:00Z"));
+
 test("30-day calendar queries the real Studio engine and opens the exact dated Twin/evidence", async ({
   page,
 }) => {
@@ -74,6 +107,9 @@ test("View all opens Insights native grid and timeline with real evidence filter
   page,
 }) => {
   await page.goto("/dashboard");
+  await expect(
+    page.locator('[data-care-calendar-engine="verified"]'),
+  ).toBeVisible({ timeout: 20000 });
   await page
     .getByRole("link", { name: "View all care events", exact: true })
     .click();
@@ -284,18 +320,7 @@ test("consumer cards use one disclosure, soft truthful statuses and one active m
   await expect(page.locator("[data-care-demo-disclosure]")).toHaveText(
     "Sample collection · Illustrative purchases and care events",
   );
-  const expected: Record<string, string> = {
-    201: "Price drop found",
-    202: "Delivery expected",
-    203: "Safety review",
-    204: "Price review",
-    205: "Warranty details",
-    206: "Return in progress",
-    207: "Return ends Nov 8",
-    208: "Refund example",
-    209: "Price watch active",
-    210: "Return ends Nov 7",
-  };
+  const expected = currentDemoStatuses();
   for (const [suffix, status] of Object.entries(expected))
     await expect(
       page.locator(
@@ -310,6 +335,55 @@ test("consumer cards use one disclosure, soft truthful statuses and one active m
     await expect(event).not.toContainText("Demo");
 });
 
+test("current UTC facts keep ended returns and passed delivery estimates honest in cards and details", async ({
+  page,
+}) => {
+  const writes: string[] = [];
+  page.on("request", (request) => {
+    if (!["GET", "HEAD"].includes(request.method())) writes.push(request.url());
+  });
+  await page.goto("/dashboard");
+  for (const [suffix, deadline, action] of [
+    ["207", "2026-11-08T12:00:00Z", "Review return options"],
+    ["210", "2026-11-07T12:00:00Z", "Check return conditions"],
+    ["202", "2026-11-07T18:00:00Z", "View delivery details"],
+  ]) {
+    const card = page.locator(
+      `[data-care-product="00000000-0000-4000-8000-000000000${suffix}"]`,
+    );
+    const status = currentDemoStatuses()[suffix];
+    await expect(card.locator("[data-ownership-pill]")).toHaveText(status);
+    await card.getByRole("button", { name: action, exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: status, exact: true });
+    await expect(dialog).toBeVisible();
+    if (cutoff(deadline)) {
+      await expect(dialog).toContainText(
+        suffix === "202"
+          ? "Delivery is not confirmed"
+          : "The return deadline has passed",
+      );
+      await expect(dialog).not.toContainText("days remaining");
+    }
+    await expect(dialog).toContainText(
+      suffix === "202"
+        ? /no live carrier connection/i
+        : /nothing has been submitted/i,
+    );
+    await page.keyboard.press("Escape");
+  }
+  const phone = page.locator(
+    '[data-care-product="00000000-0000-4000-8000-000000000209"]',
+  );
+  await expect(phone).toContainText("No external tracker is connected");
+  const pi = page.locator(
+    '[data-care-product="00000000-0000-4000-8000-000000000204"]',
+  );
+  await expect(pi).toContainText(
+    "purchase price is still missing; eligibility is unverified",
+  );
+  expect(writes).toEqual([]);
+});
+
 test("saved Demo price, return-progress and refund sources open useful next steps without dispatching anything", async ({
   page,
 }) => {
@@ -319,8 +393,13 @@ test("saved Demo price, return-progress and refund sources open useful next step
   });
   await page.goto("/dashboard");
   for (const [suffix, action, heading, evidence] of [
-    ["201", "Review opportunity", "Price drop found", "$20.00"],
-    ["206", "View return progress", "Return in progress", "Inspection pending"],
+    ["201", "Review opportunity", "Catalog price example", "$20.00"],
+    [
+      "206",
+      "View return progress",
+      "Return progress example",
+      "Inspection pending",
+    ],
     [
       "208",
       "View refund details",
@@ -350,13 +429,13 @@ test("saved Demo price, return-progress and refund sources open useful next step
   }
   await page
     .getByRole("navigation", { name: "Care filters", exact: true })
-    .getByRole("link", { name: "Completed (1)", exact: true })
+    .getByRole("link", { name: "Completed (0)", exact: true })
     .click();
   await expect(
     page.getByRole("main").locator("[data-care-product]"),
-  ).toHaveCount(1);
+  ).toHaveCount(0);
   await expect(page.getByRole("main")).toContainText(
-    "No PayPal refund was issued",
+    "No completed care tasks recorded",
   );
   expect(writes).toEqual([]);
 });
@@ -379,13 +458,25 @@ test("ten persisted-fixture products use a compact responsive grid, real filters
     name: "Care filters",
     exact: true,
   });
-  await expect(filters.getByRole("link")).toHaveText([
-    "All products (10)",
-    "Needs attention (5)",
-    "Watching (1)",
-    "Protected (3)",
-    "Completed (1)",
-  ]);
+  await expect(filters.locator('a[href="/dashboard"]')).toContainText("(10)");
+  await expect(
+    filters.getByRole("link", {
+      name: `Needs attention (${currentAttentionCount()})`,
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    filters.getByRole("link", { name: "Watching (0)", exact: true }),
+  ).toBeVisible();
+  await expect(
+    filters.getByRole("link", { name: "Completed (0)", exact: true }),
+  ).toBeVisible();
+  // Coverage information includes explicitly simulated warranties, not a
+  // count of verified protection. The legacy query destination is retained.
+  await expect(filters.locator('a[href*="status=protected"]')).toHaveText(
+    "Coverage info (3)",
+  );
+  await expect(filters).not.toContainText("Protected (3)");
   await expect(main).not.toContainText("active verified windows");
   await expect(main).toContainText("Sample collection");
   const first = await cards.nth(0).boundingBox();
@@ -421,9 +512,12 @@ test("ten persisted-fixture products use a compact responsive grid, real filters
     animations: "disabled",
   });
   await filters
-    .getByRole("link", { name: "Needs attention (5)", exact: true })
+    .getByRole("link", {
+      name: `Needs attention (${currentAttentionCount()})`,
+      exact: true,
+    })
     .click();
-  await expect(cards).toHaveCount(5);
+  await expect(cards).toHaveCount(currentAttentionCount());
   await expect(main).toContainText("Safety review");
 });
 

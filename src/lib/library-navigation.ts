@@ -1,5 +1,13 @@
 /** Presentation-only, bounded URL state. Never an identity or authorization. */
 export type LibraryParams = Record<string, string | string[] | undefined>;
+export const DOCUMENT_CATEGORIES = [
+  { value: "receipts", label: "Receipts" },
+  { value: "warranties", label: "Warranties & coverage" },
+  { value: "care", label: "Care guides & manuals" },
+  { value: "returns", label: "Returns & policies" },
+  { value: "all", label: "All documents" },
+] as const;
+export type DocumentCategory = (typeof DOCUMENT_CATEGORIES)[number]["value"];
 export type LibraryQuery = {
   q: string;
   category: string;
@@ -7,6 +15,9 @@ export type LibraryQuery = {
   documents: "all" | "present" | "missing";
   sort: "newest" | "oldest" | "name";
   view: "purchases" | "documents";
+  documentCategory: DocumentCategory;
+  /** Exact dated Purchase Twin, not a product/model grouping. */
+  product: string;
   page: number;
   valid: boolean;
 };
@@ -38,10 +49,24 @@ export function parseLibraryQuery(params: LibraryParams): LibraryQuery {
     documents: choice("documents", ["all", "present", "missing"] as const),
     sort: choice("sort", ["newest", "oldest", "name"] as const),
     view: choice("view", ["purchases", "documents"] as const),
+    documentCategory: choice("documentCategory", [
+      "all",
+      "receipts",
+      "warranties",
+      "care",
+      "returns",
+    ] as const),
+    product: scalar("product", "all"),
     page: Math.max(1, page),
     valid,
   };
-  if (result.q) result.view = "purchases";
+  if (
+    result.product !== "all" &&
+    !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(
+      result.product,
+    )
+  )
+    valid = false;
   return { ...result, valid };
 }
 
@@ -57,11 +82,12 @@ export function libraryHref(
     ["source", value.source, "all"],
     ["documents", value.documents, "all"],
     ["sort", value.sort, "newest"],
-    ["view", value.view, "purchases"],
+    ["documentCategory", value.documentCategory, "all"],
+    ["product", value.product, "all"],
     ["page", String(value.page), "1"],
   ])
     if (item !== fallback) params.set(key, item);
-  return `/purchases${params.size ? `?${params}` : ""}`;
+  return `${value.view === "documents" ? "/documents" : "/purchases"}${params.size ? `?${params}` : ""}`;
 }
 
 export function libraryReturn(value: string | string[] | undefined) {
@@ -70,7 +96,7 @@ export function libraryReturn(value: string | string[] | undefined) {
     const url = new URL(value, "https://palcare.invalid");
     if (
       url.origin !== "https://palcare.invalid" ||
-      !["/dashboard", "/purchases"].includes(url.pathname)
+      !["/dashboard", "/purchases", "/documents"].includes(url.pathname)
     )
       return "/purchases";
     const params: LibraryParams = {};
@@ -78,7 +104,9 @@ export function libraryReturn(value: string | string[] | undefined) {
       const values = url.searchParams.getAll(key);
       params[key] = values.length === 1 ? values[0] : values;
     }
-    const query = parseLibraryQuery(params);
+    const query = parseLibraryQuery(
+      url.pathname === "/documents" ? { ...params, view: "documents" } : params,
+    );
     return query.valid ? libraryHref(query) : "/purchases";
   } catch {
     return "/purchases";

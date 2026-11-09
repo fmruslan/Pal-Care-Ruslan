@@ -196,7 +196,12 @@ export async function demoCareBrowserJourney(
         .last()
         .getAttribute("data-request-id");
       expect(request).toBeTruthy();
-      for (const destination of ["Purchases", "Insights", "Care"]) {
+      for (const destination of [
+        "Purchases",
+        "Documents",
+        "Insights",
+        "Care",
+      ]) {
         await page
           .getByRole("navigation", { name: "Main navigation", exact: true })
           .getByRole("link", { name: destination, exact: true })

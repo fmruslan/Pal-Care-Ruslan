@@ -101,7 +101,7 @@ test("Home document and care navigation need no conversation or automatic questi
   });
   await page.goto("/purchases");
   await page.getByRole("link", { name: "All documents", exact: true }).click();
-  await expect(page).toHaveURL(/\/purchases\?view=documents$/);
+  await expect(page).toHaveURL(/\/documents$/);
   await expect(page.getByTestId("library-documents")).toContainText(
     "Sample document",
   );

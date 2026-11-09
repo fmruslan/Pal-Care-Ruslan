@@ -6,15 +6,23 @@ import { displayDate, money } from "../../demo/presentation";
 export function consumerScenario(
   s: DemoScenario,
   active: boolean,
+  asOf: string,
 ): NonNullable<OwnershipFact["consumer"]> {
-  if (s.kind === "delivery")
+  const evaluatedAt = Date.parse(asOf);
+  if (!Number.isFinite(evaluatedAt)) throw Error("invalid_care_clock");
+  const pending = "startsAt" in s && evaluatedAt < Date.parse(s.startsAt);
+  if (s.kind === "delivery") {
+    const due = evaluatedAt >= Date.parse(s.estimatedAt);
     return {
-      status: "Delivery expected",
-      summary: `Estimated arrival ${displayDate(s.estimatedAt)}. Follow its journey in the delivery details.`,
-      action: "Track delivery",
+      status: due ? "Delivery unconfirmed" : "Delivery expected",
+      summary: due
+        ? `The ${displayDate(s.estimatedAt)} arrival estimate has passed. Delivery is not confirmed.`
+        : `Estimated arrival ${displayDate(s.estimatedAt)}. This is a saved delivery example, not live tracking.`,
+      action: "View delivery details",
       nextStep:
-        "Check the delivery updates and estimated arrival. This Demo has no live carrier connection.",
+        "Review the saved delivery updates. This Demo has no live carrier connection; elapsed time does not confirm arrival.",
     };
+  }
   if (s.kind === "safety")
     return {
       status: "Safety review",
@@ -35,40 +43,52 @@ export function consumerScenario(
     };
   if (s.kind === "warranty")
     return {
-      status: active ? "Warranty details" : "Warranty period ended",
-      summary: `${s.extended ? "Extended plan" : "Warranty"} details ${active ? "are available through" : "ended on"} ${displayDate(s.endsAt)}. Check what's included before arranging a repair.`,
+      status: active
+        ? "Warranty details"
+        : pending
+          ? "Warranty not started"
+          : "Warranty period ended",
+      summary: `${s.extended ? "Extended plan" : "Warranty"} example ${active ? "runs through" : pending ? "has not started; ends" : "ended on"} ${displayDate(s.endsAt)}. No real coverage is established.`,
       action: "View warranty",
       nextStep:
         "Review the covered faults, exclusions and proof-of-purchase requirements before contacting the seller. This Demo does not provide real coverage.",
     };
   if (s.kind === "return-window")
     return {
-      status: !active
-        ? "Return window closed"
-        : `Return ends ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(s.endsAt))}`,
-      summary: !active
-        ? "The return deadline has passed. Check the seller's terms for other options."
-        : s.requiresUnopened
-          ? `Unopened copies may be returnable until ${displayDate(s.endsAt)}. Check the packaging first.`
-          : `You have until ${displayDate(s.endsAt)} to review the return terms and your item's condition.`,
+      status: pending
+        ? "Return window not started"
+        : !active
+          ? "Return window closed"
+          : `Return ends ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(s.endsAt))}`,
+      summary: pending
+        ? "The example return period has not started. No return eligibility is confirmed."
+        : !active
+          ? "The return deadline has passed. Check the seller's terms for other options."
+          : s.requiresUnopened
+            ? `Unopened copies may be returnable until ${displayDate(s.endsAt)}. Check the packaging first.`
+            : `You have until ${displayDate(s.endsAt)} to review the return terms and your item's condition.`,
       action: s.requiresUnopened
         ? "Check return conditions"
         : "Review return options",
-      nextStep: s.requiresUnopened
-        ? "Confirm the game is unopened, keep the receipt and review the seller's exclusions before requesting a return. Nothing has been submitted."
-        : "Check the condition requirements, deadline and any return fee before contacting the seller. Nothing has been submitted.",
+      nextStep: !active
+        ? "Review the saved deadline and seller's terms for other options. No current return eligibility is established and nothing has been submitted."
+        : s.requiresUnopened
+          ? "Confirm the game is unopened, keep the receipt and review the seller's exclusions before requesting a return. Nothing has been submitted."
+          : "Check the condition requirements, deadline and any return fee before contacting the seller. Nothing has been submitted.",
     };
   const drop = s.observations[0].priceMinor - s.observations[1].priceMinor;
   return {
-    status: !active
-      ? "Price review window closed"
-      : drop > 0
-        ? "Price review"
-        : "Price watch active",
+    status: pending
+      ? "Price review not started"
+      : !active
+        ? "Price review window closed"
+        : drop > 0
+          ? "Illustrative price window"
+          : "Price check example",
     summary:
       drop > 0
-        ? `A ${money(drop)} lower catalog price is shown against an illustrative ${money(s.hypotheticalPurchaseMinor)} price basis. Your purchase price is still missing.`
-        : "No lower catalog price is shown yet.",
+        ? `A ${money(drop)} simulated catalog difference is shown against an illustrative ${money(s.hypotheticalPurchaseMinor)} price basis. Your purchase price is still missing; eligibility is unverified.`
+        : "Saved simulated checks show no lower catalog price. No external tracker is connected.",
     action: drop > 0 ? "Review price details" : "View price watch",
     nextStep:
       drop > 0

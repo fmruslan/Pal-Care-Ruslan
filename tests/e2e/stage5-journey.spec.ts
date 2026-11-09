@@ -17,6 +17,7 @@ test("customer journey preserves purchase identity through CareOS, recall, repla
     "Care",
     "Purchases",
     "Insights",
+    "Documents",
   ]);
   await expect(navigation.locator('[aria-current="page"]')).toHaveText(
     "Purchases",

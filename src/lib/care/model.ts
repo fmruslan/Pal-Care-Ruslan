@@ -69,6 +69,11 @@ export function careFeed(options: {
   };
 }) {
   const { data, knowledge, guardian, activity } = options;
+  // Capture one evaluation clock for every present-tense ownership projection.
+  // Scenario/source asOf timestamps remain immutable evidence snapshots.
+  const now = options.now ?? new Date();
+  if (!Number.isFinite(now.getTime())) throw Error("invalid_care_clock");
+  const at = now.toISOString();
   const library = homeLibrary(data, parseLibraryQuery({}));
   const projection = customerDataset(
     data,
@@ -80,7 +85,6 @@ export function careFeed(options: {
   );
   const purchases = library.allPurchases;
   const items: CareItem[] = [];
-  const at = (options.now ?? new Date()).toISOString();
   const protections = purchases.map((p) => {
     const base = protectionView(
       p.id,
@@ -418,11 +422,8 @@ export function careFeed(options: {
                   : fact.topic === "refunds"
                     ? "refund"
                     : "price",
-      group: fact.demoCompletion
-        ? "completed"
-        : fact.state === "attention"
-          ? "action"
-          : "tracking",
+      // A saved illustration of completion is not a completed customer action.
+      group: fact.state === "attention" ? "action" : "tracking",
       status: fact.status,
       detail: fact.detail,
       provenance: fact.provenance,

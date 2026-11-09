@@ -188,7 +188,7 @@ test("calm collection has one integrated field, collapsed filters and a first-sc
     page
       .getByRole("navigation", { name: "Main navigation", exact: true })
       .getByRole("link"),
-  ).toHaveText(["Care", "Purchases", "Insights"]);
+  ).toHaveText(["Care", "Purchases", "Insights", "Documents"]);
   await expect(
     page.getByRole("combobox", { name: "Category", exact: true }),
   ).not.toBeVisible();

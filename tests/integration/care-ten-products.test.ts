@@ -282,7 +282,7 @@ test("selected demo lane and atomic seed repeat; actual restricted reader drives
       now: new Date("2026-11-05T12:00:00Z"),
     });
     assert.equal(careProductCards(feed).length, 10);
-    assert.equal(careProductCards(feed, "completed").length, 1);
+    assert.equal(careProductCards(feed, "completed").length, 0);
     assert.equal(careProductCards(feed, "attention").length, 5);
     assert.equal(
       (

@@ -124,6 +124,8 @@ export function withConsumerDemoOwnership(
   view: OwnershipView,
   data: DemoData,
 ): OwnershipView {
+  if (!Number.isFinite(Date.parse(view.asOf)))
+    throw Error("invalid_care_clock");
   if (!data.consumerDemo) return view;
   if (!data.demoCare) throw Error("consumer_demo_requires_saved_pack");
   const source = consumerDemoSources.find((s) => s.twinId === view.twinId);
@@ -174,17 +176,17 @@ export function withConsumerDemoOwnership(
   const consumer =
     source.kind === "price-opportunity"
       ? {
-          status: "Price drop found",
-          summary: `A ${money(source.paidMinor - source.currentMinor)} lower catalog price was found. Eligibility needs review.`,
+          status: "Catalog price example",
+          summary: `A ${money(source.paidMinor - source.currentMinor)} lower simulated catalog price is saved as of ${source.asOf.slice(0, 10)}. Eligibility needs review; this is not a current price check.`,
           action: "Review opportunity",
           nextStep:
             "Compare the exact product, seller's price policy and deadline before requesting an adjustment. The lower catalog price is not eligibility or money saved.",
         }
       : source.kind === "return-progress"
         ? {
-            status: "Return in progress",
+            status: "Return progress example",
             summary:
-              "Your parcel has reached the seller. The next step is an inspection; no refund is confirmed.",
+              "The saved scenario shows a parcel received and inspection pending. No live return progress or refund is confirmed.",
             action: "View return progress",
             nextStep:
               "Keep the return confirmation and parcel receipt. Wait for the inspection outcome before expecting a refund. This Demo has no live carrier or merchant connection.",

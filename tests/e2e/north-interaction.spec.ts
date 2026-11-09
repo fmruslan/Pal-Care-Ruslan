@@ -115,7 +115,11 @@ async function openNorth(page: Page, expectedAlert?: string) {
   if (!restoreOpen && !(await dialog.isVisible())) {
     // Home's star submits the unified field; History is the read-only opener
     // when a retained draft is present. Neither restore nor history can replay.
-    if (["/dashboard", "/purchases"].includes(new URL(page.url()).pathname)) {
+    if (
+      ["/dashboard", "/purchases", "/documents"].includes(
+        new URL(page.url()).pathname,
+      )
+    ) {
       await page.getByRole("button", { name: "History", exact: true }).click();
       await dialog
         .getByRole("button", { name: "History", exact: true })
@@ -651,7 +655,7 @@ test("owned result history and draft survive navigation, Insights, return and cl
   await opened.composer.fill("Keep this cross-page draft");
   for (const [label, path] of [
     ["Purchases", "/purchases"],
-    ["All documents", "/purchases?view=documents"],
+    ["All documents", "/documents"],
     ["Insights", "/insights"],
   ]) {
     await navigate(page, label, path);

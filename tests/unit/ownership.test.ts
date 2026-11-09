@@ -446,6 +446,9 @@ describe("one ownership view across Twin, Care and North", () => {
     expect(first.asOf).not.toBe(later.asOf);
     expect(first.revision).toBe(later.revision);
   });
+  it("rejects an invalid evaluation clock instead of manufacturing open windows", () => {
+    expect(() => project({ now: new Date(NaN) })).toThrow("invalid_care_clock");
+  });
   it("invalid Twin/provenance cannot leak into ownership or a presentation target", () => {
     expect(
       project({

@@ -17,7 +17,11 @@ async function open(page: Page) {
     }
   });
   if (!restoreOpen && !(await dialog.isVisible())) {
-    if (["/dashboard", "/purchases"].includes(new URL(page.url()).pathname)) {
+    if (
+      ["/dashboard", "/purchases", "/documents"].includes(
+        new URL(page.url()).pathname,
+      )
+    ) {
       await page.getByRole("button", { name: "History", exact: true }).click();
       await dialog
         .getByRole("button", { name: "History", exact: true })
@@ -428,11 +432,11 @@ test("leaving before a chart response keeps the late saved answer without reopen
     await page
       .getByRole("link", { name: "All documents", exact: true })
       .press("Enter");
-    await expect(page).toHaveURL(/\/purchases\?view=documents$/);
+    await expect(page).toHaveURL(/\/documents$/);
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: "Your products",
+        name: "Your documents",
         exact: true,
       }),
     ).toBeVisible();
@@ -452,6 +456,7 @@ test("leaving before a chart response keeps the late saved answer without reopen
     expect(saved.ok()).toBe(true);
     const turn = (await saved.json()) as CareTurn;
     await open(page);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
     const article = dialog.locator(`[data-request-id="${turn.requestId}"]`);
     await expect(article.locator("[data-records-result]")).toBeVisible();
     await page.evaluate(
@@ -460,7 +465,7 @@ test("leaving before a chart response keeps the late saved answer without reopen
           requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
         ),
     );
-    await expect(page).toHaveURL(/\/purchases\?view=documents$/);
+    await expect(page).toHaveURL(/\/documents$/);
     await expect(article.getByRole("status")).toContainText(
       "not yet confirmed",
     );
@@ -575,6 +580,13 @@ test("record timeline and draft restore by owned GET after reload and navigation
   await expect(
     dialog.locator(`[data-request-id="${first.turn.requestId}"]`),
   ).toBeVisible();
+  await expect(
+    dialog.getByRole("textbox", {
+      name: "Ask about your purchases",
+      exact: true,
+    }),
+  ).toHaveValue("Keep this draft");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   expect(turnPosts).toBe(0);
 });
 

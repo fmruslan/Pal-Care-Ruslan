@@ -19,14 +19,19 @@ export default async function Purchases({
   const library = homeLibrary(data, query);
   const searchIndex = library.searchIndex;
   return (
-    <Shell active="/purchases" source={data.source}>
+    <Shell
+      active={query.view === "documents" ? "/documents" : "/purchases"}
+      source={data.source}
+    >
       <NorthCollection>
         <div className="mb-5 max-w-3xl sm:mb-7">
           <h1 className="text-[clamp(1.75rem,3vw,2.25rem)] leading-tight font-semibold tracking-tight">
-            Your products
+            {query.view === "documents" ? "Your documents" : "Your products"}
           </h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Everything you own, all cared for.
+            {query.view === "documents"
+              ? "Saved records, organized around your dated purchases."
+              : "Everything you own, all cared for."}
           </p>
         </div>
       </NorthCollection>
@@ -34,6 +39,7 @@ export default async function Purchases({
         query={query}
         categories={library.categories}
         searchIndex={searchIndex}
+        purchases={library.allPurchases}
       />
       <NorthCollection>
         <LibraryResults library={library} query={query} />
