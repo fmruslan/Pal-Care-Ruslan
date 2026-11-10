@@ -294,7 +294,9 @@ export function LibraryDocuments({
                 href={withLibraryReturn(`/documents/${d.id}`, from)}
                 className="inline-flex min-h-11 items-center text-primary hover:underline"
               >
-                {d.title}
+                {p.documentLinks.find(
+                  (link) => link.href === `/documents/${d.id}`,
+                )?.displayTitle ?? "Saved document"}
               </Link>
             </h3>
             <p className="text-sm text-muted-foreground">
@@ -314,7 +316,7 @@ export function LibraryDocuments({
           </div>
           <Link
             href={withLibraryReturn(`/documents/${d.id}`, from)}
-            aria-label={`Open ${d.title}, ${displayDate(p.purchasedOn)}`}
+            aria-label={`Open ${p.documentLinks.find((link) => link.href === `/documents/${d.id}`)?.displayTitle ?? "saved document"}, ${displayDate(p.purchasedOn)}`}
             className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-input px-4 text-sm font-medium"
           >
             Open

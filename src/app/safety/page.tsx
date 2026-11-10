@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { SafetyCard } from "@/components/safety-card";
 import { notFound } from "next/navigation";
 import { journeyContext, type JourneyQuery } from "@/lib/careos/journey";
-import { findTwin, recordIdSchema } from "@/lib/demo/presentation";
+import { findTwin, recordIdSchema, displayDate } from "@/lib/demo/presentation";
 import { CareContextRegistration } from "@/components/careos/provider";
 export const metadata = { title: "Recall information" };
 export default async function SafetyPage({
@@ -109,7 +109,7 @@ export default async function SafetyPage({
           <h2 className="section-title">{source.Title}</h2>
           <p className="mt-4 text-sm leading-7">{source.Description}</p>
           <p className="mt-4 text-xs text-muted-foreground">
-            Published {source.RecallDate.slice(0, 10)} · Official recall ID{" "}
+            Published {displayDate(source.RecallDate)} · Official recall ID{" "}
             {source.RecallID}
           </p>
           <a
@@ -164,12 +164,14 @@ export default async function SafetyPage({
           </Link>
         </Card>
       </div>
-      <Card className="mt-6">
-        <h2 className="section-title">About this source</h2>
+      <details className="mt-6 rounded-2xl border bg-card p-5">
+        <summary className="min-h-11 cursor-pointer font-semibold">
+          View source details
+        </summary>
         <dl className="mt-4 space-y-3 text-sm">
           <div>
             <dt className="text-muted-foreground">Copy saved</dt>
-            <dd>{retrievedAt}</dd>
+            <dd>{displayDate(retrievedAt)}</dd>
           </div>
           <div>
             <dt className="text-muted-foreground">What this check covers</dt>
@@ -193,7 +195,7 @@ export default async function SafetyPage({
             </dd>
           </div>
         </dl>
-      </Card>
+      </details>
     </Shell>
   );
 }

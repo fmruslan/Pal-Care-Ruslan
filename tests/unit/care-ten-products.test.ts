@@ -87,7 +87,7 @@ describe("ten-product evidence and price separation", () => {
       "What's happening with my kettle delivery?",
       "delivery",
       "kettle",
-      "There’s no live carrier connection",
+      "No live tracking is connected",
     ],
     [
       "Can I get a price adjustment for my Raspberry Pi?",

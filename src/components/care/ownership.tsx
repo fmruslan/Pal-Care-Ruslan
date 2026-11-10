@@ -17,6 +17,7 @@ import { Check, X, RefreshCw, ArrowRight } from "lucide-react";
 import { Button } from "../ui/button";
 import { ReturnDraft } from "./return-draft";
 import { displayDate } from "@/lib/demo/presentation";
+import { DocumentContent } from "../document-content";
 import {
   careMilestones,
   careMilestoneLabel,
@@ -79,31 +80,80 @@ export function OwnershipIcon({
   );
 }
 
-function FactDetails({ fact }: { fact: OwnershipFact }) {
+export function FactDetails({ fact }: { fact: OwnershipFact }) {
+  const missing =
+    !fact.consumer &&
+    !fact.presentation &&
+    ["unknown", "unavailable"].includes(fact.state);
+  const missingText =
+    fact.state === "unavailable"
+      ? "These saved details couldn’t load. Try again later."
+      : {
+          shipment: "No shipping updates are saved.",
+          delivery: "No arrival confirmation is saved.",
+          "return-window":
+            "No return deadline or conditions are saved. Check the seller’s terms.",
+          returns: "No return request or seller response is saved.",
+          refunds: "No verified refund is saved.",
+          warranty:
+            "No applicable warranty terms are saved. Check the seller’s warranty.",
+          safety:
+            "No official recall match has been established for this product.",
+          price: "No applicable price-adjustment terms are saved.",
+          "price-window": "No price-adjustment deadline is saved.",
+          watch: "No price watch is active.",
+          purchase: "Purchase details are incomplete.",
+        }[fact.topic];
   return (
     <div className="space-y-3" data-ownership-fact={fact.id}>
-      <p className="font-semibold">
-        {fact.consumer?.status ?? fact.status}
-        {fact.simulation ? " · Example" : ""}
-      </p>
-      {fact.consumer && (
+      {fact.presentation ? (
         <>
-          <p className="text-base leading-7">{fact.consumer.summary}</p>
-          <p className="text-sm leading-7">
-            <strong>Next step:</strong> {fact.consumer.nextStep}
+          <p className="text-xs text-muted-foreground">
+            {fact.presentation.provenance}
           </p>
+          <DocumentContent view={fact.presentation} headingLevel={3} />
+        </>
+      ) : (
+        <>
+          <p className="font-semibold">
+            {fact.consumer?.status ?? fact.status}
+            {fact.simulation ? " · Example" : ""}
+          </p>
+          {fact.consumer && (
+            <>
+              <p className="text-base leading-7">{fact.consumer.summary}</p>
+              <p className="text-sm leading-7">
+                <strong>Next step:</strong> {fact.consumer.nextStep}
+              </p>
+            </>
+          )}
+          {!fact.consumer && (
+            <p className="text-sm leading-7 text-muted-foreground">
+              {missing ? missingText : fact.detail}
+            </p>
+          )}
+          <p className="text-xs leading-6 text-muted-foreground">
+            {fact.provenance}
+            {fact.date ? ` · ${displayDate(fact.date)}` : ""}
+          </p>
+          {fact.recordedAt && (
+            <p className="text-xs leading-5 text-muted-foreground">
+              Recorded or observed{" "}
+              <time dateTime={fact.recordedAt}>
+                {displayDate(fact.recordedAt)}
+              </time>
+            </p>
+          )}
         </>
       )}
-      <p className="text-sm leading-7 text-muted-foreground">{fact.detail}</p>
-      <p className="text-xs leading-6 text-muted-foreground">
-        {fact.provenance}
-        {fact.date ? ` · ${displayDate(fact.date)}` : " · Date unknown"}
-      </p>
-      {fact.recordedAt && (
-        <p className="text-xs leading-5 text-muted-foreground">
-          Recorded or observed{" "}
-          <time dateTime={fact.recordedAt}>{displayDate(fact.recordedAt)}</time>
-        </p>
+      {(fact.presentation || fact.consumer || missing) && (
+        <details className="text-xs text-muted-foreground">
+          <summary className="min-h-11 cursor-pointer py-2">
+            View source details
+          </summary>
+          <p>{fact.detail}</p>
+          <p>{fact.provenance}</p>
+        </details>
       )}
       {fact.sources.length > 0 && (
         <ul className="space-y-1">
@@ -113,16 +163,18 @@ function FactDetails({ fact }: { fact: OwnershipFact }) {
                 className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline underline-offset-4"
                 href={source.href}
               >
-                {source.label}
+                {fact.presentation ? fact.presentation.title : source.label}
               </Link>
             </li>
           ))}
         </ul>
       )}
       {fact.action && (
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" className="max-w-full px-3 text-left">
           <Link href={fact.action.href}>
-            {fact.consumer?.action ?? fact.action.label}
+            <span className="min-w-0 [overflow-wrap:anywhere]">
+              {fact.consumer?.action ?? fact.action.label}
+            </span>
             <ArrowRight aria-hidden="true" />
           </Link>
         </Button>
@@ -371,14 +423,14 @@ function ConnectedOwnershipScope({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <Dialog.Title className="text-xl font-semibold">
-                  {facts[0]?.consumer?.status ??
+                  {facts[0]?.presentation?.title ??
+                    facts[0]?.consumer?.status ??
                     facts[0]?.title ??
                     "Purchase care details"}
                 </Dialog.Title>
                 <Dialog.Description className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {facts.some((f) => f.simulation)
-                    ? "Illustrative care information · not a real delivery, warranty or refund. Sources and conditions are below."
-                    : "Saved details for this purchase. A payment alone doesn’t confirm delivery, a return or safety."}
+                  {view.purchase.name} ·{" "}
+                  {displayDate(view.purchase.purchasedOn)}
                 </Dialog.Description>
               </div>
               <Dialog.Close asChild>
@@ -444,9 +496,14 @@ function ConnectedOwnershipScope({
                         className="mt-1 size-4 shrink-0 text-primary"
                       />
                       <span>
-                        {fact.title}
+                        {fact.presentation?.title ??
+                          fact.consumer?.status ??
+                          fact.title}
                         <span className="mt-1 block text-muted-foreground">
-                          {fact.status} · {fact.provenance}
+                          {fact.presentation
+                            ? `${fact.presentation.status} · ${fact.presentation.provenance}`
+                            : (fact.consumer?.summary ??
+                              `${fact.status} · ${fact.provenance}`)}
                         </span>
                       </span>
                     </button>

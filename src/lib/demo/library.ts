@@ -120,7 +120,7 @@ export function homeLibrary(data: DemoData, query: LibraryQuery) {
   const classification = (d: CareDocument, p: LibraryPurchase) =>
     classifyLibraryDocument(d, p);
   const documentText = (d: CareDocument, p: LibraryPurchase) =>
-    `${d.title} ${d.kind} document ${classification(d, p) === "care" ? "Sample care card guide" : documentClassificationLabels[classification(d, p)]}`;
+    `${p.documentLinks.find((link) => link.href === `/documents/${d.id}`)?.displayTitle ?? ""} ${d.title} ${d.kind} document ${classification(d, p) === "care" ? "Sample care card guide" : documentClassificationLabels[classification(d, p)]}`;
   const scoped = valid
     ? purchases.filter(
         (p) =>

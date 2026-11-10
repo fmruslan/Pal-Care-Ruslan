@@ -1,5 +1,7 @@
 # Pal Care
 
+**Customer-content presentation — under verification:** readable saved receipts, terms and care histories preserve their unchanged originals behind **View original record** and downloads. [Acceptance checkpoint](docs/STATUS.md).
+
 **Current refinement:** page-flow Insights and clearer Example purchase labels are under verification; native widgets, saved layouts and separate Sandbox totals remain. [Status](docs/STATUS.md).
 
 **Customer-language refinement — under verification:** Care, Purchases, Documents, Insights and North now use shorter everyday wording, with implementation details in expandable sections. A concise Sample/PayPal Sandbox explanation and per-record provenance remain; unavailable care, coverage, price, safety and refund outcomes stay honest. No product-data, AI/financial authority or native analytics change. [Current verification and release status](docs/STATUS.md).

@@ -18,7 +18,7 @@ const headphoneId = "00000000-0000-4000-8000-000000000201";
 const headphone = `/vault/${headphoneId}`;
 const receipt = "/documents/00000000-0000-4000-8000-000000000301";
 const headphoneChoice =
-  "Everyday headphones · F-01 Oct 18, 2026 · Example purchase · PC-000201";
+  "Everyday headphones · F-01 Oct 18, 2026 · Example purchase";
 const headphoneContext: CareContext = {
   twinId: headphoneId,
   name: "Everyday headphones",

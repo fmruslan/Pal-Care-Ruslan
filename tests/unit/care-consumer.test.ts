@@ -41,7 +41,7 @@ describe("consumer Care uses human presentation, never invented authority", () =
     );
     expect(
       consumerScenario(shifted, false, "2026-12-03T04:30:00Z").status,
-    ).toBe("Return window closed");
+    ).toBe("Window ended");
     expect(scenario.endsAt).not.toBe(shifted.endsAt);
   });
   it("uses concise labels derived from saved deadlines and never calls a sample refund complete", () => {
@@ -166,10 +166,10 @@ describe("consumer Care uses human presentation, never invented authority", () =
     );
     const headphones = feed.ownership.find((v) => v.twinId === demoId(201))!;
     expect(headphones.facts[0].consumer!.summary).toContain(
-      "example catalog price is $20.00 lower",
+      "Purchase value $149.00; example catalog price $129.00. Difference: $20.00.",
     );
     expect(headphones.facts[0].consumer!.nextStep).toContain(
-      "not eligibility or money saved",
+      "not a current quote or money saved",
     );
     expect(
       feed.retailReferences.find((r) => r.productId === demoId(101))!
@@ -224,9 +224,7 @@ describe("consumer Care uses human presentation, never invented authority", () =
       "stitching-defect",
     );
     expect(boots.facts[0].detail).toContain("Inspection pending");
-    expect(boots.facts[0].detail).toContain(
-      "It is not live tracking or a confirmed refund",
-    );
+    expect(boots.facts[0].detail).toContain("No refund confirmed");
   });
   it.each([207, 210])(
     "evaluates the exact exclusive return cutoff for %i, not the frozen pack date",
@@ -246,9 +244,7 @@ describe("consumer Care uses human presentation, never invented authority", () =
         const fact = view.facts.find((f) => f.topic === "return-window")!;
         expect(fact.state).toBe(offset < 0 ? "attention" : "expired");
         expect(fact.consumer!.status).toBe(
-          offset < 0
-            ? `Return ends Nov ${id === 207 ? 8 : 7}`
-            : "Return window closed",
+          offset < 0 ? `Return ends Nov ${id === 207 ? 8 : 7}` : "Window ended",
         );
         expect(fact.date).toBe(scenario.endsAt);
         expect(fact.simulation!.asOf).toBe(data.demoCare!.asOf);
@@ -322,7 +318,7 @@ describe("consumer Care uses human presentation, never invented authority", () =
       const view = current.ownership.find((v) => v.twinId === demoId(id))!;
       expect(view.pill.attention).toBe(false);
       expect(view.facts.find((f) => f.consumer)!.consumer!.status).toBe(
-        "Return window closed",
+        "Window ended",
       );
     }
     const pi = current.ownership.find((v) => v.twinId === demoId(204))!;

@@ -188,7 +188,7 @@ describe("qualified receipt requests outside Insights never substitute a sample 
         sandbox.id,
         receipt.id,
       ]);
-      expect(answer.sources[1].label).toBe("Verified Sandbox receipt");
+      expect(answer.sources[1].label).toBe("PayPal Sandbox record");
       expect(followUp.requestId).not.toBe(original.requestId);
       expect(followUp.message).toBe(original.message);
       expect(selection).toEqual(saved);
@@ -232,7 +232,7 @@ describe("qualified receipt requests outside Insights never substitute a sample 
     expect(answer.actions).toEqual([
       { label: "Open receipt", href: `/documents/${data.documents[0].id}` },
     ]);
-    expect(answer.sources[1].label).toBe("Fictional sample document");
+    expect(answer.sources[1].label).toBe("Illustrative document");
     expect(external).not.toHaveBeenCalled();
   });
 });
@@ -417,7 +417,7 @@ describe("CareOS server-derived purchase choices", () => {
       { label: "Open receipt", href: `/documents/${receipt.id}` },
     ]);
     expect(answer.sources.map((s) => s.id)).toEqual([sandbox.id, receipt.id]);
-    expect(answer.sources[1].label).toBe("Verified Sandbox receipt");
+    expect(answer.sources[1].label).toBe("PayPal Sandbox record");
     expect(selection).toEqual(savedSelection);
   });
 

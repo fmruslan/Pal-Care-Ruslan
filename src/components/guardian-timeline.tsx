@@ -1,6 +1,7 @@
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import type { GuardianView } from "@/lib/price-guardian/contracts";
+import { displayDate } from "@/lib/demo/presentation";
 
 export function GuardianTimeline({ item }: { item: GuardianView }) {
   return (
@@ -31,7 +32,7 @@ export function GuardianTimeline({ item }: { item: GuardianView }) {
               className="mt-3 block text-xs text-muted-foreground"
               dateTime={e.at}
             >
-              {e.at}
+              {displayDate(e.at)}
             </time>
           </Card>
         </li>

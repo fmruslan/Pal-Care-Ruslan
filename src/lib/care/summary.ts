@@ -186,7 +186,7 @@ function purchaseCards(feed: CareFeed, filter: CareFilter | boolean = "all") {
         priority: 9,
         action: { label: "View purchase", href: purchase.href },
         evidence: purchase.documentLinks.map((d) => ({
-          label: d.title,
+          label: d.displayTitle ?? d.title,
           href: d.href,
         })),
       };

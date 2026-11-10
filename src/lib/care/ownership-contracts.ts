@@ -14,6 +14,7 @@ export const ownershipTopics = [
 ] as const;
 export type OwnershipTopic = (typeof ownershipTopics)[number];
 export type OwnershipFact = {
+  presentation?: import("../document-view").DocumentView;
   calendarKind?: "care-reminder";
   consumer?: {
     status: string;

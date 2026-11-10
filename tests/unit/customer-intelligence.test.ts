@@ -146,6 +146,7 @@ describe("customer intelligence fixed purchase projection (synthetic evidence on
     expect(headphones.documentLinks).toEqual([
       {
         title: data.documents[0].title,
+        displayTitle: "Everyday headphones receipt",
         href: `/documents/${id(301)}`,
         origin: "sample",
       },

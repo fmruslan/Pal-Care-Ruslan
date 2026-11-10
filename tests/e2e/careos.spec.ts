@@ -42,7 +42,7 @@ test("CareOS finds the scoped receipt and stays available during navigation", as
   );
   await expect(
     page.getByRole("article", { name: "Document contents" }),
-  ).toContainText("SAMPLE DATA ONLY");
+  ).toContainText("Example receipt. No payment was processed.");
   if (!(await assistant.isVisible()))
     await page
       .getByRole("button", { name: "Ask North Star", exact: true })

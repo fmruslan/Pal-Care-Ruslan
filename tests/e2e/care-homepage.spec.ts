@@ -209,7 +209,7 @@ test("North keeps the exact Care purchase and original answer across Care, Purch
     .click();
   await expect(
     panel.getByLabel("Document contents", { exact: true }),
-  ).toContainText("SAMPLE DATA ONLY");
+  ).toContainText("Example receipt. No payment was processed.");
   const original = await panel
     .locator("[data-request-id]")
     .last()
@@ -227,7 +227,7 @@ test("North keeps the exact Care purchase and original answer across Care, Purch
     ).toBeVisible();
     await expect(
       panel.getByLabel("Document contents", { exact: true }),
-    ).toContainText("SAMPLE DATA ONLY");
+    ).toContainText("Example receipt. No payment was processed.");
     await panel
       .getByRole("button", { name: "Close North Star", exact: true })
       .click();

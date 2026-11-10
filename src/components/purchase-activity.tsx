@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { PurchaseActivity as Activity } from "@/lib/careos/activity";
 import { Badge } from "./ui/badge";
 import { Card } from "./ui/card";
+import { displayDate } from "@/lib/demo/presentation";
 export function PurchaseActivity({ activity }: { activity: Activity }) {
   return (
     <div>
@@ -26,14 +27,11 @@ export function PurchaseActivity({ activity }: { activity: Activity }) {
               <p className="mt-3 text-sm leading-7 text-muted-foreground">
                 {item.detail}
               </p>
-              <p className="mt-3 break-words text-xs text-muted-foreground">
-                {item.provenance}
-              </p>
               <time
                 className="mt-2 block text-xs text-muted-foreground"
                 dateTime={item.at}
               >
-                {item.at}
+                {displayDate(item.at)}
               </time>
               <Link
                 className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-primary"
@@ -41,6 +39,12 @@ export function PurchaseActivity({ activity }: { activity: Activity }) {
               >
                 View source →
               </Link>
+              <details className="text-xs text-muted-foreground">
+                <summary className="min-h-11 cursor-pointer py-3">
+                  View source details
+                </summary>
+                {item.provenance}
+              </details>
             </Card>
           </li>
         ))}

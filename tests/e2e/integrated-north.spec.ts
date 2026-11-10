@@ -241,7 +241,7 @@ test("receipt → totals → Audio → native chart → exact product care → p
     .click();
   await expect(
     north(page).getByLabel("Document contents", { exact: true }),
-  ).toContainText("SAMPLE DATA ONLY");
+  ).toContainText("Example receipt. No payment was processed.");
   await expect(
     north(page).getByRole("link", {
       name: "View full receipt or document",
@@ -255,7 +255,11 @@ test("receipt → totals → Audio → native chart → exact product care → p
         name: "Receipt and document preview",
         exact: true,
       })
-      .getByRole("heading", { level: 2 }),
+      .getByRole("heading", {
+        level: 2,
+        name: "Pour-over kettle receipt",
+        exact: true,
+      }),
   ).toBeVisible();
   expect(
     (

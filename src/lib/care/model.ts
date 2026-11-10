@@ -19,6 +19,8 @@ import { protectionView, type ProtectionInput } from "./protection/model";
 import { validatePolicy, guardianRules } from "../price-guardian/policy";
 import { retailReferences, withDemoOwnership } from "./demo/model";
 import { withConsumerDemoOwnership } from "./demo/consumer-evidence";
+import { documentPresentation } from "../document-presentation";
+import { findTwin } from "../demo/presentation";
 
 export type CareItem = {
   topic?: import("./ownership-contracts").OwnershipTopic;
@@ -144,7 +146,7 @@ export function careFeed(options: {
     const validated = projection.purchases.find((row) => row.id === p.id);
     if (!validated) continue;
     const evidence = p.documentLinks.map((d) => ({
-      label: d.title,
+      label: d.displayTitle ?? d.title,
       href: d.href,
     }));
     const base = { purchase: p, evidence, verified: false };
@@ -401,6 +403,18 @@ export function careFeed(options: {
     ),
   );
   for (const view of ownership) {
+    const record = findTwin(data, view.twinId);
+    if (record)
+      for (const f of [...view.facts, ...view.history]) {
+        if (!f.simulation) continue;
+        const doc = record.documents.find((d) =>
+          f.sources.some((s) => s.href === `/documents/${d.id}`),
+        );
+        if (doc) {
+          const presentation = documentPresentation(doc, record, view.asOf);
+          if (presentation.recognized) f.presentation = presentation;
+        }
+      }
     const fact = view.facts.find((f) => f.simulation);
     const purchase = purchases.find((p) => p.id === view.twinId);
     if (!fact || !purchase) continue;

@@ -2,12 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Download } from "lucide-react";
 import { getDemoData } from "@/lib/demo/repository";
-import {
-  findTwin,
-  recordIdSchema,
-  displayDate,
-  money,
-} from "@/lib/demo/presentation";
+import { findTwin, recordIdSchema, displayDate } from "@/lib/demo/presentation";
 import {
   libraryReturn,
   withLibraryReturn,
@@ -23,8 +18,8 @@ import { PageHeading } from "@/components/page-heading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ProductArt } from "@/components/product-art";
-import { PurchaseBadge } from "@/components/vault";
-import { REFERENCE_PRODUCT } from "@/lib/careos/knowledge";
+import { documentPresentation } from "@/lib/document-presentation";
+import { DocumentContent } from "@/components/document-content";
 
 export const metadata = { title: "Purchase document" };
 export default async function DocumentPage({
@@ -41,6 +36,7 @@ export default async function DocumentPage({
   const document = data.documents.find((d) => d.id === id);
   const record = document && findTwin(data, document.twinId);
   if (!document || !record) notFound();
+  const view = documentPresentation(document, record);
   return (
     <Shell active="/documents" source={data.source}>
       <CareContextRegistration context={contextOf(record)} />
@@ -52,13 +48,10 @@ export default async function DocumentPage({
         Back to {record.product.name}
       </Link>
       <PageHeading
-        title={document.title}
-        description="Read the saved document or download a text copy. Example documents are fictional; Sandbox receipts involve no real money."
+        title={view.title}
         action={
           <Badge tone={document.origin === "sandbox" ? "success" : "neutral"}>
-            {document.origin === "sandbox"
-              ? "Verified Sandbox receipt"
-              : "Fictional sample document"}
+            {view.provenance}
           </Badge>
         }
       />
@@ -77,13 +70,7 @@ export default async function DocumentPage({
               {displayDate(record.twin.purchasedOn)}
             </time>
           </p>
-          <p className="text-sm leading-6 text-muted-foreground">
-            {record.product.id === REFERENCE_PRODUCT
-              ? "Reference sample · amount unavailable"
-              : `${record.twin.origin === "sandbox" ? "Sandbox" : "Example purchase"} amount ${money(record.twin.purchasePriceMinor)}`}
-          </p>
         </div>
-        <PurchaseBadge origin={record.twin.origin} />
       </div>
       <div className="mb-5 flex flex-wrap gap-3">
         <Button asChild variant="outline">
@@ -101,10 +88,21 @@ export default async function DocumentPage({
         aria-label="Document contents"
         className="customer-document-reader max-w-4xl rounded-2xl border bg-card"
       >
-        <pre className="overflow-wrap-anywhere p-5 font-sans text-base leading-8 whitespace-pre-wrap break-words sm:p-8">
+        <div className="p-5 sm:p-8">
+          <DocumentContent view={view} />
+        </div>
+      </article>
+      <details className="mt-5 max-w-4xl rounded-2xl border bg-card p-5">
+        <summary className="min-h-11 cursor-pointer font-semibold">
+          View original record
+        </summary>
+        <p className="mb-3 text-sm text-muted-foreground">
+          Original title: {document.title}
+        </p>
+        <pre className="font-mono text-xs leading-6 whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
           {document.content}
         </pre>
-      </article>
+      </details>
     </Shell>
   );
 }

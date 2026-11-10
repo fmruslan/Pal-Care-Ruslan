@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { documentLinkTitle } from "@/lib/document-view";
 import { usePathname, useRouter } from "next/navigation";
 import {
   recordsResultSchema,
@@ -181,8 +182,8 @@ export function RecordsResultView({
       </Link>
       <p className="text-sm text-muted-foreground">
         {r.purchasedOn} ·{" "}
-        {r.origin === "sample" ? "Example purchase" : "Verified Sandbox"} · PC-
-        {r.id.slice(-6).toUpperCase()} · {r.category}
+        {r.origin === "sample" ? "Example purchase" : "Verified Sandbox"} ·{" "}
+        {r.category}
       </p>
       <p className="text-sm">
         {r.amountMinor === null
@@ -213,7 +214,7 @@ export function RecordsResultView({
                   onClick={onNavigate}
                   className="inline-flex min-h-11 items-center text-sm text-primary underline"
                 >
-                  {d.title}
+                  {documentLinkTitle(d.title, r.name)}
                 </Link>
               </li>
             ))}
@@ -462,7 +463,7 @@ export function RecordsResultView({
                               onClick={onNavigate}
                               className="inline-flex min-h-11 items-center text-primary underline"
                             >
-                              {d.title}
+                              {documentLinkTitle(d.title, r.name)}
                             </Link>
                           </li>
                         ))}

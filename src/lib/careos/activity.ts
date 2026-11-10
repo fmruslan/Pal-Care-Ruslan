@@ -1,6 +1,7 @@
 import type { DemoData } from "../../db/schema";
 import type { GuardianView } from "../price-guardian/contracts";
-import { money } from "../demo/presentation";
+import { money, findTwin } from "../demo/presentation";
+import { documentPresentation } from "../document-presentation";
 
 export type RecallActivity = {
   id: string;
@@ -79,7 +80,7 @@ export function projectActivity(
       kind: "document",
       at: t.verifiedAt ?? t.purchasedOn,
       title: "Saved receipt",
-      detail: `${d.title}. Document date uses the purchase record; no separate upload time is asserted.`,
+      detail: `${findTwin(data, t.id) ? documentPresentation(d, findTwin(data, t.id)!).title : "Saved receipt"}. Dated with the purchase.`,
       provenance:
         d.origin === "sandbox"
           ? "Verified Sandbox receipt"

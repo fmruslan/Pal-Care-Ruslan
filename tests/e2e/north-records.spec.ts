@@ -983,13 +983,13 @@ test("document and priced predicates produce a desktop table or narrow linked ca
   }
   await expect(
     rendered.getByRole("link", {
-      name: "Headphones · sample receipt",
+      name: "Headphones receipt",
       exact: true,
     }),
   ).toHaveAttribute("href", "/documents/00000000-0000-4000-8000-000000000301");
   await expect(
     rendered.getByRole("link", {
-      name: "Speaker · sample care card",
+      name: "Speaker care document",
       exact: true,
     }),
   ).toHaveAttribute("href", "/documents/00000000-0000-4000-8000-000000000303");

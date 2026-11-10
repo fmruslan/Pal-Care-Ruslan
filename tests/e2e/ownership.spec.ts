@@ -174,15 +174,15 @@ test("Care Details retains every unknown milestone, full source facts and keyboa
     await expect(panel).toHaveAttribute("data-ownership-revision", revision);
     await expect(panel).toContainText(detail);
     await expect(
-      panel.locator(`[data-ownership-fact="${twin}:${topic}"]`),
-    ).toContainText("Date unknown");
+      panel.locator(`[data-ownership-fact="${twin}:${topic}"] time`),
+    ).toHaveCount(0);
     await page.keyboard.press("Escape");
     await expect(milestone).toBeFocused();
   }
   const fullDetails = ownership.locator("details").filter({
     has: page.getByText("Dates, sources & next steps", { exact: true }),
   });
-  await fullDetails.locator("summary").press("Enter");
+  await fullDetails.locator(":scope > summary").press("Enter");
   await expect(fullDetails).toHaveAttribute("open", "");
   await expect(fullDetails.locator("[data-ownership-fact]")).toHaveCount(
     facts.length + 1,
@@ -193,7 +193,7 @@ test("Care Details retains every unknown milestone, full source facts and keyboa
     );
     await expect(fact).toBeVisible();
     await expect(fact).toContainText(detail);
-    await expect(fact).toContainText("Date unknown");
+    await expect(fact.locator("time")).toHaveCount(0);
   }
   const purchase = fullDetails.locator(
     `[data-ownership-fact="${twin}:purchase"]`,
