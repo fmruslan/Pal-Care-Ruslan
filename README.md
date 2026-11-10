@@ -1,5 +1,7 @@
 # Pal Care
 
+**Current refinement:** page-flow Insights and clearer Example purchase labels are under verification; native widgets, saved layouts and separate Sandbox totals remain. [Status](docs/STATUS.md).
+
 **Customer-language refinement — under verification:** Care, Purchases, Documents, Insights and North now use shorter everyday wording, with implementation details in expandable sections. A concise Sample/PayPal Sandbox explanation and per-record provenance remain; unavailable care, coverage, price, safety and refund outcomes stay honest. No product-data, AI/financial authority or native analytics change. [Current verification and release status](docs/STATUS.md).
 
 **Example Care timeline:** when the existing sample/demo pack is enabled, the homepage uses **Your care timeline**, labeled **Example timeline · November 10, 2026**. All dated sample care events wrap into rows with original dates and evidence links; no rolling window, date navigation or hidden horizontal event list. Non-demo care, actual expiry/status decisions and the all-events Insights view remain unchanged. [Delivery status](docs/STATUS.md).

@@ -17,7 +17,7 @@ test("default Care opens the customer library without registration", async ({
     "Your products",
   );
   await expect(page.getByRole("note")).toContainText(
-    "fictional Sample purchases",
+    "fictional example purchases",
   );
 });
 
@@ -87,10 +87,10 @@ test("Purchase Twin and downloadable receipt remain explicitly sample-only", asy
     exact: true,
   });
   await expect(
-    passport.getByText("Sample amount $149.00", { exact: true }),
+    passport.getByText("Example purchase amount $149.00", { exact: true }),
   ).toBeVisible();
   await expect(passport).toContainText(
-    "Fictional sample purchase · not a verified PayPal purchase.",
+    "Example purchase · fictional, not a verified PayPal purchase.",
   );
   await passport
     .getByRole("button", {

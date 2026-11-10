@@ -14,7 +14,7 @@ export const documentClassificationLabels: Record<
 > = {
   receipts: "Receipt",
   warranties: "Warranty & coverage · simulated",
-  care: "Sample care card · not a manufacturer manual",
+  care: "Example care card · not a manufacturer manual",
   returns: "Return record or policy",
   other: "Other records",
 };

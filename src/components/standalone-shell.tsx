@@ -17,7 +17,7 @@ export function StandaloneShell({
       </header>
       <main id="main-content">{children}</main>
       <footer className="mt-7 text-sm leading-7 text-muted-foreground">
-        Pal Care · Sample records and PayPal Sandbox payments. No real money.
+        Pal Care · Example records and PayPal Sandbox payments. No real money.
       </footer>
     </div>
   );

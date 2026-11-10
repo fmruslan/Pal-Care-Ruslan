@@ -622,7 +622,7 @@ test("saved totals apply a real native chart and provenance KPIs, then exact pro
   const wrappers = studio.locator(".ag-studio-layout-widget");
   const sample = wrappers.filter({
     has: page.locator(".ag-studio-layout-widget-title", {
-      hasText: /^Sample purchase value \(USD\)$/,
+      hasText: /^Example purchase value \(USD\)$/,
     }),
   });
   await expect(sample.locator(".ag-studio-value-widget-content")).toContainText(
@@ -762,7 +762,7 @@ test("a newly submitted chart follow-up opens the one Insights workspace and exe
     .locator(".ag-studio-layout-widget");
   await expect(widgets).toHaveCount(7);
   for (const [title, value] of [
-    ["Sample purchase value (USD)", "$307.00"],
+    ["Example purchase value (USD)", "$307.00"],
     ["Verified Sandbox purchase value (USD)", "$0.00"],
   ] as const) {
     const widget = widgets.filter({
@@ -848,7 +848,7 @@ test("reopening a completed chart preserves manual native filters and still perm
     .locator(".ag-studio-layout-widget")
     .filter({
       has: page.locator(".ag-studio-layout-widget-title", {
-        hasText: /^Sample purchase value \(USD\)$/,
+        hasText: /^Example purchase value \(USD\)$/,
       }),
     });
   await expect(sample.locator(".ag-studio-value-widget-content")).toHaveText(

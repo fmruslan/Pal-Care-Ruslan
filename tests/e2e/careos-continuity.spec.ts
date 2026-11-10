@@ -48,7 +48,7 @@ test("product switching, refresh and clear preserve useful context without mixin
     ),
   ).toBeVisible();
   await expect(dialog.locator("[data-answer-scope]")).toHaveText(
-    "Raspberry Pi 5 · 5 · Oct 7, 2026 · Sample · PC-000204",
+    "Raspberry Pi 5 · 5 · Oct 7, 2026 · Example purchase · PC-000204",
   );
   await dialog.getByRole("button", { name: "History", exact: true }).click();
   await dialog
@@ -56,7 +56,7 @@ test("product switching, refresh and clear preserve useful context without mixin
     .getByRole("button", { name: "Find receipt", exact: true })
     .click();
   await expect(dialog.locator("[data-answer-scope]")).toHaveText(
-    "Everyday headphones · F-01 · Oct 18, 2026 · Sample · PC-000201",
+    "Everyday headphones · F-01 · Oct 18, 2026 · Example purchase · PC-000201",
   );
   await dialog.getByRole("button", { name: "History", exact: true }).click();
   await dialog
@@ -103,7 +103,7 @@ test("Home document and care navigation need no conversation or automatic questi
   await page.getByRole("link", { name: "All documents", exact: true }).click();
   await expect(page).toHaveURL(/\/documents$/);
   await expect(page.getByTestId("library-documents")).toContainText(
-    "Sample document",
+    "Example document",
   );
   await page.reload();
   await page
@@ -302,7 +302,7 @@ test("a delayed answer retains its original product after client-side navigation
     dialog.getByText("Raspberry Pi 5 · 5", { exact: true }),
   ).toBeVisible();
   await expect(dialog.locator("[data-answer-scope]")).toHaveText(
-    "Everyday headphones · F-01 · Oct 18, 2026 · Sample · PC-000201",
+    "Everyday headphones · F-01 · Oct 18, 2026 · Example purchase · PC-000201",
   );
   await expect(
     dialog.getByText("Receipt result for the original headphones."),

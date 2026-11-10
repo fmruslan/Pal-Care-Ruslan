@@ -27,6 +27,7 @@ import {
 } from "@/lib/intelligence/customer-commands";
 import {
   customerReport,
+  customerReportHeight,
   commandSelection,
   matchingPurchases,
   emptyPurchaseFilters,
@@ -55,6 +56,11 @@ import { AssistantName } from "../assistant-name";
 import { executeCustomerAgent } from "./customer-agent";
 import { customerPlanApi } from "./customer-client";
 import { purchaseStudioTheme } from "./studio-theme";
+const flowingStudioTheme = purchaseStudioTheme.withParams({
+  studioWrapperSpacing: 0,
+  studioMinWidth: 0,
+  studioMinHeight: 0,
+});
 import { ValueRecovery, AdjustmentStatus, EvidenceFreshness } from "./summary";
 import {
   observedWidgets,
@@ -243,7 +249,7 @@ const pageNames: Record<InsightPage, string> = {
 const widgetNames: Record<InsightWidget, string> = {
   "purchase-grid": "Saved purchases table",
   "category-chart": "Purchases by category",
-  "sample-value": "Sample purchase value (USD)",
+  "sample-value": "Example purchase value (USD)",
   "sandbox-value": "Verified Sandbox purchase value (USD)",
   "recorded-value-chart": "Recorded value chart (USD)",
   "documents-care": "Documents & care",
@@ -315,18 +321,12 @@ export function CustomerStudio({
   const [add, setAdd] = useState<InsightWidget>("category-chart");
   const canvas = useRef<HTMLDivElement>(null);
   const [canvasWidth, setCanvasWidth] = useState(0);
+  const [reportHeight, setReportHeight] = useState<number | null>(null);
   useEffect(() => {
     const measure = () => {
       const host = canvas.current!;
-      const layout = host.querySelector<HTMLElement>(".ag-studio-layout");
-      const style = layout ? getComputedStyle(layout) : null;
-      // SDK wrapper spacing is outside the canvas, including enlarged text.
-      const width = Math.floor(
-        Math.min(host.clientWidth, layout?.clientWidth ?? host.clientWidth) -
-          (style
-            ? parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
-            : 0),
-      );
+      // The public theme removes outer wrapper spacing; retain its border inset.
+      const width = Math.floor(host.clientWidth - 4);
       if (width > 0) setCanvasWidth(width);
     };
     const observer = new ResizeObserver(measure);
@@ -410,7 +410,8 @@ export function CustomerStudio({
             name: p.name,
             category: p.category,
             purchasedOn: p.purchasedOn,
-            provenance: p.origin === "sandbox" ? "Verified Sandbox" : "Sample",
+            provenance:
+              p.origin === "sandbox" ? "Verified Sandbox" : "Example purchase",
             paidUsd: p.amountMinor === null ? null : p.amountMinor / 100,
             // Aggregate contributions are zero for excluded/unpriced records;
             // paidUsd remains null and the saved-result exclusions stay visible.
@@ -471,7 +472,7 @@ export function CustomerStudio({
             },
             {
               id: "sampleUsd",
-              name: "Sample (USD)",
+              name: "Example purchases (USD)",
               format: "currencyFormat",
               formatOptions: {
                 format: new Intl.NumberFormat("en-US", {
@@ -1146,7 +1147,7 @@ export function CustomerStudio({
                 [
                   ["all", "All"],
                   ["sandbox", "Verified Sandbox"],
-                  ["sample", "Samples"],
+                  ["sample", "Example purchases"],
                 ] as const
               ).map(([value, label]) => (
                 <button
@@ -1229,9 +1230,9 @@ export function CustomerStudio({
       >
         {selected.length} purchases in this view ·{" "}
         {filters.origin === "all"
-          ? "Sample and Verified Sandbox records labeled separately"
+          ? "Example purchases and Verified Sandbox records labeled separately"
           : filters.origin === "sample"
-            ? "Sample purchases only"
+            ? "Example purchases only"
             : "Verified Sandbox only"}
         {filters.documents ? " · with documents" : ""}
         {filters.care ? " · with supported care guides" : ""}
@@ -1423,7 +1424,8 @@ export function CustomerStudio({
         ref={canvas}
         data-testid="customer-studio"
         inert={phase !== "idle" || adding}
-        className="ag-theme-mode relative h-[900px] min-w-0 overflow-hidden rounded-2xl border"
+        className="ag-theme-mode relative min-w-0 rounded-2xl border"
+        style={{ height: reportHeight ?? customerReportHeight(initial) }}
         data-ag-theme-mode={resolvedTheme === "dark" ? "dark" : "light"}
       >
         {canvasWidth > 0 && (
@@ -1433,10 +1435,15 @@ export function CustomerStudio({
             context={context}
             widgets={boundedWidgets}
             initialState={initial as unknown as AgReportState<Registry>}
-            theme={purchaseStudioTheme}
+            theme={flowingStudioTheme}
             // The SDK divides minSize.width by minWidth / columns when dragging.
             // Zero produces infinite spans and silently rejects move/resize.
-            layout={{ minWidth: canvasWidth, columns: 24, rowHeight: 16 }}
+            layout={{
+              minWidth: canvasWidth,
+              columns: 24,
+              rowHeight: 16,
+              pagePadding: 12,
+            }}
             loadThemeGoogleFonts={false}
             mode={edit ? "edit" : "view"}
             panels={{
@@ -1449,6 +1456,7 @@ export function CustomerStudio({
               setReady(true);
             }}
             onStateUpdated={(event) => {
+              setReportHeight(customerReportHeight(event.state));
               if (canvas.current) delete canvas.current.dataset.nativeReadback;
               setVerifiedAction("");
               if (
@@ -1481,9 +1489,9 @@ export function CustomerStudio({
         )}
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        Sample amounts are fictional and shown separately from Verified Sandbox
-        amounts. These are saved records, not a statement of real spending or
-        coverage.
+        Example purchase amounts are fictional and shown separately from
+        Verified Sandbox amounts. These are saved records, not a statement of
+        real spending or coverage.
       </p>
       {notice && (
         <p role="status" className="mt-4 text-sm">

@@ -22,7 +22,7 @@ export function PurchaseBadge({ origin }: { origin: string }) {
       {origin === "sandbox" && (
         <Check className="size-3.5" aria-hidden="true" />
       )}
-      {origin === "sandbox" ? "Verified Sandbox" : "Sample"}
+      {origin === "sandbox" ? "Verified Sandbox" : "Example purchase"}
     </Badge>
   );
 }
@@ -179,7 +179,7 @@ export function DocumentList({
               <p className="mt-1 text-sm text-muted-foreground">
                 {document.origin === "sandbox"
                   ? "Verified Sandbox receipt"
-                  : "Sample document"}{" "}
+                  : "Example document"}{" "}
               </p>
             </div>
           </div>

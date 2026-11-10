@@ -339,7 +339,7 @@ async function main() {
       );
       async function twinLink(
         text: RegExp,
-        provenance: "Sample" | "Verified Sandbox",
+        provenance: "Example purchase" | "Verified Sandbox",
       ) {
         const cards = page
           .locator(".motion-card")
@@ -353,9 +353,9 @@ async function main() {
         return { href, id: href.slice("/vault/".length), card: cards };
       }
       const verified = await twinLink(/headphones/i, "Verified Sandbox");
-      const sample = await twinLink(/headphones/i, "Sample");
-      const speaker = await twinLink(/speaker/i, "Sample");
-      const pi = await twinLink(/Raspberry Pi 5/i, "Sample");
+      const sample = await twinLink(/headphones/i, "Example purchase");
+      const speaker = await twinLink(/speaker/i, "Example purchase");
+      const pi = await twinLink(/Raspberry Pi 5/i, "Example purchase");
       // The provenance badge says Sample; Reference sample is its price placeholder.
       await expect(
         pi.card.getByText("Reference sample", { exact: true }),

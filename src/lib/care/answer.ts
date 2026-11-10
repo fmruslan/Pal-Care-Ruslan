@@ -182,13 +182,13 @@ export function careStatusAnswer(
           }
         : null,
       text: matching.some(({ fact }) => fact.consumer)
-        ? `Here’s what needs a look and what you can do next. Sample events are fictional examples saved on ${feed.demoAsOf}; they do not confirm a real delivery, warranty or refund.${unavailable ? " Some information is unavailable." : ""}`
+        ? `Here’s what needs a look and what you can do next. Example events are fictional records saved on ${feed.demoAsOf}; they do not confirm a real delivery, warranty or refund.${unavailable ? " Some information is unavailable." : ""}`
         : `${known ? "Here’s what your saved purchase details show." : "No confirmed outcome or deadline is saved in the available records."}${unavailable ? " Some information is unavailable or incomplete, so a missing result is not confirmation." : ""}${normalized === "returns" ? " I can help draft an enquiry for you to review and send." : ""} Open the sources below to check the details before taking action.`,
       steps: matching
         .slice(0, 16)
         .map(({ fact, purchase }) =>
           fact.consumer
-            ? `${purchase.name} (${purchase.purchasedOn}) — ${fact.consumer.status} · Sample. ${fact.consumer.summary} Next: ${fact.consumer.nextStep}${fact.topic === "safety" ? " No official recall match is established." : ""}`
+            ? `${purchase.name} (${purchase.purchasedOn}) — ${fact.consumer.status} · Example. ${fact.consumer.summary} Next: ${fact.consumer.nextStep}${fact.topic === "safety" ? " No official recall match is established." : ""}`
             : `${purchase.name} (${purchase.purchasedOn}) — ${fact.title}: ${fact.status}. ${fact.detail} ${fact.provenance}.`,
         ),
       sources: [
@@ -231,7 +231,7 @@ export function careStatusAnswer(
     topic === "returns"
       ? "There are no saved return updates for these purchases. I can help draft an enquiry for you to review and send."
       : topic === "warranty"
-        ? "No confirmed warranty end date is saved. Check the seller’s or manufacturer’s terms; a purchase date alone doesn’t establish coverage. Sample products have no real warranty."
+        ? "No confirmed warranty end date is saved. Check the seller’s or manufacturer’s terms; a purchase date alone doesn’t establish coverage. Example products have no real warranty."
         : topic === "refunds"
           ? "No confirmed refund is saved for these purchases. A receipt confirms the payment, not a refund."
           : topic === "price"
@@ -312,7 +312,7 @@ export function careStatusAnswer(
         : null,
     text: hasFacts
       ? items.some(consumerFor)
-        ? "Here’s what needs a look and what you can do next. Sample events are examples; open the details to review their sources and conditions."
+        ? "Here’s what needs a look and what you can do next. Example events are fictional; open the details to review their sources and conditions."
         : `Here’s what your saved Care information shows. ${feed.unavailable.length || !feed.complete ? "Some information is unavailable or incomplete. " : ""}Open a purchase below to review its sources and next steps.`
       : `${gaps}${feed.unavailable.length || !feed.complete ? " Some evidence is unavailable or incomplete, so absence is not confirmed." : ""}`,
     steps: recorded.length
@@ -326,7 +326,7 @@ export function careStatusAnswer(
           .slice(0, 8)
           .map((item) =>
             consumerFor(item)
-              ? `${item.purchase.name} (${item.purchase.purchasedOn}) — ${consumerFor(item)!.consumer!.status} · Sample. ${consumerFor(item)!.consumer!.summary} Next: ${consumerFor(item)!.consumer!.nextStep}`
+              ? `${item.purchase.name} (${item.purchase.purchasedOn}) — ${consumerFor(item)!.consumer!.status} · Example. ${consumerFor(item)!.consumer!.summary} Next: ${consumerFor(item)!.consumer!.nextStep}`
               : `${item.purchase.name} (${item.purchase.purchasedOn}) — ${item.status}. ${item.detail} ${item.provenance}.`,
           ),
     sources: [
@@ -334,7 +334,7 @@ export function careStatusAnswer(
         (consumerFor(item)?.sources ?? []).map((source) => ({
           id: `${item.id}:${source.href}`,
           title: source.label,
-          label: "Sample event source",
+          label: "Example event source",
           href: source.href,
         })),
       ),
@@ -344,7 +344,7 @@ export function careStatusAnswer(
           title: d.title,
           label:
             d.origin === "sample"
-              ? "Sample document"
+              ? "Example document"
               : "Verified Sandbox receipt",
           href: d.href,
         })),

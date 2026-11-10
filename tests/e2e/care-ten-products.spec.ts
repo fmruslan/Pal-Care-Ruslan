@@ -5,7 +5,7 @@ import AxeBuilder from "@axe-core/playwright";
 // Do not freeze only the browser: that would disagree with server-owned facts.
 const cutoff = (value: string) => Date.now() >= Date.parse(value);
 const currentDemoStatuses = (): Record<string, string> => ({
-  201: "Example price comparison",
+  201: "Illustrative price comparison",
   202: cutoff("2026-11-07T18:00:00Z")
     ? "Delivery unconfirmed"
     : "Delivery expected",
@@ -332,7 +332,7 @@ test("consumer cards use one disclosure, soft truthful statuses and one active m
   await expect(page.getByRole("main")).not.toContainText("0 verified windows");
   await expect(page.locator("[data-care-demo-disclosure]")).toHaveCount(1);
   await expect(page.locator("[data-care-demo-disclosure]")).toHaveText(
-    "Sample collection · Example care information",
+    "Example collection · Illustrative care information",
   );
   const expected = currentDemoStatuses();
   for (const [suffix, status] of Object.entries(expected))
@@ -407,7 +407,7 @@ test("saved Demo price, return-progress and refund sources open useful next step
   });
   await page.goto("/dashboard");
   for (const [suffix, action, heading, evidence] of [
-    ["201", "Compare saved prices", "Example price comparison", "$20.00"],
+    ["201", "Compare saved prices", "Illustrative price comparison", "$20.00"],
     [
       "206",
       "View return progress",
@@ -427,9 +427,9 @@ test("saved Demo price, return-progress and refund sources open useful next step
     await card.getByRole("button", { name: action, exact: true }).click();
     const dialog = page.getByRole("dialog", { name: heading, exact: true });
     await expect(dialog).toContainText(
-      "Sample care example · fictional, not a real delivery, warranty or refund",
+      "Illustrative care information · not a real delivery, warranty or refund",
     );
-    await expect(dialog).toContainText("· Sample");
+    await expect(dialog).toContainText("· Example");
     await expect(dialog).toContainText("Next step:");
     await expect(dialog).toContainText(evidence);
     await expect(
@@ -494,7 +494,7 @@ test("ten persisted-fixture products use a compact responsive grid, real filters
   );
   await expect(filters).not.toContainText("Protected (3)");
   await expect(main).not.toContainText("active verified windows");
-  await expect(main).toContainText("Sample collection");
+  await expect(main).toContainText("Example collection");
   // Compare the same layout frame. Independent browser round trips can straddle
   // a shared calendar/heading resize and falsely report unequal row positions.
   const [first, second] = await cards.evaluateAll((nodes) =>

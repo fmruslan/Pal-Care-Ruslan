@@ -18,7 +18,7 @@ const headphoneId = "00000000-0000-4000-8000-000000000201";
 const headphone = `/vault/${headphoneId}`;
 const receipt = "/documents/00000000-0000-4000-8000-000000000301";
 const headphoneChoice =
-  "Everyday headphones · F-01 Oct 18, 2026 · Sample · PC-000201";
+  "Everyday headphones · F-01 Oct 18, 2026 · Example purchase · PC-000201";
 const headphoneContext: CareContext = {
   twinId: headphoneId,
   name: "Everyday headphones",
@@ -548,7 +548,9 @@ test("search and directly change/remove persistent purchase context without subm
   const before = log.mutations();
   await chooseHeadphones(page, dialog);
   await expect(dialog.locator(".careos-context")).toContainText("Oct 18, 2026");
-  await expect(dialog.locator(".careos-context")).toContainText("Sample");
+  await expect(dialog.locator(".careos-context")).toContainText(
+    "Example purchase",
+  );
   await expect(composer).toHaveValue(
     "A draft that context controls cannot consume",
   );
@@ -1202,7 +1204,7 @@ test("an uncertain Insights plan blocks new sends until GET recovery, then offer
         name: "Persistent purchase context",
         exact: true,
       }),
-    ).toContainText("Oct 18, 2026 · Sample");
+    ).toContainText("Oct 18, 2026 · Example purchase");
     expect(
       await page.evaluate(
         () =>

@@ -86,7 +86,7 @@ export default async function CarePage({
           <p className="text-sm leading-6 text-muted-foreground">
             {record.product.id === REFERENCE_PRODUCT
               ? "Reference sample · price not saved"
-              : `${record.twin.origin === "sandbox" ? "Verified Sandbox" : "Sample"} purchase price ${money(record.twin.purchasePriceMinor)}`}
+              : `${record.twin.origin === "sandbox" ? "Verified Sandbox" : "Example"} purchase price ${money(record.twin.purchasePriceMinor)}`}
           </p>
         </div>
         <PurchaseBadge origin={record.twin.origin} />

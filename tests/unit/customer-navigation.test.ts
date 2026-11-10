@@ -154,8 +154,8 @@ describe("customer navigation contract", () => {
       /<details\b[^>]*class="demo-details"[^>]*>([\s\S]*?)<\/details>/,
     )![1];
     const text = textContent(disclosure);
-    expect(text).toContain("Sample purchases & PayPal Sandbox");
-    expect(text).toContain("fictional Sample purchases");
+    expect(text).toContain("Example purchases & PayPal Sandbox");
+    expect(text).toContain("fictional example purchases");
     expect(text).toContain("verified PayPal Sandbox purchases");
     expect(text).toContain("Sandbox payments use no real money");
     expect(text).toContain(
@@ -191,7 +191,7 @@ describe("customer navigation contract", () => {
     expect(text).not.toContain("For merchants");
     expect(landing).toContain('href="/insights"');
     expect(text).toContain("Insights is read-only");
-    expect(text).toContain("Sample purchases are fictional");
+    expect(text).toContain("Example purchases are fictional");
     expect(text).toContain("AI features require an authorized connection");
     expect(text).not.toContain("AI and monitoring are not active yet");
   });

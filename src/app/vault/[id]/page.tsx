@@ -131,7 +131,7 @@ export default async function TwinPage({
                   <span className="font-semibold tabular-nums text-foreground">
                     {reference
                       ? "Reference sample · amount unavailable"
-                      : `${verified ? "Sandbox" : "Sample"} amount ${money(twin.purchasePriceMinor)}`}
+                      : `${verified ? "Sandbox" : "Example purchase"} amount ${money(twin.purchasePriceMinor)}`}
                   </span>
                 </p>
                 <p className="mt-2 text-sm text-muted-foreground">
@@ -176,7 +176,7 @@ export default async function TwinPage({
                   ? "Verified Sandbox purchase. PayPal’s completed test payment was checked before this record was saved. Fictional product and customer; no real money."
                   : reference
                     ? "Reference sample, not a verified PayPal purchase. No purchase price is available; the placeholder is not a product price."
-                    : "Fictional sample purchase · not a verified PayPal purchase."}
+                    : "Example purchase · fictional, not a verified PayPal purchase."}
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 px-5 pb-5 text-xs text-muted-foreground sm:px-7">

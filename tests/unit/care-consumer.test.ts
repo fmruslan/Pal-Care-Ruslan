@@ -47,7 +47,7 @@ describe("consumer Care uses human presentation, never invented authority", () =
   it("uses concise labels derived from saved deadlines and never calls a sample refund complete", () => {
     const feed = feedOf();
     for (const [id, label] of [
-      [201, "Example price comparison"],
+      [201, "Illustrative price comparison"],
       [202, "Delivery expected"],
       [203, "Safety review"],
       [204, "Price review example"],
@@ -211,7 +211,7 @@ describe("consumer Care uses human presentation, never invented authority", () =
     (id, topic, action) => {
       const answer = careStatusAnswer(feedOf(), 1, [demoId(id)], topic);
       expect(answer.steps.join(" ")).toContain("Next:");
-      expect(answer.steps.join(" ")).toContain("· Sample.");
+      expect(answer.steps.join(" ")).toContain("· Example.");
       expect(answer.actions[0].label).toContain(action);
       expect(answer.sources.length).toBeGreaterThan(0);
       expect(answer.context?.twinId).toBe(demoId(id));

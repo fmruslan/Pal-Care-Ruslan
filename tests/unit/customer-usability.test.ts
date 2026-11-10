@@ -134,7 +134,7 @@ describe("customer usability presentation", () => {
     expect(direct).toContain("Verified Sandbox");
     expect(direct).toContain("$129.00");
     expect(direct).toContain("Oct 22, 2026");
-    expect(markup).toContain("Care details apply only to Sample");
+    expect(markup).toContain("Care details apply only to Example purchase");
     expect(markup).toContain("$149.00");
     expect(markup).toContain("Oct 18, 2026");
     expect(markup).toContain("Other purchases have separate records");

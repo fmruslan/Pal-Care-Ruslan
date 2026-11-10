@@ -56,7 +56,7 @@ export default async function Care({
             data-care-demo-disclosure
             className="mb-3 text-xs leading-6 text-muted-foreground"
           >
-            Sample collection · Example care information
+            Example collection · Illustrative care information
           </p>
         )}
         <CareCalendarPanel

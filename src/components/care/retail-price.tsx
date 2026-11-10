@@ -23,7 +23,7 @@ export function RetailPrice({
           <dt className="text-muted-foreground">
             {origin === "sandbox"
               ? "Verified Sandbox payment"
-              : "Sample purchase price"}
+              : "Example purchase price"}
           </dt>
           <dd className="font-semibold">
             {amountMinor === null

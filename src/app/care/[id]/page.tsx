@@ -67,7 +67,7 @@ export default async function CareDetails({
             {product.model} · {displayDate(twin.purchasedOn)} ·{" "}
             {twin.origin === "sandbox"
               ? "Verified Sandbox payment"
-              : "Sample purchase"}
+              : "Example purchase"}
           </p>
           <h1 className="mt-1 text-2xl font-semibold">
             Care for your {product.name.toLowerCase()}

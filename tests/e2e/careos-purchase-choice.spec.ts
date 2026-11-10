@@ -219,7 +219,7 @@ test("one direct dated choice creates exactly one scoped follow-up without navig
   await expect(group.getByRole("radio")).toHaveCount(0);
   await expect(group.getByRole("button")).toHaveCount(3);
   const sampleChoice = group.getByRole("button", {
-    name: "Everyday headphones · F-01 Oct 18, 2026 · Sample · PC-000201",
+    name: "Everyday headphones · F-01 Oct 18, 2026 · Example purchase · PC-000201",
     exact: true,
   });
   await expect(sampleChoice).toBeVisible();
@@ -398,7 +398,7 @@ test("a lost direct-choice answer keeps its new identity across reload and recov
   await dialog
     .getByRole("region", { name: "Choose a purchase" })
     .getByRole("button", {
-      name: "Everyday headphones · F-01 Oct 18, 2026 · Sample · PC-000201",
+      name: "Everyday headphones · F-01 Oct 18, 2026 · Example purchase · PC-000201",
       exact: true,
     })
     .click();

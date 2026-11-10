@@ -48,12 +48,14 @@ describe("customer presentation keeps saved evidence authoritative", () => {
     };
     expect(
       studioSelectionConfirmation([sandbox], "North updated this view"),
-    ).toContain("1 purchase · Sample $0.00 · Verified Sandbox $129.00");
+    ).toContain(
+      "1 purchase · Example purchase value $0.00 · Verified Sandbox $129.00",
+    );
     expect(studioSelectionConfirmation(rows, "Chart verified")).toContain(
       "1 with no saved price left out of totals",
     );
     expect(studioSelectionConfirmation([], "Chart verified")).toBe(
-      "Chart verified · 0 purchases · Sample $0.00 · Verified Sandbox $0.00.",
+      "Chart verified · 0 purchases · Example purchase value $0.00 · Verified Sandbox $0.00.",
     );
   });
   it("uses actual loaded-window purchases and unique saved document links", () => {

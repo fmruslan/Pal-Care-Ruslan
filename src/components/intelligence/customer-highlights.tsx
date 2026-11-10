@@ -39,7 +39,7 @@ export function CustomerHighlights({
               >
                 {purchase.origin === "sandbox"
                   ? "Verified Sandbox purchase"
-                  : "Sample purchase"}
+                  : "Example purchase"}
               </Badge>
               <h3 className="mt-2 text-sm font-semibold">{title}</h3>
               <p className="mt-1 text-sm text-muted-foreground">

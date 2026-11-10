@@ -72,8 +72,8 @@ export function CustomerEvidence({
       </dl>
       <p className="mt-3 text-xs leading-5 text-muted-foreground">
         {facts.verified} Verified Sandbox · {facts.purchases - facts.verified}{" "}
-        Sample. Care guides count unique linked guidance pages, not warranty
-        coverage.
+        example purchases. Care guides count unique linked guidance pages, not
+        warranty coverage.
         {facts.careUnavailable
           ? " Some care information is unavailable, so counts may be incomplete."
           : ""}
@@ -142,7 +142,7 @@ export function CustomerRecords({
             <Badge tone={p.origin === "sandbox" ? "success" : "neutral"}>
               {p.origin === "sandbox"
                 ? "Verified Sandbox purchase"
-                : "Sample purchase"}
+                : "Example purchase"}
             </Badge>
           </div>
           {(!compact || p.careStatus === "unavailable") && (
@@ -213,7 +213,7 @@ export function CustomerRecords({
                     <span className="ml-2 text-muted-foreground">
                       {d.origin === "sandbox"
                         ? "Sandbox receipt"
-                        : "Sample document"}
+                        : "Example document"}
                     </span>
                   </li>
                 ))}

@@ -143,7 +143,7 @@ export function widgetDefinition(widget: InsightWidget) {
           enabled: true,
           text:
             widget === "sample-value"
-              ? "Sample purchase value (USD)"
+              ? "Example purchase value (USD)"
               : "Verified Sandbox purchase value (USD)",
         },
       },
@@ -288,7 +288,7 @@ export function customerReport(compact = false): AgReportState {
                 20,
               ),
               categories: position(14, compact ? 44 : 8, 10, 20),
-              grid: position(0, compact ? 64 : 28, 24, 24),
+              grid: position(0, compact ? 64 : 28, 24, 40),
             }
           : {}),
         ...(id === "documents"
@@ -299,7 +299,7 @@ export function customerReport(compact = false): AgReportState {
           : {}),
         evidence: position(
           0,
-          id === "purchases" ? (compact ? 88 : 52) : compact ? 34 : 24,
+          id === "purchases" ? (compact ? 104 : 68) : compact ? 34 : 24,
           24,
           22,
         ),
@@ -312,6 +312,18 @@ export function customerReport(compact = false): AgReportState {
       filters: { collapsed: true },
     },
   } as AgReportState;
+}
+
+/** Size the application host from public SDK layout state, including restored layouts. */
+export function customerReportHeight(state: AgReportState) {
+  const page = state.pages.find((p) => p.id === state.selectedPageId);
+  const rows = Math.max(
+    0,
+    ...Object.values(page?.widgetLayout ?? {}).map((position) =>
+      position ? position.yTrack + position.ySpan : 0,
+    ),
+  );
+  return Math.ceil(rows * (page?.layout?.rowHeight ?? 16) + 64);
 }
 
 const positionSchema = z

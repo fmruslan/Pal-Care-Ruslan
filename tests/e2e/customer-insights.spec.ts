@@ -131,9 +131,11 @@ function evidenceButton(page: Page, origin: "all" | "sandbox" | "sample") {
   return page
     .getByRole("group", { name: "Purchase evidence filters" })
     .getByRole("button", {
-      name: { all: "All", sandbox: "Verified Sandbox", sample: "Samples" }[
-        origin
-      ],
+      name: {
+        all: "All",
+        sandbox: "Verified Sandbox",
+        sample: "Example purchases",
+      }[origin],
       exact: true,
     });
 }
@@ -184,6 +186,19 @@ async function openWorkspace(page: Page) {
   await expect(
     page.getByTestId("customer-studio").locator(".ag-studio-grid-widget"),
   ).toBeVisible({ timeout: 20_000 });
+  // The native canvas fits its host; only an individual data grid may need
+  // its own scrolling. Adding/restoring widgets must not create a dashboard scroller.
+  await expect
+    .poll(() =>
+      page
+        .getByTestId("customer-studio")
+        .locator(".ag-studio-layout")
+        .evaluate((node) => ({
+          x: node.scrollWidth - node.clientWidth,
+          y: node.scrollHeight - node.clientHeight,
+        })),
+    )
+    .toEqual({ x: 0, y: 0 });
   await expect(
     page
       .getByTestId("customer-studio")
@@ -408,7 +423,7 @@ test("native purchase grid, chart and KPI share provenance filters and real cate
   // it neither requires nor fabricates a completed Sandbox purchase.
   const sources = await showSources(page);
   await expect(
-    sources.getByText("Sample purchase", { exact: true }),
+    sources.getByText("Example purchase", { exact: true }),
   ).toHaveCount(0);
   await evidenceButton(page, "sample").click();
   const samples = records.filter((record) => record.origin === "sample");
@@ -552,7 +567,7 @@ test("Insights source records retain the exact Twin, receipt and reference-care 
   await expect(
     page
       .getByRole("article", { name: "Purchase details", exact: true })
-      .getByText("Sample amount $149.00", { exact: true }),
+      .getByText("Example purchase amount $149.00", { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Ask North Star", exact: true }),

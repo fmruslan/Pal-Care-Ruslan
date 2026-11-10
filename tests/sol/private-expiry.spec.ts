@@ -65,9 +65,11 @@ test("expired AI leaves saved pages and native analytics useful without bootstra
   await expect(
     group.getByRole("button", { name: "All", exact: true }),
   ).toBeEnabled();
-  await group.getByRole("button", { name: "Samples", exact: true }).click();
+  await group
+    .getByRole("button", { name: "Example purchases", exact: true })
+    .click();
   await expect(
-    group.getByRole("button", { name: "Samples", exact: true }),
+    group.getByRole("button", { name: "Example purchases", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
   await expect(
     page

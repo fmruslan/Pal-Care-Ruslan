@@ -176,7 +176,7 @@ export function withConsumerDemoOwnership(
   const consumer =
     source.kind === "price-opportunity"
       ? {
-          status: "Example price comparison",
+          status: "Illustrative price comparison",
           summary: `The example catalog price is ${money(source.paidMinor - source.currentMinor)} lower, saved on ${source.asOf.slice(0, 10)}. Check the merchant’s terms before requesting an adjustment; this isn’t a current price check.`,
           action: "Compare saved prices",
           nextStep:

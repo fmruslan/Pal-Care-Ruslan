@@ -35,7 +35,7 @@ export function studioSelectionConfirmation(
       currency: "USD",
     }).format(minor / 100);
   const categories = [...new Set(purchases.map((p) => p.category))];
-  return `${action} · ${categories.length === 1 ? categories[0] + " · " : ""}${facts.purchases} ${facts.purchases === 1 ? "purchase" : "purchases"} · Sample ${usd(facts.sampleMinor)} · Verified Sandbox ${usd(facts.sandboxMinor)}${facts.unpriced ? ` · ${facts.unpriced} with no saved price left out of totals` : ""}.`;
+  return `${action} · ${categories.length === 1 ? categories[0] + " · " : ""}${facts.purchases} ${facts.purchases === 1 ? "purchase" : "purchases"} · Example purchase value ${usd(facts.sampleMinor)} · Verified Sandbox ${usd(facts.sandboxMinor)}${facts.unpriced ? ` · ${facts.unpriced} with no saved price left out of totals` : ""}.`;
 }
 
 /** Loaded-window facts only. Document links, not join counts, define the total. */

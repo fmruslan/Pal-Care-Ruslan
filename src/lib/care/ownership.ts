@@ -88,7 +88,7 @@ export function ownershipView(options: {
     ...base(
       "purchase",
       "Purchased",
-      p.amountMinor === null ? "Reference ownership · Sample" : "Purchased",
+      p.amountMinor === null ? "Reference example" : "Purchased",
       p.amountMinor === null
         ? "Reference sample ownership; no paid amount or payment is established."
         : `${money(p.amountMinor)} ${p.origin === "sandbox" ? "paid in PayPal Sandbox. Retrieved order/capture evidence establishes payment only; no real money." : "sample purchase amount, not a PayPal-verified payment."}`,
@@ -96,7 +96,7 @@ export function ownershipView(options: {
     provenance:
       p.origin === "sandbox"
         ? "Verified Sandbox payment"
-        : "Sample purchase record",
+        : "Example purchase record",
     date: p.purchasedOn,
     recordedAt: record.twin.verifiedAt,
     verified: p.origin === "sandbox",

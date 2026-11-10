@@ -29,7 +29,7 @@ function GroupedPurchaseHistory({
   if (members.length < 2) return null;
   const identity = (member: ProductCard["members"][number]) => (
     <>
-      {member.origin === "sandbox" ? "Verified Sandbox" : "Sample"} ·{" "}
+      {member.origin === "sandbox" ? "Verified Sandbox" : "Example purchase"} ·{" "}
       {member.amountMinor === null
         ? "Price not added"
         : money(member.amountMinor)}{" "}
@@ -223,7 +223,7 @@ function CareCard({
                 ·{" "}
                 {p.origin === "sandbox"
                   ? "Verified Sandbox"
-                  : "Sample purchase"}{" "}
+                  : "Example purchase"}{" "}
                 {simulated ? "" : ` · ${p.model}`}
               </p>
             </div>

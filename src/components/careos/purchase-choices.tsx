@@ -14,7 +14,11 @@ export function PurchaseChoiceLabel({ choice }: { choice: PurchaseChoice }) {
         <time dateTime={choice.purchasedOn}>
           {displayDate(choice.purchasedOn)}
         </time>{" "}
-        · {choice.provenance} · PC-
+        ·{" "}
+        {choice.provenance === "Sample"
+          ? "Example purchase"
+          : choice.provenance}{" "}
+        · PC-
         {choice.context.twinId?.slice(-6).toUpperCase()}
       </span>
     </span>

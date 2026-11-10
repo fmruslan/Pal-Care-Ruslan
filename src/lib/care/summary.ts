@@ -180,7 +180,7 @@ function purchaseCards(feed: CareFeed, filter: CareFilter | boolean = "all") {
         provenance:
           purchase.origin === "sandbox"
             ? "Verified Sandbox purchase · protection is separate"
-            : "Sample ownership · not real coverage",
+            : "Example purchase · not real coverage",
         at: purchase.purchasedOn,
         verified: false,
         priority: 9,

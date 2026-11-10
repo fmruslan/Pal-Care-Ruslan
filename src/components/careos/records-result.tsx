@@ -28,7 +28,7 @@ function Totals({
         <div key={total.origin} className="rounded-xl border p-3">
           <dt className="text-sm text-muted-foreground">
             {total.origin === "sample"
-              ? "Sample purchase value"
+              ? "Example purchase value"
               : "Verified Sandbox purchase value"}
             {partial ? " · some records unavailable" : ""}
           </dt>
@@ -181,7 +181,7 @@ export function RecordsResultView({
       </Link>
       <p className="text-sm text-muted-foreground">
         {r.purchasedOn} ·{" "}
-        {r.origin === "sample" ? "Sample" : "Verified Sandbox"} · PC-
+        {r.origin === "sample" ? "Example purchase" : "Verified Sandbox"} · PC-
         {r.id.slice(-6).toUpperCase()} · {r.category}
       </p>
       <p className="text-sm">
@@ -246,7 +246,7 @@ export function RecordsResultView({
           · observed {result.observedAt} ·{" "}
           {result.coverage.excludedInvalidCount} invalid records excluded. Saved
           records only, not complete PayPal account history. Observation and
-          query use UTC; Sample and Verified Sandbox remain distinct.
+          query use UTC; example purchases and Verified Sandbox remain distinct.
         </p>
       </details>
       {summaries && (
@@ -304,7 +304,9 @@ export function RecordsResultView({
                     className="inline-flex min-h-11 items-center text-primary underline"
                   >
                     {r.name} · {r.purchasedOn} ·{" "}
-                    {r.origin === "sample" ? "Sample" : "Verified Sandbox"}
+                    {r.origin === "sample"
+                      ? "Example purchase"
+                      : "Verified Sandbox"}
                   </Link>
                 </li>
               ))}
@@ -354,7 +356,7 @@ export function RecordsResultView({
                 result.records
                   .map(
                     (r) =>
-                      `• ${r.name} · ${r.model} — ${r.purchasedOn} — ${r.origin === "sample" ? "Sample" : "Verified Sandbox"} — ${r.amountMinor === null ? "Price unavailable" : usd(r.amountMinor)} — /vault/${r.id}`,
+                      `• ${r.name} · ${r.model} — ${r.purchasedOn} — ${r.origin === "sample" ? "Example purchase" : "Verified Sandbox"} — ${r.amountMinor === null ? "Price unavailable" : usd(r.amountMinor)} — /vault/${r.id}`,
                   )
                   .join("\n"),
               );
@@ -442,7 +444,9 @@ export function RecordsResultView({
                     </td>
                     <td className="p-2 whitespace-nowrap">{r.purchasedOn}</td>
                     <td className="p-2 whitespace-nowrap">
-                      {r.origin === "sample" ? "Sample" : "Verified Sandbox"}
+                      {r.origin === "sample"
+                        ? "Example purchase"
+                        : "Verified Sandbox"}
                     </td>
                     <td className="p-2 whitespace-nowrap">
                       {r.amountMinor === null

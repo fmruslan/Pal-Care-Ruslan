@@ -341,14 +341,14 @@ export function Shell({
             <details className="demo-details">
               <summary className="flex min-h-11 w-fit cursor-pointer list-none items-center gap-2 rounded-lg text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
                 <Info className="size-4 shrink-0" aria-hidden="true" />
-                <span>Sample purchases &amp; PayPal Sandbox</span>
+                <span>Example purchases &amp; PayPal Sandbox</span>
                 <ChevronDown className="size-3.5 shrink-0" aria-hidden="true" />
               </summary>
               <div className="max-w-2xl rounded-xl border bg-card p-4 text-sm leading-6">
                 <strong className="font-medium text-foreground">
                   About these purchases.
                 </strong>{" "}
-                Explore fictional Sample purchases alongside verified PayPal
+                Explore fictional example purchases alongside verified PayPal
                 Sandbox purchases. Sandbox payments use no real money. Each
                 purchase keeps its own receipt, dates and sources; a payment
                 does not confirm delivery, warranty coverage or product safety.
