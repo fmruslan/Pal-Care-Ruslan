@@ -1,5 +1,81 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { demoData } from "../../src/lib/demo/fixtures";
+import { withTenProductFixtures } from "../../src/lib/care/demo/catalog";
+import { withConsumerDemoFixtures } from "../../src/lib/care/demo/consumer-evidence";
+
+test("every saved example document has useful readable content and a byte-identical original", async ({
+  page,
+  request,
+}, info) => {
+  test.setTimeout(120000);
+  const data = withConsumerDemoFixtures(withTenProductFixtures(demoData));
+  const inventory: { id: string; title: string; text: string }[] = [];
+  for (const doc of data.documents) {
+    await page.goto(`/documents/${doc.id}`);
+    const article = page.getByRole("article", { name: "Document contents" });
+    await expect(
+      article.locator('[data-document-presentation="validated"]'),
+    ).toBeVisible();
+    await expect(article.locator("pre")).toHaveCount(0);
+    const text = await article.innerText();
+    expect(text).not.toMatch(
+      /"twinId"|"simulated"|PAL CARE —|schema|00000000-0000/,
+    );
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    const title = await page.getByRole("heading", { level: 1 }).innerText();
+    expect(title).not.toMatch(/simulated Care|Demo source/);
+    await expect(page.locator("pre")).toBeHidden();
+    await page.getByText("View original record", { exact: true }).click();
+    expect(await page.locator("pre").textContent()).toBe(doc.content);
+    const download = await request.get(`/api/documents/${doc.id}/download`);
+    expect(await download.text()).toBe(doc.content);
+    await expect(page.getByRole("link", { name: /^Back to / })).toHaveAttribute(
+      "href",
+      new RegExp(`/vault/${doc.twinId}`),
+    );
+    inventory.push({ id: doc.id, title, text });
+  }
+  expect(inventory).toHaveLength(23);
+  await info.attach("document-content-inventory", {
+    body: JSON.stringify(inventory, null, 2),
+    contentType: "application/json",
+  });
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
+});
+
+test("all product and care routes retain source links and readable content", async ({
+  page,
+}, info) => {
+  test.setTimeout(120000);
+  const data = withConsumerDemoFixtures(withTenProductFixtures(demoData));
+  const inventory: { route: string; text: string }[] = [];
+  for (const twin of data.twins)
+    for (const route of [
+      `/vault/${twin.id}`,
+      `/care/${twin.id}`,
+      `/vault/${twin.id}/care`,
+    ]) {
+      await page.goto(route);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      const text = await page.getByRole("main").innerText();
+      expect(text).not.toMatch(/"twinId"|"simulated"|PAL CARE —/);
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true);
+      inventory.push({ route, text });
+    }
+  await info.attach("product-content-inventory", {
+    body: JSON.stringify(inventory, null, 2),
+    contentType: "application/json",
+  });
+});
 
 // Server projections use the current clock, not the immutable November 5 pack.
 // Do not freeze only the browser: that would disagree with server-owned facts.
@@ -17,16 +93,12 @@ const currentDemoStatuses = (): Record<string, string> => ({
     ? "Warranty period ended"
     : "Warranty details",
   206: "Return progress example",
-  207: cutoff("2026-11-08T12:00:00Z")
-    ? "Return window closed"
-    : "Return ends Nov 8",
+  207: cutoff("2026-11-08T12:00:00Z") ? "Window ended" : "Return ends Nov 8",
   208: "Refund example",
   209: cutoff("2026-11-15T12:00:00Z")
     ? "Price review window closed"
     : "Price check example",
-  210: cutoff("2026-11-07T12:00:00Z")
-    ? "Return window closed"
-    : "Return ends Nov 7",
+  210: cutoff("2026-11-07T12:00:00Z") ? "Window ended" : "Return ends Nov 7",
 });
 const currentAttentionCount = () =>
   2 +
@@ -368,20 +440,18 @@ test("current UTC facts keep ended returns and passed delivery estimates honest 
     const status = currentDemoStatuses()[suffix];
     await expect(card.locator("[data-ownership-pill]")).toHaveText(status);
     await card.getByRole("button", { name: action, exact: true }).click();
-    const dialog = page.getByRole("dialog", { name: status, exact: true });
+    const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
     if (cutoff(deadline)) {
       await expect(dialog).toContainText(
-        suffix === "202"
-          ? "Delivery is not confirmed"
-          : "The saved return deadline has passed",
+        suffix === "202" ? "Delivery unconfirmed" : "Window ended",
       );
       await expect(dialog).not.toContainText("days remaining");
     }
     await expect(dialog).toContainText(
       suffix === "202"
-        ? /no live carrier connection/i
-        : /nothing has been sent/i,
+        ? /No live tracking or confirmed arrival/i
+        : /Seller acceptance.*Not confirmed/i,
     );
     await page.keyboard.press("Escape");
   }
@@ -407,17 +477,17 @@ test("saved Demo price, return-progress and refund sources open useful next step
   });
   await page.goto("/dashboard");
   for (const [suffix, action, heading, evidence] of [
-    ["201", "Compare saved prices", "Illustrative price comparison", "$20.00"],
+    ["201", "Compare saved prices", "Headphones price comparison", "$20.00"],
     [
       "206",
       "View return progress",
-      "Return progress example",
+      "Boots return progress",
       "Inspection pending",
     ],
     [
       "208",
       "View refund details",
-      "Refund example",
+      "Book refund example",
       "No PayPal refund was issued",
     ],
   ]) {
@@ -426,14 +496,13 @@ test("saved Demo price, return-progress and refund sources open useful next step
     );
     await card.getByRole("button", { name: action, exact: true }).click();
     const dialog = page.getByRole("dialog", { name: heading, exact: true });
-    await expect(dialog).toContainText(
-      "Illustrative care information · not a real delivery, warranty or refund",
-    );
-    await expect(dialog).toContainText("· Example");
-    await expect(dialog).toContainText("Next step:");
+    await expect(dialog).toContainText("Illustrative");
+    await expect(
+      dialog.locator('[data-document-presentation="validated"]:visible'),
+    ).toBeVisible();
     await expect(dialog).toContainText(evidence);
     await expect(
-      dialog.getByRole("link", { name: "Demo source document", exact: true }),
+      dialog.getByRole("link", { name: heading, exact: true }),
     ).toHaveAttribute(
       "href",
       /\/documents\/00000000-0000-4000-8000-00000000120[168]$/,

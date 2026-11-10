@@ -1121,11 +1121,6 @@ export function CareOSProvider({
                         : context.example
                           ? "Fictional ownership example · no purchase"
                           : "Example purchase"}{" "}
-                      {context.twinId && (
-                        <span className="hidden sm:inline">
-                          · PC-{context.twinId.slice(-6).toUpperCase()}
-                        </span>
-                      )}
                     </span>
                   )}
                   {!context && <span>Choosing a product is optional.</span>}
@@ -1302,7 +1297,7 @@ export function CareOSProvider({
                         : turn.answer.outcome === "selection"
                           ? "choose a purchase"
                           : turn.answer.context
-                            ? `${turn.answer.context.name} · ${turn.answer.context.model}${turn.answer.context.purchasedOn ? ` · ${displayDate(turn.answer.context.purchasedOn)}` : ""} · ${turn.answer.context.example ? "Reference example" : turn.answer.context.origin === "sandbox" ? "Sandbox" : "Example purchase"}${turn.answer.context.twinId ? ` · PC-${turn.answer.context.twinId.slice(-6).toUpperCase()}` : ""}`
+                            ? `${turn.answer.context.name} · ${turn.answer.context.model}${turn.answer.context.purchasedOn ? ` · ${displayDate(turn.answer.context.purchasedOn)}` : ""} · ${turn.answer.context.example ? "Reference example" : turn.answer.context.origin === "sandbox" ? "Sandbox" : "Example purchase"}`
                             : insights.conversation?.turns.some(
                                   (t) => t.requestId === turn.requestId,
                                 )

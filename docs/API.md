@@ -1,5 +1,7 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
+`GET /api/documents/:id/presentation` returns a bounded read-only customer summary for a fixed-scope saved document. Known formats require matching source content and purchase evidence; unknown/mismatched formats return an explicit unavailable summary. No model/provider call or data write occurs. `GET /api/documents/:id/download` continues returning the unchanged original text. Presentation labels never establish payment, coverage, refund or recall authority.
+
 ## Customer document library — refinement under verification
 
 Provider-free `GET /documents` renders the saved-document library; `/purchases?view=documents` remains compatible. Existing `/documents/<UUID>` and attachment links retain their exact Purchase Twin/provenance. Bounded query fields retain `q`, product `category`, purchase `source=all|sample|sandbox`, `documents=all|present|missing`, `sort=newest|oldest|name` and `page`; new presentation filters are `documentCategory=all|receipts|warranties|care|returns` and `product=all|<exact dated Twin UUID>`. Search, filters, category links and pagination preserve document view. Invalid/foreign filters fail visibly; no identity or authority comes from the URL.

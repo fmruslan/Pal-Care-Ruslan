@@ -118,7 +118,9 @@ test("synthetic test-DB flow: proactive opportunity → protected approval → i
     await page.getByRole("link", { name: "View receipt", exact: true }).click();
     await expect(
       page.getByRole("article", { name: "Document contents" }),
-    ).toContainText("USD 129.00");
+    ).toContainText("$129.00");
+    await page.getByText("View original record", { exact: true }).click();
+    await expect(page.locator("pre")).toContainText("USD 129.00");
     expect(financialBrowserPosts).toBe(0);
     await page.screenshot({
       path: `test-results/guardian-flow/${info.project.name}-receipt-unchanged.png`,

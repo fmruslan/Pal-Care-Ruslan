@@ -23,6 +23,8 @@ import { GuardianTimeline } from "@/components/guardian-timeline";
 import { getSavedCare } from "@/lib/care/persistence-runtime";
 import { evidenceLabel, returnTimeline } from "@/lib/care/contracts";
 import { getCareFeed } from "@/lib/care/repository";
+import { FactDetails } from "@/components/care/ownership";
+import { documentPresentation } from "@/lib/document-presentation";
 
 export const metadata = { title: "Product care details" };
 export default async function CareDetails({
@@ -127,10 +129,13 @@ export default async function CareDetails({
           <p className="mt-3 font-semibold">
             {protection?.label ?? "Price protection unconfirmed"}
           </p>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            {ownership?.facts.find((f) => f.topic === "price")?.detail ??
-              "Price protection details are unavailable. Terms, monitoring and eligibility are unconfirmed."}
-          </p>
+          <div className="mt-3">
+            {ownership?.facts
+              .filter((f) => f.topic === "price")
+              .map((f) => <FactDetails key={f.id} fact={f} />) ?? (
+              <p>Price details couldn’t load.</p>
+            )}
+          </div>
           {protection?.deadline && (
             <p className="mt-3 text-sm">
               Policy deadline · before{" "}
@@ -182,7 +187,11 @@ export default async function CareDetails({
                 </div>
                 <div>
                   <dt>Last successful check</dt>
-                  <dd>{watch.lastCheckedAt ?? "Not recorded"}</dd>
+                  <dd>
+                    {watch.lastCheckedAt
+                      ? displayDate(watch.lastCheckedAt)
+                      : "Not recorded"}
+                  </dd>
                 </div>
                 <div>
                   <dt>Last recorded catalog price</dt>
@@ -194,11 +203,15 @@ export default async function CareDetails({
                 </div>
                 <div>
                   <dt>Next check due</dt>
-                  <dd>{watch.nextCheckAt ?? "Not scheduled"}</dd>
+                  <dd>
+                    {watch.nextCheckAt
+                      ? displayDate(watch.nextCheckAt)
+                      : "Not scheduled"}
+                  </dd>
                 </div>
                 <div>
                   <dt>Watch ends</dt>
-                  <dd>{watch.expiresAt}</dd>
+                  <dd>{displayDate(watch.expiresAt)}</dd>
                 </div>
               </dl>
             ))}
@@ -219,6 +232,8 @@ export default async function CareDetails({
             receipt={receipt ? `/documents/${receipt.id}` : null}
             topic="price adjustment"
             evidenceSummary={
+              ownership?.facts.find((f) => f.topic === "price")?.consumer
+                ?.summary ??
               ownership?.facts.find((f) => f.topic === "price")?.detail
             }
           />
@@ -231,13 +246,13 @@ export default async function CareDetails({
           <h2 id="returns-heading" className="text-lg font-semibold">
             Return progress
           </h2>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
+          <div className="mt-3 space-y-4">
             {ownership?.facts
               .filter((f) => ["returns", "return-window"].includes(f.topic))
-              .map((f) => f.detail)
-              .join(" ") ??
-              "Return details are unavailable. The status and deadline are unknown."}
-          </p>
+              .map((f) => <FactDetails key={f.id} fact={f} />) ?? (
+              <p>Return details couldn’t load.</p>
+            )}
+          </div>
           {milestones.length > 0 && (
             <ol
               className="mt-5 space-y-4 border-l pl-4"
@@ -304,6 +319,11 @@ export default async function CareDetails({
           <h2 id="refunds-heading" className="mb-4 text-lg font-semibold">
             Refund details
           </h2>
+          {ownership?.facts
+            .filter((f) => f.topic === "refunds" && f.presentation)
+            .map((f) => (
+              <FactDetails key={f.id} fact={f} />
+            ))}
           {guardian === null ? (
             <p className="text-sm text-muted-foreground">
               Refund details couldn’t load. This doesn’t confirm that no refund
@@ -318,9 +338,7 @@ export default async function CareDetails({
             ))
           ) : (
             <p className="text-sm leading-6 text-muted-foreground">
-              No verified refund is saved in the available records. A Verified
-              Sandbox payment isn’t a refund, and this page can’t approve or
-              send money.
+              No verified refund is saved in the available records.
             </p>
           )}
         </section>
@@ -332,10 +350,13 @@ export default async function CareDetails({
           <h2 id="warranty-heading" className="text-lg font-semibold">
             Warranty information
           </h2>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            {ownership?.facts.find((f) => f.topic === "warranty")?.detail ??
-              "Warranty details are unavailable. Coverage and dates are unknown."}
-          </p>
+          <div className="mt-3">
+            {ownership?.facts
+              .filter((f) => f.topic === "warranty")
+              .map((f) => <FactDetails key={f.id} fact={f} />) ?? (
+              <p>Warranty details couldn’t load.</p>
+            )}
+          </div>
           {warranties.map((warranty) => (
             <div
               key={warranty.evidence.reference}
@@ -360,8 +381,7 @@ export default async function CareDetails({
                     href={`/documents/${p.id}`}
                     className="inline-flex min-h-11 items-center text-sm text-primary underline"
                   >
-                    {p.title} ·{" "}
-                    {p.origin === "sample" ? "sample document" : "saved record"}
+                    {documentPresentation(p, record).title}
                   </Link>
                 </li>
               ))}

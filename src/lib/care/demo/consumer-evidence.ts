@@ -177,19 +177,19 @@ export function withConsumerDemoOwnership(
     source.kind === "price-opportunity"
       ? {
           status: "Illustrative price comparison",
-          summary: `The example catalog price is ${money(source.paidMinor - source.currentMinor)} lower, saved on ${source.asOf.slice(0, 10)}. Check the merchant’s terms before requesting an adjustment; this isn’t a current price check.`,
+          summary: `Purchase value ${money(source.paidMinor)}; example catalog price ${money(source.currentMinor)}. Difference: ${money(source.paidMinor - source.currentMinor)}.`,
           action: "Compare saved prices",
           nextStep:
-            "Compare the exact product, seller's price policy and deadline before requesting an adjustment. The lower catalog price is not eligibility or money saved.",
+            "Check the seller’s price-adjustment policy and deadline. This saved comparison is not a current quote or money saved.",
         }
       : source.kind === "return-progress"
         ? {
             status: "Return progress example",
             summary:
-              "This example return shows a received parcel awaiting inspection. It is not live tracking or a confirmed refund.",
+              "Return agreed November 1; parcel received November 4. Inspection pending. No refund confirmed.",
             action: "View return progress",
             nextStep:
-              "Keep the return confirmation and parcel receipt. Wait for the inspection outcome before expecting a refund. This example isn’t connected to a carrier or merchant.",
+              "Keep the return confirmation and parcel receipt while awaiting inspection. This is an illustrative return, not live tracking.",
           }
         : {
             status: "Refund example",

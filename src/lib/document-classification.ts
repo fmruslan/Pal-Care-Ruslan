@@ -13,8 +13,8 @@ export const documentClassificationLabels: Record<
   string
 > = {
   receipts: "Receipt",
-  warranties: "Warranty & coverage · simulated",
-  care: "Example care card · not a manufacturer manual",
+  warranties: "Warranty & coverage",
+  care: "Care documents",
   returns: "Return record or policy",
   other: "Other records",
 };

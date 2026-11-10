@@ -101,7 +101,10 @@ export function ownershipView(options: {
     recordedAt: record.twin.verifiedAt,
     verified: p.origin === "sandbox",
     state: "recorded",
-    sources: p.documentLinks.map((d) => ({ label: d.title, href: d.href })),
+    sources: p.documentLinks.map((d) => ({
+      label: d.displayTitle ?? d.title,
+      href: d.href,
+    })),
     action: p.receiptHref
       ? { label: "View original receipt", href: p.receiptHref }
       : undefined,

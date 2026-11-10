@@ -4,6 +4,7 @@ import { recallExplanation, type RecallEvidence } from "../safety/evidence";
 import { REFERENCE_PRODUCT } from "./knowledge";
 import { projectActivity, type PurchaseActivity } from "./activity";
 import { findTwin, displayDate, money } from "../demo/presentation";
+import { documentPresentation } from "../document-presentation";
 import {
   contextOf,
   type CareAnswer,
@@ -247,11 +248,14 @@ export function deterministicAnswer(
       ? "This is the policy document recorded with this purchase. It is not a new coverage or refund approval."
       : "No policy document is attached to this purchase. I cannot infer coverage.";
     if (policy) {
-      answer.steps = [policy.content.slice(0, 1500)];
+      const view = documentPresentation(policy, record);
+      answer.steps = view.recognized
+        ? view.sections.flatMap((s) => s.items)
+        : [view.limitation];
       answer.sources.push({
         id: policy.id,
-        title: policy.title,
-        label: "Recorded policy document · not an AI authorization",
+        title: documentPresentation(policy, record).title,
+        label: "Saved purchase terms",
         href: `/documents/${policy.id}`,
       });
       answer.actions = [
@@ -272,17 +276,20 @@ export function deterministicAnswer(
         : "No documents are attached to this purchase.";
     answer.outcome = docs.length ? "answered" : "missing";
     answer.actions = docs.map((d) => ({
-      label: intent === "receipt" ? "Open receipt" : d.title,
+      label:
+        intent === "receipt"
+          ? "Open receipt"
+          : documentPresentation(d, record).title,
       href: `/documents/${d.id}`,
     }));
     answer.sources.push(
       ...docs.map((d) => ({
         id: d.id,
-        title: d.title,
+        title: documentPresentation(d, record).title,
         label:
           d.origin === "sandbox"
-            ? "Verified Sandbox receipt"
-            : "Fictional sample document",
+            ? "PayPal Sandbox record"
+            : "Illustrative document",
         href: `/documents/${d.id}`,
       })),
     );

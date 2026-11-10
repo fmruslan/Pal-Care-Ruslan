@@ -152,7 +152,10 @@ export function careStatusAnswer(
       .flatMap(({ fact }) => fact.sources)
       .concat(
         purchases.flatMap((p) =>
-          p.documentLinks.map((d) => ({ label: d.title, href: d.href })),
+          p.documentLinks.map((d) => ({
+            label: d.displayTitle ?? d.title,
+            href: d.href,
+          })),
         ),
       );
     return {
@@ -341,7 +344,7 @@ export function careStatusAnswer(
       ...purchases.slice(0, 8).flatMap((p) =>
         p.documentLinks.slice(0, 2).map((d) => ({
           id: d.href.split("/").at(-1)!,
-          title: d.title,
+          title: d.displayTitle ?? d.title,
           label:
             d.origin === "sample"
               ? "Example document"

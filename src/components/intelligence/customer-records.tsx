@@ -208,7 +208,7 @@ export function CustomerRecords({
                       href={d.href}
                       className="inline-flex min-h-11 items-center text-primary underline"
                     >
-                      {d.title}
+                      {d.displayTitle ?? d.title}
                     </Link>
                     <span className="ml-2 text-muted-foreground">
                       {d.origin === "sandbox"

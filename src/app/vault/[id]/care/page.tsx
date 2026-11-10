@@ -119,7 +119,8 @@ export default async function CarePage({
               </Badge>
             </div>
             <p className="mt-3 text-sm text-muted-foreground">
-              {source.section} · English · reviewed {source.reviewedOn}
+              {source.section} · English · reviewed{" "}
+              {displayDate(source.reviewedOn)}
             </p>
             <blockquote className="my-6 max-w-[75ch] border-l-2 border-lavender pl-5 text-base leading-8 whitespace-pre-line">
               {source.content}

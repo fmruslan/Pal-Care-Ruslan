@@ -19,6 +19,8 @@ import type { CareContext, CareTurn } from "@/lib/careos/contracts";
 import type { PendingQuestion } from "./conversation-client";
 import { displayDate } from "@/lib/demo/presentation";
 import { ownerSendMessage, type OwnerSendState } from "./owner-status";
+import { documentViewSchema, type DocumentView } from "@/lib/document-view";
+import { DocumentContent } from "../document-content";
 
 export type IntegratedNorthState = {
   isOpen: boolean;
@@ -253,27 +255,35 @@ function DocumentPreview({
 }) {
   const PreviewHeading = headingLevel === 2 ? "h2" : "h3";
   const id = documentPreviewId(href);
-  const [content, setContent] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [preview, setPreview] = useState<{
+    id: string;
+    content: DocumentView | null;
+    failed: boolean;
+  } | null>(null);
+  const content = preview?.id === id ? preview.content : null;
+  const failed = preview?.id === id && preview.failed;
   useEffect(() => {
     if (!id) return;
     const controller = new AbortController();
-    void fetch(`/api/documents/${id}/download`, {
+    void fetch(`/api/documents/${id}/presentation`, {
       cache: "no-store",
       signal: controller.signal,
     })
       .then(async (response) => {
         if (
           !response.ok ||
-          !response.headers.get("content-type")?.startsWith("text/plain")
+          !response.headers.get("content-type")?.startsWith("application/json")
         )
           throw Error("preview_unavailable");
         const text = await response.text();
         if (text.length > 65536) throw Error("preview_too_large");
-        if (!controller.signal.aborted) setContent(text);
+        const view = documentViewSchema.parse(JSON.parse(text));
+        if (!controller.signal.aborted)
+          setPreview({ id, content: view, failed: false });
       })
       .catch(() => {
-        if (!controller.signal.aborted) setFailed(true);
+        if (!controller.signal.aborted)
+          setPreview({ id, content: null, failed: true });
       });
     return () => controller.abort();
   }, [id]);
@@ -285,12 +295,12 @@ function DocumentPreview({
     >
       <div className="min-w-0 rounded-xl border bg-background p-5 shadow-sm">
         {content !== null ? (
-          <pre
-            aria-label="Document contents"
-            className="font-sans text-sm leading-7 whitespace-pre-wrap break-words [overflow-wrap:anywhere]"
-          >
-            {content}
-          </pre>
+          <div aria-label="Document contents">
+            <p className="mb-3 text-xs text-muted-foreground">
+              {content.provenance}
+            </p>
+            <DocumentContent view={content} headingLevel={headingLevel} />
+          </div>
         ) : (
           <p role="status" className="text-sm text-muted-foreground">
             {failed
@@ -302,7 +312,7 @@ function DocumentPreview({
       <div className="flex min-w-0 flex-col items-start justify-center gap-3">
         <FileText className="size-8 text-primary" aria-hidden="true" />
         <PreviewHeading className="text-lg font-semibold">
-          {title}
+          {content?.title ?? title}
         </PreviewHeading>
         <p className="text-sm text-muted-foreground">{label}</p>
         <Button asChild>
@@ -602,8 +612,6 @@ export function IntegratedNorthView({
                   {answer!.context.origin === "sandbox"
                     ? "Verified Sandbox"
                     : "Example purchase"}
-                  {answer!.context.twinId &&
-                    ` · PC-${answer!.context.twinId.slice(-6).toUpperCase()}`}
                 </p>
               )}
               {answer!.questionScope === "library" && (

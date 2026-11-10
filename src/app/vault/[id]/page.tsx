@@ -20,6 +20,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProductArt } from "@/components/product-art";
 import { DocumentList, PurchaseBadge } from "@/components/vault";
+import { documentPresentation } from "@/lib/document-presentation";
 import { PurchaseActivity } from "@/components/purchase-activity";
 import { projectActivity } from "@/lib/careos/activity";
 import {
@@ -186,9 +187,6 @@ export default async function TwinPage({
                 · {events.length} saved update
                 {events.length !== 1 && "s"}
               </span>
-              <span className="font-mono text-xs text-muted-foreground">
-                Record PC-{twin.id.slice(-6).toUpperCase()}
-              </span>
             </div>
           </div>
         </article>
@@ -235,7 +233,13 @@ export default async function TwinPage({
                   Sources included
                 </Badge>
               </div>
-              <DocumentList documents={documents} from={from} />
+              <DocumentList
+                documents={documents.map((d) => ({
+                  ...d,
+                  title: documentPresentation(d, record).title,
+                }))}
+                from={from}
+              />
             </section>
             <section
               id="care-history"

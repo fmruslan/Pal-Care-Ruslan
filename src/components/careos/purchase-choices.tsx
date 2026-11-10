@@ -17,9 +17,7 @@ export function PurchaseChoiceLabel({ choice }: { choice: PurchaseChoice }) {
         ·{" "}
         {choice.provenance === "Sample"
           ? "Example purchase"
-          : choice.provenance}{" "}
-        · PC-
-        {choice.context.twinId?.slice(-6).toUpperCase()}
+          : choice.provenance}
       </span>
     </span>
   );

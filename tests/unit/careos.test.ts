@@ -100,7 +100,7 @@ describe("CareOS receipt vertical slice", () => {
     expect(answer.actions[0].href).toBe(
       `/documents/${demoData.documents[0].id}`,
     );
-    expect(answer.sources[1].label).toBe("Fictional sample document");
+    expect(answer.sources[1].label).toBe("Illustrative document");
   });
   it("never borrows a receipt from a different Twin", () => {
     const answer = deterministicAnswer(demoData, {

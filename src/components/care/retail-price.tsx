@@ -47,14 +47,11 @@ export function RetailPrice({
             ? "Similar product — not confirmed identical."
             : "Matching model and variant reference — not proof of ownership."}
         </strong>{" "}
-        {r.matchReason}
       </p>
       <p className="text-muted-foreground">
         {r.retailer} · seller: {r.seller} · checked{" "}
-        <time dateTime={r.checkedAt}>{displayDate(r.checkedAt)}</time> ·{" "}
-        {r.retrieval === "direct-page"
-          ? "Direct listing reviewed"
-          : "Retailer search extract; direct page unavailable"}
+        <time dateTime={r.checkedAt}>{displayDate(r.checkedAt)}</time> · Saved
+        listing, not a live quote
       </p>
       <a
         className="inline-flex min-h-11 items-center text-primary underline"
@@ -66,9 +63,15 @@ export function RetailPrice({
       <p>{priceComparison(amountMinor, r)}</p>
       <details className="mt-1 text-xs text-muted-foreground">
         <summary className="inline-flex min-h-11 cursor-pointer items-center">
-          Source quote & comparison limits
+          View source details
         </summary>
         <blockquote>{r.quote}</blockquote>
+        <p>{r.matchReason}</p>
+        <p>
+          {r.retrieval === "direct-page"
+            ? "Direct listing reviewed"
+            : "Retailer search extract; direct page unavailable"}
+        </p>
         <p>{r.limitations}</p>
         <p>
           A lower listing doesn’t confirm a price drop or a refund. Check the

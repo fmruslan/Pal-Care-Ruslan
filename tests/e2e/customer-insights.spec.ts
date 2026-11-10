@@ -554,7 +554,7 @@ test("Insights source records retain the exact Twin, receipt and reference-care 
     .click();
   await expect(
     page.getByRole("article", { name: "Document contents" }),
-  ).toContainText("SAMPLE DATA ONLY");
+  ).toContainText("Example receipt. No payment was processed.");
   const back = page.getByRole("link", {
     name: "Back to Everyday headphones",
     exact: true,
@@ -586,7 +586,9 @@ test("Insights source records retain the exact Twin, receipt and reference-care 
       .click();
     await expect(page).toHaveURL(new RegExp(`${savedSandbox.receiptHref}$`));
     await expect(
-      page.getByText("Verified Sandbox receipt", { exact: true }),
+      page.getByText(/^PayPal Sandbox(?: · Verified| record)$/, {
+        exact: true,
+      }),
     ).toBeVisible();
     await expect(
       page.getByRole("link", {

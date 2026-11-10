@@ -136,7 +136,9 @@ export async function demoCareBrowserJourney(
           d.kind === "receipt",
       )!;
       await page.goto(origin + `/documents/${receipt.id}`);
-      await expect(main).toContainText("SAMPLE DATA ONLY");
+      await expect(main).toContainText(
+        "Example receipt. No payment was processed.",
+      );
       await expect(main).toContainText("1199.00");
       await page.goto(origin + "/dashboard");
       await page.route(

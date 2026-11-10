@@ -5,6 +5,7 @@ import { sourceSchema, type KnowledgeSource } from "../careos/knowledge";
 import { productSnapshotSchema, providerIdSchema } from "../commerce/contracts";
 import { CUSTOMER_ID, MERCHANT_ID } from "../demo/fixtures";
 import { findTwin, recordIdSchema } from "../demo/presentation";
+import { documentPresentation } from "../document-presentation";
 import type {
   GuardianOverview,
   GuardianView,
@@ -46,7 +47,12 @@ export type CustomerPurchase = {
   attentionCount: number;
   attentionStatus: "available" | "unavailable";
   attention: string[];
-  documentLinks: { title: string; href: string; origin: string }[];
+  documentLinks: {
+    title: string;
+    displayTitle?: string;
+    href: string;
+    origin: string;
+  }[];
   verifiedAdjustmentMinor: number;
   adjustmentIds: string[];
 };
@@ -406,6 +412,7 @@ export function customerDataset(
       attention: reasons,
       documentLinks: docs.map((doc) => ({
         title: doc.title,
+        displayTitle: documentPresentation(doc, findTwin(data, twin.id)!).title,
         href: `/documents/${doc.id}`,
         origin: doc.origin,
       })),

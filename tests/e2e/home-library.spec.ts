@@ -73,7 +73,9 @@ test("unified search opens the exact receipt directly and restores search state 
   );
   const results = page.getByTestId("library-documents");
   await expect(results.locator("[data-document-id]")).toHaveCount(1);
-  await results.getByRole("link", { name: /^Open Kettle/ }).click();
+  await results
+    .getByRole("link", { name: /^Open Pour-over kettle receipt,/ })
+    .click();
   await expect(page).toHaveURL(
     (url) => url.pathname === `/documents/${receipt}`,
   );
@@ -200,7 +202,7 @@ test("Documents categories compose with metadata and exact dated purchase filter
   await expect(page.locator("[data-purchase-card]")).toHaveCount(0);
   await page
     .getByTestId("library-documents")
-    .getByRole("link", { name: /^Open Kettle/ })
+    .getByRole("link", { name: /^Open Pour-over kettle receipt,/ })
     .click();
   await expect(page).toHaveURL((url) => {
     const from = new URL(
@@ -294,7 +296,7 @@ test("visible product sections, dated receipt, source labels and safe return nav
   await page.getByRole("link", { name: "View receipt", exact: true }).click();
   await expect(
     page.getByRole("article", { name: "Document contents" }),
-  ).toContainText("SAMPLE DATA ONLY");
+  ).toContainText("Example receipt. No payment was processed.");
 });
 
 test("one North field retains drafts until explicit search, while pinned context survives product, document and Insights navigation without auto-send", async ({
@@ -334,7 +336,7 @@ test("one North field retains drafts until explicit search, while pinned context
   await page.getByRole("button", { name: "Search", exact: true }).click();
   await page
     .getByTestId("library-documents")
-    .getByRole("link", { name: /^Open Kettle/ })
+    .getByRole("link", { name: /^Open Pour-over kettle receipt,/ })
     .click();
   await page
     .getByRole("button", {
