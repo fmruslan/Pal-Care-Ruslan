@@ -29,7 +29,7 @@ export default async function GuardianCasePage({
   const record = findTwin(data, item.twinId);
   if (!item || !record) notFound();
   return (
-    <Shell active="/vault" source={data.source}>
+    <Shell active="/guardian" source={data.source}>
       <CareContextRegistration context={contextOf(record)} />
       <Link
         href={`/vault/${item.twinId}`}

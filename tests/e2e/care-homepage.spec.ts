@@ -47,20 +47,13 @@ test("Care is the default and has three calm destinations, factual cards and no 
   await expect(
     card.getByRole("link", { name: "Details", exact: true }),
   ).toBeVisible();
-  const action = await main
-    .locator("[data-care-product]")
-    .first()
-    .getByRole("link", { name: "Details", exact: true })
+  const searchBox = await page
+    .locator("[data-north-search] form")
     .boundingBox();
   const calendarBox = (await calendar.boundingBox())!;
-  const calendarMargin = await calendar.evaluate((el) =>
-    parseFloat(getComputedStyle(el).marginBottom),
-  );
-  // The owner added the calendar above the cards. Preserve the original
-  // action-density budget after subtracting only that new, measured section.
-  expect(
-    action!.y + action!.height - calendarBox.height - calendarMargin,
-  ).toBeLessThan(664);
+  // The approved homepage puts help and priority items before the calendar;
+  // its primary search/action must remain on the first mobile screen.
+  expect(searchBox!.y + searchBox!.height).toBeLessThan(664);
   expect(
     (await main.locator("[data-care-product]").first().boundingBox())!.y,
   ).toBeGreaterThanOrEqual(calendarBox.y + calendarBox.height);

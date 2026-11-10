@@ -26,7 +26,7 @@ export default async function ReplacementsPage({
   const { category } = journey;
   if (!category)
     return (
-      <Shell active="/vault" source={data.source}>
+      <Shell active="/replacements" source={data.source}>
         <CareContextRegistration context={journey.context} />
         <PageHeading
           eyebrow="Pal Care · Replacement options"
@@ -45,7 +45,7 @@ export default async function ReplacementsPage({
     );
   const discovery = await getAlternatives(category);
   return (
-    <Shell active="/vault" source={data.source}>
+    <Shell active="/replacements" source={data.source}>
       <CareContextRegistration context={journey.context} />
       {journey.context && (
         <p className="mb-5 text-sm" role="note">

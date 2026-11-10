@@ -76,7 +76,6 @@ describe("customer navigation contract", () => {
       "/vaulted",
       "/documents-extra",
       "/insights-extra",
-      "/shop",
       "/merchant",
     ])
       expect(customerSection(path)).toBeUndefined();
@@ -110,19 +109,9 @@ describe("customer navigation contract", () => {
       expect(customerSection(path)?.href).toBe("/purchases");
   });
 
-  it("keeps secondary destinations behind a native keyboard-accessible disclosure", () => {
+  it("removes the primary tools menu and places secondary routes in Care", () => {
     const markup = renderShell();
-    expect(markup).toMatch(
-      /<details\b[^>]*><summary\b[^>]*>[\s\S]*?More tools/,
-    );
-    expect(
-      navigationLinks(markup, "More tools").map(({ href, label }) => ({
-        href,
-        label,
-      })),
-    ).toEqual(
-      customerExploreNavigation.map(({ href, label }) => ({ href, label })),
-    );
+    expect(markup).not.toContain("More tools");
     expect(customerExploreNavigation.map(({ href }) => href)).toEqual([
       "/shop",
       "/guardian",
@@ -135,16 +124,14 @@ describe("customer navigation contract", () => {
       "Safety information",
       "Replacement ideas",
     ]);
-    for (const { description } of customerExploreNavigation)
-      expect(textContent(markup)).toContain(description);
-    expect(textContent(markup)).toContain("A request is not a refund");
-    expect(textContent(markup)).toContain(
-      "product details still need confirmation",
-    );
-    expect(textContent(markup)).toContain(
-      "Not comprehensive recall monitoring",
-    );
-    expect(textContent(markup)).toContain("not current prices or live offers");
+    for (const { href } of customerExploreNavigation) {
+      expect(customerSection(href)?.href).toBe("/dashboard");
+      expect(
+        navigationLinks(renderShell(href), "Main navigation")
+          .filter((l) => l.current)
+          .map((l) => l.href),
+      ).toEqual(["/dashboard"]);
+    }
   });
 
   it("keeps sample and Sandbox provenance in the purchase disclosure and links About", () => {

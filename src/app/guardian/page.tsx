@@ -11,7 +11,7 @@ export const metadata = { title: "Price Guardian" };
 export default async function GuardianPage() {
   const [data, guardian] = await Promise.all([getDemoData(), getGuardian()]);
   return (
-    <Shell active="/vault" source={data.source}>
+    <Shell active="/guardian" source={data.source}>
       <PageHeading
         eyebrow="Pal Care · Price Guardian"
         title="Price adjustments"

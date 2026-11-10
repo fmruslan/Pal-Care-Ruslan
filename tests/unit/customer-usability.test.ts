@@ -7,6 +7,12 @@ import {
   OwnershipSummary,
 } from "../../src/components/care/ownership";
 import { CareFeedView } from "../../src/components/care/feed";
+import {
+  CareAttention,
+  CareHelpShortcuts,
+  HowPalCareWorks,
+} from "../../src/components/care/home-help";
+import { careProductCards } from "../../src/lib/care/summary";
 import { NorthSearch } from "../../src/components/careos/integrated";
 import { careFeed } from "../../src/lib/care/model";
 import {
@@ -37,6 +43,40 @@ function feed(tenProducts = false) {
 }
 
 describe("customer usability presentation", () => {
+  it("uses saved action facts for attention, with separate scoped help targets and no invented receipts", () => {
+    const data = feed(true);
+    const attention = renderToStaticMarkup(
+      createElement(CareAttention, { feed: data }),
+    );
+    for (const card of careProductCards(data, "attention")) {
+      expect(attention).toContain(
+        `data-care-attention-product="${card.item.purchase.id}"`,
+      );
+      expect(attention).toContain(card.item.purchase.name);
+    }
+    expect(attention).not.toContain("data-care-product=");
+    expect(attention).not.toContain("data-ownership-pill");
+    expect(
+      renderToStaticMarkup(createElement(CareAttention, { feed: feed() })),
+    ).toBe("");
+    const help = renderToStaticMarkup(
+      createElement(CareHelpShortcuts, { feed: data }),
+    );
+    for (const category of ["receipts", "returns", "warranties", "care"])
+      expect(help).toContain(`/documents?documentCategory=${category}`);
+    expect(help).toContain("milestone=safety");
+    expect(help).toContain("milestone=price");
+    expect(help).toContain('href="/guardian"');
+    const journey = renderToStaticMarkup(
+      createElement(HowPalCareWorks, { feed: data }),
+    );
+    expect(journey).toContain("How Pal Care works");
+    expect(journey).toContain("Learn more");
+    expect(journey).toContain('href="/shop"');
+    expect(journey).toContain('href="/insights"');
+    expect(journey).not.toContain("Verified Sandbox receipt");
+    expect(journey).not.toContain("Watch video");
+  });
   it("names Ask North visibly while preserving its accessible Ask North Star control", () => {
     const markup = renderToStaticMarkup(
       createElement(NorthSearch, {

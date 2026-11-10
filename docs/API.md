@@ -1,5 +1,7 @@
 # HTTP surface — Sandbox commerce and bounded CareOS
 
+The unified `GET /dashboard` Care homepage adds only presentation and provider-free links: filtered document libraries, exact saved-purchase milestone dialogs for prices/refunds/safety, and the expandable existing PayPal/shop/Insights journey. The native calendar and explicit North search/ask contracts are unchanged. No new endpoint, financial action or model dispatch is introduced by help shortcuts. Secondary `/shop`, `/guardian`, `/safety` and `/replacements` URLs remain supported under Care navigation context.
+
 `GET /api/documents/:id/presentation` returns a bounded read-only customer summary for a fixed-scope saved document. Known formats require matching source content and purchase evidence; unknown/mismatched formats return an explicit unavailable summary. No model/provider call or data write occurs. `GET /api/documents/:id/download` continues returning the unchanged original text. Presentation labels never establish payment, coverage, refund or recall authority.
 
 ## Customer document library — refinement under verification

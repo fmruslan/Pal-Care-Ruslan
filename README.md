@@ -1,5 +1,7 @@
 # Pal Care
 
+The unified Care homepage brings saved-record help shortcuts, priority actions, the native AG Studio timeline and the complete product collection together. **Care / Purchases & Docs / Insights** stays primary; secondary tools remain available in the purchase journey and contextual actions. [Implementation and release evidence](docs/STATUS.md).
+
 Customer navigation is **Care / Purchases & Docs / Insights**. The library has a large **Purchases / Documents** switch above its heading; direct document URLs and saved purchase histories remain unchanged. [Current verification status](docs/STATUS.md).
 
 **Customer-content presentation — under verification:** readable saved receipts, terms and care histories preserve their unchanged originals behind **View original record** and downloads. [Acceptance checkpoint](docs/STATUS.md).

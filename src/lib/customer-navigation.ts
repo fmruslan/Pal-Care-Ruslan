@@ -34,7 +34,8 @@ export const customerExploreNavigation = [
 
 export function customerSection(path: string) {
   const [pathname] = path.split("?");
-  if (/^\/care(\/|$)/.test(pathname)) return customerNavigation[0];
+  if (/^\/(care|guardian|safety|replacements|shop)(\/|$)/.test(pathname))
+    return customerNavigation[0];
   if (/^\/documents(\/|$)/.test(pathname)) return customerNavigation[1];
   if (/^\/vault(\/|$)/.test(pathname)) return customerNavigation[1];
   return customerNavigation.find(
