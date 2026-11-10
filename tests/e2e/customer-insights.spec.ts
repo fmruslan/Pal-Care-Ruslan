@@ -380,6 +380,28 @@ test("native purchase grid, chart and KPI share provenance filters and real cate
     "Saved documents",
   );
   await expect(evidence.locator("details").first()).not.toHaveAttribute("open");
+  // The SDK's own trial notice fades on its normal lifecycle; never hide it.
+  await expect(
+    page.getByTestId("customer-studio").locator(".ag-studio-watermark"),
+  ).toBeHidden({ timeout: 10000 });
+  // AG-18794: real axis interactions remain, but are no longer unnamed regions.
+  const axes = page
+    .getByTestId("customer-studio")
+    .locator(".ag-charts-proxy-axis");
+  await expect.poll(() => axes.count()).toBeGreaterThan(0);
+  expect(
+    await axes.evaluateAll((nodes) =>
+      nodes.every((node) => node.getAttribute("role") !== "region"),
+    ),
+  ).toBe(true);
+  await expect(
+    page
+      .getByTestId("customer-studio")
+      .locator(
+        '.ag-charts-proxy-elem[role="region"]:not([aria-label]):not([aria-labelledby]):not([title])',
+      ),
+  ).toHaveCount(0);
+  expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
   await page.screenshot({
     path: `test-results/customer-insights/${test.info().project.name}-purchases.png`,
     fullPage: true,
@@ -913,10 +935,15 @@ for (const narrow of [false, true])
       };
     });
     expect(edgeHit.reachable, JSON.stringify(edgeHit)).toBe(true);
+    // Leave a genuine move target between the two 44px coarse-pointer handles.
+    // At 320px/200% the canvas is narrower than the old fixed 80px shrink assumed.
+    const initialBox = (await count.boundingBox())!;
+    const shrink = Math.min(48, initialBox.width / 4);
+    const move = Math.min(50, initialBox.width / 6);
     await page.mouse.move(edge.x + edge.width / 2, edge.y + edge.height / 2);
     await page.mouse.down();
     await page.mouse.move(
-      edge.x + edge.width / 2 - 80,
+      edge.x + edge.width / 2 - shrink,
       edge.y + edge.height / 2,
       { steps: 12 },
     );
@@ -933,11 +960,33 @@ for (const narrow of [false, true])
       node.scrollIntoView({ block: "center", inline: "nearest" }),
     );
     const box = (await count.boundingBox())!;
+    const moveHit = await count.evaluate((node) => {
+      const r = node.getBoundingClientRect();
+      const hit = document.elementFromPoint(
+        r.x + r.width / 2,
+        r.y + r.height / 2,
+      );
+      return {
+        hit: hit?.className,
+        rect: r.toJSON(),
+        reachable:
+          !!hit &&
+          node.contains(hit) &&
+          !hit.closest(
+            ".ag-studio-layout-widget-overlay-resize, .ag-studio-layout-widget-toolbar",
+          ),
+      };
+    });
+    expect(moveHit.reachable, JSON.stringify(moveHit)).toBe(true);
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
-    await page.mouse.move(box.x + box.width / 2 + 50, box.y + box.height / 2, {
-      steps: 12,
-    });
+    await page.mouse.move(
+      box.x + box.width / 2 + move,
+      box.y + box.height / 2,
+      {
+        steps: 12,
+      },
+    );
     await page.mouse.up();
     const moved = await save();
     expect(moved.pages.purchases.count.xTrack).toBeGreaterThan(

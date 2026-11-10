@@ -179,6 +179,18 @@ function chartResult() {
   };
 }
 describe("independent North oracle negative controls", () => {
+  it("checks exact IDs in Studio 3.1 selection filters while retaining historical OR evidence", () => {
+    const { goal, answer, observed, nativeReadback } = chartResult();
+    const model = nativeReadback.state.pages![0].filter!.page![0];
+    model.model = { operator: "isIn", value: snapshot.map((r) => r.id) };
+    expect(
+      assessLanguageAnswer(goal, snapshot, answer, observed).automatedPass,
+    ).toBe(true);
+    model.model.value = [snapshot[0].id];
+    expect(
+      assessLanguageAnswer(goal, snapshot, answer, observed).failures,
+    ).toContain("Exact native ID filter and selection");
+  });
   it("excludes unknown prices while separating exact provenance", () => {
     const { answer, observed } = result();
     expect(

@@ -17,6 +17,7 @@ import {
   type AgStudioApi,
   type AgDataSourcesDefinition,
   type AgAiHarness,
+  type AgAiHarnessSetupParams,
   type AgAiChatSession,
 } from "ag-studio";
 import {
@@ -255,10 +256,14 @@ export function IntelligenceStudio({
   }, [stage, ready]);
   const ai = useMemo(
     () =>
-      ({ api: studioApi }: { api: AgStudioApi }) => {
+      ({ api: studioApi }: AgAiHarnessSetupParams) => {
         if (harness.current) return harness.current;
+        // Studio 3.1 types setup against its headless core. This component
+        // mounts the browser API; never build a presentation harness on a core.
+        if (!("getState" in studioApi) || !("setState" in studioApi))
+          throw new Error("browser_studio_api_required");
         harness.current = dashboardHarness(
-          studioApi,
+          studioApi as AgStudioApi,
           (command: DashboardCommand) => {
             const current = api.current;
             if (!current) return;
@@ -560,7 +565,7 @@ export function IntelligenceStudio({
           onApiReady={(e) => {
             // The v3 event type erases this instance's custom registry.
             api.current = e.api as unknown as AgStudioApi<Registry>;
-            ai({ api: e.api });
+            ai({ api: e.api, context });
             setReady(true);
           }}
           onStateUpdated={(event) => {

@@ -43,6 +43,13 @@ describe("shared rolling Care calendar", () => {
     });
     expect(insights.pages[0].layout).toBeUndefined();
     expect(insights.pages[0].widgets?.events?.type).toBe("grid");
+    expect(home.pages[0].filter?.page).toEqual([
+      {
+        field: { id: "careEvents.day" },
+        model: { operator: "isIn", value: calendar.days },
+      },
+    ]);
+    expect(insights.pages[0].filter?.page).toEqual([]);
     expect(calendar).toEqual(before);
   });
   it("keeps the exact dated product context even when it has no upcoming event", () => {

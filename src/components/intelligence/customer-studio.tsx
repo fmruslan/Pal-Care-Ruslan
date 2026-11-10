@@ -258,11 +258,8 @@ function withSelection(
             field: { id: "purchases.id" },
             model: ids.length
               ? {
-                  operator: "OR",
-                  conditions: ids.map((value) => ({
-                    operator: "equals",
-                    value,
-                  })),
+                  operator: "isIn",
+                  value: ids,
                 }
               : { operator: "equals", value: "no-matching-purchase" },
           },
@@ -1472,7 +1469,7 @@ export function CustomerStudio({
         )}
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        Actual AG Studio 3.0.0 · local evaluation, vendor notices retained.
+        Actual AG Studio 3.1.0 · local evaluation, vendor notices retained.
         Sponsor judging key not yet issued/configured. Recorded amounts include
         labeled fictional samples; this is not a spending or coverage statement.
       </p>

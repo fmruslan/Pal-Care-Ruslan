@@ -34,6 +34,12 @@ describe("saved records → native Studio state contract (domain, not browser ex
           validateTarget(state, "purchases", `extra-${widget}`),
         ).not.toThrow();
       const page = state.pages.find((p) => p.id === "purchases")!;
+      expect(page.filter?.page).toEqual([
+        {
+          field: { id: "purchases.id" },
+          model: { operator: "isIn", value: result.records.map((r) => r.id) },
+        },
+      ]);
       expect(page.widgets?.["extra-recorded-value-chart"]?.type).toBe(
         "bar-chart-grouped",
       );

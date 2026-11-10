@@ -5,21 +5,24 @@ import { _GridWidgetCore } from "ag-studio";
 // narrow test surface exposes private lifecycle methods only for regression
 // evidence; it is not an application API or an SDK/data-engine browser claim.
 type Core = {
-  api?: {
-    getCacheBlockState: () => Record<number, unknown>;
-    destroy: () => void;
+  core: {
+    gridApi?: {
+      getCacheBlockState: () => Record<number, unknown>;
+      destroy: () => void;
+    };
+    widgetParams: unknown;
+    handle?: { set: ReturnType<typeof vi.fn>; close: ReturnType<typeof vi.fn> };
+    stores: Map<string, unknown>;
+    onHandleResult: (event: unknown) => void;
+    onFrameEnd: () => void;
   };
-  refreshGeneration: number;
-  params: unknown;
   isBlockStillWanted: (start: number, generation: number) => boolean;
   destroy: () => void;
-  createServerSideDatasource: () => {
-    getRows: (params: {
-      request: { startRow: number; endRow: number; sortModel: never[] };
-      success: () => void;
-      fail: () => void;
-    }) => Promise<void>;
-  };
+  getRows: (params: {
+    request: { startRow: number; endRow: number; sortModel: never[] };
+    success: () => void;
+    fail: () => void;
+  }) => void;
 };
 function nativeCore() {
   return new _GridWidgetCore({
@@ -45,7 +48,7 @@ describe("pinned native Studio lifecycle regressions", () => {
       getCacheBlockState: vi.fn(() => ({ 0: {} })),
       destroy: vi.fn(),
     };
-    core.api = api;
+    core.core.gridApi = api;
     expect(core.isBlockStillWanted(0, 0)).toBe(true);
     expect(core.isBlockStillWanted(500, 0)).toBe(false);
     expect(core.isBlockStillWanted(0, 1)).toBe(false);
@@ -55,44 +58,39 @@ describe("pinned native Studio lifecycle regressions", () => {
     expect(core.isBlockStillWanted(0, 0)).toBe(false);
     expect(api.getCacheBlockState).toHaveBeenCalledTimes(2);
   });
-  it("cancels an outstanding native row-query poll on destroy without stale failure/retry callbacks", async () => {
+  it("closes an outstanding native row-query handle on destroy without stale failure/retry callbacks", async () => {
     vi.useFakeTimers();
     const core = nativeCore();
-    core.api = {
+    core.core.gridApi = {
       getCacheBlockState: vi.fn(() => ({ 0: {} })),
       destroy: vi.fn(),
     };
-    let signal: AbortSignal | undefined;
-    const getData = vi.fn(
-      (_query: unknown, options: { signal: AbortSignal }) => {
-        signal = options.signal;
-        return new Promise((_resolve, reject) => {
-          options.signal.addEventListener(
-            "abort",
-            () => reject(new Error("injected destroyed query")),
-            { once: true },
-          );
-        });
-      },
-    );
-    core.params = {
+    // 3.1 replaces per-request polling with a shared data handle. Exercise the
+    // real pending store and late delivery guards, not the removed 3.0 methods.
+    const handle = { set: vi.fn(), close: vi.fn() };
+    core.core.handle = handle;
+    core.core.widgetParams = {
       dataMapping: { cols: [{ id: "purchases.name", key: "purchases.name" }] },
-      widgetApi: { getData, isGroupingField: () => false, setSort: vi.fn() },
+      config: {},
+      widgetApi: { isGroupingField: () => false, setSort: vi.fn() },
     };
     const success = vi.fn(),
       fail = vi.fn();
-    const datasource = core.createServerSideDatasource();
-    const request = datasource.getRows({
+    core.getRows({
       request: { startRow: 0, endRow: 100, sortModel: [] },
       success,
       fail,
     });
     await vi.advanceTimersByTimeAsync(1);
-    expect(getData).toHaveBeenCalledOnce();
+    expect(handle.set).toHaveBeenCalledOnce();
+    expect(core.core.stores.size).toBe(1);
+    const key = handle.set.mock.calls[0][0];
     core.destroy();
+    core.core.onHandleResult({ key, response: { results: { rows: [] } } });
+    core.core.onFrameEnd();
     await vi.advanceTimersByTimeAsync(250);
-    await request;
-    expect(signal?.aborted).toBe(true);
+    expect(handle.close).toHaveBeenCalledOnce();
+    expect(core.core.stores.size).toBe(0);
     expect(success).not.toHaveBeenCalled();
     expect(fail).not.toHaveBeenCalled();
     expect(vi.getTimerCount()).toBe(0);

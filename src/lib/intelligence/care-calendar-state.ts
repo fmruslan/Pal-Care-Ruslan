@@ -39,11 +39,8 @@ export function careCalendarFilter(
           {
             field: { id: "careEvents.day" },
             model: {
-              operator: "OR" as const,
-              conditions: calendar.days.map((value) => ({
-                operator: "equals" as const,
-                value,
-              })),
+              operator: "isIn" as const,
+              value: calendar.days,
             },
           },
         ]

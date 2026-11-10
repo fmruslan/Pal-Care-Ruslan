@@ -41,7 +41,7 @@ export type NativeReadback = {
           field: { id: string };
           model: {
             operator: string;
-            value?: string;
+            value?: string | string[];
             conditions?: { operator: string; value: string }[];
           };
         }[];
@@ -165,11 +165,13 @@ export function assessLanguageAnswer(
           (f) => f.field.id === "purchases.id",
         )?.model;
         const filteredIds =
-          filter?.operator === "OR"
-            ? (filter.conditions
-                ?.filter((c) => c.operator === "equals")
-                .map((c) => c.value) ?? [])
-            : [];
+          filter?.operator === "isIn" && Array.isArray(filter.value)
+            ? filter.value
+            : filter?.operator === "OR"
+              ? (filter.conditions
+                  ?.filter((c) => c.operator === "equals")
+                  .map((c) => c.value) ?? [])
+              : [];
         const expectedIds = expected.map((r) => r.id);
         check(
           "Native SDK/data postconditions, not success text",

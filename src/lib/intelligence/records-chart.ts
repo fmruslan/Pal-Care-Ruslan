@@ -66,11 +66,8 @@ export function recordsChartState(
               field: { id: "purchases.id" },
               model: ids.length
                 ? {
-                    operator: "OR",
-                    conditions: ids.map((value) => ({
-                      operator: "equals",
-                      value,
-                    })),
+                    operator: "isIn",
+                    value: ids,
                   }
                 : { operator: "equals", value: "no-matching-purchase" },
             },
