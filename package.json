@@ -17,6 +17,8 @@
     "typecheck": "node scripts/workspace.mjs run typecheck next typegen && tsc --noEmit",
     "test": "node scripts/workspace.mjs run test vitest run",
     "test:e2e": "node scripts/workspace.mjs run test:e2e playwright test",
+    "test:ui": "node scripts/workspace.mjs run test:e2e playwright test tests/e2e/care-homepage.spec.ts tests/e2e/home-library.spec.ts tests/e2e/integrated-north.spec.ts tests/e2e/design.spec.ts tests/e2e/careos-care.spec.ts --project=desktop-light --project=mobile-dark --grep 'reflow at 320px|large text|System is the default|Light/Dark overrides|visual regression:|official care evidence'",
+    "verify:ui": "pnpm typecheck && pnpm build && pnpm test:ui",
     "test:guardian:e2e": "E2E_DATA_SOURCE=database E2E_PORT=3106 node scripts/workspace.mjs run test:guardian:e2e playwright test --config=playwright.guardian.config.ts",
     "test:compat": "node scripts/workspace.mjs run test:compat playwright test --config=playwright.compat.config.ts",
     "test:failure": "node scripts/workspace.mjs run test:failure tsx --test tests/failure/*.test.ts",

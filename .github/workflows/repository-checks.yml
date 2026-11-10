@@ -9,6 +9,9 @@ on:
 
 permissions:
   contents: read
+  actions: read
+  checks: read
+  pull-requests: read
 
 # All mandatory runners use independent disposable PostgreSQL services and the
 # same provider-off policy; none can read application/owner credentials.
@@ -33,6 +36,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       lane: ${{ steps.risk.outputs.lane }}
+      reuse: ${{ steps.reuse.outputs.reuse }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -60,6 +64,11 @@ jobs:
           CI_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
           CI_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
           CI_EVENT: ${{ github.event_name }}
+      - id: reuse
+        name: Reuse only successful PR evidence for an identical merged tree
+        run: node scripts/verify-ci-release.mjs --select-reuse
+        env:
+          GH_TOKEN: ${{ github.token }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: risk-classification
@@ -68,7 +77,7 @@ jobs:
 
   fast-ui:
     needs: classify
-    if: needs.classify.outputs.lane == 'fast'
+    if: needs.classify.outputs.lane == 'fast' && needs.classify.outputs.reuse != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -101,7 +110,7 @@ jobs:
         env:
           E2E_PORT: "3110"
       - name: Focused visual and appearance regressions
-        run: pnpm exec playwright test tests/e2e/design.spec.ts --project=desktop-light --project=mobile-dark --grep 'System is the default|Light/Dark overrides|visual regression:'
+        run: pnpm test:ui
         env:
           E2E_PORT: "3110"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
@@ -115,7 +124,7 @@ jobs:
 
   feature-acceptance:
     needs: classify
-    if: needs.classify.outputs.lane == 'feature'
+    if: needs.classify.outputs.lane == 'feature' && needs.classify.outputs.reuse != 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     services:
@@ -157,7 +166,7 @@ jobs:
         env:
           E2E_PORT: "3110"
       - name: Customer Care, North and native Insights regressions
-        run: pnpm exec playwright test tests/e2e/care-homepage.spec.ts tests/e2e/customer-insights.spec.ts tests/e2e/integrated-north.spec.ts tests/e2e/design.spec.ts --project=desktop-light --project=mobile-dark
+        run: pnpm exec playwright test tests/e2e/care-homepage.spec.ts tests/e2e/customer-insights.spec.ts tests/e2e/integrated-north.spec.ts tests/e2e/home-library.spec.ts tests/e2e/careos-care.spec.ts tests/e2e/design.spec.ts --project=desktop-light --project=mobile-dark
         env:
           E2E_PORT: "3110"
       - name: Saved database to native calendar and North History
@@ -177,8 +186,8 @@ jobs:
 
   foundation:
     needs: classify
-    if: needs.classify.outputs.lane == 'full'
-    name: foundation (${{ matrix.data-source }})
+    if: needs.classify.outputs.lane == 'full' && needs.classify.outputs.reuse != 'true'
+    name: foundation (${{ matrix.data-source }}, ${{ matrix.shard }}/2)
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     strategy:
@@ -186,6 +195,7 @@ jobs:
       fail-fast: false
       matrix:
         data-source: [fixtures, database]
+        shard: [1, 2]
     services:
       postgres:
         image: postgres:17-alpine
@@ -214,39 +224,52 @@ jobs:
       - name: Workspace and source provenance
         run: pnpm workspace:check
       - name: Verify repository baseline
+        if: matrix.data-source == 'fixtures' && matrix.shard == 1
         run: node scripts/verify-repository.mjs
       - run: pnpm lint
+        if: matrix.data-source == 'fixtures' && matrix.shard == 1
       - run: pnpm format:check
+        if: matrix.data-source == 'fixtures' && matrix.shard == 1
       - run: pnpm typecheck
+        if: matrix.data-source == 'fixtures' && matrix.shard == 1
       - run: pnpm test
+        if: matrix.data-source == 'fixtures' && matrix.shard == 1
       - name: Versioned CareOS deterministic and fixture evaluations (no model calls)
+        if: matrix.data-source == 'fixtures' && matrix.shard == 1
         run: pnpm careos:evaluate
       - name: Offline CareOS prompt and answer review fixtures (network disabled, no inference)
+        if: matrix.data-source == 'fixtures' && matrix.shard == 1
         run: pnpm careos:review
       - name: PostgreSQL migrations, seeds and integrity tests
+        if: matrix.data-source == 'database'
         run: pnpm test:integration
       - run: pnpm build
       - name: Unavailable database readiness (real production server)
+        if: matrix.data-source == 'database' && matrix.shard == 1
         run: pnpm test:failure
       - name: Verify narrow Ubuntu mirror transform
         run: node --test scripts/ci-ubuntu-mirrors.test.mjs
       - name: Select existing official Ubuntu HTTPS fallbacks (ephemeral CI only)
         timeout-minutes: 1
         run: sudo --preserve-env=CI,GITHUB_ACTIONS,RUNNER_ENVIRONMENT "$(command -v node)" scripts/ci-ubuntu-mirrors.mjs
-      - run: pnpm exec playwright install --with-deps chromium firefox webkit
+      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm exec playwright install --with-deps chromium
         timeout-minutes: 10
       - name: Full ${{ matrix.data-source }} browser and accessibility tests
-        run: pnpm test:e2e
+        run: pnpm test:e2e --shard=${{ matrix.shard }}/2
         env:
           E2E_DATA_SOURCE: ${{ matrix.data-source }}
       - name: Exclusive Guardian flow (test DB and injected provider only)
-        if: matrix.data-source == 'database'
+        if: matrix.data-source == 'database' && matrix.shard == 1
         run: pnpm test:guardian:e2e
       - name: Browser artifacts
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: browser-results-${{ matrix.data-source }}
+          name: browser-results-${{ matrix.data-source }}-${{ matrix.shard }}
           path: |
             playwright-report/
             test-results/
@@ -257,9 +280,14 @@ jobs:
   # deadlines/retries and the 35-minute job bound; no coverage is filtered out.
   native-acceptance:
     needs: classify
-    if: needs.classify.outputs.lane == 'full'
+    if: needs.classify.outputs.lane == 'full' && needs.classify.outputs.reuse != 'true'
+    name: native-acceptance (${{ matrix.suite }})
     runs-on: ubuntu-24.04
     timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [journeys, compatibility]
     services:
       postgres:
         image: postgres:17-alpine
@@ -288,6 +316,7 @@ jobs:
       - name: Workspace and source provenance
         run: pnpm workspace:check
       - name: PostgreSQL migrations, seeds and integrity tests
+        if: matrix.suite == 'journeys'
         run: pnpm test:integration
       - run: pnpm build
       - name: Verify narrow Ubuntu mirror transform
@@ -295,33 +324,91 @@ jobs:
       - name: Select existing official Ubuntu HTTPS fallbacks (ephemeral CI only)
         timeout-minutes: 1
         run: sudo --preserve-env=CI,GITHUB_ACTIONS,RUNNER_ENVIRONMENT "$(command -v node)" scripts/ci-ubuntu-mirrors.mjs
+      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-all-${{ hashFiles('pnpm-lock.yaml') }}
       - run: pnpm exec playwright install --with-deps chromium firefox webkit
         timeout-minutes: 10
       - name: Complete price-protection purchase-to-North journey (isolated DB and injected North only)
+        if: matrix.suite == 'journeys'
         run: pnpm exec node scripts/workspace.mjs run test:integration tsx --test --test-concurrency=1 --test-name-pattern='purchase → policy discovery' tests/integration/price-protection.test.ts
         env:
           PALCARE_PROTECTION_BROWSER_JOURNEY: "true"
       - name: Ten-product Care and retail-reference accessibility journeys (fictional fixtures, no provider calls)
+        if: matrix.suite == 'journeys'
         run: pnpm exec playwright test --config=playwright.demo-care.config.ts
         env:
           E2E_PORT: "3110"
       - name: Ten-product saved database to DOM and North continuity (isolated database and injected transport)
+        if: matrix.suite == 'journeys'
         run: pnpm exec node scripts/workspace.mjs run test:integration tsx --test tests/integration/care-ten-products.test.ts
         env:
           PALCARE_DEMO_BROWSER_JOURNEY: "true"
       - name: Private owner pairing, browser persistence and expiry (isolated fixture, no inference)
+        if: matrix.suite == 'journeys'
         run: pnpm exec playwright test --config=playwright.access.config.ts
       - name: Firefox and WebKit essential journeys (emulation, not real-device certification)
+        if: matrix.suite == 'compatibility'
         run: pnpm test:compat
         env:
           E2E_PORT: "3108"
       - name: Sol protocol and Studio actual tools (injected HTTP only; no paid calls)
+        if: matrix.suite == 'journeys'
         run: pnpm exec playwright test --config=playwright.sol.config.ts
       - name: Browser artifacts
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: native-browser-results
+          name: native-browser-results-${{ matrix.suite }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  exact-release:
+    needs: classify
+    if: needs.classify.outputs.reuse == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      DEMO_DATA_SOURCE: fixtures
+      DATABASE_URL: ""
+      TEST_DATABASE_URL: ""
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: risk-classification
+      - name: Revalidate original PR checks and exact merged source
+        run: node scripts/verify-ci-release.mjs --check-reuse
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Verify narrow Ubuntu mirror transform
+        run: node --test scripts/ci-ubuntu-mirrors.test.mjs
+      - name: Select existing official Ubuntu HTTPS fallbacks (ephemeral CI only)
+        timeout-minutes: 1
+        run: sudo --preserve-env=CI,GITHUB_ACTIONS,RUNNER_ENVIRONMENT "$(command -v node)" scripts/ci-ubuntu-mirrors.mjs
+      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-chromium-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm exec playwright install --with-deps chromium
+        timeout-minutes: 10
+      - run: pnpm exec playwright test tests/e2e/release-smoke.spec.ts --project=desktop-light --project=mobile-dark
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: always()
+        with:
+          name: exact-release-smoke
           path: |
             playwright-report/
             test-results/
@@ -330,7 +417,7 @@ jobs:
   release-gate:
     if: always()
     needs:
-      [classify, fast-ui, feature-acceptance, foundation, native-acceptance]
+      [classify, fast-ui, feature-acceptance, foundation, native-acceptance, exact-release]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:

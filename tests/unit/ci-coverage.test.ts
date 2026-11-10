@@ -1,197 +1,26 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-
-// Guard orchestration only; actual workflow success still needs exact-SHA CI.
+import { requiredChecks } from "../../scripts/verify-ci-release.mjs";
 const workflow = readFileSync(
   ".github/workflows/repository-checks.yml",
   "utf8",
 );
-const shared = workflow.split(/^jobs:\n/m)[0];
 const job = (name: string) =>
   workflow
     .split(new RegExp(`^  ${name}:\\n`, "m"))[1]
     .split(/^  [a-z-]+:\n/m)[0];
-const foundation = job("foundation"),
-  native = job("native-acceptance");
-const commands = (job: string) =>
-  Array.from(job.matchAll(/^\s+(?:- )?run: (.+)$/gm), ([, command]) => command);
-const steps = (job: string) => job.split(/^      - /m).slice(1);
-const browserInstall =
-  "pnpm exec playwright install --with-deps chromium firefox webkit";
-const mirrorTest = "node --test scripts/ci-ubuntu-mirrors.test.mjs";
-const mirrorSelect =
-  'sudo --preserve-env=CI,GITHUB_ACTIONS,RUNNER_ENVIRONMENT "$(command -v node)" scripts/ci-ubuntu-mirrors.mjs';
-
-describe("mandatory CI workload isolation", () => {
-  it("expands one unfiltered browser command into both complete data-source suites", () => {
-    const strategy = foundation
-      .split("    strategy:\n")[1]
-      .split("    services:\n")[0]
-      .replace(/^\s*#.*\n/gm, "");
-    expect(strategy).toBe(
-      "      fail-fast: false\n      matrix:\n        data-source: [fixtures, database]\n",
-    );
-    const modes = strategy.match(/data-source: \[([^\]]+)\]/)![1].split(", ");
-    expect(modes).toEqual(["fixtures", "database"]);
-    const fullSuites = steps(foundation).filter((step) =>
-      /^\s*run: pnpm test:e2e$/m.test(step),
-    );
-    expect(fullSuites).toHaveLength(1);
-    expect(workflow.match(/run: pnpm test:e2e$/gm)).toHaveLength(1);
-    expect(fullSuites[0]).toContain(
-      "        env:\n          E2E_DATA_SOURCE: ${{ matrix.data-source }}\n",
-    );
-    expect(fullSuites[0]).not.toMatch(/\bif:|continue-on-error/);
-    // Expand the actual matrix/env binding, not a weakened textual command count.
-    expect(
-      modes.flatMap((mode) =>
-        fullSuites.map((step) => ({
-          command: commands(step)[0],
-          dataSource: step
-            .match(/E2E_DATA_SOURCE: (.+)/)![1]
-            .replace("${{ matrix.data-source }}", mode),
-        })),
-      ),
-    ).toEqual([
-      { command: "pnpm test:e2e", dataSource: "fixtures" },
-      { command: "pnpm test:e2e", dataSource: "database" },
-    ]);
-    expect(foundation).toContain(
-      "name: foundation (${{ matrix.data-source }})",
-    );
-  });
-
-  it("retains all baseline commands and adds the mandatory complete protection journey", () => {
-    expect(commands(foundation)).toEqual([
-      "pnpm install --frozen-lockfile",
-      "pnpm workspace:check",
-      "node scripts/verify-repository.mjs",
-      "pnpm lint",
-      "pnpm format:check",
-      "pnpm typecheck",
-      "pnpm test",
-      "pnpm careos:evaluate",
-      "pnpm careos:review",
-      "pnpm test:integration",
-      "pnpm build",
-      "pnpm test:failure",
-      mirrorTest,
-      mirrorSelect,
-      browserInstall,
-      "pnpm test:e2e",
-      "pnpm test:guardian:e2e",
-    ]);
-    expect(commands(native)).toEqual([
-      "pnpm install --frozen-lockfile",
-      "pnpm workspace:check",
-      "pnpm test:integration",
-      "pnpm build",
-      mirrorTest,
-      mirrorSelect,
-      browserInstall,
-      "pnpm exec node scripts/workspace.mjs run test:integration tsx --test --test-concurrency=1 --test-name-pattern='purchase → policy discovery' tests/integration/price-protection.test.ts",
-      "pnpm exec playwright test --config=playwright.demo-care.config.ts",
-      "pnpm exec node scripts/workspace.mjs run test:integration tsx --test tests/integration/care-ten-products.test.ts",
-      "pnpm exec playwright test --config=playwright.access.config.ts",
-      "pnpm test:compat",
-      "pnpm exec playwright test --config=playwright.sol.config.ts",
-    ]);
-    expect(native).toContain('E2E_PORT: "3108"');
-    expect(native).toContain('PALCARE_PROTECTION_BROWSER_JOURNEY: "true"');
-    expect(native).not.toMatch(/strategy:|matrix:|E2E_DATA_SOURCE:/);
-    expect(foundation + native).not.toMatch(
-      /continue-on-error|--grep|--shard|--retries|--timeout|--project|--test-list|--pass-with-no-tests|--last-failed|--only-changed|max-parallel:|PLAYWRIGHT_|E2E_TEST/,
-    );
-  });
-
-  it("selects lanes only through classification, with unchanged full-suite step conditions", () => {
-    expect(workflow.match(/^\s+(?:- )?if: .+$/gm)).toEqual([
-      "    if: needs.classify.outputs.lane == 'fast'",
-      "        if: always()",
-      "    if: needs.classify.outputs.lane == 'feature'",
-      "        if: always()",
-      "    if: needs.classify.outputs.lane == 'full'",
-      "        if: matrix.data-source == 'database'",
-      "        if: always()",
-      "    if: needs.classify.outputs.lane == 'full'",
-      "        if: always()",
-      "    if: always()",
-    ]);
-    expect(foundation.match(/^\s+(?:- )?if: .+$/gm)).toEqual([
-      "    if: needs.classify.outputs.lane == 'full'",
-      "        if: matrix.data-source == 'database'",
-      "        if: always()",
-    ]);
-    expect(native.match(/^\s+(?:- )?if: .+$/gm)).toEqual([
-      "    if: needs.classify.outputs.lane == 'full'",
-      "        if: always()",
-    ]);
-    const guardian = steps(foundation).filter((step) =>
-      step.includes("run: pnpm test:guardian:e2e\n"),
-    );
-    expect(guardian).toHaveLength(1);
-    expect(guardian[0]).toContain(
-      "        if: matrix.data-source == 'database'\n",
-    );
-    expect(workflow.match(/run: pnpm test:guardian:e2e$/gm)).toHaveLength(1);
-    for (const [job, artifact] of [
-      [foundation, "browser-results-${{ matrix.data-source }}"],
-      [native, "native-browser-results"],
-    ]) {
-      const uploads = steps(job).filter((step) =>
-        step.includes("uses: actions/upload-artifact@"),
-      );
-      expect(uploads).toHaveLength(1);
-      expect(uploads[0]).toContain("        if: always()\n");
-      expect(uploads[0]).toContain(`          name: ${artifact}\n`);
-      expect(uploads[0]).toContain(
-        "          path: |\n            playwright-report/\n            test-results/\n          retention-days: 7",
-      );
-    }
-    const artifactNames = ["fixtures", "database"].map(
-      (mode) => `browser-results-${mode}`,
-    );
-    artifactNames.push("native-browser-results");
-    expect(new Set(artifactNames).size).toBe(3);
-  });
-
-  it("keeps every runner at the original bounds with independent disposable PostgreSQL", () => {
-    // Step-specific provisioning bounds are not changes to the job budgets.
-    expect((foundation + native).match(/^ {4}timeout-minutes: .+$/gm)).toEqual([
-      "    timeout-minutes: 35",
-      "    timeout-minutes: 35",
-    ]);
-    const services = [];
-    for (const job of [foundation, native]) {
-      expect(job).toContain("    runs-on: ubuntu-24.04\n");
-      const service = job.split("    services:\n")[1].split("    steps:\n")[0];
-      services.push(service);
-      expect(service).toBe(
-        '      postgres:\n        image: postgres:17-alpine\n        env:\n          POSTGRES_USER: palcare\n          POSTGRES_DB: palcare_test\n          POSTGRES_PASSWORD: ${{ github.run_id }}-${{ github.run_attempt }}\n        ports:\n          - 5432:5432\n        options: >-\n          --health-cmd "pg_isready -U palcare -d palcare_test"\n          --health-interval 5s\n          --health-timeout 5s\n          --health-retries 10\n',
-      );
-    }
-    expect(services[0]).toBe(services[1]);
-    for (const variable of ["DATABASE_URL", "TEST_DATABASE_URL"]) {
-      expect(shared).toContain(
-        `  ${variable}: postgresql://palcare:\${{ github.run_id }}-\${{ github.run_attempt }}@127.0.0.1:5432/palcare_test\n`,
-      );
-    }
-    expect(shared).toContain("  DEMO_DATA_SOURCE: database\n");
-    expect(workflow).not.toMatch(
-      /secrets\.|retries:|timeout:|timeout-seconds:/,
-    );
-  });
-
-  it("requires verified official-mirror selection before each unchanged engine install, with fatal step bounds", () => {
+const step = (body: string, command: string) =>
+  body.split(/^      - /m).find((s) => s.includes(`run: ${command}\n`))!;
+describe("complete risk-selected CI coverage with identical-tree reuse", () => {
+  it("retains fatal mirror/install checks, original job bounds and provider isolation", () => {
     for (const [name, budget, engines] of [
       ["fast-ui", 15, "chromium"],
       ["feature-acceptance", 25, "chromium"],
-      ["foundation", 35, "chromium firefox webkit"],
+      ["foundation", 35, "chromium"],
       ["native-acceptance", 35, "chromium firefox webkit"],
+      ["exact-release", 15, "chromium"],
     ] as const) {
-      const body = job(name),
-        list = steps(body),
-        runs = commands(body);
+      const body = job(name);
       expect(body.match(/^ {4}timeout-minutes: .+$/gm)).toEqual([
         `    timeout-minutes: ${budget}`,
       ]);
@@ -199,25 +28,131 @@ describe("mandatory CI workload isolation", () => {
         "        timeout-minutes: 1",
         "        timeout-minutes: 10",
       ]);
-      const install = `pnpm exec playwright install --with-deps ${engines}`;
-      const pos = runs.indexOf(install);
-      expect(pos).toBeGreaterThan(1);
-      expect(runs.slice(pos - 2, pos + 1)).toEqual([
-        mirrorTest,
-        mirrorSelect,
-        install,
-      ]);
-      for (const command of [mirrorTest, mirrorSelect, install]) {
-        const matches = list.filter((step) =>
-          commands(`      - ${step}`).includes(command),
-        );
-        expect(matches).toHaveLength(1);
-        expect(matches[0]).not.toMatch(/\bif:|continue-on-error|\|\|/);
+      for (const command of [
+        "node --test scripts/ci-ubuntu-mirrors.test.mjs",
+        'sudo --preserve-env=CI,GITHUB_ACTIONS,RUNNER_ENVIRONMENT "$(command -v node)" scripts/ci-ubuntu-mirrors.mjs',
+        `pnpm exec playwright install --with-deps ${engines}`,
+      ]) {
+        expect(step(body, command)).toBeDefined();
+        expect(step(body, command)).not.toMatch(/\bif:|continue-on-error|\|\|/);
       }
     }
+    expect(job("foundation") + job("native-acceptance")).not.toMatch(
+      /PAYPAL_|CAREOS_|GUARDIAN_|PRICE_GUARDIAN_|DISCOVERY_|CHANNEL3_|CPSC_|DATABASE_URL:|--retries|--timeout|--test-list|PLAYWRIGHT_|E2E_TEST/,
+    );
+    for (const variable of ["DATABASE_URL", "TEST_DATABASE_URL"])
+      expect(workflow.split("jobs:")[0]).toContain(
+        `${variable}: postgresql://palcare:\${{ github.run_id }}-\${{ github.run_attempt }}@127.0.0.1:5432/palcare_test`,
+      );
+    const n = job("native-acceptance");
+    for (const command of [
+      "pnpm exec node scripts/workspace.mjs run test:integration tsx --test --test-concurrency=1 --test-name-pattern='purchase → policy discovery' tests/integration/price-protection.test.ts",
+      "pnpm exec node scripts/workspace.mjs run test:integration tsx --test tests/integration/care-ten-products.test.ts",
+    ])
+      expect(step(n, command)).toContain("matrix.suite == 'journeys'");
+    expect(job("fast-ui")).toContain("pnpm check");
+    expect(job("feature-acceptance")).toContain("pnpm test:integration");
+    expect(job("feature-acceptance")).toContain(
+      "--config=playwright.sol.config.ts",
+    );
   });
-
-  it("keeps provider-off policy shared without per-job overrides", () => {
+  it("partitions both complete Chromium matrices into two non-overlapping Playwright shards", () => {
+    const f = job("foundation");
+    expect(f).toContain("data-source: [fixtures, database]");
+    expect(f).toContain("shard: [1, 2]");
+    expect(f).toContain("fail-fast: false");
+    expect(f).toContain("pnpm test:e2e --shard=${{ matrix.shard }}/2");
+    expect(f).toContain("E2E_DATA_SOURCE: ${{ matrix.data-source }}");
+    expect(f).toContain(
+      "name: foundation (${{ matrix.data-source }}, ${{ matrix.shard }}/2)",
+    );
+    expect(f).not.toMatch(
+      /--grep|--project|--last-failed|--only-changed|--pass-with-no-tests/,
+    );
+    expect(step(f, "pnpm test:guardian:e2e")).toContain(
+      "matrix.data-source == 'database' && matrix.shard == 1",
+    );
+    expect(requiredChecks({ lane: "full", coverage: "sharded-v1" })).toEqual([
+      ...["fixtures", "database"].flatMap((mode) =>
+        [1, 2].map((n) => `foundation (${mode}, ${n}/2)`),
+      ),
+      "native-acceptance (journeys)",
+      "native-acceptance (compatibility)",
+    ]);
+  });
+  it("runs deterministic checks once, retaining full integration and failure coverage on isolated databases", () => {
+    const f = job("foundation");
+    for (const command of [
+      "node scripts/verify-repository.mjs",
+      "pnpm lint",
+      "pnpm format:check",
+      "pnpm typecheck",
+      "pnpm test",
+      "pnpm careos:evaluate",
+      "pnpm careos:review",
+    ])
+      expect(step(f, command)).toContain(
+        "matrix.data-source == 'fixtures' && matrix.shard == 1",
+      );
+    expect(step(f, "pnpm test:integration")).toContain(
+      "matrix.data-source == 'database'",
+    );
+    expect(step(f, "pnpm test:failure")).toContain(
+      "matrix.data-source == 'database' && matrix.shard == 1",
+    );
+    expect(step(f, "pnpm build")).not.toContain("if:");
+  });
+  it("runs the same native journeys and all Firefox/WebKit scenarios on independent runners", () => {
+    const n = job("native-acceptance");
+    expect(n).toContain("suite: [journeys, compatibility]");
+    expect(n).toContain("fail-fast: false");
+    for (const command of [
+      "pnpm test:integration",
+      "pnpm exec playwright test --config=playwright.demo-care.config.ts",
+      "pnpm exec playwright test --config=playwright.access.config.ts",
+      "pnpm exec playwright test --config=playwright.sol.config.ts",
+    ])
+      expect(step(n, command)).toContain("matrix.suite == 'journeys'");
+    expect(n).toContain('PALCARE_PROTECTION_BROWSER_JOURNEY: "true"');
+    expect(n).toContain('PALCARE_DEMO_BROWSER_JOURNEY: "true"');
+    expect(step(n, "pnpm test:compat")).toContain(
+      "matrix.suite == 'compatibility'",
+    );
+    expect(n).not.toMatch(
+      /--grep|--shard|--project|--retries|--timeout|--pass-with-no-tests/,
+    );
+  });
+  it("keeps the required gate, conservative classifier, exact-main proof and provider-off smoke", () => {
+    expect(job("classify")).toContain(
+      'git show "$CI_BASE:scripts/ci-risk.mjs"',
+    );
+    expect(job("classify")).toContain(
+      "node scripts/verify-ci-release.mjs --select-reuse",
+    );
+    for (const name of [
+      "fast-ui",
+      "feature-acceptance",
+      "foundation",
+      "native-acceptance",
+    ])
+      expect(job(name)).toContain("needs.classify.outputs.reuse != 'true'");
+    expect(job("exact-release")).toContain(
+      "needs.classify.outputs.reuse == 'true'",
+    );
+    expect(job("exact-release")).toContain(
+      "node scripts/verify-ci-release.mjs --check-reuse",
+    );
+    expect(job("exact-release")).toContain("pnpm build");
+    expect(job("exact-release")).toContain(
+      "tests/e2e/release-smoke.spec.ts --project=desktop-light --project=mobile-dark",
+    );
+    expect(job("release-gate")).toContain("if: always()");
+    expect(job("release-gate")).toContain(
+      "foundation, native-acceptance, exact-release]",
+    );
+    expect(workflow).not.toMatch(
+      /continue-on-error|paths-ignore:|pull_request_target|inputs:|secrets\./,
+    );
     for (const flag of [
       "PAYPAL_CHECKOUT_ENABLED",
       "CAREOS_LIVE_ENABLED",
@@ -227,42 +162,38 @@ describe("mandatory CI workload isolation", () => {
       "CHANNEL3_LIVE_ENABLED",
       "CHANNEL3_FREE_CREDITS_CONFIRMED",
       "CPSC_REFRESH_ENABLED",
-    ]) {
-      expect(shared).toContain(`${flag}: "false"`);
+    ])
+      expect(workflow.split("jobs:")[0]).toContain(`${flag}: "false"`);
+  });
+  it("retains fixture/database isolation, pinned browser cache and installation checks", () => {
+    for (const name of ["foundation", "native-acceptance"]) {
+      const body = job(name);
+      expect(body).toContain("postgres:17-alpine");
+      expect(body).toContain("POSTGRES_DB: palcare_test");
+      expect(body).toContain("timeout-minutes: 35");
     }
-    expect(shared).toContain('CAREOS_PROVIDER: "fixture"');
-    expect(shared).toContain('DISCOVERY_PROVIDER: "fixture"');
-    expect(foundation + native).not.toMatch(
-      /PAYPAL_|CAREOS_|GUARDIAN_|PRICE_GUARDIAN_|DISCOVERY_|CHANNEL3_|CPSC_|DATABASE_URL:/,
+    for (const name of ["foundation", "native-acceptance", "exact-release"]) {
+      const body = job(name);
+      expect(body).toContain("~/.cache/ms-playwright");
+      expect(body).toContain("hashFiles('pnpm-lock.yaml')");
+      expect(body).toContain("playwright install --with-deps");
+      expect(body).toContain("if: always()");
+    }
+    expect(job("foundation")).toContain(
+      "browser-results-${{ matrix.data-source }}-${{ matrix.shard }}",
+    );
+    expect(job("native-acceptance")).toContain(
+      "native-browser-results-${{ matrix.suite }}",
     );
   });
-  it("requires trusted automatic classification and an always-running gate for all lane results", () => {
-    expect(job("classify")).toContain(
-      'git show "$CI_BASE:scripts/ci-risk.mjs"',
+  it("uses the focused local responsive and visual command in the fast lane too", () => {
+    const pkg = JSON.parse(readFileSync("package.json", "utf8"));
+    expect(pkg.scripts["verify:ui"]).toBe(
+      "pnpm typecheck && pnpm build && pnpm test:ui",
     );
-    expect(job("classify")).toContain("fetch-depth: 0");
-    expect(job("classify")).toContain('"lane=full\\n"');
-    expect(job("release-gate").replace(/\s+/g, " ")).toContain(
-      "needs: [classify, fast-ui, feature-acceptance, foundation, native-acceptance]",
-    );
-    expect(job("release-gate")).toContain("if: always()");
-    expect(job("release-gate")).toContain("node scripts/ci-gate.mjs");
-    expect(workflow).not.toMatch(
-      /continue-on-error|paths-ignore:|paths:|pull_request_target|inputs:/,
-    );
-  });
-  it("retains focused fast and feature evidence without provider authority", () => {
-    expect(commands(job("fast-ui"))).toContain("pnpm check");
-    expect(job("fast-ui")).toContain(
-      "--project=desktop-light --project=mobile-dark",
-    );
-    expect(job("fast-ui")).toContain("DEMO_DATA_SOURCE: fixtures");
-    expect(job("feature-acceptance")).toContain("pnpm test:integration");
-    expect(job("feature-acceptance")).toContain(
-      'PALCARE_DEMO_BROWSER_JOURNEY: "true"',
-    );
-    expect(job("feature-acceptance")).toContain(
-      "--config=playwright.sol.config.ts",
-    );
+    expect(pkg.scripts["test:ui"]).toContain("reflow at 320px");
+    expect(pkg.scripts["test:ui"]).toContain("official care evidence");
+    expect(pkg.scripts["test:ui"]).toContain("visual regression:");
+    expect(job("fast-ui")).toContain("pnpm test:ui");
   });
 });

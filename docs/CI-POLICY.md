@@ -34,15 +34,27 @@ Use the authoritative primary folder, branch `palcare/<topic>`, normal push and 
 
 ## Exact-commit private promotion
 
-After PR merge, the **actual main SHA** receives its own risk-classified run. Do not promote merely because a PR head/merge preview, older SHA or a job with a familiar name was green.
+Standard flow: **implement → focused local checks → risk-selected PR CI → merge → exact-release verification → private deployment**.
+
+After merge, the **actual main SHA** receives its own run and required `release-gate`. The existing verifier reuses PR coverage only when the **whole Git tree** matches (including tests, workflow and lockfile), merged PR/head/base/main identities agree, and the latest same-head PR run, classification artifact, every selected job and GitHub Actions' own required check succeed. A different SHA is expected for a squash merge; a different tree is not acceptable. Missing, stale, failed, expired, ambiguous or mismatched proof falls back to normal risk-selected checks. Evidence changing after selection fails promotion rather than silently passing.
+
+With valid proof, main runs **`exact-release`**: revalidate original PR evidence, build exact main source and run GET-only desktop-light/mobile-dark Care → purchases → unchanged original document → native Insights smoke. It does not repeat the full PR suites. The host verifier independently rechecks the remote proof before writing the exact-main deployment receipt:
 
 ```sh
 node scripts/verify-ci-release.mjs RUN_ID EXACT_MAIN_SHA
 ```
 
-The verifier requires the exact clean built `main` commit, repository/workflow/event identity, completed successful run, matching classification artifact, successful `classify`/`release-gate` and every selected job (both foundations/native for full). It writes ignored `.next/palcare-ci.json` only after successful verification. Private startup requires that receipt to match the exact commit, source hash and build ID; a build alone is no longer sufficient. Restart reuses already verified local evidence without network/provider calls. This receipt is host continuity evidence, not a signature or new permission against the same owner/root identity. Missing/expired remote artifacts or uncertain evidence stop new promotion; do not substitute another SHA. Reruns retain original non-rerun passes and require the latest selected job results. Preserve the prior immutable serving release, current restricted-role readiness and read-only record/credential/expiry/accounting fingerprints. Promote only the application, retain automatic application-only rollback and run actual desktop/mobile × Light/Dark **private 8444 → 3002** HTTPS checks. No new public/provider/financial/database authority follows from any lane.
+The verifier requires clean built `main`, exact repository/workflow/event identity, a completed successful run, its classification and `classify`/`release-gate`, plus either all risk-selected jobs or `exact-release` and revalidated identical-tree PR proof. Ignored `.next/palcare-ci.json` records the exact main run and, for reuse, the original tested run/commit/tree. Startup still requires matching commit/source hash/build ID. Restart reuses this local continuity receipt without network/provider calls; it is not a signature or new authority. Missing/expired remote artifacts stop new promotion. Reruns retain original non-rerun passes and require the latest selected job results. Preserve immutable rollback, restricted-role readiness and read-only record/credential/expiry/accounting fingerprints. Promote only application assets, retain automatic application-only rollback and actual desktop/mobile × Light/Dark **private 8444 → 3002** HTTPS checks. No new public/provider/financial/database authority follows.
 
 Prefer one necessary local verification pass and one required PR/main release sequence. Do not start a second full-CI cycle solely to record a successful visual release in Markdown. Record immutable pre-release checkpoints, then the actual run/SHA/build/promotion receipt and final handoff. Never mark a pending gate passed in advance.
+
+## Parallel coverage and local preflight
+
+Full CI partitions each complete fixture/database Chromium matrix into two Playwright shards; `journeys` and `compatibility` independently retain all native and Firefox/WebKit scenarios. All six runners are required. Deterministic lint/format/type/unit/offline checks run once on fixture shard 1. Both database shards and native journeys retain isolated integration setup; readiness failure and Guardian checks each run once. No browser scenario, assertion, retry policy or deadline is removed. Browser caches are keyed by OS/browser set/pinned lockfile; installation still verifies binaries and system dependencies on cache hits.
+
+Before visual/copy PRs, run `pnpm verify:ui` (types, build, focused desktop-light/mobile-dark reflow at 320px, enlarged text, accessibility, appearance and existing visual references). With a current source-matching build, use `pnpm test:ui`. Preserve the working preview before rebuilding its assets, as described in [WORKSPACE](WORKSPACE.md). Add affected domain/integration/native checks for behavioral changes; CI still makes the conservative lane decision. This preflight does not replace exact-commit CI.
+
+The existing strict required **`release-gate`**, GitHub Actions app identity `15368`, PR requirement and administrator enforcement remain unchanged. The protection rollout described above is historical; this optimization does not alter it.
 
 ## Final hackathon submission
 

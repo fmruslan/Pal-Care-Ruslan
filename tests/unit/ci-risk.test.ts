@@ -8,6 +8,8 @@ import { assertRiskGate } from "../../scripts/ci-gate.mjs";
 import {
   assertReleaseEvidence,
   latestAttemptJobs,
+  assertReusableEvidence,
+  requiredChecks,
 } from "../../scripts/verify-ci-release.mjs";
 import { assertCiReceipt } from "../../scripts/ci-receipt.mjs";
 const rail = "src/components/care/calendar-rail.tsx";
@@ -370,6 +372,7 @@ describe("stable required release gate", () => {
     "feature-acceptance": "skipped",
     foundation: "skipped",
     "native-acceptance": "skipped",
+    "exact-release": "skipped",
   };
   it.each(["failure", "cancelled", "skipped", "timed_out", "in_progress"])(
     "rejects selected job %s",
@@ -407,5 +410,176 @@ describe("stable required release gate", () => {
     expect(() =>
       assertRiskGate("full", { ...skipped, foundation: "success" }),
     ).toThrow();
+  });
+});
+
+describe("identical PR tree release proof", () => {
+  const repo = "fmruslan/Pal-Care-Ruslan",
+    main = "a".repeat(40),
+    head = "b".repeat(40),
+    base = "c".repeat(40),
+    tree = "d".repeat(40);
+  const classification = { head, base, lane: "full", coverage: "sharded-v1" };
+  const job = (name: string) => ({
+    name,
+    status: "completed",
+    conclusion: "success",
+  });
+  const input = () => ({
+    expected: main,
+    base,
+    lane: "full",
+    coverage: "sharded-v1",
+    main: {
+      sha: main,
+      parents: [{ sha: base }],
+      commit: { tree: { sha: tree } },
+    },
+    head: { sha: head, commit: { tree: { sha: tree } } },
+    pr: {
+      number: 24,
+      merged: true,
+      merge_commit_sha: main,
+      base: { ref: "main", sha: base, repo: { full_name: repo } },
+      head: { sha: head, ref: "palcare/topic", repo: { full_name: repo } },
+    },
+    run: {
+      id: 100,
+      check_suite_id: 200,
+      repository: { full_name: repo },
+      head_repository: { full_name: repo },
+      path: ".github/workflows/repository-checks.yml",
+      event: "pull_request",
+      head_sha: head,
+      head_branch: "palcare/topic",
+      status: "completed",
+      conclusion: "success",
+    },
+    classification: { ...classification },
+    jobs: [
+      job("classify"),
+      job("release-gate"),
+      ...requiredChecks(classification).map(job),
+    ],
+    check: {
+      name: "release-gate",
+      head_sha: head,
+      status: "completed",
+      conclusion: "success",
+      app: { id: 15368 },
+      check_suite: { id: 200 },
+    },
+  });
+  it("proves a squash SHA differs while its whole source tree and tested base are exact", () => {
+    expect(assertReusableEvidence(input())).toEqual({
+      pr: 24,
+      runId: 100,
+      testedCommit: head,
+      tree,
+      base,
+    });
+    const merge = input();
+    merge.main.parents.push({ sha: head });
+    expect(assertReusableEvidence(merge).tree).toBe(tree);
+  });
+  it.each([
+    "tree",
+    "unmerged",
+    "base",
+    "pr-base",
+    "merge",
+    "head",
+    "fork",
+    "event",
+    "workflow",
+    "failed",
+    "cancelled",
+    "pending",
+    "lane",
+    "coverage",
+    "missing-shard",
+    "failed-shard",
+    "missing-gate",
+    "check-app",
+    "check-suite",
+    "check-status",
+    "recursive",
+  ])("rejects %s rather than calling untested main verified", (kind) => {
+    const v = input();
+    if (kind === "unmerged") v.pr.merged = false;
+    if (kind === "tree") v.main.commit.tree.sha = head;
+    if (kind === "base") v.main.parents[0].sha = head;
+    if (kind === "pr-base") v.classification.base = head;
+    if (kind === "merge") v.pr.merge_commit_sha = head;
+    if (kind === "head") v.run.head_sha = main;
+    if (kind === "fork") v.pr.head.repo.full_name = "other/fork";
+    if (kind === "event") v.run.event = "push";
+    if (kind === "workflow") v.run.path = "other.yml";
+    if (kind === "failed") v.run.conclusion = "failure";
+    if (kind === "cancelled") v.run.conclusion = "cancelled";
+    if (kind === "pending") v.run.status = "in_progress";
+    if (kind === "lane") v.classification.lane = "fast";
+    if (kind === "coverage") v.classification.coverage = "unknown";
+    if (kind === "missing-shard") v.jobs.pop();
+    if (kind === "failed-shard") v.jobs.at(-1)!.conclusion = "failure";
+    if (kind === "missing-gate")
+      v.jobs = v.jobs.filter((j) => j.name !== "release-gate");
+    if (kind === "check-app") v.check.app.id = 1;
+    if (kind === "check-suite") v.check.check_suite.id = 1;
+    if (kind === "check-status") v.check.conclusion = "failure";
+    if (kind === "recursive")
+      Object.assign(v.classification, { reuse: { runId: 1 } });
+    expect(() => assertReusableEvidence(v)).toThrow();
+  });
+  it("requires the exact main smoke gate AND revalidated PR proof; final submission never reuses", () => {
+    const proof = assertReusableEvidence(input());
+    const run = {
+      ...input().run,
+      id: 101,
+      event: "push",
+      head_sha: main,
+      head_branch: "main",
+    };
+    const c = { ...classification, head: main, reuse: proof };
+    const jobs = [job("classify"), job("release-gate"), job("exact-release")];
+    expect(
+      assertReleaseEvidence(run, c, jobs, main, false, proof),
+    ).toMatchObject({
+      runId: 101,
+      testedRunId: 100,
+      verification: "identical-pr-tree",
+      commit: main,
+    });
+    expect(() => assertReleaseEvidence(run, c, jobs, main)).toThrow();
+    expect(() =>
+      assertReleaseEvidence(run, c, jobs.slice(0, 2), main, false, proof),
+    ).toThrow();
+    expect(() =>
+      assertReleaseEvidence(
+        { ...run, event: "workflow_dispatch" },
+        c,
+        jobs,
+        main,
+        true,
+        proof,
+      ),
+    ).toThrow();
+  });
+  it("requires all six full runners; reuse skips them only with a successful exact-release job", () => {
+    expect(requiredChecks(classification)).toHaveLength(6);
+    const skipped = {
+      classify: "success",
+      "fast-ui": "skipped",
+      "feature-acceptance": "skipped",
+      foundation: "skipped",
+      "native-acceptance": "skipped",
+      "exact-release": "success",
+    };
+    expect(assertRiskGate("full", skipped, true)).toBe(true);
+    for (const result of ["skipped", "failure", "cancelled"])
+      expect(() =>
+        assertRiskGate("full", { ...skipped, "exact-release": result }, true),
+      ).toThrow();
+    expect(() => assertRiskGate("full", skipped, false)).toThrow();
   });
 });

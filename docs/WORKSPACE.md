@@ -1,6 +1,6 @@
 # Primary Pal Care workspace
 
-**Owner-approved PR / risk-based CI update:** [CI-POLICY](CI-POLICY.md) supersedes routine direct-to-main/full-CI-for-every-change guidance below. Edit in this same primary folder on `palcare/<topic>` branches, push a PR and satisfy the stable required `release-gate`. Automatic conservative fast/feature/full classification covers the whole range; mixed/unknown/critical changes escalate. Deploy only clean exact checked main after merge, with existing rollback/HTTPS/preservation. The owner explicitly chose **Require gate + PRs**; actual protection activation is recorded in STATUS. No historical worktree cleanup or new deployment authority follows.
+**Owner-approved PR / risk-based CI update:** [CI-POLICY](CI-POLICY.md) supersedes routine direct-to-main/full-CI-for-every-change guidance below. Edit here on `palcare/<topic>`, run focused local checks (`pnpm verify:ui` for UI changes, after preserving active assets), then PR CI → merge → exact-release → private deployment. Main reuses successful PR suites only with independently verified whole-tree/head/base/required-check proof, then exact-main build/smoke; uncertain evidence runs the normal risk-selected checks. Strict required `release-gate` and PR/admin enforcement remain intact. Deploy only clean checked main with immutable rollback/HTTPS/preservation. Final submission dispatch remains full. [STATUS](STATUS.md) records actual rollout evidence. No historical worktree cleanup or new deployment authority follows.
 
 ## One authoritative development location
 
