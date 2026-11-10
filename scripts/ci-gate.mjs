@@ -1,18 +1,20 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-export function assertRiskGate(lane, results) {
-  const selected = {
+export function assertRiskGate(lane, results, reuse = false) {
+  const lanes = {
     fast: ["fast-ui"],
     feature: ["feature-acceptance"],
     full: ["foundation", "native-acceptance"],
   }[lane];
-  if (!selected || results.classify !== "success")
+  if (!lanes || results.classify !== "success" || typeof reuse !== "boolean")
     throw Error("classification_required");
+  const selected = reuse ? ["exact-release"] : lanes;
   for (const name of [
     "fast-ui",
     "feature-acceptance",
     "foundation",
     "native-acceptance",
+    "exact-release",
   ]) {
     if (results[name] !== (selected.includes(name) ? "success" : "skipped"))
       throw Error(`required_risk_job_not_successful:${name}`);
@@ -29,6 +31,7 @@ if (
     Object.fromEntries(
       Object.entries(needs).map(([name, job]) => [name, job.result]),
     ),
+    needs.classify?.outputs?.reuse === "true",
   );
   console.log("Exact-commit risk-selected checks passed.");
 }
