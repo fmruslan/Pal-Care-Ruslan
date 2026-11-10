@@ -186,7 +186,7 @@ export function recordsAnswer(
     text: explain
       ? `${query.categories.length ? `The current selection is ${query.categories.join(" + ")} only. ` : ""}${
           result.comparison
-            ? `This compares recorded amounts for ${period} with ${result.comparison.from} through ${result.comparison.to} (inclusive; ${query.timezone}). Sample and Verified Sandbox are separate; unpriced/reference records are excluded from amounts.`
+            ? `This compares recorded amounts for ${period} with ${result.comparison.from} through ${result.comparison.to} (inclusive; ${query.timezone}). Example purchases and Verified Sandbox are separate; unpriced/reference records are excluded from amounts.`
             : !records.length
               ? coverage.complete
                 ? "No saved purchases match those filters."
@@ -198,7 +198,7 @@ export function recordsAnswer(
                     .join(
                       ", ",
                     )}${records.length > 3 ? ` and ${records.length - 3} more` : ""} ${records.length === 1 ? "has" : "have"} no recorded purchase price. The price is unknown, not zero or free, so ${records.length === 1 ? "it is" : "they are"} left out of spending totals.`
-                : `These are the ${records.length} saved purchase${records.length === 1 ? "" : "s"} matching your selection (${period}). Sample recorded amounts total ${money(result.totals.find((t) => t.origin === "sample")!.amountMinor)}; Verified Sandbox recorded amounts total ${money(result.totals.find((t) => t.origin === "sandbox")!.amountMinor)}. Purchases without a recorded price are left out of those amounts.`
+                : `These are the ${records.length} saved purchase${records.length === 1 ? "" : "s"} matching your selection (${period}). Example purchase recorded amounts total ${money(result.totals.find((t) => t.origin === "sample")!.amountMinor)}; Verified Sandbox recorded amounts total ${money(result.totals.find((t) => t.origin === "sandbox")!.amountMinor)}. Purchases without a recorded price are left out of those amounts.`
         }${coverage.complete ? "" : " Only part of the saved library is available; these are not complete-library totals."}`
       : `${records.length} matching saved purchase${records.length === 1 ? "" : "s"} · ${period}.${coverage.complete ? "" : " Partial saved-library evidence; global totals are not established."}`,
     steps: explain
@@ -229,10 +229,10 @@ export function recordsAnswer(
             : []),
           ...(query.origin !== "all"
             ? [
-                `Evidence filter: ${query.origin === "sample" ? "Sample" : "Verified Sandbox"}.`,
+                `Evidence filter: ${query.origin === "sample" ? "Example purchase" : "Verified Sandbox"}.`,
               ]
             : []),
-          "Sample and Verified Sandbox values are shown separately. Purchases with no saved price are counted but left out of the amounts.",
+          "Example purchase and Verified Sandbox values are shown separately. Purchases with no saved price are counted but left out of the amounts.",
           ...(query.document !== "any"
             ? [
                 `Documents: ${query.document}. Each link opens a document for that exact purchase.`,
@@ -250,9 +250,9 @@ export function recordsAnswer(
       ? `${query.categories.join(" + ")} only`
       : "all saved purchases",
     query.origin === "all"
-      ? "Sample and Verified Sandbox"
+      ? "Example purchases and Verified Sandbox"
       : query.origin === "sample"
-        ? "Sample only"
+        ? "Example purchases only"
         : "Verified Sandbox only",
     period,
     ...(query.receipt === "any" ? [] : [`receipts: ${query.receipt}`]),
@@ -278,7 +278,7 @@ export function recordsAnswer(
             result,
             true,
           )
-        : `${total.origin === "sample" ? "Sample" : "Verified Sandbox"}: ${money(total.amountMinor)} (${total.pricedCount} priced, ${total.excludedCount} excluded).`,
+        : `${total.origin === "sample" ? "Example purchase" : "Verified Sandbox"}: ${money(total.amountMinor)} (${total.pricedCount} priced, ${total.excludedCount} excluded).`,
     ),
   };
 }
@@ -289,7 +289,8 @@ function recordedValueComparison(
   result: RecordsResult,
   concise = false,
 ) {
-  const name = total.origin === "sample" ? "Sample" : "Verified Sandbox";
+  const name =
+    total.origin === "sample" ? "Example purchase" : "Verified Sandbox";
   const delta = total.amountMinor - previous.amountMinor;
   const first = `${result.query.from ?? "earliest available"} through ${result.query.to ?? result.query.referenceDate}`;
   const second = `${result.comparison!.from} through ${result.comparison!.to}`;
@@ -311,7 +312,8 @@ export function observedPatterns(result: RecordsResult): string[] {
     return [];
   const observations: string[] = [];
   for (const total of result.totals) {
-    const name = total.origin === "sample" ? "Sample" : "Verified Sandbox";
+    const name =
+      total.origin === "sample" ? "Example purchase" : "Verified Sandbox";
     if (total.pricedCount) {
       const ranked = result.groups
         .map((group) => ({

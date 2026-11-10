@@ -79,7 +79,7 @@ export default function About() {
             </div>
             <p className="mt-5 flex items-center gap-2 text-sm text-muted-foreground">
               <ShieldCheck className="size-4 shrink-0" aria-hidden="true" />
-              No sign-up. Sample purchases and PayPal Sandbox payments. No real
+              No sign-up. Example purchases and PayPal Sandbox payments. No real
               money.
             </p>
           </div>
@@ -108,7 +108,7 @@ export default function About() {
                 icon: Layers2,
                 number: "01",
                 title: "The things you own",
-                text: "Find each purchase, its receipt and its history in one place. Sample and verified PayPal Sandbox records are clearly labeled.",
+                text: "Find each purchase, its receipt and its history in one place. Example purchases and verified PayPal Sandbox records are clearly labeled.",
                 href: "/vault",
                 action: "Explore purchases",
               },
@@ -168,7 +168,7 @@ export default function About() {
             </h2>
             <p className="mt-3 text-sm leading-7 text-muted-foreground">
               Insights is read-only: exploring it never changes your purchase
-              records. Every purchase keeps its own sources. Sample purchases
+              records. Every purchase keeps its own sources. Example purchases
               are fictional; verified PayPal Sandbox purchases use test money.
               Care guidance and policy details show what is available—and what
               still needs confirmation.

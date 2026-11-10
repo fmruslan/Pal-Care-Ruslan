@@ -6,6 +6,7 @@ import { referenceSource } from "../../src/lib/careos/knowledge";
 import { emptyOverview } from "../../src/lib/price-guardian/projections";
 import {
   customerReport,
+  customerReportHeight,
   commandSelection,
   emptyPurchaseFilters,
   matchingPurchases,
@@ -26,6 +27,21 @@ const dataset = customerDataset(demoData, [referenceSource], emptyOverview(), {
   unavailable: [],
 });
 const extraPosition = { xTrack: 0, yTrack: 100, xSpan: 24, ySpan: 24 };
+it("grows the page host from the active native layout without rewriting saved positions", () => {
+  const state = customerReport(false);
+  const before = JSON.stringify(state);
+  expect(customerReportHeight(state)).toBe((68 + 22) * 16 + 64);
+  expect(JSON.stringify(state)).toBe(before);
+  state.pages[0].widgetLayout!.grid = {
+    xTrack: 0,
+    yTrack: 160,
+    xSpan: 24,
+    ySpan: 24,
+  };
+  expect(customerReportHeight(state)).toBe(184 * 16 + 64);
+  state.selectedPageId = "documents";
+  expect(customerReportHeight(state)).toBeLessThan(184 * 16);
+});
 function extra(
   state: AgReportState,
   pageId: InsightPage,

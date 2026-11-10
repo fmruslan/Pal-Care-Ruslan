@@ -87,7 +87,7 @@ function observed(scenario = c): NorthRecordsObservation {
     renderedPurchaseHrefs: scenario.expectedIds.map((id) => `/vault/${id}`),
     renderedRecordText: scenario.expectedIds.map(
       (id) =>
-        `Sample purchase ${scenario.expectedRecordValues[id] === null ? "No saved purchase price · unpriced or reference item" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(scenario.expectedRecordValues[id]! / 100)}`,
+        `Example purchase ${scenario.expectedRecordValues[id] === null ? "No saved purchase price · unpriced or reference item" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(scenario.expectedRecordValues[id]! / 100)}`,
     ),
     renderedAmountTexts: [],
     scopeText:

@@ -248,7 +248,7 @@ describe("one ownership view across Twin, Care and North", () => {
     expect(view.pill).toMatchObject({ label: "Purchased", verified: false });
     expect(view.facts.find((f) => f.topic === "purchase")).toMatchObject({
       date: "2026-10-18",
-      provenance: "Sample purchase record",
+      provenance: "Example purchase record",
       verified: false,
     });
     for (const topic of [

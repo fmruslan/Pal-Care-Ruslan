@@ -53,7 +53,7 @@ export default async function DocumentPage({
       </Link>
       <PageHeading
         title={document.title}
-        description="Read the saved document or download a text copy. Sample documents are fictional; Sandbox receipts involve no real money."
+        description="Read the saved document or download a text copy. Example documents are fictional; Sandbox receipts involve no real money."
         action={
           <Badge tone={document.origin === "sandbox" ? "success" : "neutral"}>
             {document.origin === "sandbox"
@@ -80,7 +80,7 @@ export default async function DocumentPage({
           <p className="text-sm leading-6 text-muted-foreground">
             {record.product.id === REFERENCE_PRODUCT
               ? "Reference sample · amount unavailable"
-              : `${record.twin.origin === "sandbox" ? "Sandbox" : "Sample"} amount ${money(record.twin.purchasePriceMinor)}`}
+              : `${record.twin.origin === "sandbox" ? "Sandbox" : "Example purchase"} amount ${money(record.twin.purchasePriceMinor)}`}
           </p>
         </div>
         <PurchaseBadge origin={record.twin.origin} />

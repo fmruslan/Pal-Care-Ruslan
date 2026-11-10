@@ -18,7 +18,7 @@ export function CareIllustration() {
               <Layers2 className="size-4 text-primary" />
               Purchase Twin
             </span>
-            <Badge>Sample</Badge>
+            <Badge>Example purchase</Badge>
           </div>
           <ProductArt kind="headphones" />
           <div className="px-1 pt-5">
@@ -35,7 +35,7 @@ export function CareIllustration() {
           <div className="passport-divider mt-5 flex items-center justify-between gap-2 pt-4">
             <span className="inline-flex items-center gap-2 text-sm font-medium text-primary">
               <FileText className="size-4" />
-              Sample receipt
+              Example receipt
             </span>
             <ArrowUpRight className="size-4 text-primary" />
           </div>

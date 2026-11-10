@@ -34,7 +34,9 @@ export function Events({ events }: { events: CareEvent[] }) {
                   <Badge
                     tone={event.origin === "sandbox" ? "success" : "neutral"}
                   >
-                    {event.origin === "sandbox" ? "Verified Sandbox" : "Sample"}
+                    {event.origin === "sandbox"
+                      ? "Verified Sandbox"
+                      : "Example event"}
                   </Badge>
                 </div>
                 <p className="mt-3 text-sm leading-7 text-muted-foreground">

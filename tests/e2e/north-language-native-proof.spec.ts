@@ -307,7 +307,7 @@ test("recorded receipt, scheduling, comparisons and pending-eCheck answers rende
       );
     else if (i < 5) {
       await expect(result).toContainText(
-        "2026-10-16 through 2026-10-31 had $2,626.94 more recorded Sample value",
+        "2026-10-16 through 2026-10-31 had $2,626.94 more recorded Example purchase value",
       );
       await expect(result).toContainText(
         "Comparison period: 2026-10-16 through 2026-10-31",

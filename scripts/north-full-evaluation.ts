@@ -285,7 +285,9 @@ export function assessRecordsCase(
     "rendering",
     "visible Sample provenance and requested output",
     observed.renderedRecordText.length === c.expectedIds.length &&
-      observed.renderedRecordText.every((t) => t.includes("Sample")) &&
+      observed.renderedRecordText.every((t) =>
+        t.includes("Example purchase"),
+      ) &&
       observed.outputFormat === c.expectedQuery.format,
   );
   check(

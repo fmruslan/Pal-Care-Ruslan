@@ -84,7 +84,7 @@ function FactDetails({ fact }: { fact: OwnershipFact }) {
     <div className="space-y-3" data-ownership-fact={fact.id}>
       <p className="font-semibold">
         {fact.consumer?.status ?? fact.status}
-        {fact.simulation ? " · Sample" : ""}
+        {fact.simulation ? " · Example" : ""}
       </p>
       {fact.consumer && (
         <>
@@ -377,7 +377,7 @@ function ConnectedOwnershipScope({
                 </Dialog.Title>
                 <Dialog.Description className="mt-2 text-sm leading-6 text-muted-foreground">
                   {facts.some((f) => f.simulation)
-                    ? "Sample care example · fictional, not a real delivery, warranty or refund. Sources and conditions are below."
+                    ? "Illustrative care information · not a real delivery, warranty or refund. Sources and conditions are below."
                     : "Saved details for this purchase. A payment alone doesn’t confirm delivery, a return or safety."}
                 </Dialog.Description>
               </div>

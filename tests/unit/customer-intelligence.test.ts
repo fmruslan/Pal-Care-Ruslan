@@ -978,11 +978,11 @@ describe("customer source cards distinguish unavailable from missing (static ren
         "Return and warranty dates are not documented",
       );
       expect(markup).toContain("Verified Sandbox purchase");
-      expect(markup).toContain("Sample purchase");
+      expect(markup).toContain("Example purchase");
       expect(markup).toContain(`href="/documents/${id(305)}"`);
       if (!compact) {
         expect(markup).toContain("Sandbox receipt");
-        expect(markup).toContain("Sample document");
+        expect(markup).toContain("Example document");
       }
     },
   );

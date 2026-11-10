@@ -91,7 +91,7 @@ describe("grounded saved-record explanations — pure presentation", () => {
       const answer = recordsAnswer(result, 2, false, "concise");
 
       expect(answer.steps).toEqual([
-        "Sample: $307.00 (3 priced, 1 excluded).",
+        "Example purchase: $307.00 (3 priced, 1 excluded).",
         "Verified Sandbox: $0.00 (0 priced, 0 excluded).",
       ]);
       expect(answer.text).toContain("unknown is not zero");
@@ -134,7 +134,7 @@ describe("grounded saved-record explanations — pure presentation", () => {
 
     expect(
       answer.text.startsWith(
-        'Showing: Audio only; Sample only; 2026-10-01 through 2026-11-03 (inclusive; UTC); receipts: missing; saved documents: present; recorded price: present; search: "speaker". 1 matching saved purchase',
+        'Showing: Audio only; Example purchases only; 2026-10-01 through 2026-11-03 (inclusive; UTC); receipts: missing; saved documents: present; recorded price: present; search: "speaker". 1 matching saved purchase',
       ),
     ).toBe(true);
     expect(answer.recordsResult).toBe(result);
@@ -151,7 +151,7 @@ describe("grounded saved-record explanations — pure presentation", () => {
 
     expect(
       answer.text.startsWith(
-        "Showing: all saved purchases; Sample and Verified Sandbox; all saved dates. 4 matching saved purchases",
+        "Showing: all saved purchases; Example purchases and Verified Sandbox; all saved dates. 4 matching saved purchases",
       ),
     ).toBe(true);
   });
@@ -188,7 +188,7 @@ describe("grounded saved-record explanations — pure presentation", () => {
         "2026-10-01 through 2026-10-31: $89.00 (1 priced, 0 excluded)",
       );
       expect(steps).toContain(
-        "2026-11-01 through 2026-11-03 had $60.00 more recorded Sample value",
+        "2026-11-01 through 2026-11-03 had $60.00 more recorded Example purchase value",
       );
       expect(steps).toContain("$20.00 (1 priced, 0 excluded)");
       expect(steps).toContain(
@@ -220,7 +220,7 @@ describe("grounded saved-record explanations — pure presentation", () => {
     const answer = recordsAnswer(result, 2, true, "concise");
 
     expect(answer.steps).toEqual([
-      "Sample: 2026-11-01 through 2026-11-03: $0.00 (0 priced, 0 excluded); 2026-10-01 through 2026-10-31: $0.00 (0 priced, 1 excluded). Both periods have equal recorded Sample value.",
+      "Example purchase: 2026-11-01 through 2026-11-03: $0.00 (0 priced, 0 excluded); 2026-10-01 through 2026-10-31: $0.00 (0 priced, 1 excluded). Both periods have equal recorded Example purchase value.",
       "Verified Sandbox: 2026-11-01 through 2026-11-03: $0.00 (0 priced, 0 excluded); 2026-10-01 through 2026-10-31: $30.00 (1 priced, 0 excluded). 2026-10-01 through 2026-10-31 had $30.00 more recorded Verified Sandbox value than 2026-11-01 through 2026-11-03.",
     ]);
     expect(answer.text).toContain(
@@ -250,7 +250,9 @@ describe("grounded saved-record explanations — pure presentation", () => {
 
     expect(answer.text).toContain("The current selection is Audio only.");
     expect(answer.text).toContain("2026-10-01 through 2026-11-03");
-    expect(answer.text).toContain("Sample recorded amounts total $218.00");
+    expect(answer.text).toContain(
+      "Example purchase recorded amounts total $218.00",
+    );
     expect(answer.text).toContain(
       "Verified Sandbox recorded amounts total $0.00",
     );
@@ -305,7 +307,7 @@ describe("grounded saved-record explanations — pure presentation", () => {
     expect(answer.text).toContain("2026-10-01 through 2026-10-31");
     expect(answer.text).toContain("unpriced/reference records are excluded");
     expect(answer.steps[0]).toContain(
-      "Sample recorded-value comparison: 2026-11-01 through 2026-11-03: $149.00 (1 priced, 1 excluded); 2026-10-01 through 2026-10-31: $89.00 (1 priced, 0 excluded). 2026-11-01 through 2026-11-03 had $60.00 more recorded Sample value",
+      "Example purchase recorded-value comparison: 2026-11-01 through 2026-11-03: $149.00 (1 priced, 1 excluded); 2026-10-01 through 2026-10-31: $89.00 (1 priced, 0 excluded). 2026-11-01 through 2026-11-03 had $60.00 more recorded Example purchase value",
     );
     expect(answer.steps[1]).toContain(
       "Verified Sandbox recorded-value comparison: 2026-11-01 through 2026-11-03: $20.00 (1 priced, 0 excluded); 2026-10-01 through 2026-10-31: $30.00 (1 priced, 1 excluded). 2026-10-01 through 2026-10-31 had $10.00 more recorded Verified Sandbox value",
@@ -333,7 +335,7 @@ describe("grounded saved-record explanations — pure presentation", () => {
     expect(answer.text).not.toContain("No saved purchases match");
     expect(answer.text).toContain("not complete-library totals");
     expect(answer.steps[0]).toContain(
-      "Sample recorded-value comparison: 2026-11-01 through 2026-11-03: $0.00 (0 priced, 0 excluded); 2026-10-01 through 2026-10-31: $89.00 (1 priced, 1 excluded). 2026-10-01 through 2026-10-31 had $89.00 more recorded Sample value",
+      "Example purchase recorded-value comparison: 2026-11-01 through 2026-11-03: $0.00 (0 priced, 0 excluded); 2026-10-01 through 2026-10-31: $89.00 (1 priced, 1 excluded). 2026-10-01 through 2026-10-31 had $89.00 more recorded Example purchase value",
     );
     expect(answer.steps[1]).toContain(
       "Verified Sandbox recorded-value comparison: 2026-11-01 through 2026-11-03: $0.00 (0 priced, 0 excluded); 2026-10-01 through 2026-10-31: $30.00 (1 priced, 1 excluded). 2026-10-01 through 2026-10-31 had $30.00 more recorded Verified Sandbox value",

@@ -470,7 +470,9 @@ export function IntegratedNorthView({
           {s.context?.purchasedOn && (
             <span className="ml-2 text-xs">
               {displayDate(s.context.purchasedOn)} ·{" "}
-              {s.context.origin === "sandbox" ? "Verified Sandbox" : "Sample"}
+              {s.context.origin === "sandbox"
+                ? "Verified Sandbox"
+                : "Example purchase"}
             </span>
           )}
         </span>
@@ -599,7 +601,7 @@ export function IntegratedNorthView({
                   ·{" "}
                   {answer!.context.origin === "sandbox"
                     ? "Verified Sandbox"
-                    : "Sample"}
+                    : "Example purchase"}
                   {answer!.context.twinId &&
                     ` · PC-${answer!.context.twinId.slice(-6).toUpperCase()}`}
                 </p>

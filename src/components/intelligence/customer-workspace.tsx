@@ -56,7 +56,8 @@ export function CustomerWorkspace({
             ? `up to your ${dataset.limit} most recent saved purchases`
             : "built-in example purchases"}
           . This view covers saved purchases only, not your complete PayPal
-          history. Sample and Verified Sandbox records are labeled separately.
+          history. Example purchases and Verified Sandbox records are labeled
+          separately.
         </p>
       </div>
       {studioAllowed ? (

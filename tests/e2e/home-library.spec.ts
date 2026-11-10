@@ -290,7 +290,7 @@ test("visible product sections, dated receipt, source labels and safe return nav
   await expect(page.locator("#care-history")).toBeVisible();
   await nav.getByRole("link", { name: "Documents (1)", exact: true }).click();
   await expect(page).toHaveURL(/#documents$/);
-  await expect(page.locator("#documents")).toContainText("Sample document");
+  await expect(page.locator("#documents")).toContainText("Example document");
   await page.getByRole("link", { name: "View receipt", exact: true }).click();
   await expect(
     page.getByRole("article", { name: "Document contents" }),

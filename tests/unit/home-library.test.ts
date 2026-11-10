@@ -354,7 +354,7 @@ describe("organized Documents library", () => {
         query: query("", { view: "documents" }),
       }),
     );
-    expect(html).toContain("1 Verified Sandbox · 10 Sample");
+    expect(html).toContain("1 Sandbox · 10 examples");
     const warrantyScope = homeLibrary(
       data,
       query("", { view: "documents", documentCategory: "warranties" }),
@@ -471,7 +471,7 @@ describe("organized Documents library", () => {
     );
     expect(html).toContain("No saved documents");
     expect(html).toContain(
-      "These are saved care documents, not automatically supplied manuals. Sample care cards are fictional.",
+      "These are saved care documents, not automatically supplied manuals. Example care cards are fictional.",
     );
     expect(html).not.toContain("data-document-id=");
   });

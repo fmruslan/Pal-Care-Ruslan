@@ -60,7 +60,7 @@ test("Care shows known-only compact SVG milestones, with exact-card evidence and
   await page.keyboard.press("Enter");
   const panel = page.getByRole("dialog", { name: "Purchased", exact: true });
   await expect(panel).toHaveAttribute("data-ownership-twin", twin);
-  await expect(panel).toContainText("Sample purchase record");
+  await expect(panel).toContainText("Example purchase record");
   await page.keyboard.press("Escape");
   await expect(purchase).toBeFocused();
   const other = cards.last();
@@ -198,7 +198,7 @@ test("Care Details retains every unknown milestone, full source facts and keyboa
   const purchase = fullDetails.locator(
     `[data-ownership-fact="${twin}:purchase"]`,
   );
-  await expect(purchase).toContainText("Sample purchase record");
+  await expect(purchase).toContainText("Example purchase record");
   await expect(
     purchase.getByRole("link", { name: "View original receipt", exact: true }),
   ).toHaveAttribute("href", "/documents/00000000-0000-4000-8000-000000000301");
@@ -338,7 +338,7 @@ test("ownership pill, complete timeline, evidence and keyboard are useful withou
   await pill.focus();
   await pill.press("Enter");
   const panel = page.getByRole("dialog", { name: "Purchased", exact: true });
-  await expect(panel).toContainText("Sample purchase record");
+  await expect(panel).toContainText("Example purchase record");
   await expect(
     panel.getByRole("link", { name: "View original receipt", exact: true }),
   ).toBeVisible();

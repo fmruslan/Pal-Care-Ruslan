@@ -136,7 +136,7 @@ export function CareCalendarRail({
                       className="sr-only"
                       data-care-event-provenance={event.evidence}
                     >
-                      Sample event
+                      Example event
                     </span>
                   </span>
                 </Link>
@@ -159,7 +159,7 @@ export function CareCalendarRail({
           establish coverage.
         </p>
         <span data-care-event-counts className="sr-only">
-          {counts.demo} Sample · {counts.verified} verified Sandbox ·{" "}
+          {counts.demo} example events · {counts.verified} verified Sandbox ·{" "}
           {counts.recorded} recorded, unverified
         </span>
       </div>
@@ -299,7 +299,7 @@ export function CareCalendarRail({
                                     data-care-event-provenance={event.evidence}
                                   >
                                     {event.evidence === "Demo"
-                                      ? "Sample event"
+                                      ? "Example event"
                                       : event.evidence}
                                   </span>
                                 </span>
@@ -361,7 +361,7 @@ export function CareCalendarRail({
       <div className="care-rail-disclosure">
         <p>Quiet days are compressed. Delivery dates are estimates.</p>
         <span data-care-event-counts className="sr-only">
-          {counts.demo} Sample · {counts.verified} verified Sandbox ·{" "}
+          {counts.demo} example events · {counts.verified} verified Sandbox ·{" "}
           {counts.recorded} recorded, unverified
         </span>
       </div>

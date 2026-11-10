@@ -86,7 +86,9 @@ export function LibrarySearch({
                     {purchases.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name} · {displayDate(p.purchasedOn)} ·{" "}
-                        {p.origin === "sandbox" ? "Verified Sandbox" : "Sample"}
+                        {p.origin === "sandbox"
+                          ? "Verified Sandbox"
+                          : "Example purchase"}
                       </option>
                     ))}
                   </select>
@@ -131,7 +133,7 @@ export function LibrarySearch({
                   className={selectClass}
                 >
                   <option value="all">All sources</option>
-                  <option value="sample">Sample</option>
+                  <option value="sample">Example purchases</option>
                   <option value="sandbox">Verified Sandbox</option>
                 </select>
               </label>
@@ -161,7 +163,7 @@ export function LibrarySearch({
                   query.category !== "all" && query.category,
                   query.product !== "all" && "Selected purchase and date",
                   query.source !== "all" &&
-                    `Purchase source: ${query.source === "sandbox" ? "Verified Sandbox" : "Sample"}`,
+                    `Purchase source: ${query.source === "sandbox" ? "Verified Sandbox" : "Example purchase"}`,
                   query.documents !== "all" &&
                     `${query.documents === "present" ? "With" : "Without"} documents`,
                   query.sort !== "newest" &&
@@ -306,7 +308,7 @@ export function LibraryDocuments({
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
               {d.origin === "sandbox"
                 ? "Verified Sandbox receipt"
-                : "Sample document"}{" "}
+                : "Example document"}{" "}
               · {documentClassificationLabels[classification]}
             </p>
           </div>
@@ -344,8 +346,8 @@ export function LibraryResults({
             className="mt-1 block text-xs"
             data-testid="purchase-provenance-counts"
           >
-            {library.provenanceCounts.sandbox} Verified Sandbox ·{" "}
-            {library.provenanceCounts.sample} Sample
+            {library.provenanceCounts.sandbox} Sandbox ·{" "}
+            {library.provenanceCounts.sample} examples
           </span>
         </p>
         <Link
@@ -454,7 +456,7 @@ export function LibraryResults({
           {query.view === "documents" && query.documentCategory === "care" && (
             <p className="mb-3 text-sm leading-6 text-muted-foreground">
               These are saved care documents, not automatically supplied
-              manuals. Sample care cards are fictional. Official Raspberry Pi
+              manuals. Example care cards are fictional. Official Raspberry Pi
               guidance is available in Product care, separate from this list.
             </p>
           )}

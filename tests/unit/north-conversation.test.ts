@@ -254,7 +254,7 @@ describe("recorded genuine campaign defects — injected interpretation, no prov
         278494,
       );
       expect(answer.steps.join(" ")).toContain(
-        "2026-10-16 through 2026-10-31 had $2,626.94 more recorded Sample value than 2026-10-01 through 2026-10-15",
+        "2026-10-16 through 2026-10-31 had $2,626.94 more recorded Example purchase value than 2026-10-01 through 2026-10-15",
       );
       expect(answer.steps.join(" ")).not.toContain("previous");
     }

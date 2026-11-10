@@ -1120,7 +1120,7 @@ export function CareOSProvider({
                         ? "Verified Sandbox purchase"
                         : context.example
                           ? "Fictional ownership example · no purchase"
-                          : "Sample purchase"}{" "}
+                          : "Example purchase"}{" "}
                       {context.twinId && (
                         <span className="hidden sm:inline">
                           · PC-{context.twinId.slice(-6).toUpperCase()}
@@ -1302,7 +1302,7 @@ export function CareOSProvider({
                         : turn.answer.outcome === "selection"
                           ? "choose a purchase"
                           : turn.answer.context
-                            ? `${turn.answer.context.name} · ${turn.answer.context.model}${turn.answer.context.purchasedOn ? ` · ${displayDate(turn.answer.context.purchasedOn)}` : ""} · ${turn.answer.context.example ? "Reference example" : turn.answer.context.origin === "sandbox" ? "Sandbox" : "Sample"}${turn.answer.context.twinId ? ` · PC-${turn.answer.context.twinId.slice(-6).toUpperCase()}` : ""}`
+                            ? `${turn.answer.context.name} · ${turn.answer.context.model}${turn.answer.context.purchasedOn ? ` · ${displayDate(turn.answer.context.purchasedOn)}` : ""} · ${turn.answer.context.example ? "Reference example" : turn.answer.context.origin === "sandbox" ? "Sandbox" : "Example purchase"}${turn.answer.context.twinId ? ` · PC-${turn.answer.context.twinId.slice(-6).toUpperCase()}` : ""}`
                             : insights.conversation?.turns.some(
                                   (t) => t.requestId === turn.requestId,
                                 )
@@ -1507,7 +1507,7 @@ export function CareOSProvider({
                   >
                     <p className="border-t pt-3 text-xs text-muted-foreground">
                       {pending.context
-                        ? `${pending.context.name} · ${pending.context.model} · ${pending.context.example ? "Reference example" : pending.context.origin === "sandbox" ? "Sandbox" : "Sample"}`
+                        ? `${pending.context.name} · ${pending.context.model} · ${pending.context.example ? "Reference example" : pending.context.origin === "sandbox" ? "Sandbox" : "Example purchase"}`
                         : "General assistance"}
                     </p>
                     <p
