@@ -967,15 +967,13 @@ describe("customer source cards distinguish unavailable from missing (static ren
         }),
       );
       expect(markup).toContain(
-        "Product-care evidence is unavailable or requires review",
+        "Care information is unavailable or needs review",
       );
-      expect(markup).toContain("Aftercare evidence is incomplete");
+      expect(markup).toContain("Some aftercare information is missing");
       expect(markup).toContain(
-        "no conclusion that nothing needs attention is established",
+        "we cannot confirm that nothing needs attention",
       );
-      expect(markup).not.toContain(
-        "No supported manufacturer guidance recorded",
-      );
+      expect(markup).not.toContain("No supported manufacturer guidance saved");
       expect(markup).not.toContain(
         "Return and warranty dates are not documented",
       );
@@ -999,9 +997,9 @@ describe("customer source cards distinguish unavailable from missing (static ren
     const markup = renderToStaticMarkup(
       createElement(CustomerRecords, { purchases: result.purchases }),
     );
-    expect(markup).toContain("No supported manufacturer guidance recorded");
-    expect(markup).toContain("Exact-model care guidance available");
+    expect(markup).toContain("No supported manufacturer guidance saved");
+    expect(markup).toContain("Care guidance available for this exact model");
     expect(markup).toContain(`href="/vault/${REFERENCE_TWIN}/care"`);
-    expect(markup).not.toContain("Aftercare evidence is incomplete");
+    expect(markup).not.toContain("Some aftercare information is missing");
   });
 });

@@ -89,7 +89,7 @@ export function ContextPicker({
         >
           <div className="flex items-center justify-between gap-2">
             <Dialog.Title className="text-lg font-semibold">
-              Purchase context
+              Choose a purchase
             </Dialog.Title>
             <Dialog.Close asChild>
               <Button variant="ghost" size="sm">
@@ -98,8 +98,8 @@ export function ContextPicker({
             </Dialog.Close>
           </div>
           <Dialog.Description className="mt-1 text-sm text-muted-foreground">
-            Choose a purchase for follow-up questions. This never sends a
-            question.
+            Focus your next question on one purchase, or use all saved
+            purchases. Choosing here won’t send a question.
           </Dialog.Description>
           <label
             htmlFor="careos-context-search"
@@ -121,7 +121,7 @@ export function ContextPicker({
             className="my-3 justify-start"
             onClick={() => select(null)}
           >
-            Remove purchase context
+            Use all purchases
           </Button>
           <div
             className="min-h-0 space-y-2 overflow-y-auto overscroll-contain p-1"
@@ -133,8 +133,8 @@ export function ContextPicker({
             {state === "error" && (
               <div role="alert">
                 <p>
-                  Saved purchases are unavailable. Your current context is
-                  unchanged.
+                  We couldn’t load your purchases. Your current selection hasn’t
+                  changed. Try loading them again.
                 </p>
                 <Button
                   variant="outline"
@@ -149,7 +149,7 @@ export function ContextPicker({
             )}
             {state === "ready" && !matches.length && (
               <p role="status" className="text-sm text-muted-foreground">
-                No matching saved purchases.
+                No saved purchases match. Try a product name, model or date.
               </p>
             )}
             {state === "ready" &&

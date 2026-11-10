@@ -97,9 +97,7 @@ function FactDetails({ fact }: { fact: OwnershipFact }) {
       <p className="text-sm leading-7 text-muted-foreground">{fact.detail}</p>
       <p className="text-xs leading-6 text-muted-foreground">
         {fact.provenance}
-        {fact.date
-          ? ` · ${displayDate(fact.date)}`
-          : " · Event date not established"}
+        {fact.date ? ` · ${displayDate(fact.date)}` : " · Date unknown"}
       </p>
       {fact.recordedAt && (
         <p className="text-xs leading-5 text-muted-foreground">
@@ -152,11 +150,11 @@ function OtherMilestones({
       data-ownership-unknowns
     >
       <summary className="min-h-11 cursor-pointer rounded-lg py-3 font-semibold focus-visible:outline-2 focus-visible:outline-ring">
-        Other milestones · unknown or not applicable ({facts.length})
+        Other care details · unknown or not applicable ({facts.length})
       </summary>
       <p className="mb-2 leading-6">
-        Missing evidence is not an all-clear. Open a milestone for its sources
-        and available actions.
+        Some details are unknown or don’t apply. Open one to see what’s saved;
+        missing information doesn’t confirm there are no issues.
       </p>
       <ul className="space-y-1">
         {facts.map((fact) => (
@@ -375,19 +373,19 @@ function ConnectedOwnershipScope({
                 <Dialog.Title className="text-xl font-semibold">
                   {facts[0]?.consumer?.status ??
                     facts[0]?.title ??
-                    "Ownership evidence"}
+                    "Purchase care details"}
                 </Dialog.Title>
                 <Dialog.Description className="mt-2 text-sm leading-6 text-muted-foreground">
                   {facts.some((f) => f.simulation)
-                    ? "Demo event · fictional purchase-care information. Review the source and conditions below; this is not a real delivery, coverage or payment outcome."
-                    : "Your recorded facts and their sources. Payment, delivery, returns and safety remain independent."}
+                    ? "Sample care example · fictional, not a real delivery, warranty or refund. Sources and conditions are below."
+                    : "Saved details for this purchase. A payment alone doesn’t confirm delivery, a return or safety."}
                 </Dialog.Description>
               </div>
               <Dialog.Close asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label="Close ownership evidence"
+                  aria-label="Close care details"
                 >
                   <X aria-hidden="true" />
                 </Button>
@@ -432,7 +430,7 @@ function ConnectedOwnershipScope({
             )}
             <details className="mt-6 border-t pt-2">
               <summary className="min-h-11 cursor-pointer py-3 font-semibold">
-                All ownership states
+                All care details
               </summary>
               <ul className="space-y-2">
                 {view.facts.map((fact) => (
@@ -458,12 +456,12 @@ function ConnectedOwnershipScope({
             </details>
             <details className="mt-3 border-t pt-2">
               <summary className="min-h-11 cursor-pointer py-3 font-semibold">
-                Recorded ownership history
+                Saved purchase history
               </summary>
               <p className="mb-4 text-xs leading-6 text-muted-foreground">
-                Available source-labeled history, not a claim of complete
-                carrier or merchant coverage. Original sample reminders are not
-                verified lifecycle changes.
+                Each update keeps its original source. This may not be the full
+                seller or carrier history; sample reminders don’t confirm real
+                changes.
               </p>
               <ol className="space-y-6 border-l pl-4">
                 {view.history.map((fact) => (
@@ -491,7 +489,7 @@ function ConnectedOwnershipScope({
             )}
             <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t pt-3">
               <span className="text-xs text-muted-foreground">
-                Saved-record view ·{" "}
+                Saved details as of ·{" "}
                 <time dateTime={view.asOf}>{displayDate(view.asOf)}</time>
               </span>
               <Button
@@ -500,7 +498,7 @@ function ConnectedOwnershipScope({
                 onClick={() => refresh(() => router.refresh())}
               >
                 <RefreshCw aria-hidden="true" />
-                {refreshing ? "Refreshing records…" : "Refresh saved facts"}
+                {refreshing ? "Refreshing records…" : "Refresh saved details"}
               </Button>
             </div>
           </Dialog.Content>
@@ -508,9 +506,9 @@ function ConnectedOwnershipScope({
       </Dialog.Root>
       {changed && (
         <p role="status" className="mt-3 text-sm text-muted-foreground">
-          The ownership view has updated. The current pill and timeline use the
-          refreshed facts and dates; earlier North answers retain their original
-          as-of evidence.
+          Your care details have updated. The status and timeline show the
+          latest saved information; earlier North answers keep their original
+          sources and dates.
         </p>
       )}
     </Journey.Provider>
@@ -522,7 +520,7 @@ export function OwnershipPill({ compact = false }: { compact?: boolean }) {
   if (!journey)
     return (
       <span className="text-sm text-muted-foreground">
-        Ownership evidence unavailable
+        Care details unavailable
       </span>
     );
   const { view, show } = journey;
@@ -600,7 +598,7 @@ export function OwnershipSummary({
   if (!journey)
     return (
       <p className="text-xs text-muted-foreground">
-        Ownership evidence unavailable; no status assumed.
+        Care details unavailable; status unknown.
       </p>
     );
   const { view, show, focused } = journey;
@@ -625,8 +623,8 @@ export function OwnershipSummary({
   return (
     <div className="min-w-0" data-care-timeline>
       <p id={label} className="sr-only">
-        {view.purchase.name} ownership summary. Compressed spacing is not
-        elapsed time. Select a milestone for its evidence.
+        {view.purchase.name} care summary. Spacing is not to scale. Select a
+        milestone for its sources.
       </p>
       <div
         role="region"
@@ -672,7 +670,7 @@ export function OwnershipSummary({
                 }
                 title={
                   view.pill.topic === fact.topic
-                    ? "Current recorded state"
+                    ? "Current saved status"
                     : undefined
                 }
                 aria-haspopup="dialog"
@@ -762,7 +760,7 @@ export function OwnershipSummary({
       </div>
       {next && !secondary && (
         <p className="mt-1 text-xs text-intelligence-foreground">
-          Next recorded window: {careMilestoneLabel(next)} ·{" "}
+          Next care date: {careMilestoneLabel(next)} ·{" "}
           <time dateTime={next.date!}>{displayDate(next.date!)}</time> ·{" "}
           {careMilestoneState(next)} (not a coverage guarantee)
         </p>
@@ -786,7 +784,7 @@ export function OwnershipSummary({
             className="mt-1 min-h-11 font-semibold underline underline-offset-4"
             onClick={(event) => show(focused!, event.currentTarget)}
           >
-            Review evidence & available actions
+            View sources & next steps
           </button>
         </div>
       )}
@@ -802,8 +800,8 @@ export function OwnershipTimeline() {
         role="status"
         className="my-5 rounded-xl border p-4 text-sm text-muted-foreground"
       >
-        Ownership evidence is temporarily unavailable. Your original purchase
-        and receipt remain available; no missing status was assumed.
+        Care details are temporarily unavailable. You can still open your
+        original purchase and receipt. Other statuses remain unknown.
       </p>
     );
   const { view, show } = journey;
@@ -819,22 +817,21 @@ export function OwnershipTimeline() {
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h2 id="ownership-heading" className="text-lg font-semibold">
-            Your ownership timeline
+            Your care timeline
           </h2>
           <p className="mt-1 text-xs leading-6 text-muted-foreground">
-            Compressed timeline · spacing is not elapsed time. Select a
-            milestone for evidence.
+            Select a milestone for details and sources. Spacing is not to scale.
           </p>
         </div>
         <span className="inline-flex items-center gap-1.5 text-xs text-intelligence-foreground">
           <OwnershipIcon topic="north" className="size-4" />
-          Same facts as North
+          Shared with North
         </span>
       </div>
       <div
         className="mt-5 overflow-x-auto overscroll-x-contain pb-2"
         role="region"
-        aria-label="Ownership milestones"
+        aria-label="Care milestones"
         tabIndex={0}
       >
         <ol className="flex min-w-full items-stretch">
@@ -873,7 +870,7 @@ export function OwnershipTimeline() {
                     ? displayDate(fact.date)
                     : fact.state === "not-applicable"
                       ? "Fictional goods"
-                      : "Date not established"}
+                      : "Date unknown"}
                 </span>
                 <span className="mt-1 text-xs leading-5 text-muted-foreground">
                   {fact.status}
@@ -886,7 +883,7 @@ export function OwnershipTimeline() {
       <OtherMilestones facts={otherMilestones} surface="product" />
       <details className="mt-3 border-t pt-1">
         <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold">
-          Expand dates, sources & actions
+          Dates, sources & next steps
         </summary>
         <ol className="space-y-5">
           {view.facts.map((fact) => (

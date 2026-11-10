@@ -123,14 +123,14 @@ function TimelineWidget(params: AgWidgetParams<CustomData, unknown, Context>) {
   if (error)
     return (
       <p role="alert" className="p-5 text-sm text-danger">
-        Care timeline data could not be verified through Studio. No dates or
-        empty-state conclusion are implied.
+        Your timeline couldn’t be checked. Missing events don’t confirm that
+        there are no issues. Your product records are still available.
       </p>
     );
   if (!events)
     return (
       <p role="status" className="p-5 text-sm">
-        Reading saved Care events through Studio…
+        Loading saved care events…
       </p>
     );
   const calendar = params.context.calendar,
@@ -491,7 +491,7 @@ export function CareCalendarStudio({
       JSON.stringify(next.pages[0].filter)
     ) {
       setNotice(
-        "Care event filter could not be verified; inspect the current view.",
+        "The event filter couldn’t be confirmed. Check the current selection.",
       );
       return;
     }
@@ -562,7 +562,7 @@ export function CareCalendarStudio({
             }}
             onErrorRaised={() =>
               setNotice(
-                "Studio reported a Care timeline issue. No event or empty-state conclusion is implied.",
+                "The Care timeline ran into a problem. Missing events don’t confirm that there are no issues.",
               )
             }
           />

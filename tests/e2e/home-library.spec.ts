@@ -168,7 +168,7 @@ test("Documents categories compose with metadata and exact dated purchase filter
     .filter({ hasText: /^Filters & sort/ })
     .click();
   await page
-    .getByRole("combobox", { name: "Dated purchase", exact: true })
+    .getByRole("combobox", { name: "Purchase and date", exact: true })
     .selectOption(kettle);
   await page
     .getByRole("combobox", { name: "Purchase source", exact: true })
@@ -259,9 +259,12 @@ test("legacy Documents view retains category, product, source and page through c
     page.getByRole("heading", { name: "No saved documents", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText("Official Raspberry Pi guidance is stored separately", {
-      exact: false,
-    }),
+    page.getByText(
+      "Official Raspberry Pi guidance is available in Product care, separate from this list",
+      {
+        exact: false,
+      },
+    ),
   ).toBeVisible();
 });
 

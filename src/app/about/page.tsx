@@ -34,7 +34,7 @@ export default function About() {
           <ThemeSelector />
           <Button asChild variant="outline" size="sm">
             <Link href="/dashboard">
-              Explore demo
+              Open Pal Care
               <ArrowRight aria-hidden="true" />
             </Link>
           </Button>
@@ -71,7 +71,7 @@ export default function About() {
               <Button asChild variant="outline" className="min-w-0 max-w-full">
                 <Link href="/vault/00000000-0000-4000-8000-000000000201">
                   <span className="min-w-0 break-words">
-                    Meet a Purchase Twin
+                    See a saved purchase
                   </span>
                   <Layers2 aria-hidden="true" />
                 </Link>
@@ -79,7 +79,8 @@ export default function About() {
             </div>
             <p className="mt-5 flex items-center gap-2 text-sm text-muted-foreground">
               <ShieldCheck className="size-4 shrink-0" aria-hidden="true" />
-              No sign-up. Labeled sample and Sandbox records. No real money.
+              No sign-up. Sample purchases and PayPal Sandbox payments. No real
+              money.
             </p>
           </div>
           <CareIllustration />
@@ -96,8 +97,9 @@ export default function About() {
               Give it a home.
             </h2>
             <p className="mt-5 text-base leading-7 text-muted-foreground">
-              A Purchase Twin brings a product’s details, paperwork, and history
-              together. One thoughtful place to start, every time you need it.
+              A Purchase Twin is your saved purchase record: the product,
+              receipt, documents and history together. Start here when you need
+              a receipt, care guidance or the next step after checkout.
             </p>
           </div>
           <div className="grid gap-5 md:grid-cols-3">
@@ -106,7 +108,7 @@ export default function About() {
                 icon: Layers2,
                 number: "01",
                 title: "The things you own",
-                text: "Open a Purchase Twin for product details, saved paperwork, and history. Sample ownership and verified Sandbox purchases stay clearly distinct.",
+                text: "Find each purchase, its receipt and its history in one place. Sample and verified PayPal Sandbox records are clearly labeled.",
                 href: "/vault",
                 action: "Explore purchases",
               },
@@ -114,7 +116,7 @@ export default function About() {
                 icon: FileText,
                 number: "02",
                 title: "The details you need",
-                text: "Find sample receipts and available documents without digging through email. Real manufacturer manuals are never invented.",
+                text: "Find the right receipt, policy or care guide for your purchase. Official guidance and example documents are clearly distinguished.",
                 href: "/documents",
                 action: "Find documents",
               },
@@ -122,7 +124,7 @@ export default function About() {
                 icon: Sparkles,
                 number: "03",
                 title: "A clearer next step",
-                text: "Read purchase Insights built from saved records and available evidence. See the source and its limits before deciding what to explore next.",
+                text: "Explore your saved purchases with charts and ask North to help you find details or understand available care information.",
                 href: "/insights",
                 action: "Explore Insights",
               },
@@ -165,16 +167,16 @@ export default function About() {
               Clear sources. Clear limits.
             </h2>
             <p className="mt-3 text-sm leading-7 text-muted-foreground">
-              Insights is read-only. Sample records are fictional, available
-              guidance is source-labeled, and a verified Sandbox payment does
-              not establish warranty coverage or product safety.
+              Insights is read-only: exploring it never changes your purchase
+              records. Every purchase keeps its own sources. Sample purchases
+              are fictional; verified PayPal Sandbox purchases use test money.
+              Care guidance and policy details show what is available—and what
+              still needs confirmation.
             </p>
           </div>
           <Button asChild variant="outline" className="min-w-0 max-w-full">
             <Link href="/shop">
-              <span className="min-w-0 break-words">
-                Visit the Sandbox shop
-              </span>
+              <span className="min-w-0 break-words">Browse products</span>
               <ArrowUpRight aria-hidden="true" />
             </Link>
           </Button>
@@ -186,11 +188,10 @@ export default function About() {
           <p className="mt-3">Everything you own. All cared for.</p>
         </div>
         <p className="max-w-md text-sm leading-7">
-          Independent PayPal AI Hackathon project. Not an official PayPal
-          product, warranty, insurance, or coverage promise. North Star fixture
-          answers are labeled demonstrations; real AI is available only in the
-          authorized private preview. Live monitoring and financial activation
-          remain separate.
+          An independent PayPal AI Hackathon project, not an official PayPal
+          service. North uses available purchase records and source-backed
+          guidance; AI features require an authorized connection. Pal Care does
+          not guarantee warranty coverage, product safety or a refund.
         </p>
       </footer>
     </div>

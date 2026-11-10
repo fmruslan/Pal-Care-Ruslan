@@ -292,7 +292,7 @@ test("receipt → totals → Audio → native chart → exact product care → p
   expect(chart.answer.recordsResult.records).toHaveLength(2);
   await expect(page).toHaveURL(/\/insights$/);
   await expect(inline.getByRole("status")).toContainText(
-    "executed and verified",
+    "The chart, separate USD totals, filters and matching purchases were checked",
     { timeout: 25000 },
   );
   await expect(
@@ -432,10 +432,10 @@ test("explicit purchase B remains authoritative after reload while result A stay
     .getByRole("button", { name: "Find receipt", exact: true })
     .click();
   await north(page)
-    .getByRole("button", { name: "Change context", exact: true })
+    .getByRole("button", { name: "Choose purchase", exact: true })
     .click();
   await page
-    .getByRole("dialog", { name: "Purchase context", exact: true })
+    .getByRole("dialog", { name: "Choose a purchase", exact: true })
     .getByRole("button", { name: /Pour-over kettle/ })
     .click();
   await expect(
@@ -504,7 +504,7 @@ test("ordinary result lists and controls reflow at 320px and 200% text without a
     .getByRole("button", { name: "Ask North Star", exact: true })
     .click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "What would you like to find?",
+    "How can I help with your purchases?",
   );
   await ask(page, "Show all my purchases");
   await page.evaluate(() => {
@@ -641,7 +641,7 @@ test("literal search remains provider-free during a pending answer and late char
       north(page).locator(`[data-request-id="${turn.requestId}"]`),
     ).toBeVisible();
     await expect(north(page).getByRole("status")).not.toContainText(
-      "executed and verified",
+      "The chart, separate USD totals, filters and matching purchases were checked",
     );
     await expect(page).toHaveURL(
       (url) =>

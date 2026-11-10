@@ -33,7 +33,10 @@ async function open(page: Page) {
   }
   await expect(dialog).toBeVisible();
   await expect(
-    dialog.getByText("Working… your next draft is kept.", { exact: true }),
+    dialog.getByText(
+      "Working on your question. You can keep writing your next one.",
+      { exact: true },
+    ),
   ).toHaveCount(0);
   return dialog;
 }
@@ -123,7 +126,7 @@ test("actual saved records → bullets → totals → category/date follow-up re
   );
   await expect(total.article).toContainText("$307.00");
   await expect(total.article).toContainText(
-    "3 priced · 1 unpriced/reference excluded",
+    "3 with a saved price · 1 unpriced or reference items left out",
   );
   await expect(total.article).toContainText("Verified Sandbox purchase value");
   const electronics = await ask(page, "Only electronics");
@@ -179,7 +182,7 @@ test("North opens library-first and what have I bought returns linked results wi
     "All saved purchases",
   );
   await expect(
-    dialog.getByRole("button", { name: "Change context", exact: true }),
+    dialog.getByRole("button", { name: "Choose purchase", exact: true }),
   ).toBeEnabled();
   await expect(
     page.getByText("Powered by CareOS", { exact: true }),
@@ -193,7 +196,7 @@ test("North opens library-first and what have I bought returns linked results wi
     result.article.getByRole("link", { name: /^Everyday headphones/ }),
   ).toHaveAttribute("href", "/vault/00000000-0000-4000-8000-000000000201");
   await expect(
-    page.getByRole("dialog", { name: "Purchase context", exact: true }),
+    page.getByRole("dialog", { name: "Choose a purchase", exact: true }),
   ).toHaveCount(0);
   expect(prohibited).toEqual([]);
 });
@@ -301,7 +304,7 @@ test("enlarged narrow-screen text keeps result and composer reachable in page fl
     ratio: 1,
   });
   const context = dialog.getByRole("button", {
-    name: "Change context",
+    name: "Choose purchase",
     exact: true,
   });
   await context.focus();
@@ -467,7 +470,7 @@ test("leaving before a chart response keeps the late saved answer without reopen
     );
     await expect(page).toHaveURL(/\/documents$/);
     await expect(article.getByRole("status")).toContainText(
-      "not yet confirmed",
+      "Your chart isn’t confirmed yet",
     );
     await expect(page.getByTestId("customer-studio")).toHaveCount(0);
     expect(unexpectedInsights).toEqual([]);
@@ -604,15 +607,15 @@ test("saved totals apply a real native chart and provenance KPIs, then exact pro
   const totals = await ask(page, "What is the recorded total for those?");
   await expect(
     totals.article.getByRole("button", {
-      name: "Show native chart",
+      name: "Show chart in Insights",
       exact: true,
     }),
   ).toBeVisible();
   await totals.article
-    .getByRole("button", { name: "Show native chart", exact: true })
+    .getByRole("button", { name: "Show chart in Insights", exact: true })
     .click();
   await expect(totals.article.getByRole("status")).toContainText(
-    "executed and verified",
+    "The chart, separate USD totals, filters and matching purchases were checked",
     { timeout: 15000 },
   );
   const studio = page.getByTestId("customer-studio");
@@ -692,7 +695,7 @@ test("a newly submitted chart follow-up opens the one Insights workspace and exe
   );
   await expect(page).toHaveURL(/\/insights$/);
   await expect(chart.article.getByRole("status")).toContainText(
-    "executed and verified",
+    "The chart, separate USD totals, filters and matching purchases were checked",
     { timeout: 20000 },
   );
   await expect(page.getByTestId("customer-studio")).toHaveCount(1);
@@ -750,7 +753,9 @@ test("a newly submitted chart follow-up opens the one Insights workspace and exe
   dialog = await open(page);
   const saved = dialog.locator(`[data-request-id="${chart.turn.requestId}"]`);
   await expect(saved.locator("[data-records-result]")).toBeVisible();
-  await expect(saved).not.toContainText("executed and verified");
+  await expect(saved).not.toContainText(
+    "The chart, separate USD totals, filters and matching purchases were checked",
+  );
   await expect(page.getByTestId("customer-studio")).toHaveCount(1);
   const widgets = page
     .getByTestId("customer-studio")
@@ -802,7 +807,7 @@ test("reopening a completed chart preserves manual native filters and still perm
   const first = await ask(page, "Show my purchases");
   const chart = await ask(page, "Show that by category as a chart");
   await expect(chart.article.getByRole("status")).toContainText(
-    "executed and verified",
+    "The chart, separate USD totals, filters and matching purchases were checked",
     { timeout: 20000 },
   );
   await dialog
@@ -991,7 +996,9 @@ test("document and priced predicates produce a desktop table or narrow linked ca
   await expect(rendered).not.toContainText("Raspberry Pi");
   const empty = await ask(page, "Show my purchases without documents");
   expect(empty.turn.answer.recordsResult?.records).toEqual([]);
-  await expect(empty.article).toContainText("No matching saved purchases");
+  await expect(empty.article).toContainText(
+    "No saved purchases match these filters. Your filters are still in place.",
+  );
 });
 
 test("care follow-up stays with the exact product; explicit analysis and short formatting resume the retained library result", async ({

@@ -182,13 +182,13 @@ export function careStatusAnswer(
           }
         : null,
       text: matching.some(({ fact }) => fact.consumer)
-        ? `Here's what's happening and what you can do next, evaluated at ${feed.observedAt} UTC. Events marked Demo are fictional source snapshots from ${feed.demoAsOf}; no real delivery, coverage or refund is confirmed.${unavailable ? " Some information is unavailable." : ""}`
-        : `${known ? "Here is what the shared ownership records show." : "No verified outcome or deadline is established in the available evidence."}${unavailable ? " Some evidence is unavailable or incomplete; absence is not confirmed." : ""}${normalized === "returns" ? " I can help prepare a return enquiry; nothing is submitted." : ""} These are source-linked facts, not permission to send requests or money.`,
+        ? `Here’s what needs a look and what you can do next. Sample events are fictional examples saved on ${feed.demoAsOf}; they do not confirm a real delivery, warranty or refund.${unavailable ? " Some information is unavailable." : ""}`
+        : `${known ? "Here’s what your saved purchase details show." : "No confirmed outcome or deadline is saved in the available records."}${unavailable ? " Some information is unavailable or incomplete, so a missing result is not confirmation." : ""}${normalized === "returns" ? " I can help draft an enquiry for you to review and send." : ""} Open the sources below to check the details before taking action.`,
       steps: matching
         .slice(0, 16)
         .map(({ fact, purchase }) =>
           fact.consumer
-            ? `${purchase.name} (${purchase.purchasedOn}) — ${fact.consumer.status} · Demo. ${fact.consumer.summary} Next: ${fact.consumer.nextStep}${fact.topic === "safety" ? " No official recall match is established." : ""}`
+            ? `${purchase.name} (${purchase.purchasedOn}) — ${fact.consumer.status} · Sample. ${fact.consumer.summary} Next: ${fact.consumer.nextStep}${fact.topic === "safety" ? " No official recall match is established." : ""}`
             : `${purchase.name} (${purchase.purchasedOn}) — ${fact.title}: ${fact.status}. ${fact.detail} ${fact.provenance}.`,
         ),
       sources: [
@@ -229,14 +229,14 @@ export function careStatusAnswer(
   );
   const gaps =
     topic === "returns"
-      ? "No supported return progress is available in these loaded records. I can help prepare a return enquiry; nothing is submitted."
+      ? "There are no saved return updates for these purchases. I can help draft an enquiry for you to review and send."
       : topic === "warranty"
-        ? "No verified warranty expiration dates are recorded. I won't infer coverage from a purchase date. Fictional goods have no real warranty."
+        ? "No confirmed warranty end date is saved. Check the seller’s or manufacturer’s terms; a purchase date alone doesn’t establish coverage. Sample products have no real warranty."
         : topic === "refunds"
-          ? "No verified refund is recorded in the available evidence. Purchase payment evidence is not refund evidence."
+          ? "No confirmed refund is saved for these purchases. A receipt confirms the payment, not a refund."
           : topic === "price"
-            ? "No current supported price or watch finding is available. Missing records never establish active monitoring or refund eligibility."
-            : "No actions were found in the available records. This is not an all-clear or a promise of monitoring, warranty coverage or refund eligibility.";
+            ? "No current price check is available. Open the purchase to review its saved price information and any applicable policy."
+            : "There are no next steps in the available records. You can still open each purchase to review its documents and any missing information.";
   const recorded =
     topic === "warranty"
       ? feed.savedCare.warranties
@@ -312,8 +312,8 @@ export function careStatusAnswer(
         : null,
     text: hasFacts
       ? items.some(consumerFor)
-        ? "Here's what needs a look and what you can do next. Demo events are fictional; their sources and conditions are available in the details. No real financial action was performed."
-        : `Here is what your available Care records show. ${feed.unavailable.length || !feed.complete ? "Some evidence is unavailable or incomplete. " : ""}These are source-linked findings, not permission to make financial changes.`
+        ? "Here’s what needs a look and what you can do next. Sample events are examples; open the details to review their sources and conditions."
+        : `Here’s what your saved Care information shows. ${feed.unavailable.length || !feed.complete ? "Some information is unavailable or incomplete. " : ""}Open a purchase below to review its sources and next steps.`
       : `${gaps}${feed.unavailable.length || !feed.complete ? " Some evidence is unavailable or incomplete, so absence is not confirmed." : ""}`,
     steps: recorded.length
       ? [
@@ -326,7 +326,7 @@ export function careStatusAnswer(
           .slice(0, 8)
           .map((item) =>
             consumerFor(item)
-              ? `${item.purchase.name} (${item.purchase.purchasedOn}) — ${consumerFor(item)!.consumer!.status} · Demo. ${consumerFor(item)!.consumer!.summary} Next: ${consumerFor(item)!.consumer!.nextStep}`
+              ? `${item.purchase.name} (${item.purchase.purchasedOn}) — ${consumerFor(item)!.consumer!.status} · Sample. ${consumerFor(item)!.consumer!.summary} Next: ${consumerFor(item)!.consumer!.nextStep}`
               : `${item.purchase.name} (${item.purchase.purchasedOn}) — ${item.status}. ${item.detail} ${item.provenance}.`,
           ),
     sources: [
@@ -334,7 +334,7 @@ export function careStatusAnswer(
         (consumerFor(item)?.sources ?? []).map((source) => ({
           id: `${item.id}:${source.href}`,
           title: source.label,
-          label: "Demo source · fictional scenario",
+          label: "Sample event source",
           href: source.href,
         })),
       ),

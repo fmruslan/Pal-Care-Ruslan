@@ -15,7 +15,7 @@ export function PurchaseMetrics({
       aria-label="Saved purchase totals"
     >
       {[
-        { icon: Archive, value: purchases, label: "Available purchases" },
+        { icon: Archive, value: purchases, label: "Saved purchases" },
         { icon: FileText, value: documents, label: "Saved documents" },
         {
           icon: ShieldCheck,

@@ -186,10 +186,10 @@ export function useInsightsConversation(
             answer: {
               ...unavailableAnswer(
                 plan
-                  ? "Saved Insights plan. Its earlier browser execution has not been re-verified after reload. Open Insights to inspect the current view; nothing was applied automatically."
+                  ? "This saved answer describes an earlier Insights view. Open Insights to check the current view; no changes were reapplied after reload."
                   : invalid
-                    ? "This saved Insights plan could not be validated. Its original request has not been resent or applied."
-                    : "This saved Insights request could not finish. Its usage remains accounted for; nothing was resent.",
+                    ? "We couldn’t check this saved Insights answer. Your question was not sent again and no view change was applied."
+                    : "This Insights question could not finish. It has not been sent again.",
               ),
               ...(plan
                 ? { outcome: "answered", customerPresentation: plan }
@@ -261,8 +261,8 @@ export function useInsightsConversation(
       setPending(asPending(hint.current ?? value, "uncertain"));
       setError(
         abort.signal.aborted
-          ? "Dashboard request stopped. Changes already applied remain visible. Check the saved plan before continuing; no automatic retry."
-          : "The dashboard result is unconfirmed. Check the saved plan before continuing; your original request will not be sent again.",
+          ? "The view change stopped. Any changes already made remain visible. Check for a saved answer before continuing; North won’t retry automatically."
+          : "North couldn’t confirm the view change. Check for a saved answer before continuing; your question won’t be sent again.",
       );
     } finally {
       controller.current = null;
@@ -360,7 +360,7 @@ export function useInsightsConversation(
       ]);
     } catch {
       setError(
-        "Saved plan unavailable or access expired. Nothing was resent or applied.",
+        "The saved answer is unavailable, or your access has ended. Nothing was sent again or applied.",
       );
     } finally {
       controller.current = null;

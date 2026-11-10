@@ -42,12 +42,12 @@ export function TestingAccess({
       if (!response.ok) throw new Error();
       setAccess(testingAccessStatusSchema.parse(await response.json()));
       setMessage(
-        "Access checked. No token refresh, renewal or model call was performed.",
+        "Access checked. Nothing was renewed or reconnected, and no AI question was sent.",
       );
     } catch {
       setAccess(null);
       setMessage(
-        "Status unavailable. Check your Tailscale connection and try again. Access has not been granted.",
+        "We couldn’t check access. Check your Tailscale connection and try again. Access hasn’t been granted; saved purchases, documents and Insights are still available.",
       );
     } finally {
       checking.current = false;
@@ -68,7 +68,7 @@ export function TestingAccess({
           {access?.window === "expired"
             ? "Testing session expired"
             : access?.window === "active"
-              ? "Testing window active · browser permission still required"
+              ? "Testing window open · this browser still needs permission"
               : "Testing access unavailable"}
         </p>
         {access?.expiresAt && (
@@ -78,8 +78,8 @@ export function TestingAccess({
           </p>
         )}
         <p className="mt-2 text-sm text-muted-foreground">
-          Saved purchases, documents and native Insights remain available.
-          Reopening the site does not renew AI access.
+          Saved purchases, documents and Insights remain available. Reopening
+          the site does not renew AI access.
         </p>
         <Button
           variant="outline"
@@ -91,18 +91,17 @@ export function TestingAccess({
         </Button>
       </div>
       <div className="space-y-2 text-sm leading-6">
-        <h3 className="font-semibold">Do I need to refresh a token?</h3>
+        <h3 className="font-semibold">Will signing in again restore access?</h3>
         <p>
-          <strong>Not for an expired testing window.</strong> Pal Care testing
-          permission and your provider sign-in are different. Refreshing an
-          OAuth token cannot renew testing permission.
+          <strong>Not if the testing window has expired.</strong> Signing in to
+          the AI provider and having permission to use North are separate.
+          Signing in again won’t extend an approved window.
         </p>
         <p>
-          The existing server adapter supports provider-token refresh during
-          authorized use. This page neither checks provider validity nor
-          refreshes/reconnects it. If sign-in is genuinely required, the owner
-          must use the approved provider sign-in flow separately. Never paste an
-          OpenAI key, ChatGPT token or refresh token here or into chat.
+          This page doesn’t check or reconnect the AI provider. If a new sign-in
+          is needed, the owner must use the approved provider sign-in process
+          separately. Never paste an OpenAI key, ChatGPT token or refresh token
+          here or into chat.
         </p>
       </div>
       <form
@@ -118,10 +117,10 @@ export function TestingAccess({
       >
         <h3 className="font-semibold">Request testing access</h3>
         <p className="text-sm text-muted-foreground">
-          This site cannot establish owner identity from tailnet access alone.
-          Approval stays in your existing owner OpenCode conversation; no new
-          login system or SSH tunnel is needed. HTTPS browser pairing and
-          activation are still separate, currently disabled steps.
+          Reaching this private site doesn’t verify you as the owner. Review the
+          request in your existing owner OpenCode conversation. This page only
+          prepares text; browser connection and activation remain separate and
+          are currently disabled here.
         </p>
         <label className="block text-sm">
           Requested duration
@@ -138,7 +137,9 @@ export function TestingAccess({
           </select>
         </label>
         <fieldset className="space-y-1">
-          <legend className="text-sm font-semibold">Requested scopes</legend>
+          <legend className="text-sm font-semibold">
+            What would you like to use?
+          </legend>
           {(["customer", "studio"] as const).map((scope) => (
             <label
               key={scope}
@@ -158,14 +159,14 @@ export function TestingAccess({
               />
               {scope === "customer"
                 ? "North Star chat"
-                : "North Star planning for my Insights"}
+                : "North Star help with my Insights"}
             </label>
           ))}
         </fieldset>
         <p className="text-sm">
-          Allowance: existing remaining requests only, after fresh owner
-          verification. Counts and exact expiry must be reviewed before
-          activation. No quota reset or automatic renewal.
+          Only the existing remaining AI allowance can be used, after the owner
+          checks access, usage and expiry. This request doesn’t add allowance,
+          reset usage or renew access automatically.
         </p>
         <Button disabled={!scopes.length}>Prepare testing request</Button>
       </form>
@@ -209,7 +210,7 @@ export function TestingAccess({
           href="/dashboard"
           className="inline-flex min-h-11 items-center underline"
         >
-          Back to Home
+          Back to Care
         </Link>
         <Link
           href="/insights"

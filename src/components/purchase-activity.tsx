@@ -7,18 +7,20 @@ export function PurchaseActivity({ activity }: { activity: Activity }) {
     <div>
       {!!activity.unavailable.length && (
         <p role="status" className="mb-4 text-sm text-warning">
-          Partial activity: {activity.unavailable.join(", ")} unavailable.
-          Missing evidence is not an all-clear.
+          Some history is unavailable: {activity.unavailable.join(", ")}.
+          Missing records do not confirm that there are no issues.
         </p>
       )}
-      <ol aria-label="Unified purchase activity" className="space-y-3">
+      <ol aria-label="Purchase activity" className="space-y-3">
         {activity.items.slice(0, 30).map((item) => (
           <li key={item.id}>
             <Card>
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h3 className="text-sm font-semibold">{item.title}</h3>
                 <Badge tone={item.verified ? "success" : "neutral"}>
-                  {item.verified ? "Verified Sandbox" : "Source-labeled record"}
+                  {item.verified
+                    ? "Verified Sandbox"
+                    : "Saved record · see source"}
                 </Badge>
               </div>
               <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -37,7 +39,7 @@ export function PurchaseActivity({ activity }: { activity: Activity }) {
                 className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-primary"
                 href={item.href}
               >
-                Inspect activity evidence →
+                View source →
               </Link>
             </Card>
           </li>
@@ -50,8 +52,7 @@ export function PurchaseActivity({ activity }: { activity: Activity }) {
       )}
       {activity.items.length > 30 && (
         <p className="mt-3 text-xs text-muted-foreground">
-          Showing the newest 30 activity records; source timelines retain their
-          own evidence.
+          Showing the latest 30 updates. Open a source for more detail.
         </p>
       )}
     </div>

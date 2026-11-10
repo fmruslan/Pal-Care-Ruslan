@@ -12,7 +12,7 @@ import { notFound } from "next/navigation";
 import { journeyContext, type JourneyQuery } from "@/lib/careos/journey";
 import { findTwin, recordIdSchema } from "@/lib/demo/presentation";
 import { CareContextRegistration } from "@/components/careos/provider";
-export const metadata = { title: "Recall Guardian" };
+export const metadata = { title: "Recall information" };
 export default async function SafetyPage({
   searchParams,
 }: {
@@ -35,26 +35,26 @@ export default async function SafetyPage({
       <CareContextRegistration context={journey.context} />
       {journey.context && (
         <p className="mb-5 text-sm" role="note">
-          Discussing {journey.context.name} · {journey.context.model}.{" "}
+          For {journey.context.name} · {journey.context.model}.{" "}
           <Link
             href={journey.back}
             className="inline-flex min-h-11 items-center font-semibold text-primary"
           >
-            Return to source product →
+            Back to product →
           </Link>
         </p>
       )}
       <PageHeading
-        eyebrow="Pal Care · Recall Guardian"
-        title="Safety starts with evidence."
-        description="Official notices. Exact product identifiers. Clear uncertainty—never a blanket promise that a product is safe."
+        eyebrow="Pal Care · Recall information"
+        title="Check the official recall notice"
+        description="This view covers one reviewed CPSC notice. Check the exact model and identifiers before deciding whether it applies to your product. No match does not prove a product is safe."
       />
       <div className="mb-6 flex flex-wrap gap-3">
         <Badge tone="blue">Official CPSC notice · 24-159</Badge>
         <Badge>
           {safety.mode === "bundled_official_snapshot"
-            ? "Bundled official snapshot · not a live check"
-            : "Saved official API retrieval"}
+            ? "Saved official notice · not a live check"
+            : "Saved copy from the official source"}
         </Badge>
         <Badge tone="warning">Limited coverage · one reviewed notice</Badge>
       </div>
@@ -63,8 +63,8 @@ export default async function SafetyPage({
           role="alert"
           className="mb-5 rounded-xl border p-4 text-sm text-warning"
         >
-          The latest source check failed. Saved evidence remains available; no
-          current all-clear is established.
+          The latest source check failed. You can still read the saved notice,
+          but it does not confirm current recall status or product safety.
         </p>
       )}
       {record ? (
@@ -89,18 +89,18 @@ export default async function SafetyPage({
       ) : (
         <Card className="mb-6">
           <h2 className="section-title">
-            Your existing purchases are unchanged.
+            A limited recall example, not a full safety check
           </h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             Forma and Hearth products are fictional. No recall is asserted for
-            them. This release checks one reviewed CPSC notice, not the entire
+            them. This view checks one reviewed CPSC notice, not the entire
             recall database, and absence of a match is not proof of safety.
           </p>
           <Link
             href="/safety?example=insignia"
             className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-primary"
           >
-            Explore fictional ownership with real recall evidence →
+            View a fictional product example with a real notice →
           </Link>
         </Card>
       )}
@@ -109,7 +109,7 @@ export default async function SafetyPage({
           <h2 className="section-title">{source.Title}</h2>
           <p className="mt-4 text-sm leading-7">{source.Description}</p>
           <p className="mt-4 text-xs text-muted-foreground">
-            Published {source.RecallDate.slice(0, 10)} · Official API recall ID{" "}
+            Published {source.RecallDate.slice(0, 10)} · Official recall ID{" "}
             {source.RecallID}
           </p>
           <a
@@ -139,7 +139,7 @@ export default async function SafetyPage({
           </p>
           <details className="mt-4">
             <summary className="min-h-11 cursor-pointer text-sm font-semibold">
-              Read the attributed official remedy
+              Read CPSC’s remedy instructions
             </summary>
             {source.Remedies.map((r, i) => (
               <blockquote
@@ -165,29 +165,31 @@ export default async function SafetyPage({
         </Card>
       </div>
       <Card className="mt-6">
-        <h2 className="section-title">Evidence passport</h2>
+        <h2 className="section-title">About this source</h2>
         <dl className="mt-4 space-y-3 text-sm">
           <div>
-            <dt className="text-muted-foreground">Retrieved</dt>
+            <dt className="text-muted-foreground">Copy saved</dt>
             <dd>{retrievedAt}</dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">Scope</dt>
+            <dt className="text-muted-foreground">What this check covers</dt>
             <dd>
-              One official historical notice. No continuous monitoring or
-              physical identity verification.
+              One historical official notice. Recalls are not continuously
+              monitored, and your physical product’s identifiers have not been
+              verified.
             </dd>
           </div>
           <div>
             <dt className="text-muted-foreground">
-              Revision fingerprint · SHA-256
+              Saved source fingerprint · SHA-256
             </dt>
             <dd className="mt-1 break-all font-mono text-xs">{hash}</dd>
           </div>
           <div>
-            <dt className="text-muted-foreground">Matching engine</dt>
+            <dt className="text-muted-foreground">Matching method</dt>
             <dd>
-              cpsc-exact-v1 · a changed source requires applicability review.
+              cpsc-exact-v1 · if the source changes, its match to this product
+              needs to be reviewed again.
             </dd>
           </div>
         </dl>

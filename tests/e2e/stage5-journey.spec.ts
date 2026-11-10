@@ -24,7 +24,7 @@ test("customer journey preserves purchase identity through CareOS, recall, repla
   );
   await expect(page.locator('a[href^="/merchant"]')).toHaveCount(0);
   const activity = page.getByRole("list", {
-    name: "Unified purchase activity",
+    name: "Purchase activity",
   });
   await expect(activity).toBeVisible();
   await expect(activity).not.toContainText("Kettle · sample receipt");
@@ -73,7 +73,7 @@ test("customer journey preserves purchase identity through CareOS, recall, repla
     page.getByRole("button", { name: "Ask North Star", exact: true }),
   ).toBeVisible();
   await page
-    .getByRole("link", { name: "Return to source product →", exact: true })
+    .getByRole("link", { name: "Back to product →", exact: true })
     .click();
   await page.getByRole("link", { name: "View receipt", exact: true }).click();
   await expect(

@@ -131,18 +131,40 @@ describe("customer navigation contract", () => {
       "/replacements",
     ]);
     expect(customerExploreNavigation.map(({ label }) => label)).toEqual([
-      "Demo shop",
+      "Browse products",
       "Price adjustment review",
       "Safety information",
       "Replacement ideas",
     ]);
     for (const { description } of customerExploreNavigation)
       expect(textContent(markup)).toContain(description);
-    expect(textContent(markup)).toContain("A proposal is not a refund");
+    expect(textContent(markup)).toContain("A request is not a refund");
     expect(textContent(markup)).toContain(
-      "not comprehensive recall monitoring",
+      "product details still need confirmation",
     );
-    expect(textContent(markup)).toContain("Fixture examples, not live offers");
+    expect(textContent(markup)).toContain(
+      "Not comprehensive recall monitoring",
+    );
+    expect(textContent(markup)).toContain("not current prices or live offers");
+  });
+
+  it("keeps sample and Sandbox provenance in the purchase disclosure and links About", () => {
+    const markup = renderShell();
+    const disclosure = markup.match(
+      /<details\b[^>]*class="demo-details"[^>]*>([\s\S]*?)<\/details>/,
+    )![1];
+    const text = textContent(disclosure);
+    expect(text).toContain("Sample purchases & PayPal Sandbox");
+    expect(text).toContain("fictional Sample purchases");
+    expect(text).toContain("verified PayPal Sandbox purchases");
+    expect(text).toContain("Sandbox payments use no real money");
+    expect(text).toContain(
+      "a payment does not confirm delivery, warranty coverage or product safety",
+    );
+    expect(text).toContain(
+      "Raspberry Pi 5 has a sample ownership record, not a verified purchase",
+    );
+    expect(markup).toMatch(/<a\b[^>]*href="\/about"[^>]*>About Pal Care<\/a>/);
   });
 
   it("removes customer-to-merchant switches without removing merchant navigation", () => {
@@ -169,10 +191,8 @@ describe("customer navigation contract", () => {
     expect(text).not.toContain("For merchants");
     expect(landing).toContain('href="/insights"');
     expect(text).toContain("Insights is read-only");
-    expect(text).toContain("fixture answers are labeled demonstrations");
-    expect(text).toContain(
-      "real AI is available only in the authorized private preview",
-    );
+    expect(text).toContain("Sample purchases are fictional");
+    expect(text).toContain("AI features require an authorized connection");
     expect(text).not.toContain("AI and monitoring are not active yet");
   });
   it("opens Care rather than the marketing page by default", () => {

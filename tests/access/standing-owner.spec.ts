@@ -518,7 +518,7 @@ test("current browser auth gates Send and legacy unsent hello recovers without c
   });
   await input.fill("Keep my current draft");
   await expect(dialog.getByLabel("Browser AI access")).toContainText(
-    "not verified yet",
+    "Connect this browser through AI access to ask North. Your draft is kept.",
   );
   await expect(
     dialog.getByRole("button", { name: "Send to North Star" }),
@@ -607,7 +607,7 @@ test("current browser auth gates Send and legacy unsent hello recovers without c
   await owner.revokeSession(id);
   await page.evaluate(() => window.dispatchEvent(new Event("focus")));
   await expect(dialog.getByLabel("Browser AI access")).toContainText(
-    "not verified yet",
+    "Connect this browser through AI access to ask North. Your draft is kept.",
   );
   await expect(
     dialog.getByRole("button", { name: "Send to North Star" }),

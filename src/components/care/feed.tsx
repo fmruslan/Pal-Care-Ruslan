@@ -56,8 +56,8 @@ function GroupedPurchaseHistory({
           ) : null;
         })}
       <p className="text-xs leading-6">
-        Care shown: {identity(selected)} only. Each purchase keeps its own
-        sources and history.
+        Care details apply only to {identity(selected)}. Other purchases have
+        separate records.
       </p>
       <details>
         <summary className="inline-flex min-h-11 cursor-pointer items-center rounded-lg focus-visible:outline-2 focus-visible:outline-ring">
@@ -179,7 +179,7 @@ function CareCard({
           simulated.topic === "safety"
             ? "Review notice"
             : simulated.topic === "delivery"
-              ? "Track demo delivery"
+              ? "View delivery example"
               : simulated.topic === "warranty"
                 ? "View terms"
                 : "Review example",
@@ -188,7 +188,7 @@ function CareCard({
     : item.group === "action"
       ? item.action
       : protection.monitoring
-        ? { label: "Protection details", href: `/care/${p.id}#price` }
+        ? { label: "Price check details", href: `/care/${p.id}#price` }
         : { label: "Details", href: p.href };
   return (
     <OwnershipScope view={view} surface="care">
@@ -222,7 +222,7 @@ function CareCard({
                 </time>{" "}
                 ·{" "}
                 {p.origin === "sandbox"
-                  ? "Sandbox purchase"
+                  ? "Verified Sandbox"
                   : "Sample purchase"}{" "}
                 {simulated ? "" : ` · ${p.model}`}
               </p>
@@ -244,7 +244,7 @@ function CareCard({
                 className={`inline-flex ${simulated ? "min-h-11" : "min-h-8"} cursor-pointer items-center gap-1 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
               >
                 <Info className="size-3" aria-hidden="true" />
-                Evidence
+                Sources
               </summary>
               <p className="mb-2 max-w-2xl leading-6">{protection.detail}</p>
               {findings.map((f) => (
@@ -321,18 +321,18 @@ export function CareFeedView({
           role="status"
           className="mb-4 rounded-xl border p-3 text-sm text-muted-foreground"
         >
-          Some evidence is unavailable or incomplete
+          Some care information is missing or unavailable
           {feed.unavailable.length ? `: ${feed.unavailable.join(", ")}` : ""}.
-          Missing information is not an all-clear.
+          This doesn’t confirm that there are no issues.
         </p>
       )}
       {notifications.length > 0 && (
         <section
-          aria-label="Protection notifications"
+          aria-label="Price check updates"
           className="mb-5 rounded-xl border border-intelligence-border bg-intelligence p-3 text-sm"
         >
           <h2 className="font-semibold text-intelligence-foreground">
-            Protection updates
+            Price check updates
           </h2>
           <ul className="mt-1 space-y-1">
             {notifications.map(({ protection, notice }) => (
@@ -347,7 +347,7 @@ export function CareFeedView({
                     ? "Possible adjustment"
                     : "Window ending"}
                   {notice.historical
-                    ? " · historical, review current evidence"
+                    ? " · past update, check current details"
                     : ""}{" "}
                   · {displayDate(notice.at)}
                 </Link>
@@ -375,8 +375,8 @@ export function CareFeedView({
           </h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {selected === "completed"
-              ? "Completed means a resolved tracking action, not simply a purchased product."
-              : "Missing coverage is not an all-clear. All purchases remain available in the default view."}
+              ? "Completed tasks appear here once their outcome is recorded. A purchase alone isn’t a completed care task."
+              : "Missing information doesn’t confirm coverage or safety. Choose All purchases to see the full saved collection."}
           </p>
           <Link
             className="mt-2 inline-flex min-h-8 items-center text-sm font-semibold text-primary"
@@ -421,24 +421,24 @@ export function CareFeedView({
       )}
       <details className="mt-5 text-xs text-muted-foreground">
         <summary className="inline-flex min-h-8 cursor-pointer items-center">
-          About your Care coverage
+          What Care can show
         </summary>
         <ul className="mt-1 list-disc space-y-1 pl-4 leading-6">
           <li>
-            Being cared for includes quiet ownership; it does not promise active
-            monitoring.
+            Being cared for can mean no action is needed in the available
+            records. It doesn’t promise active monitoring.
           </li>
           <li>
             {feed.demoAsOf
-              ? "Demo watches preview fictional price checks; they are not live external tracking. Real monitoring needs an applicable policy, supported source, schedule and recent successful checks."
+              ? "Example price checks use a fictional catalog, not live retailer tracking. Active monitoring requires applicable terms, a supported source, a schedule and recent successful checks."
               : "Watching requires a verified applicable policy/window, a supported source, an actual schedule and fresh successful checks."}
           </li>
           <li>{feed.tracking.watches}</li>
           <li>{feed.tracking.returns}</li>
           <li>{feed.tracking.warranties}</li>
           <li>
-            Fictional goods do not ship or carry a real warranty. Verified
-            Sandbox payment establishes payment only.
+            Fictional goods don’t ship or carry a real warranty. A Verified
+            Sandbox payment confirms a test payment only.
           </li>
         </ul>
       </details>

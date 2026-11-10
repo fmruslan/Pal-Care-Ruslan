@@ -9,10 +9,10 @@ describe("explicit append-only customer acceptance phases", () => {
     for (const text of ["", " ", "\n\t"])
       expect(customerAlertText.test(text)).toBe(false);
     for (const text of [
-      "Some evidence could not be loaded",
-      "These widget records could not be validated",
+      "Some information could not be loaded",
+      "We could not check the purchases in this panel",
       "unavailable",
-      "\nNo confirmed answer yet.\t",
+      "\nYour answer isn’t confirmed yet.\t",
     ])
       expect(customerAlertText.test(text)).toBe(true);
   });

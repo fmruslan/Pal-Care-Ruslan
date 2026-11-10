@@ -17,15 +17,15 @@ export function CareOSPanel({ compact = false }: { compact?: boolean }) {
       </h2>
       <p className="mt-3 text-sm leading-7 text-muted-foreground">
         {compact
-          ? "Find saved receipts, explore matched guidance and keep purchase details close. Live monitoring is not active."
-          : "North Star brings receipts, purchase details and available product guidance together in Pal Care. Fixture answers are demonstrations; no live AI inference is claimed."}
+          ? "Find your saved receipts, purchase details and available product guides in one place. Live monitoring is not active."
+          : "North is your Pal Care companion for saved receipts, purchase details and available product guidance. Example answers don’t use live AI."}
       </p>
       {!compact && (
         <Link
           href="/vault"
           className="mt-4 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-intelligence-foreground"
         >
-          Explore a Purchase Twin
+          Explore your purchases
           <ArrowUpRight className="size-4" aria-hidden="true" />
         </Link>
       )}

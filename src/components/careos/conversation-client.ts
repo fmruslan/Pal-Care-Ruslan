@@ -79,7 +79,7 @@ export class CareHttpError extends Error {
           : code === "careos_owner_ai_disabled"
             ? "AI is not enabled. You can still explore your purchases, documents and Insights."
             : code === "careos_owner_quota_exhausted"
-              ? "Your approved AI usage limit has been reached. Your saved records are still available."
+              ? "North has reached the available question limit. Your saved purchases and answers are still available."
               : code === "careos_owner_busy" ||
                   code === "careos_owner_rate_limited"
                 ? `${ASSISTANT_SPOKEN_NAME} is busy. Please wait a moment before asking again.`
@@ -90,7 +90,7 @@ export class CareHttpError extends Error {
                     : code === "careos_turn_in_progress"
                       ? "An answer may still be in progress. Check for a saved answer shortly."
                       : status === 429
-                        ? `${ASSISTANT_SPOKEN_NAME} has reached its demo limit. Please try later; your documents are still available.`
+                        ? `${ASSISTANT_SPOKEN_NAME} has reached a request limit. Please wait before trying again; your documents are still available.`
                         : status === 403
                           ? `${ASSISTANT_SPOKEN_NAME} access is unavailable or expired. Your question has not been resent.`
                           : status === 404

@@ -36,13 +36,13 @@ test("expired AI leaves saved pages and native analytics useful without bootstra
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     const dialog = await openNorth(page);
     await expect(
-      dialog.getByText(
-        "AI access expired. Saved purchases, documents and Insights remain available.",
-        {
-          exact: true,
-        },
-      ),
+      dialog.getByText("North’s AI access has expired.", {
+        exact: true,
+      }),
     ).toBeVisible();
+    await expect(dialog).toContainText(
+      "You can still browse saved purchases and documents, or explore Insights yourself.",
+    );
     await expect(
       dialog.getByRole("button", { name: "Send to North Star" }),
     ).toBeDisabled();
@@ -164,11 +164,11 @@ for (const pending of [
             : `/api/intelligence/customer/plan?conversationId=${original.conversationId}`;
         const dialog = await openNorth(page);
         await expect(
-          dialog.getByText(
-            "AI access expired. Saved purchases, documents and Insights remain available.",
-            { exact: true },
-          ),
+          dialog.getByText("North’s AI access has expired.", { exact: true }),
         ).toBeVisible();
+        await expect(dialog).toContainText(
+          "You can still browse saved purchases and documents, or explore Insights yourself.",
+        );
         const send = dialog.getByRole("button", {
           name: "Send to North Star",
           exact: true,
@@ -284,13 +284,13 @@ test("an already open assistant disables AI work on expiry while provider-free s
   await page.clock.setSystemTime(new Date(Date.now() + 2 * 86400000));
   await page.clock.runFor(1100);
   await expect(
-    dialog.getByText(
-      "AI access expired. Saved purchases, documents and Insights remain available.",
-      {
-        exact: true,
-      },
-    ),
+    dialog.getByText("North’s AI access has expired.", {
+      exact: true,
+    }),
   ).toBeVisible();
+  await expect(dialog).toContainText(
+    "You can still browse saved purchases and documents, or explore Insights yourself.",
+  );
   await expect(input).toBeEditable();
   await input.fill("Show category chart in this workspace");
   await input.press("Enter");

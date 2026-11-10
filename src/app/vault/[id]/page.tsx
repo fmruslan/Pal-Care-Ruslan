@@ -50,7 +50,7 @@ import {
   type LibraryParams,
 } from "@/lib/library-navigation";
 
-export const metadata = { title: "Purchase Twin" };
+export const metadata = { title: "Purchase details" };
 export default async function TwinPage({
   params,
   searchParams,
@@ -99,14 +99,14 @@ export default async function TwinPage({
         </Link>
         <article
           id="overview"
-          aria-label="Purchase Twin passport"
+          aria-label="Purchase details"
           className="customer-purchase-hero overflow-hidden rounded-2xl border bg-card"
         >
           <div>
             <header className="flex flex-wrap items-center justify-between gap-3 px-5 pt-5 sm:px-7 sm:pt-6">
               <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                 <Layers2 className="size-4 text-primary" aria-hidden="true" />
-                Purchase Twin
+                Purchase Twin · your saved purchase record
               </span>
               <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
                 <PurchaseBadge origin={twin.origin} />
@@ -173,21 +173,21 @@ export default async function TwinPage({
             <div className="border-t px-5 py-4 sm:px-7">
               <p className="text-sm leading-6 text-muted-foreground">
                 {verified
-                  ? "COMPLETED · verified server-side. A completed PayPal Sandbox capture was retrieved and validated. Fictional product and customer; no real money."
+                  ? "Verified Sandbox purchase. PayPal’s completed test payment was checked before this record was saved. Fictional product and customer; no real money."
                   : reference
-                    ? "Reference sample ownership only, not a verified PayPal purchase. Its placeholder amount is not a product price."
-                    : "Sample Purchase Twin · not a verified PayPal purchase."}
+                    ? "Reference sample, not a verified PayPal purchase. No purchase price is available; the placeholder is not a product price."
+                    : "Fictional sample purchase · not a verified PayPal purchase."}
               </p>
             </div>
             <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-2 px-5 pb-5 text-xs text-muted-foreground sm:px-7">
               <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
                 <FileText className="size-4 text-primary" aria-hidden="true" />
-                {documents.length} document{documents.length !== 1 && "s"}{" "}
-                connected · {events.length} source-labeled event
+                {documents.length} document{documents.length !== 1 && "s"} saved
+                · {events.length} saved update
                 {events.length !== 1 && "s"}
               </span>
               <span className="font-mono text-xs text-muted-foreground">
-                Passport PC-{twin.id.slice(-6).toUpperCase()}
+                Record PC-{twin.id.slice(-6).toUpperCase()}
               </span>
             </div>
           </div>
@@ -232,7 +232,7 @@ export default async function TwinPage({
                 </h2>
                 <Badge tone="blue">
                   <FileText className="size-3.5" aria-hidden="true" />
-                  Source labeled
+                  Sources included
                 </Badge>
               </div>
               <DocumentList documents={documents} from={from} />
@@ -292,42 +292,42 @@ export default async function TwinPage({
               </h2>
               <p className="mt-3 text-sm leading-7 text-muted-foreground">
                 {careSources.length
-                  ? "Explore matched manufacturer guidance for this reference product. Ownership is sample-only; documentation has its own source."
-                  : `No manufacturer care guide is available for ${product.brand} ${product.model}. North Star can still find your receipt and explain saved purchase details.`}{" "}
-                Guidance availability does not establish warranty or recall
+                  ? "Official guidance for this reference product is available. The ownership record is a sample; the guidance comes from its named source."
+                  : `No manufacturer care guide is saved for ${product.brand} ${product.model}. You can still review the purchase details and any documents listed here.`}{" "}
+                A care guide does not confirm warranty coverage or recall
                 status.
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 <Button asChild variant="outline">
                   <Link href={withLibraryReturn(`/vault/${id}/care`, from)}>
-                    Explore available guidance
+                    View available guidance
                   </Link>
                 </Button>
               </div>
             </section>
             <Card>
-              <h2 className="text-base font-semibold">Record coverage</h2>
+              <h2 className="text-base font-semibold">What’s available</h2>
               <dl className="mt-5 space-y-5">
                 {[
                   {
                     icon: BookOpen,
                     label: "Manufacturer manual",
                     value: careSources.length
-                      ? "Matched official guidance available"
-                      : "Not supplied",
+                      ? "Official guidance available for this model"
+                      : "No manufacturer manual saved",
                   },
                   {
                     icon: ShieldCheck,
-                    label: "Warranty coverage",
+                    label: "Warranty information",
                     value:
                       ownership?.facts.find((f) => f.topic === "warranty")
-                        ?.status ?? "Evidence unavailable",
+                        ?.status ?? "No warranty evidence available",
                   },
                   {
                     icon: CalendarDays,
                     label: "Returns and recalls",
                     value:
-                      "Source-labeled history in your ownership timeline; no live carrier or comprehensive recall feed",
+                      "See the saved sources in your timeline. Live delivery tracking and complete recall checks aren’t available.",
                   },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label}>
@@ -362,8 +362,8 @@ export default async function TwinPage({
           <p className="mt-3 text-xs leading-6 text-muted-foreground">
             Limited to official CPSC notice 24-159 ·{" "}
             {safety.mode === "bundled_official_snapshot"
-              ? "bundled historical source"
-              : "saved official retrieval"}{" "}
+              ? "saved historical notice, not a live check"
+              : "saved copy from the official source"}{" "}
             · not continuous monitoring or a safety certification.
           </p>
           {recallHistory.length > 0 && (

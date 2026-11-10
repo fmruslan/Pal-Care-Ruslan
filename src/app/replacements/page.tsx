@@ -11,7 +11,7 @@ import { notFound } from "next/navigation";
 import { journeyContext, type JourneyQuery } from "@/lib/careos/journey";
 import { recordIdSchema } from "@/lib/demo/presentation";
 import { CareContextRegistration } from "@/components/careos/provider";
-export const metadata = { title: "Replacement Concierge" };
+export const metadata = { title: "Replacement options" };
 export default async function ReplacementsPage({
   searchParams,
 }: {
@@ -29,16 +29,16 @@ export default async function ReplacementsPage({
       <Shell active="/vault" source={data.source}>
         <CareContextRegistration context={journey.context} />
         <PageHeading
-          eyebrow="Pal Care · Replacement Concierge"
-          title="No matching replacement category."
-          description={`${journey.context?.name} · ${journey.context?.model}. Unrelated products will not be substituted.`}
+          eyebrow="Pal Care · Replacement options"
+          title="No replacement options for this product"
+          description={`${journey.context?.name} · ${journey.context?.model}. No matching category is available, so unrelated products aren’t shown.`}
         />
         <Card>
           <Link
             className="inline-flex min-h-11 items-center text-primary"
             href={journey.back}
           >
-            Return to source product →
+            Back to product →
           </Link>
         </Card>
       </Shell>
@@ -49,21 +49,21 @@ export default async function ReplacementsPage({
       <CareContextRegistration context={journey.context} />
       {journey.context && (
         <p className="mb-5 text-sm" role="note">
-          Discussing {journey.context.name} · {journey.context.model}.{" "}
+          For {journey.context.name} · {journey.context.model}.{" "}
           {journey.context.example
             ? "Fictional ownership example · no purchase or receipt."
-            : "Comparison category, not exact-model compatibility."}{" "}
+            : "Similar products, not a confirmed fit for this model."}{" "}
           <Link
             className="inline-flex min-h-11 items-center font-semibold text-primary"
             href={journey.back}
           >
-            Return to source product →
+            Back to product →
           </Link>
         </p>
       )}
       <PageHeading
-        eyebrow="Pal Care · Replacement Concierge"
-        title="The next choice, thoughtfully."
+        eyebrow="Pal Care · Replacement options"
+        title="Consider care before replacing"
         description="Keep what works. Check care and remedy options first. Explore replacements only when they make sense."
       />
       <div className="mb-6 grid gap-4 md:grid-cols-3">
@@ -71,7 +71,7 @@ export default async function ReplacementsPage({
           [
             Recycle,
             "Care before replacement",
-            "Use only exact-model, source-backed care guidance. A different model’s repair steps are not a substitute.",
+            "Check guidance from a trusted source for your exact model. Don’t use another model’s repair instructions.",
           ],
           [
             ShieldCheck,
@@ -81,7 +81,7 @@ export default async function ReplacementsPage({
           [
             ShoppingBag,
             "Compare, don’t assume",
-            "Check variant, total price, retailer terms and current availability. Pal Care does not perform external checkout.",
+            "Check the exact version, total price, retailer terms and current availability. Pal Care does not buy from other retailers for you.",
           ],
         ].map(([Icon, title, detail]) => {
           const I = Icon as typeof Recycle;
@@ -102,8 +102,8 @@ export default async function ReplacementsPage({
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <Badge tone={discovery.mode === "fixture" ? "warning" : "blue"}>
           {discovery.mode === "fixture"
-            ? "Illustrative profiles · Channel3 not connected"
-            : "Channel3 returned offers · freshly retrieved"}
+            ? "Fictional examples · no live offers"
+            : "Offers from Channel3 · just checked"}
         </Badge>
         <nav aria-label="Replacement category" className="flex gap-4">
           <Link
@@ -124,16 +124,15 @@ export default async function ReplacementsPage({
       </div>
       {journey.context && (
         <p className="mb-4 text-xs text-muted-foreground">
-          Choosing another category leaves this product context and opens
-          category-only browsing.
+          Choosing another category shows options for that category, rather than
+          this specific product.
         </p>
       )}
       {discovery.mode === "fixture" && (
         <p className="mb-6 max-w-3xl text-sm leading-7 text-muted-foreground">
-          These are fictional comparison profiles, not returned Channel3
-          products, current prices, availability or buying recommendations. The
-          server-side API adapter is implemented; actual provider verification
-          requires separate credentials and confirmed free credits.
+          These fictional examples show how comparisons could look. They are not
+          live Channel3 offers or buying recommendations. Prices and
+          availability have not been checked, and there are no purchase links.
         </p>
       )}
       <div className="grid items-start gap-5 md:grid-cols-3">
@@ -141,8 +140,8 @@ export default async function ReplacementsPage({
           <Card key={`${item.id}-${i}`}>
             <p className="text-xs font-semibold tracking-widest text-intelligence-foreground uppercase">
               {item.provenance === "illustrative"
-                ? "Comparison profile"
-                : "Provider result"}
+                ? "Fictional comparison"
+                : "Retail offer"}
             </p>
             <h2 className="mt-3 text-xl font-semibold">{item.title}</h2>
             <p className="mt-2 text-xs text-muted-foreground">{item.brand}</p>
@@ -164,9 +163,9 @@ export default async function ReplacementsPage({
                 <dd className="mt-1">{item.condition}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Retrieved</dt>
+                <dt className="text-muted-foreground">Last checked</dt>
                 <dd className="mt-1 break-words">
-                  {item.checkedAt ?? "No provider request"}
+                  {item.checkedAt ?? "Not checked"}
                 </dd>
               </div>
             </dl>
@@ -187,30 +186,30 @@ export default async function ReplacementsPage({
         <Card>
           <h2 className="section-title">No qualifying offers available.</h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
-            No stale or illustrative product was substituted. An offer may lack
-            a safe link, supported currency, explicit condition, acceptable
-            price or current provider availability.
+            No outdated offer or fictional product has been substituted. Offers
+            appear only when their link, currency, condition, price and current
+            availability meet the comparison requirements.
           </p>
         </Card>
       )}
       <p className="mt-6 text-xs leading-6 text-muted-foreground">
-        No complete recall screening or compatibility certification is implied.
-        Live retailer links may be attributed by Channel3; ranking is not based
-        on commission. Real discovery uses saved provider IDs and fresh offer
-        retrieval, not stale cached prices.
+        These options do not confirm recall status or compatibility. Retailer
+        links may include Channel3 attribution; ranking is not based on
+        commission. When live offers are available, their prices are checked
+        again rather than copied from an old comparison.
       </p>
       <div className="mt-4 flex flex-wrap gap-5">
         <Link
           href="/vault"
           className="inline-flex min-h-11 items-center text-sm font-semibold text-primary"
         >
-          Review your Purchase Twins →
+          View your purchases →
         </Link>
         <Link
           href={journey.context ? `/safety?${journey.query}` : "/safety"}
           className="inline-flex min-h-11 items-center text-sm font-semibold text-primary"
         >
-          Review official safety evidence →
+          View official recall information →
         </Link>
       </div>
     </Shell>

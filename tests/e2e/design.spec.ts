@@ -216,7 +216,7 @@ test("theme changes preserve checkout state and never create extra financial POS
   });
   await page.goto(`/checkout/${id}`);
   await expect(page.getByRole("status")).toContainText(
-    "Ready for buyer approval",
+    "Ready for approval on PayPal Sandbox. Payment has not been confirmed.",
   );
   const selector = page.getByRole("combobox", { name: "Appearance" });
   await selector.selectOption("dark");
@@ -224,7 +224,7 @@ test("theme changes preserve checkout state and never create extra financial POS
   await selector.selectOption("system");
   expect(posts).toBe(0);
   await page
-    .getByRole("button", { name: "Check / complete this sandbox payment" })
+    .getByRole("button", { name: "Check or complete this Sandbox payment" })
     .click();
   await expect(page.getByRole("status")).toContainText(
     "confirmation is pending",
@@ -340,8 +340,8 @@ for (const [name, path] of [
       await expect(
         page.getByText(
           dataSource === "database"
-            ? /available purchases · newest 100 saved purchase window/
-            : /available purchases · bundled sample preview/,
+            ? /saved purchases shown · up to your 100 most recent saved purchases/
+            : /saved purchases shown · built-in example purchases/,
         ),
       ).toBeVisible();
       await expect(

@@ -208,7 +208,9 @@ describe("Care read-only domain", () => {
     (topic) => {
       const answer = careStatusAnswer(feed(), 0, [id(201)], topic);
       expect(answer.outcome).toBe("missing");
-      expect(answer.text).toContain("No ");
+      expect(answer.text).toContain(
+        "No confirmed outcome or deadline is saved in the available records",
+      );
       expect(answer.steps.join(" ")).toMatch(
         /No (?:confirmed|supported|verified)|not refund evidence/,
       );
@@ -225,7 +227,7 @@ describe("Care read-only domain", () => {
       "refunds",
     );
     expect(answer.outcome).toBe("unavailable");
-    expect(answer.text).toContain("absence is not confirmed");
+    expect(answer.text).toContain("a missing result is not confirmation");
   });
   it("only independently verified refund evidence moves a case to Completed; pending/unknown keep their reservations", () => {
     const data = structuredClone(demoData);
@@ -568,7 +570,9 @@ describe("North model-planned Care tool", () => {
       input: { ...options.input, twinId: id(202) },
     });
     expect(answer.context?.twinId).toBe(id(202));
-    expect(answer.text).toContain("nothing is submitted");
+    expect(answer.text).toContain(
+      "draft an enquiry for you to review and send",
+    );
     expect(answer.actions[0].href).toBe(`/vault/${id(202)}?milestone=returns`);
   });
   it("does not narrow a fresh broad Care question to an old selected purchase", async () => {

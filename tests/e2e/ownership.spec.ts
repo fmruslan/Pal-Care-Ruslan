@@ -32,7 +32,7 @@ test("Care shows known-only compact SVG milestones, with exact-card evidence and
     const rail = card.locator("[data-care-timeline]");
     const milestones = rail.locator("[data-care-milestone]");
     await expect(rail.getByRole("region")).toHaveAccessibleName(
-      /ownership summary.*Compressed spacing is not elapsed time/,
+      /care summary\. Spacing is not to scale\./,
     );
     for (const state of ["unknown", "unavailable", "not-applicable"])
       await expect(
@@ -143,7 +143,7 @@ test("Care Details retains every unknown milestone, full source facts and keyboa
     ],
   ] as const;
   await expect(summary).toHaveText(
-    `Other milestones · unknown or not applicable (${facts.length})`,
+    `Other care details · unknown or not applicable (${facts.length})`,
   );
   await expect(unknowns).not.toHaveAttribute("open", "");
   for (const [topic] of facts)
@@ -154,7 +154,9 @@ test("Care Details retains every unknown milestone, full source facts and keyboa
   await summary.press("Enter");
   await expect(summary).toBeFocused();
   await expect(unknowns).toHaveAttribute("open", "");
-  await expect(unknowns).toContainText("Missing evidence is not an all-clear");
+  await expect(unknowns).toContainText(
+    "missing information doesn’t confirm there are no issues",
+  );
   await expect(unknowns.locator("[data-ownership-milestone]")).toHaveCount(
     facts.length,
   );
@@ -173,12 +175,12 @@ test("Care Details retains every unknown milestone, full source facts and keyboa
     await expect(panel).toContainText(detail);
     await expect(
       panel.locator(`[data-ownership-fact="${twin}:${topic}"]`),
-    ).toContainText("Event date not established");
+    ).toContainText("Date unknown");
     await page.keyboard.press("Escape");
     await expect(milestone).toBeFocused();
   }
   const fullDetails = ownership.locator("details").filter({
-    has: page.getByText("Expand dates, sources & actions", { exact: true }),
+    has: page.getByText("Dates, sources & next steps", { exact: true }),
   });
   await fullDetails.locator("summary").press("Enter");
   await expect(fullDetails).toHaveAttribute("open", "");
@@ -191,7 +193,7 @@ test("Care Details retains every unknown milestone, full source facts and keyboa
     );
     await expect(fact).toBeVisible();
     await expect(fact).toContainText(detail);
-    await expect(fact).toContainText("Event date not established");
+    await expect(fact).toContainText("Date unknown");
   }
   const purchase = fullDetails.locator(
     `[data-ownership-fact="${twin}:purchase"]`,
@@ -267,7 +269,7 @@ test("injected North highlights the homepage milestone beside its answer, valida
     .click();
   const north = page.getByRole("dialog", { name: "North Star", exact: true });
   await expect(north).toContainText(
-    "Visible cards, supporting facts and evidence revisions were checked",
+    "Their saved sources were checked; no records changed",
   );
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
@@ -292,7 +294,7 @@ test("injected North highlights the homepage milestone beside its answer, valida
   await expect(scope.locator("[data-care-product]")).toBeVisible();
   await scope
     .getByRole("button", {
-      name: "Review evidence & available actions",
+      name: "View sources & next steps",
       exact: true,
     })
     .click();
@@ -326,7 +328,7 @@ test("ownership pill, complete timeline, evidence and keyboard are useful withou
   const pill = page.locator("[data-ownership-pill]");
   await expect(pill).toContainText("Purchased");
   await expect(page.locator("#ownership")).toContainText(
-    "spacing is not elapsed time",
+    "Spacing is not to scale",
   );
   if (!test.info().project.name.startsWith("tablet"))
     await page.screenshot({
@@ -340,7 +342,7 @@ test("ownership pill, complete timeline, evidence and keyboard are useful withou
   await expect(
     panel.getByRole("link", { name: "View original receipt", exact: true }),
   ).toBeVisible();
-  await panel.getByText("All ownership states", { exact: true }).click();
+  await panel.getByText("All care details", { exact: true }).click();
   await expect(panel).toContainText("No verified refund recorded");
   await expect(panel).toContainText("Not comprehensively checked");
   if (!test.info().project.name.startsWith("tablet"))
@@ -367,7 +369,7 @@ test("ownership pill, complete timeline, evidence and keyboard are useful withou
   const delivery = page.getByRole("dialog", { name: "Delivery", exact: true });
   await expect(delivery).toContainText("Fictional goods do not ship");
   await delivery
-    .getByRole("button", { name: "Close ownership evidence", exact: true })
+    .getByRole("button", { name: "Close care details", exact: true })
     .click();
   expect(writes).toEqual([]);
 });
@@ -382,10 +384,10 @@ test("deep-linked warranty and return milestones preserve exact dates, editable 
   });
   await expect(warranty).toContainText("No verified warranty expiration dates");
   await warranty
-    .getByRole("button", { name: "Prepare warranty message", exact: true })
+    .getByRole("button", { name: "Draft warranty message", exact: true })
     .click();
   const draft = warranty.getByRole("textbox", {
-    name: "Editable warranty enquiry · not sent",
+    name: "Your warranty draft · not sent",
     exact: true,
   });
   await expect(draft).toHaveValue(
@@ -400,7 +402,7 @@ test("deep-linked warranty and return milestones preserve exact dates, editable 
   await expect(warranty).toBeVisible();
   await expect(warranty.getByRole("textbox")).toHaveCount(0);
   await warranty
-    .getByRole("button", { name: "Close ownership evidence", exact: true })
+    .getByRole("button", { name: "Close care details", exact: true })
     .click();
   // Wait for modal close/focus restoration before the summary's keyboard toggle.
   // Otherwise the closing dialog can take focus back before Enter opens it.
@@ -452,7 +454,7 @@ test("ownership reflows at 320px and enlarged text while horizontal milestones r
   expect(box!.x).toBeGreaterThanOrEqual(0);
   expect(box!.x + box!.width).toBeLessThanOrEqual(321);
   await panel
-    .getByRole("button", { name: "Close ownership evidence", exact: true })
+    .getByRole("button", { name: "Close care details", exact: true })
     .click();
   expect(
     (
@@ -539,12 +541,12 @@ test("injected North proposal executes and reads back exact milestone; saved His
   await expect(delivery).toHaveAttribute("data-ownership-twin", twin);
   await expect(delivery).toContainText("not delivery evidence");
   await delivery
-    .getByRole("button", { name: "Close ownership evidence", exact: true })
+    .getByRole("button", { name: "Close care details", exact: true })
     .click();
   await page.getByRole("button", { name: "History", exact: true }).click();
   const north = page.getByRole("dialog", { name: "North Star", exact: true });
   await expect(north).toContainText(
-    "Current route, visible milestone and evidence revision were checked",
+    "Opened the saved delivery details for this purchase and checked the matching sources",
   );
   await expect(
     north.locator(`[data-request-id="${history[0].requestId}"]`),

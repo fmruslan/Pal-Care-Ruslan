@@ -91,7 +91,7 @@ export default async function CareDetails({
         className="my-6 flex flex-wrap gap-x-5 gap-y-1 border-b pb-3 text-sm font-semibold"
       >
         {[
-          ["price", "Price protection"],
+          ["price", "Price details"],
           ["returns", "Returns"],
           ["refunds", "Refunds"],
           ["warranty", "Warranty"],
@@ -112,8 +112,8 @@ export default async function CareDetails({
             role="status"
             className="rounded-xl border p-4 text-sm text-muted-foreground"
           >
-            Saved Care tracking is unavailable. Missing records are not
-            confirmation that no return, warranty or watch exists.
+            Some saved care details couldn’t load. A return, warranty or price
+            watch may be missing from this view.
           </p>
         )}
         <section
@@ -122,18 +122,18 @@ export default async function CareDetails({
           className="scroll-mt-6 rounded-2xl border bg-card p-5 sm:p-6"
         >
           <h2 id="price-heading" className="text-lg font-semibold">
-            Price protection
+            Price details
           </h2>
           <p className="mt-3 font-semibold">
-            {protection?.label ?? "Protection not verified"}
+            {protection?.label ?? "Price protection unconfirmed"}
           </p>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
             {ownership?.facts.find((f) => f.topic === "price")?.detail ??
-              "Protection evidence is unavailable. No policy window, monitoring or eligibility was assumed."}
+              "Price protection details are unavailable. Terms, monitoring and eligibility are unconfirmed."}
           </p>
           {protection?.deadline && (
             <p className="mt-3 text-sm">
-              Recorded exclusive deadline:{" "}
+              Policy deadline · before{" "}
               <time dateTime={protection.deadline}>
                 {displayDate(protection.deadline)}
               </time>
@@ -154,21 +154,20 @@ export default async function CareDetails({
             </ul>
           ) : (
             <p className="mt-3 text-sm text-muted-foreground">
-              Review the original policy below or ask North which evidence is
-              missing. No universal retailer policy is assumed.
+              Check the original policy below, or ask North what’s missing. Each
+              seller’s terms may differ.
             </p>
           )}
           <details className="mt-3">
             <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold">
-              Existing catalog check evidence · separate from verified
-              protection
+              Saved catalog checks & limits
             </summary>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
               {watches.length
-                ? "Saved watch details below reflect recorded checks, not real-time market monitoring. The private operator can pause one or all watches, or disable the checker completely."
+                ? "These saved checks cover a fictional catalog, not live retailer prices. The operator can pause watches or stop the checker."
                 : process.env.CARE_RECORDS_ENABLED === "true"
-                  ? "No watch is available in these loaded records. Incomplete or unavailable records do not establish that monitoring is inactive."
-                  : "Price watches are not active. Scheduled checking and durable watch preferences require the separately approved worker and write capability; no watch was created."}
+                  ? "No price watch appears in the available records. Missing records don’t confirm that monitoring is inactive."
+                  : "Price watch details aren’t enabled here. No watch was created from this page."}
             </p>
             {watches.map((watch) => (
               <dl
@@ -177,7 +176,7 @@ export default async function CareDetails({
               >
                 <div>
                   <dt className="font-semibold text-foreground">
-                    Recorded watch state
+                    Saved watch status
                   </dt>
                   <dd>{watch.state} · fixed fictional catalog only</dd>
                 </div>
@@ -198,7 +197,7 @@ export default async function CareDetails({
                   <dd>{watch.nextCheckAt ?? "Not scheduled"}</dd>
                 </div>
                 <div>
-                  <dt>Expiry</dt>
+                  <dt>Watch ends</dt>
                   <dd>{watch.expiresAt}</dd>
                 </div>
               </dl>
@@ -237,7 +236,7 @@ export default async function CareDetails({
               .filter((f) => ["returns", "return-window"].includes(f.topic))
               .map((f) => f.detail)
               .join(" ") ??
-              "Return evidence is unavailable. No return status or deadline was inferred."}
+              "Return details are unavailable. The status and deadline are unknown."}
           </p>
           {milestones.length > 0 && (
             <ol
@@ -266,7 +265,7 @@ export default async function CareDetails({
           {returns.length > 0 && (
             <>
               <h3 className="mt-5 text-sm font-semibold">
-                Saved historical notes · not a return timeline
+                Past return notes · not confirmed progress
               </h3>
               <ol
                 className="mt-3 space-y-4 border-l pl-4"
@@ -303,12 +302,12 @@ export default async function CareDetails({
           className="scroll-mt-6 rounded-2xl border bg-card p-5 sm:p-6"
         >
           <h2 id="refunds-heading" className="mb-4 text-lg font-semibold">
-            Refund evidence
+            Refund details
           </h2>
           {guardian === null ? (
             <p className="text-sm text-muted-foreground">
-              Refund records are temporarily unavailable. This is not
-              confirmation that no refund exists.
+              Refund details couldn’t load. This doesn’t confirm that no refund
+              exists.
             </p>
           ) : guardian.length ? (
             guardian.map((item) => (
@@ -319,9 +318,9 @@ export default async function CareDetails({
             ))
           ) : (
             <p className="text-sm leading-6 text-muted-foreground">
-              No verified refund is recorded in the available evidence. A
-              verified Sandbox purchase is not a refund. This page cannot
-              approve or send money.
+              No verified refund is saved in the available records. A Verified
+              Sandbox payment isn’t a refund, and this page can’t approve or
+              send money.
             </p>
           )}
         </section>
@@ -335,7 +334,7 @@ export default async function CareDetails({
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
             {ownership?.facts.find((f) => f.topic === "warranty")?.detail ??
-              "Warranty evidence is unavailable. No coverage or date was inferred."}
+              "Warranty details are unavailable. Coverage and dates are unknown."}
           </p>
           {warranties.map((warranty) => (
             <div
@@ -343,7 +342,7 @@ export default async function CareDetails({
               className="mt-4 border-t pt-4 text-sm leading-6"
             >
               <p className="font-semibold">
-                Recorded date: {displayDate(warranty.expiresOn)}
+                Saved end date: {displayDate(warranty.expiresOn)}
               </p>
               <p>{warranty.basis}</p>
               <p className="text-muted-foreground">
@@ -378,19 +377,19 @@ export default async function CareDetails({
             Product care & safety
           </h2>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            Review exact-product sources and their coverage limits. Missing
-            manuals are not substituted with guidance for another model; saved
-            recall assessments do not establish an all-clear.
+            Open guidance for this exact product. If its manual is missing,
+            another model’s guide won’t be used. Saved safety checks don’t
+            confirm that a product is recall-free.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <Button asChild variant="outline">
-              <Link href={`/vault/${id}/care`}>Available product guidance</Link>
+              <Link href={`/vault/${id}/care`}>View product guidance</Link>
             </Button>
             <Link
               href={`/safety?twinId=${id}`}
               className="inline-flex min-h-11 items-center text-sm font-semibold text-primary"
             >
-              Safety evidence
+              View safety details
             </Link>
           </div>
         </section>

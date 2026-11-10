@@ -30,7 +30,7 @@ test("injected customer planning uses Studio capability, actual SDK state, stric
     .getByRole("button", { name: "Authorize this browser", exact: true })
     .click();
   await expect(page.getByRole("status")).toHaveText(
-    "Scope authorized. Use its workspace link above.",
+    "Browser access approved. Use the matching workspace link above.",
   );
   expect(
     (await post({ action: "start" }, "https://evil.example")).status(),
@@ -92,9 +92,7 @@ test("injected customer planning uses Studio capability, actual SDK state, stric
   await expect(
     page.getByRole("button", { name: "Documents & Care", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
-  await page
-    .getByText("How North Star changed this view", { exact: true })
-    .click();
+  await page.getByText("Technical details", { exact: true }).click();
   await expect(page.getByTestId("customer-studio-tools")).toContainText(
     "view_schema",
   );

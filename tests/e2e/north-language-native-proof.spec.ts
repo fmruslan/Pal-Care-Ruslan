@@ -129,7 +129,7 @@ test("recorded chart restoration and no-new-chart instruction use original SDK s
   expect(actual.recordIds).toEqual(original.recordIds);
   await expect(
     page.getByText(
-      "Original saved native state restored and verified in Insights",
+      "Your original Insights view is restored. Its chart, totals, filters and matching purchases were checked",
       { exact: false },
     ),
   ).toBeVisible();
@@ -146,7 +146,7 @@ test("recorded chart restoration and no-new-chart instruction use original SDK s
   await expect(result).toContainText("Audio only");
   await expect(result).toContainText("$218.00");
   await expect(
-    result.getByRole("button", { name: "Show native chart" }),
+    result.getByRole("button", { name: "Show chart in Insights" }),
   ).toHaveCount(0);
   expect(await studio.getAttribute("data-native-readback")).toBe(before);
   const manual = await selectLanguageHistory(
@@ -169,7 +169,7 @@ test("recorded chart restoration and no-new-chart instruction use original SDK s
   );
   await expect(
     page.getByText(
-      "The original verified native state is unavailable or restoration could not be verified.",
+      "North couldn’t restore and confirm the original Insights view.",
       { exact: false },
     ),
   ).toBeVisible();
@@ -186,7 +186,7 @@ test("recorded chart restoration and no-new-chart instruction use original SDK s
   );
   await expect(
     page.getByText(
-      "The original verified native state is unavailable or restoration could not be verified.",
+      "North couldn’t restore and confirm the original Insights view.",
       { exact: false },
     ),
   ).toBeVisible();

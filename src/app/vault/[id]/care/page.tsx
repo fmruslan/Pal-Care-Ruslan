@@ -60,7 +60,7 @@ export default async function CarePage({
       </Link>
       <PageHeading
         title="Product care"
-        description="Documentation matched to this exact product. Missing guides stay missing — another model’s instructions won’t be substituted."
+        description="Guidance for this exact product, with original sources. If a guide is missing, we won’t use another model’s instructions."
         action={
           <AskCareOS
             context={contextOf(record)}
@@ -85,8 +85,8 @@ export default async function CarePage({
           </p>
           <p className="text-sm leading-6 text-muted-foreground">
             {record.product.id === REFERENCE_PRODUCT
-              ? "Reference sample · amount unavailable"
-              : `${record.twin.origin === "sandbox" ? "Sandbox" : "Sample"} amount ${money(record.twin.purchasePriceMinor)}`}
+              ? "Reference sample · price not saved"
+              : `${record.twin.origin === "sandbox" ? "Verified Sandbox" : "Sample"} purchase price ${money(record.twin.purchasePriceMinor)}`}
           </p>
         </div>
         <PurchaseBadge origin={record.twin.origin} />
@@ -101,9 +101,9 @@ export default async function CarePage({
             No manufacturer care guide available
           </h2>
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
-            No manufacturer care guide is available for {record.product.brand}{" "}
-            {record.product.model} in your records. Instructions for other
-            models won’t be substituted.
+            Your records don’t include a manufacturer guide for{" "}
+            {record.product.brand} {record.product.model}. We won’t substitute
+            instructions for another model.
           </p>
         </Card>
       )}
@@ -149,7 +149,7 @@ export default async function CarePage({
             </p>
             <details className="mt-4 text-xs text-muted-foreground">
               <summary className="min-h-11 cursor-pointer py-3">
-                Source version and integrity
+                Source version & verification
               </summary>
               <p>{source.revision}</p>
               <p className="mt-2 break-all">SHA-256: {source.contentHash}</p>
@@ -158,8 +158,8 @@ export default async function CarePage({
         ))}
       </div>
       <p className="mt-6 text-sm text-muted-foreground">
-        Purchase provenance is separate from documentation. No warranty
-        coverage, recall status or live monitoring is established by this guide.
+        This guide doesn’t confirm warranty coverage, recall status or live
+        monitoring. Its source is separate from your purchase verification.
       </p>
     </Shell>
   );

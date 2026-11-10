@@ -16,14 +16,14 @@ export function SafetyCard({
     <Card>
       <p className="flex items-center gap-2 text-sm font-semibold text-intelligence-foreground">
         <ShieldAlert className="size-5" aria-hidden="true" />
-        Recall Guardian
+        Recall information
       </p>
       <h2 className="mt-3 text-xl font-semibold">
         {decision.state === "possible_match"
           ? "A notice worth checking."
           : decision.state === "identifiers_match"
             ? "Identifiers match an official notice."
-            : "Safety evidence, clearly scoped."}
+            : "What we can check about recalls."}
       </h2>
       <Badge
         className="mt-3"
@@ -46,7 +46,7 @@ export function SafetyCard({
         }
         className="mt-3 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary"
       >
-        Inspect official recall evidence
+        View official recall notice
         <ArrowUpRight className="size-4" aria-hidden="true" />
       </Link>
     </Card>

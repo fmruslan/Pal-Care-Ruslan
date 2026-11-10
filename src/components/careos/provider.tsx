@@ -181,8 +181,8 @@ export function CareOSProvider({
       setOwnershipNoticeFor(intent.requestId);
       setOwnershipNotice(
         checked
-          ? "Highlighted the exact Care products and milestones. Visible cards, supporting facts and evidence revisions were checked; no records changed."
-          : "The current Care milestone could not be verified. Review the saved evidence; no status or financial change was made.",
+          ? "Highlighted the matching products and care details. Their saved sources were checked; no records changed."
+          : "North couldn’t confirm the matching care details. Review the saved sources; no status or payment changed.",
       );
       if (checked) careIntent.current = null;
     };
@@ -208,7 +208,7 @@ export function CareOSProvider({
       if (ownershipPostcondition(intent.expected, actual)) {
         setOwnershipNoticeFor(intent.requestId);
         setOwnershipNotice(
-          `Opened ${intent.expected.topic} evidence for the exact purchase. Current route, visible milestone and evidence revision were checked.`,
+          `Opened the saved ${intent.expected.topic} details for this purchase and checked the matching sources.`,
         );
         ownershipIntent.current = null;
       } else if (
@@ -217,7 +217,7 @@ export function CareOSProvider({
       ) {
         setOwnershipNoticeFor(intent.requestId);
         setOwnershipNotice(
-          "Ownership evidence changed or the requested milestone could not be verified. Review the current records; no status or financial change was made.",
+          "The saved details changed, or North couldn’t confirm the requested care step. Review the current records; no status or payment changed.",
         );
         ownershipIntent.current = null;
       }
@@ -1000,9 +1000,9 @@ export function CareOSProvider({
                     id="careos-description"
                     className="sr-only"
                   >
-                    Pal Care’s purchase assistant. Ask about all saved purchases
-                    immediately, or optionally choose a product for care.
-                    Selection and expansion never send a question.
+                    Pal Care’s purchase assistant. Find receipts, explore saved
+                    purchases, or choose a product for care guidance. Choosing a
+                    purchase or expanding North won’t send a question.
                   </Dialog.Description>
                 </div>
                 <div className="flex gap-0">
@@ -1048,8 +1048,8 @@ export function CareOSProvider({
                           : mode === "subscription"
                             ? "Using ChatGPT plan"
                             : mode === "responses"
-                              ? "Model assistance · check sources"
-                              : "Model unavailable"}
+                              ? "AI assistance · check sources"
+                              : "AI connection unavailable"}
                       </p>
                       {(mode === "subscription" || mode === "responses") && (
                         <Link
@@ -1079,7 +1079,8 @@ export function CareOSProvider({
                         Clear conversation history
                       </button>
                       <p className="text-xs text-muted-foreground">
-                        Clearing never resets usage or removes purchases.
+                        Clearing history keeps your purchases and doesn’t
+                        restore your AI allowance.
                       </p>
                     </div>
                   </details>
@@ -1103,7 +1104,7 @@ export function CareOSProvider({
               >
                 <span className="min-w-0 text-muted-foreground">
                   <span className="block text-xs">
-                    {context ? "Purchase context" : "Ask across your library"}
+                    {context ? "Selected purchase" : "Your saved purchases"}
                   </span>
                   <strong className="block break-words text-sm text-foreground">
                     {context
@@ -1172,9 +1173,9 @@ export function CareOSProvider({
                     role="status"
                     className="rounded-xl border bg-warning-surface p-4 text-sm text-warning"
                   >
-                    The AI authorization window has ended. Your purchases,
-                    documents and native Insights still work. No renewal or
-                    model request is performed automatically.
+                    North’s AI access has expired. You can still browse saved
+                    purchases and documents, or explore Insights yourself.
+                    Access won’t renew automatically.
                   </p>
                 )}
                 {ownerAccess && ownerState === "ready" && finishNeeded && (
@@ -1200,6 +1201,10 @@ export function CareOSProvider({
                     aria-label="Browser AI access"
                   >
                     <p>{ownerSendMessage[ownerState]}</p>
+                    <p>
+                      You can still browse saved purchases and documents, or
+                      explore Insights yourself.
+                    </p>
                     {ownerState === "signin" && browserMessage && (
                       <p>{browserMessage}</p>
                     )}
@@ -1224,11 +1229,12 @@ export function CareOSProvider({
                   !regular.unsent.length && (
                     <div className="space-y-4 py-2" data-north-discovery>
                       <h2 className="text-xl font-semibold">
-                        What would you like to know?
+                        How can I help with your purchases?
                       </h2>
                       <p className="text-base leading-7 text-muted-foreground">
-                        Find receipts, explore saved purchases, or get guidance
-                        for a product.
+                        Find a receipt, explore saved purchases, or ask for
+                        product care. I’ll use the records and sources available
+                        here.
                       </p>
                       <div
                         className="grid gap-2"
@@ -1288,20 +1294,20 @@ export function CareOSProvider({
                       data-answer-scope
                       className="border-t pt-3 text-xs text-muted-foreground"
                     >
-                      Question scope:{" "}
+                      For:{" "}
                       {turn.answer.questionScope === "library"
                         ? turn.answer.recordsResult
-                          ? "saved-purchase library · filters and coverage below"
-                          : "all saved purchases · answer not yet supported"
+                          ? "saved purchases · see filters and available records below"
+                          : "all saved purchases · North can’t answer this yet"
                         : turn.answer.outcome === "selection"
-                          ? "purchase choice needed"
+                          ? "choose a purchase"
                           : turn.answer.context
                             ? `${turn.answer.context.name} · ${turn.answer.context.model}${turn.answer.context.purchasedOn ? ` · ${displayDate(turn.answer.context.purchasedOn)}` : ""} · ${turn.answer.context.example ? "Reference example" : turn.answer.context.origin === "sandbox" ? "Sandbox" : "Sample"}${turn.answer.context.twinId ? ` · PC-${turn.answer.context.twinId.slice(-6).toUpperCase()}` : ""}`
                             : insights.conversation?.turns.some(
                                   (t) => t.requestId === turn.requestId,
                                 )
-                              ? "saved-purchase view · Personal Insights"
-                              : "no purchase used"}
+                              ? "saved purchases in Insights"
+                              : "no purchase selected"}
                     </p>
                     <p
                       data-user-message
@@ -1320,14 +1326,14 @@ export function CareOSProvider({
                       <div className="careos-answer text-base leading-7">
                         <p className="mb-2 inline-flex rounded-full bg-intelligence px-2 py-1 text-xs leading-5 font-medium text-intelligence-foreground">
                           {turn.answer.outcome === "unavailable"
-                            ? "North Star unavailable · no answer generated"
+                            ? "North couldn’t finish this answer"
                             : turn.answer.mode === "fixture"
                               ? "Demo response · no live AI"
                               : turn.answer.mode === "live"
                                 ? turn.answer.conversationPlan
-                                  ? "Live AI understanding · saved-data tools"
+                                  ? "AI answer using saved records"
                                   : "Live AI · check sources"
-                                : "From saved records · no model call"}
+                                : "Saved-record answer · no live AI"}
                         </p>
                         <p>{turn.answer.text}</p>
                         {turn.answer.recordsResult && (
@@ -1518,10 +1524,10 @@ export function CareOSProvider({
                         />
                       )}
                       {pending.status === "sending"
-                        ? "Preparing your answer…"
+                        ? "Looking into your question…"
                         : pending.status === "not-sent"
                           ? "This question wasn’t sent. Your draft is kept; check your connection and try again."
-                          : "No confirmed answer yet. Your question will not be sent again automatically."}
+                          : "Your answer isn’t confirmed yet. North won’t send the question again automatically."}
                     </p>
                     {pending.status !== "sending" &&
                       (pending.conversationId || analytics) && (
@@ -1572,9 +1578,9 @@ export function CareOSProvider({
               <div className="careos-composer shrink-0 border-t bg-card">
                 <p className="mb-2 text-xs text-muted-foreground">
                   {conversationalReady
-                    ? "Live AI · saved-data tools"
+                    ? "AI assistance using saved records"
                     : recordDraft
-                      ? "Limited saved-record mode · no model call"
+                      ? "Limited saved-record help · no live AI"
                       : aiExpired
                         ? "AI access expired · saved records remain available in Purchases and Insights"
                         : aiAccessDisabled
@@ -1584,16 +1590,16 @@ export function CareOSProvider({
                             : plannerBlocked
                               ? insights.recoverable
                                 ? "A saved view is ready to review in Insights. You can still ask a product question."
-                                : "Interactive Insights is not connected yet. Your draft is kept."
+                                : "North can’t change Insights right now. You can explore it yourself; your draft is kept."
                               : analytics
-                                ? "Personal Insights · presentation only"
+                                ? "Explore Insights · purchase records stay unchanged"
                                 : mode === "fixture"
                                   ? "Sample demo · no live AI"
                                   : mode === "subscription"
                                     ? "Using ChatGPT plan"
                                     : mode === "responses"
-                                      ? "Model assistance · check sources"
-                                      : "Model unavailable"}
+                                      ? "AI assistance · check sources"
+                                      : "AI connection unavailable"}
                 </p>
                 <form
                   className="flex items-end gap-2"
@@ -1657,7 +1663,10 @@ export function CareOSProvider({
                   </Button>
                 </form>
                 <div className="careos-composer-note mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                  <span>Demo only. No personal information.</span>
+                  <span>
+                    Demo purchases only. Please don’t share personal
+                    information.
+                  </span>
                   {insights.pending && (
                     <button
                       type="button"
@@ -1667,7 +1676,9 @@ export function CareOSProvider({
                       Stop request
                     </button>
                   )}
-                  {busy && <span>Working… your next draft is kept.</span>}
+                  {busy && (
+                    <span>Working on it. Your next draft stays here.</span>
+                  )}
                 </div>
               </div>
             </Dialog.Content>

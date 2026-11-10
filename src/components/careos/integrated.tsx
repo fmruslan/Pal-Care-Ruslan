@@ -215,8 +215,8 @@ export function NorthSearch({
       </form>
       {north?.pending && (
         <p role="status" className="mt-2 text-sm text-muted-foreground">
-          An earlier question is still pending. Search saved records here, or
-          open History to check it; nothing is resent automatically.
+          Still waiting on an earlier question. You can search saved purchases
+          and documents, or check History. North won’t resend it automatically.
         </p>
       )}
       <div
@@ -294,7 +294,7 @@ function DocumentPreview({
         ) : (
           <p role="status" className="text-sm text-muted-foreground">
             {failed
-              ? "Preview unavailable. Open the original saved document below."
+              ? "This preview couldn’t load. You can still open the saved document below."
               : "Loading your saved document…"}
           </p>
         )}
@@ -399,7 +399,7 @@ export function IntegratedNorthView({
           <h2 className="mb-3 font-semibold">History</h2>
           {!s.turns.length && (
             <p className="text-sm text-muted-foreground">
-              No saved results yet. Ask a question below.
+              Your answers will appear here after you ask North a question.
             </p>
           )}
           <ol className="space-y-1">
@@ -448,9 +448,10 @@ export function IntegratedNorthView({
                 : s.mode === "subscription"
                   ? "Using ChatGPT plan"
                   : s.mode === "responses"
-                    ? "Model assistance · check sources"
-                    : "Model unavailable"}
-              . Clearing never resets usage or removes purchases.
+                    ? "AI assistance · check sources"
+                    : "AI connection unavailable"}
+              . Clearing history keeps your purchases and doesn’t restore your
+              AI allowance.
             </p>
           </details>
         </section>
@@ -473,14 +474,14 @@ export function IntegratedNorthView({
             </span>
           )}
         </span>
-        <div className="flex">
+        <div className="flex max-w-full flex-wrap">
           <button
             ref={contextTrigger}
             type="button"
             onClick={() => setPickerOpen(true)}
             className="min-h-11 px-3 text-sm text-muted-foreground"
           >
-            Change context
+            Choose purchase
           </button>
           {s.context && (
             <button
@@ -516,10 +517,14 @@ export function IntegratedNorthView({
           >
             <p>
               {s.expired
-                ? "AI access expired. Saved purchases, documents and Insights remain available."
+                ? "North’s AI access has expired."
                 : s.accessDisabled
-                  ? "AI access is unavailable. Saved records remain available."
+                  ? "North’s AI connection is unavailable."
                   : ownerSendMessage[s.ownerState]}
+            </p>
+            <p>
+              You can still browse saved purchases and documents, or explore
+              Insights yourself.
             </p>
             {s.accessMessage && <p>{s.accessMessage}</p>}
             <Link
@@ -543,19 +548,19 @@ export function IntegratedNorthView({
               Saved result unavailable
             </QuestionHeading>
             <p role="status" className="rounded-xl border bg-card p-4 text-sm">
-              This saved result is no longer available. Choose an available
-              result from History; nothing was resent or applied.
+              This answer is no longer available. Try another answer in History.
+              North hasn’t resent the question or changed your view.
             </p>
           </>
         )}
         {!active && !s.pending && !unavailableResult && (
           <div className="rounded-2xl border bg-card p-5">
             <QuestionHeading className="text-xl font-semibold">
-              What would you like to find?
+              How can I help with your purchases?
             </QuestionHeading>
             <p className="mt-2 text-sm text-muted-foreground">
-              Ask for a receipt, explore your purchases, or get care guidance.
-              Your results appear here.
+              Find a receipt, explore saved purchases, or ask for product care.
+              I’ll use the records and sources available here.
             </p>
           </div>
         )}
@@ -583,7 +588,7 @@ export function IntegratedNorthView({
                     ? "North could not finish this answer."
                     : answer!.mode === "fixture"
                       ? "Demo response · no live AI"
-                      : "From saved records · no model call"}
+                      : "Saved-record answer · no live AI"}
                 </p>
               )}
               {answer!.context && (
@@ -706,12 +711,12 @@ export function IntegratedNorthView({
                 ))}
               {answer!.ownershipAsOf && (
                 <p className="text-xs leading-6 text-muted-foreground">
-                  Ownership answer as of{" "}
+                  Based on saved purchase details as of{" "}
                   <time dateTime={answer!.ownershipAsOf}>
                     {displayDate(answer!.ownershipAsOf!)}
                   </time>
-                  . Earlier answers keep their original evidence; open the
-                  milestone or ask again for current saved facts.
+                  . This answer keeps the sources used at the time. Open the
+                  purchase details or ask again to check the latest saved facts.
                 </p>
               )}
               {s.ownershipNotice &&
@@ -765,8 +770,8 @@ export function IntegratedNorthView({
             </PendingHeading>
             <p role="status">
               {s.pending.status === "sending"
-                ? "Preparing your result…"
-                : "No confirmed result yet. Your question will not be sent again automatically."}
+                ? "Looking into your question…"
+                : "Your answer isn’t confirmed yet. North won’t send the question again automatically."}
             </p>
             {s.pending.status !== "sending" && (
               <Button variant="outline" onClick={s.check} disabled={s.busy}>
@@ -862,8 +867,8 @@ export function IntegratedNorthView({
         </form>
         <p className="mt-2 text-xs text-muted-foreground">
           {s.busy
-            ? "Working… your next draft is kept."
-            : "Demo only. No personal information."}
+            ? "Working on it. Your next draft stays here."
+            : "Demo purchases only. Please don’t share personal information."}
         </p>
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
@@ -873,7 +878,7 @@ export function IntegratedNorthView({
           className="inline-flex min-h-11 items-center gap-2 text-sm text-primary"
         >
           <ArrowLeft className="size-4" aria-hidden="true" />
-          Back to your products
+          Back to browsing
         </button>
         {s.turns.length > 1 && (
           <button

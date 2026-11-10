@@ -8,7 +8,7 @@ import { CareCalendarPanel } from "@/components/care/calendar";
 import { careCalendar } from "@/lib/care/calendar";
 import { getCareFeed } from "@/lib/care/repository";
 
-export const metadata = { title: "Personal Purchase Intelligence" };
+export const metadata = { title: "Purchase Insights" };
 export default async function InsightsPage({
   searchParams,
 }: {
@@ -30,7 +30,7 @@ export default async function InsightsPage({
     <Shell active="/insights" source={dataset.source}>
       <PageHeading
         title="Insights"
-        description="Explore your saved purchases, documents and recorded price adjustments."
+        description="Explore your saved purchases, find documents and review recorded price adjustments."
       />
       {showCalendar && (
         <CareCalendarPanel

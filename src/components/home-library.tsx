@@ -75,14 +75,14 @@ export function LibrarySearch({
             <div className="flex flex-wrap items-end gap-3 rounded-2xl border bg-card p-4">
               {query.view === "documents" && (
                 <label className="flex min-w-0 flex-col gap-1 text-xs text-muted-foreground">
-                  Dated purchase
+                  Purchase and date
                   <select
                     name="product"
-                    aria-label="Dated purchase"
+                    aria-label="Purchase and date"
                     defaultValue={query.product}
                     className={`${selectClass} w-full sm:max-w-80`}
                   >
-                    <option value="all">All dated purchases</option>
+                    <option value="all">All purchases</option>
                     {purchases.map((p) => (
                       <option key={p.id} value={p.id}>
                         {p.name} · {displayDate(p.purchasedOn)} ·{" "}
@@ -143,7 +143,7 @@ export function LibrarySearch({
                   defaultValue={query.documents}
                   className={selectClass}
                 >
-                  <option value="all">Any availability</option>
+                  <option value="all">All purchases</option>
                   <option value="present">With documents</option>
                   <option value="missing">Without documents</option>
                 </select>
@@ -159,7 +159,7 @@ export function LibrarySearch({
                 {[
                   query.q && `“${query.q}”`,
                   query.category !== "all" && query.category,
-                  query.product !== "all" && "Exact dated purchase",
+                  query.product !== "all" && "Selected purchase and date",
                   query.source !== "all" &&
                     `Purchase source: ${query.source === "sandbox" ? "Verified Sandbox" : "Sample"}`,
                   query.documents !== "all" &&
@@ -307,7 +307,7 @@ export function LibraryDocuments({
               {d.origin === "sandbox"
                 ? "Verified Sandbox receipt"
                 : "Sample document"}{" "}
-              · {documentClassificationLabels[classification]} · Plain text
+              · {documentClassificationLabels[classification]}
             </p>
           </div>
           <Link
@@ -402,9 +402,9 @@ export function LibraryResults({
           role="note"
           className="mb-4 rounded-xl border bg-card p-4 text-sm text-muted-foreground"
         >
-          Partial library · Up to {library.limit} saved purchases are
-          searchable. Some evidence may be unavailable; these are not
-          complete-history totals.
+          Showing part of your library. Search covers up to {library.limit}{" "}
+          saved purchases, so some purchases and documents may be missing.
+          Totals here do not cover your full purchase history.
         </p>
       )}
       {query.view !== "documents" && (
@@ -446,16 +446,16 @@ export function LibraryResults({
             query.documentCategory === "all" &&
             library.documentCategoryCounts.other > 0 && (
               <p className="mb-3 text-xs leading-5 text-muted-foreground">
-                Includes {library.documentCategoryCounts.other} Other records:
-                ownership, price, delivery and other notes are not manuals or
-                coverage.
+                Includes {library.documentCategoryCounts.other} other records.
+                Ownership, price and delivery notes are not manuals or proof of
+                warranty coverage.
               </p>
             )}
           {query.view === "documents" && query.documentCategory === "care" && (
             <p className="mb-3 text-sm leading-6 text-muted-foreground">
-              Only saved care documents appear here. A sample care card is not a
-              manufacturer manual. Official Raspberry Pi guidance is stored
-              separately in Product care and is not counted in this library.
+              These are saved care documents, not automatically supplied
+              manuals. Sample care cards are fictional. Official Raspberry Pi
+              guidance is available in Product care, separate from this list.
             </p>
           )}
           {library.documents.length ? (
@@ -524,8 +524,8 @@ function LibraryEmpty({
         {label.includes("on this page")
           ? "Use the page controls below to see the other matching records."
           : documents
-            ? "No saved documents match this category and these filters. Try another category or clear the filters. Missing warranties and manufacturer manuals aren’t automatically supplied."
-            : "Try another search, or return to all saved purchases. Missing documents and manufacturer manuals aren’t automatically supplied."}
+            ? "No saved documents match this category and these filters. Try another category or clear the filters. Only documents already saved with a purchase appear here."
+            : "Try another search or view all saved purchases. Search covers saved product and document details, not the contents of documents."}
       </p>
       <Link
         href={documents ? "/documents" : "/purchases"}

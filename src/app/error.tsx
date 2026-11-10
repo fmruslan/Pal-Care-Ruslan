@@ -14,8 +14,8 @@ export default function ErrorPage({ reset }: { reset: () => void }) {
         </span>
         <h1 className="page-title">A moment to reconnect.</h1>
         <p className="mt-5 max-w-lg text-base leading-8 text-muted-foreground">
-          We couldn’t load your care space. Please try again. If this continues,
-          ask the administrator to check the database connection and migrations.
+          We couldn’t load your purchases right now. Please try again in a
+          moment. Your saved records have not been changed.
         </p>
         <Button onClick={reset} className="mt-7">
           Try again

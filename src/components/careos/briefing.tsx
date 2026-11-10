@@ -65,7 +65,7 @@ export function CareBriefing({ items }: { items: BriefingItem[] }) {
             A little less to keep track of.
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Saved receipts and supported product guidance, close at hand.
+            Your saved receipts and available product guides, close at hand.
           </p>
         </div>
         <Button
@@ -117,7 +117,7 @@ export function CareBriefing({ items }: { items: BriefingItem[] }) {
                 href={item.sourceHref}
                 className="inline-flex min-h-11 items-center text-xs font-medium text-primary underline underline-offset-4"
               >
-                Inspect source
+                View source
               </Link>
             </div>
           </article>
@@ -125,15 +125,15 @@ export function CareBriefing({ items }: { items: BriefingItem[] }) {
       </div>
       {!active.length && (
         <p className="mt-4 text-sm text-muted-foreground">
-          No additional updates in your saved records.{" "}
+          You’re caught up on the updates shown here.{" "}
           <Link href="/vault" className="font-medium text-primary underline">
             Explore your purchases
           </Link>
         </p>
       )}
       <p className="mt-4 text-xs text-muted-foreground">
-        Prepared from saved records · no model call. Recall, warranty and live
-        price checks are not active.
+        Based on saved records, not live AI. This summary doesn’t run live
+        recall, warranty or price checks.
       </p>
     </section>
   );

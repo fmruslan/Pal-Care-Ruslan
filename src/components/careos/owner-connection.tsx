@@ -62,13 +62,13 @@ export function OwnerConnection({
       });
       if (r.status === 202)
         setMessage(
-          "Waiting for your SSH approval. Run the command below, then finish this connection.",
+          "Waiting for owner approval. Run the SSH command below, then finish the connection here.",
         );
       else if (!r.ok)
         setMessage(
           r.status === 429
-            ? "Pairing requests are limited. Wait a minute before trying again; access has not been granted."
-            : "Pairing is missing, expired or unavailable. Check the testing window, then start a new connection.",
+            ? "Too many connection requests. Wait a minute before trying again. Access hasn’t been granted."
+            : "This browser connection is missing, expired or unavailable. Check access before starting a new request.",
         );
       else if (action === "request") setPairing((await r.json()).pairing);
       else {
@@ -77,7 +77,7 @@ export function OwnerConnection({
       }
     } catch {
       setMessage(
-        "Connection unavailable. Reconnect the SSH tunnel and use Check access before starting another request. No model call was made.",
+        "We couldn’t check the connection. Use Check access before starting another request. No AI question was sent; saved purchases, documents and Insights are still available.",
       );
     } finally {
       setBusy(false);
@@ -90,14 +90,15 @@ export function OwnerConnection({
     >
       <h2 className="font-semibold">Connect this browser as the owner</h2>
       <p>
-        No private token copying. Your SSH login authorizes a short-lived
-        request for this browser only; localhost access alone is not owner
-        authentication.
+        Approve this browser through your owner SSH account—no private token to
+        copy. Opening the site alone doesn’t verify you as the owner.
       </p>
       {!pairing ? (
         <>
           <fieldset disabled={busy} className="space-y-2">
-            <legend>Allow these scopes for this approved window</legend>
+            <legend>
+              Choose what this browser can use during the approved window
+            </legend>
             {(["customer", "studio"] as const).map((scope) => (
               <label key={scope} className="flex min-h-11 items-center gap-2">
                 <input
@@ -119,7 +120,7 @@ export function OwnerConnection({
             disabled={busy || !scopes.length}
             onClick={() => void act("request")}
           >
-            Connect selected scopes via SSH
+            Request selected access via SSH
           </Button>
         </>
       ) : (
@@ -133,13 +134,12 @@ export function OwnerConnection({
                 )
                 .join(" + ")}
             </strong>
-            . Pairing expires{" "}
+            . This connection request expires{" "}
             <time dateTime={pairing.expiresAt}>{pairing.expiresAt}</time>.
           </p>
           <p>
-            Run this command in a new Mac Terminal tab. It approves only this
-            browser request. It does not start another tunnel or extend the
-            testing window.
+            Run this command in your terminal. It approves only this browser
+            request and doesn’t extend the testing window.
           </p>
           <pre
             className="overflow-x-auto whitespace-pre-wrap break-all rounded border bg-accent p-3 text-sm"
@@ -153,11 +153,11 @@ export function OwnerConnection({
               try {
                 await navigator.clipboard.writeText(sshCommand);
                 setMessage(
-                  "SSH approval command copied. Run it in a new Mac Terminal tab, then finish the connection here.",
+                  "SSH approval command copied. Run it in your terminal, then finish the connection here.",
                 );
               } catch {
                 setMessage(
-                  "Select the command above and copy it into a new Mac Terminal tab, then finish the connection here.",
+                  "Select and copy the command above. Run it in your terminal, then finish the connection here.",
                 );
               }
             }}

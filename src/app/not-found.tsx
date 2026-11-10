@@ -12,9 +12,10 @@ export default function NotFound() {
         <p className="mb-4 text-sm font-medium text-muted-foreground">
           404 · Not found
         </p>
-        <h1 className="page-title">Nothing to see here.</h1>
+        <h1 className="page-title">We couldn’t find that page.</h1>
         <p className="mt-5 text-base leading-7 text-muted-foreground">
-          This page or purchase isn’t available in the current demo view.
+          This page or purchase isn’t available. Return to Care to find your
+          saved purchases and documents.
         </p>
         <Button asChild className="mt-7">
           <Link href="/dashboard">

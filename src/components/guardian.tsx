@@ -10,13 +10,13 @@ export const guardianLabels: Record<GuardianView["state"], string> = {
   awaiting_approval: "Awaiting merchant approval",
   approved: "Approved · not submitted",
   submitting: "Submitted · not yet verified",
-  unknown: "Outcome unresolved · further refunds blocked",
+  unknown: "Refund outcome unknown · further refunds blocked",
   pending: "PayPal refund pending",
   completed: "Refund verified in PayPal Sandbox",
   failed: "PayPal refund failed",
   cancelled: "PayPal refund cancelled",
   expired: "Opportunity expired",
-  review: "Evidence needs operator review",
+  review: "Needs manual review",
 };
 export function GuardianCard({ item }: { item: GuardianView }) {
   return (
@@ -31,22 +31,23 @@ export function GuardianCard({ item }: { item: GuardianView }) {
       <h2 className="text-xl font-semibold">
         {item.state === "completed"
           ? `${money(item.amountMinor)} refunded in Sandbox.`
-          : `${money(item.amountMinor)} price adjustment found.`}
+          : `${money(item.amountMinor)} proposed price adjustment.`}
       </h2>
       <p className="mt-3 text-sm font-medium">{guardianLabels[item.state]}</p>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">
-        {item.productName} · Original {money(item.originalMinor)} → recorded
-        merchant price {money(item.comparedMinor)}. No customer claim is needed.
+        {item.productName} · Original price {money(item.originalMinor)} → saved
+        merchant price {money(item.comparedMinor)}. This record is read-only;
+        any refund requires merchant approval.
       </p>
       <p className="mt-3 text-xs text-muted-foreground">
         {item.priceOrigin === "controlled_demo"
-          ? "Controlled demo price change"
+          ? "Example price change · not a current retail price"
           : "Recorded merchant catalog price"}{" "}
         · {item.policyVersion}
       </p>
       <Button asChild variant="outline" className="mt-4">
         <Link href={`/guardian/${item.id}`}>
-          View adjustment evidence
+          View adjustment details
           <ArrowUpRight aria-hidden="true" />
         </Link>
       </Button>
@@ -57,18 +58,18 @@ export function GuardianIllustration() {
   return (
     <details className="mt-6 rounded-3xl border bg-card p-5 sm:p-7">
       <summary className="min-h-11 cursor-pointer text-base font-semibold">
-        Explore a clearly labeled example
+        How a price adjustment could work
       </summary>
       <div className="mt-5">
-        <Badge>Illustrative scenario · not a saved entitlement</Badge>
+        <Badge>Fictional example · no refund issued</Badge>
         <h2 className="mt-4 text-2xl font-semibold">
-          A little value, looked after.
+          A lower price, subject to merchant terms.
         </h2>
         <dl className="mt-5 grid grid-cols-3 gap-3">
           {[
-            ["Original", "$129"],
+            ["Original price", "$129"],
             ["New price", "$109"],
-            ["Proposed", "$20"],
+            ["Proposed adjustment", "$20"],
           ].map(([label, value]) => (
             <div key={label}>
               <dt className="text-sm text-muted-foreground">{label}</dt>
@@ -79,11 +80,11 @@ export function GuardianIllustration() {
           ))}
         </dl>
         <p className="mt-5 text-sm leading-7 text-muted-foreground">
-          Pal Care would discover the qualifying change, prepare the
-          calculation, and send it for merchant approval. This example is
-          fictional, is not attached to an existing purchase, and is not a
-          completed refund or an existing PayPal benefit. The original demo-v1
-          purchases remain uncovered.
+          In this fictional example, a qualifying price drop could lead to a
+          proposed adjustment for merchant approval. It is not linked to a saved
+          purchase, and no refund was issued. This is not an existing PayPal
+          benefit. Earlier purchases retain their original terms and do not gain
+          price protection from this example.
         </p>
       </div>
     </details>

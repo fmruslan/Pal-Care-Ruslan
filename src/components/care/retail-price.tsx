@@ -13,27 +13,27 @@ export function RetailPrice({
 }) {
   return (
     <section
-      aria-label="Purchase and retail reference prices"
+      aria-label="Purchase price and retailer comparison"
       className="my-5 rounded-2xl border bg-card p-5 text-sm leading-6"
       data-retail-reference={r.id}
     >
-      <h2 className="font-semibold">Purchase & retail reference</h2>
+      <h2 className="font-semibold">Purchase price & retailer comparison</h2>
       <dl className="mt-2 grid gap-3 sm:grid-cols-2">
         <div>
           <dt className="text-muted-foreground">
             {origin === "sandbox"
               ? "Verified Sandbox payment"
-              : "Fictional purchase amount"}
+              : "Sample purchase price"}
           </dt>
           <dd className="font-semibold">
             {amountMinor === null
-              ? "Unavailable · reference ownership, not a $0 purchase"
+              ? "Price not saved · not a $0 purchase"
               : money(amountMinor)}
           </dd>
         </div>
         <div>
           <dt className="text-muted-foreground">
-            Retail reference price · dated snapshot
+            Retailer price · saved on the date below
           </dt>
           <dd className="font-semibold">{money(r.priceMinor)} USD</dd>
         </div>
@@ -44,8 +44,8 @@ export function RetailPrice({
       <p>
         <strong>
           {r.match === "comparable"
-            ? "Comparable product, not verified identical."
-            : "Model/variant reference, not verified ownership."}
+            ? "Similar product — not confirmed identical."
+            : "Matching model and variant reference — not proof of ownership."}
         </strong>{" "}
         {r.matchReason}
       </p>
@@ -66,14 +66,13 @@ export function RetailPrice({
       <p>{priceComparison(amountMinor, r)}</p>
       <details className="mt-1 text-xs text-muted-foreground">
         <summary className="inline-flex min-h-11 cursor-pointer items-center">
-          Snapshot source & limits
+          Source quote & comparison limits
         </summary>
         <blockquote>{r.quote}</blockquote>
         <p>{r.limitations}</p>
         <p>
-          A lower listing alone never proves a price drop or adjustment
-          eligibility. Exact product identity, merchant terms, timing and
-          condition must still be checked.
+          A lower listing doesn’t confirm a price drop or a refund. Check the
+          exact product, seller’s terms, dates and condition before comparing.
         </p>
       </details>
     </section>

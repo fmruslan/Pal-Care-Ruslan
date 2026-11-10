@@ -27,7 +27,9 @@ test("injected Sol protocol: separate private scopes, actual Studio tools, groun
   );
   await page.getByRole("button", { name: "Authorize this browser" }).click();
   expect((await wrongScope).status()).toBe(403);
-  await expect(page.getByRole("status")).toContainText("Scope not authorized");
+  await expect(page.getByRole("status")).toContainText(
+    "Browser access wasn’t approved",
+  );
   expect(
     (await context.cookies()).some(
       (cookie) => cookie.name === "palcare-ai-customer",
@@ -37,7 +39,7 @@ test("injected Sol protocol: separate private scopes, actual Studio tools, groun
   await page.getByLabel("Private scope token").fill(studio);
   await page.getByRole("button", { name: "Authorize this browser" }).click();
   await expect(page.getByRole("status")).toHaveText(
-    "Scope authorized. Use its workspace link above.",
+    "Browser access approved. Use the matching workspace link above.",
   );
   await page.goto("/merchant/intelligence");
   await page
@@ -74,7 +76,7 @@ test("injected Sol protocol: separate private scopes, actual Studio tools, groun
   await page.getByLabel("Private scope token").fill(customer);
   await page.getByRole("button", { name: "Authorize this browser" }).click();
   await expect(page.getByRole("status")).toHaveText(
-    "Scope authorized. Use its workspace link above.",
+    "Browser access approved. Use the matching workspace link above.",
   );
   await page.goto(`/vault/${pi}`);
   await page

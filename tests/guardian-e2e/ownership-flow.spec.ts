@@ -20,7 +20,7 @@ test("synthetic test-DB flow: proactive opportunity → protected approval → i
     });
     await expect(
       adjustment.getByRole("heading", {
-        name: "$20.00 price adjustment found.",
+        name: "$20.00 proposed price adjustment.",
         exact: true,
       }),
     ).toBeVisible();
@@ -28,7 +28,7 @@ test("synthetic test-DB flow: proactive opportunity → protected approval → i
       adjustment.getByText("Awaiting merchant approval", { exact: true }),
     ).toBeVisible();
     const evidence = adjustment.getByRole("link", {
-      name: "View adjustment evidence",
+      name: "View adjustment details",
       exact: true,
     });
     await expect(evidence).toHaveAttribute(
@@ -48,7 +48,9 @@ test("synthetic test-DB flow: proactive opportunity → protected approval → i
         }),
       ).toHaveCount(0);
     await expect(
-      page.getByText("Controlled demo merchant price change", { exact: false }),
+      page.getByText("Demo merchant price change · not a live retail price", {
+        exact: false,
+      }),
     ).toBeVisible();
     await page.screenshot({
       path: `test-results/guardian-flow/${info.project.name}-opportunity.png`,
@@ -111,7 +113,7 @@ test("synthetic test-DB flow: proactive opportunity → protected approval → i
       }),
     ).toBeVisible();
     await expect(
-      page.getByRole("list", { name: "Price Guardian event history" }),
+      page.getByRole("list", { name: "Price adjustment history" }),
     ).toContainText("refund · completed");
     await page.getByRole("link", { name: "View receipt", exact: true }).click();
     await expect(

@@ -68,7 +68,7 @@ test("Care is the default and has four calm destinations, factual cards and no a
   expect(
     (await card.locator("[data-care-timeline]").boundingBox())!.height,
   ).toBeLessThan(60);
-  await card.getByText("Evidence", { exact: true }).click();
+  await card.getByText("Sources", { exact: true }).click();
   await expect(card).toContainText("have not been established");
   await expect(card).toContainText("Review the original policy");
   await expect(
@@ -98,25 +98,25 @@ test("quiet card opens its exact purchase and honest protection evidence plus ed
   await expect(evidence).toContainText("have not been established");
   await evidence
     .getByRole("button", {
-      name: "Prepare price adjustment message",
+      name: "Draft price adjustment message",
       exact: true,
     })
     .click();
   await expect(
     evidence.getByRole("textbox", {
-      name: "Editable price adjustment enquiry · not sent",
+      name: "Your price adjustment draft · not sent",
       exact: true,
     }),
   ).toHaveValue(/Protection not verified/);
   await evidence
-    .getByRole("button", { name: "Close ownership evidence", exact: true })
+    .getByRole("button", { name: "Close care details", exact: true })
     .click();
   await page.locator('[data-ownership-milestone="returns"]').click();
   await page
-    .getByRole("button", { name: "Prepare return message", exact: true })
+    .getByRole("button", { name: "Draft return message", exact: true })
     .click();
   const draft = page.getByRole("textbox", {
-    name: "Editable return enquiry · not sent",
+    name: "Your return draft · not sent",
   });
   await expect(draft).toContainText("Everyday headphones (F-01)");
   await draft.fill("Fictional return enquiry draft");
@@ -125,7 +125,7 @@ test("quiet card opens its exact purchase and honest protection evidence plus ed
     .click();
   await expect(draft).toHaveCount(0);
   await page
-    .getByRole("button", { name: "Close ownership evidence", exact: true })
+    .getByRole("button", { name: "Close care details", exact: true })
     .click();
   await page.goto(`/care/${headphones}`); // Existing direct Care URLs remain supported.
   await expect(page.locator("#refunds")).toContainText("No verified refund");

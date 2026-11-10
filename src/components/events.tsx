@@ -34,7 +34,7 @@ export function Events({ events }: { events: CareEvent[] }) {
                   <Badge
                     tone={event.origin === "sandbox" ? "success" : "neutral"}
                   >
-                    {event.origin === "sandbox" ? "Verified sandbox" : "Sample"}
+                    {event.origin === "sandbox" ? "Verified Sandbox" : "Sample"}
                   </Badge>
                 </div>
                 <p className="mt-3 text-sm leading-7 text-muted-foreground">
@@ -51,7 +51,7 @@ export function Events({ events }: { events: CareEvent[] }) {
                     href={`/vault/${event.twinId}`}
                     className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-primary"
                   >
-                    View Purchase Twin
+                    View purchase
                     <ArrowUpRight className="size-4" aria-hidden="true" />
                   </Link>
                 </div>
@@ -61,7 +61,7 @@ export function Events({ events }: { events: CareEvent[] }) {
         })
       ) : (
         <p className="py-6 text-sm text-muted-foreground">
-          No care events yet.
+          No care updates saved for this purchase.
         </p>
       )}
     </Card>

@@ -457,7 +457,7 @@ test("keyboard focus remains visible with reduced motion and traverses the nonmo
   await expect(send).toBeFocused();
   await expectControlFits(send);
   const back = dialog.getByRole("button", {
-    name: "Back to your products",
+    name: "Back to browsing",
     exact: true,
   });
   await page.keyboard.press("Tab");
@@ -469,7 +469,7 @@ test("keyboard focus remains visible with reduced motion and traverses the nonmo
   // Instead cross the real leading page/workspace boundary in both directions.
   const history = dialog.getByRole("button", { name: "History", exact: true });
   const precedingPageLink = page.getByRole("link", {
-    name: "Inspect official recall evidence",
+    name: "View official recall notice",
     exact: true,
   });
   await history.focus();

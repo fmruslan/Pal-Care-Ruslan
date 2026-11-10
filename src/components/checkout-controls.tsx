@@ -10,9 +10,9 @@ import { checkoutHasExpired } from "@/lib/commerce/expiry";
 
 const errorMessages: Record<string, string> = {
   guardian_offer_changed:
-    "The displayed price promise or price changed. Reload the shop and review the current terms before buying. No new order was created.",
+    "The price or price-adjustment terms changed. Reload Browse products and review the current terms before continuing. No new order was created.",
   guardian_policy_unavailable:
-    "The new merchant policy is not active. No covered checkout was created.",
+    "The merchant’s new price-adjustment terms are not active. No checkout with those terms was created.",
   checkout_unavailable:
     "Sandbox checkout is unavailable. No payment is marked complete.",
   operation_in_progress:
@@ -20,27 +20,27 @@ const errorMessages: Record<string, string> = {
   demo_limit_reached:
     "The demo's safety limit has been reached. Please try again later.",
   checkout_not_found:
-    "This checkout is not available in this browser. Return to the catalog.",
+    "This checkout is not available in this browser. Go back to Browse products.",
   checkout_session_lost:
-    "This request belongs to a different or lost browser session. No new order was created. Investigate the original checkout before starting another.",
+    "This checkout belongs to another browser, or its browser session was lost. No new order was created. Ask the demo operator to check the original checkout before starting another.",
   INSTRUMENT_DECLINED:
-    "PayPal declined the sandbox funding source. Stop and review this checkout; do not start another purchase without operator approval.",
+    "PayPal declined the test payment method. Stop here and ask the demo operator to review this checkout. Do not start another purchase without their approval.",
   verification_failed:
-    "The PayPal response did not match the saved purchase. This checkout needs operator review; no verified Purchase Twin was created.",
+    "PayPal’s payment details did not match this checkout. The demo operator needs to review it. No verified purchase record was created.",
   checkout_expired:
-    "This checkout has expired. No additional capture will be requested.",
+    "This checkout has expired. No further payment collection will be requested.",
   capture_not_attempted:
-    "No capture has been requested for this checkout. Status reconciliation cannot start a payment.",
+    "No payment collection has been requested for this checkout. Checking its status cannot start a payment.",
   capture_failed:
-    "PayPal reports that the existing capture failed. No verified Purchase Twin was created. Do not repeat capture.",
+    "PayPal reports that the test payment failed. No verified purchase record was created. Do not try to collect this payment again.",
   capture_declined:
-    "PayPal reports that the existing capture was declined. No verified Purchase Twin was created. Do not repeat capture.",
+    "PayPal reports that the test payment was declined. No verified purchase record was created. Do not try to collect this payment again.",
   sandbox_balance_confirmation_required:
     "This test is paused until sufficient available Sandbox USD balance is confirmed. No new order was created.",
   sandbox_test_not_authorized:
     "Only the single approved test in its originating browser is allowed. No additional order was created.",
   sandbox_test_price_changed:
-    "The catalog price no longer matches the approved USD 129.00 test. No order was created; stop for operator review.",
+    "The product price no longer matches the approved USD 129.00 test. No order was created. Stop here and ask the demo operator to review it.",
 };
 function message(code: string | null) {
   return code
@@ -87,7 +87,7 @@ export function BuyButton({
       router.push(`/checkout/${data.id}`);
     } catch {
       setError(
-        "Connection interrupted. Retry this same checkout; its request identifier is retained.",
+        "Connection interrupted. Retry this same checkout so its saved order request is reused.",
       );
     } finally {
       setBusy(false);
@@ -101,7 +101,7 @@ export function BuyButton({
         ) : (
           <ArrowUpRight aria-hidden="true" />
         )}
-        {busy ? "Preparing sandbox checkout…" : "Buy with PayPal Sandbox"}
+        {busy ? "Preparing Sandbox checkout…" : "Start PayPal Sandbox checkout"}
       </Button>
       {error && (
         <p
@@ -212,25 +212,25 @@ export function CheckoutControls({
         {busy
           ? "Checking this checkout…"
           : expired
-            ? "This checkout has expired. No additional capture will be requested. Return to the catalog when you are ready for a new checkout."
+            ? "This checkout has expired. No further payment collection will be requested. You can return to Browse products."
             : order?.state === "completed"
-              ? "PayPal Sandbox capture verified. Opening your Purchase Twin…"
+              ? "PayPal Sandbox payment verified. Opening your saved purchase…"
               : order?.state === "cancelled"
-                ? "Checkout cancelled. Pal Care did not request a capture for this checkout."
+                ? "Checkout cancelled. Pal Care did not request payment collection for this checkout."
                 : order?.state === "created"
-                  ? "Ready for buyer approval. No completed payment has been verified."
+                  ? "Ready for approval on PayPal Sandbox. Payment has not been confirmed."
                   : order?.state === "pending" || order?.state === "capturing"
                     ? order.pendingReason === "ECHECK"
-                      ? "PayPal reports the existing capture is pending eCheck clearance (ECHECK). No verified Purchase Twin exists yet. Check payment status to retrieve this same capture; no second capture will be sent, even after the original checkout deadline."
-                      : "Payment confirmation is pending. No verified Purchase Twin exists yet. A status check will reconcile the original capture, not send a second one."
+                      ? "PayPal says this test payment is waiting for its eCheck to clear. No verified purchase record exists yet. Use Check payment status for an update on this same payment; it will not be collected a second time, even after the checkout deadline."
+                      : "Payment confirmation is pending. No verified purchase record exists yet. A status check looks up the original payment without collecting it again."
                     : order?.state === "create_unknown"
-                      ? "PayPal order creation could not be confirmed. Retry the original order creation below; its saved request identifier will be reused."
+                      ? "We could not confirm whether PayPal created the test order. Retry the original order below; the same saved order request will be reused."
                       : order?.state === "failed"
                         ? order.error === "capture_declined"
-                          ? "PayPal declined the existing sandbox capture. No verified Purchase Twin was created."
-                          : "The sandbox payment failed. No verified Purchase Twin was created."
+                          ? "PayPal declined this Sandbox payment. No verified purchase record was created."
+                          : "The Sandbox payment failed. No verified purchase record was created."
                         : order?.state === "review"
-                          ? "This checkout needs operator review. It is not a verified purchase."
+                          ? "The demo operator needs to review this checkout. It is not a verified purchase."
                           : "This checkout has not been verified."}
       </div>
       {error && (
@@ -270,7 +270,7 @@ export function CheckoutControls({
           >
             {order.captureAttempted
               ? "Check payment status"
-              : "Check / complete this sandbox payment"}
+              : "Check or complete this Sandbox payment"}
           </Button>
         )}
       {!expired && order?.state === "created" && (
@@ -289,19 +289,19 @@ export function CheckoutControls({
           disabled={busy}
           onClick={() => update("retry")}
         >
-          Retry original order creation
+          Retry original order
         </Button>
       )}
       {!order && !busy && (
         <Button variant="outline" onClick={() => update()}>
-          Retry status lookup
+          Check checkout status again
         </Button>
       )}
       <Link
         href="/shop"
         className="inline-flex min-h-11 items-center text-sm font-semibold text-primary underline underline-offset-4"
       >
-        Back to demo catalog
+        Back to Browse products
       </Link>
     </div>
   );

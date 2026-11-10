@@ -59,7 +59,7 @@ describe("customer usability presentation", () => {
       createElement(OwnershipScope, scopeProps),
     );
     const main = markup.match(
-      /aria-label="Ownership milestones"[^>]*>([\s\S]*?)<\/ol>/,
+      /aria-label="Care milestones"[^>]*>([\s\S]*?)<\/ol>/,
     )![1];
     expect(main).toContain('data-ownership-milestone="purchase"');
     const gaps = markup.match(
@@ -67,7 +67,9 @@ describe("customer usability presentation", () => {
     )!;
     expect(gaps).not.toBeNull();
     expect(gaps[1]).not.toMatch(/\bopen(?:=|\s|$)/);
-    expect(gaps[2]).toContain("Missing evidence is not an all-clear");
+    expect(gaps[2]).toContain(
+      "missing information doesn’t confirm there are no issues",
+    );
     for (const fact of view.facts.filter((f) =>
       ["unknown", "unavailable", "not-applicable"].includes(f.state),
     )) {
@@ -76,7 +78,7 @@ describe("customer usability presentation", () => {
       expect(gaps[2]).toContain(fact.status.replaceAll("&", "&amp;"));
       for (const source of fact.sources) expect(markup).toContain(source.href);
     }
-    expect(markup).toContain("Expand dates, sources &amp; actions");
+    expect(markup).toContain("Dates, sources &amp; next steps");
   });
 
   it("leaves Care gaps to the full evidence/details view rather than adding another row of unknown controls", () => {
@@ -96,9 +98,9 @@ describe("customer usability presentation", () => {
     expect(rail).toContain('data-care-milestone="purchase"');
     expect(rail).not.toContain('data-care-milestone="delivery"');
     expect(markup).not.toContain('data-care-milestone="delivery"');
-    expect(markup).not.toContain("Other milestones");
+    expect(markup).not.toContain("Other care details");
     // The same view retains the unknown fact for the full Details disclosure
-    // and the pill's All ownership states panel; it is not deleted.
+    // and the pill's All care details panel; it is not deleted.
     expect(view.facts.some((fact) => fact.topic === "delivery")).toBe(true);
   });
 
@@ -132,10 +134,10 @@ describe("customer usability presentation", () => {
     expect(direct).toContain("Verified Sandbox");
     expect(direct).toContain("$129.00");
     expect(direct).toContain("Oct 22, 2026");
-    expect(markup).toContain("Care shown: Sample");
+    expect(markup).toContain("Care details apply only to Sample");
     expect(markup).toContain("$149.00");
     expect(markup).toContain("Oct 18, 2026");
-    expect(markup).toContain("Each purchase keeps its own sources and history");
+    expect(markup).toContain("Other purchases have separate records");
     expect(markup).toContain(`data-care-history-purchase="${sample.id}"`);
     expect(markup).toContain(`data-care-history-purchase="${second.id}"`);
     expect(markup).toContain(`href="${sample.receiptHref}"`);

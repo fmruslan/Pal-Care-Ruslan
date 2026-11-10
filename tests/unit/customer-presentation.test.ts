@@ -50,7 +50,7 @@ describe("customer presentation keeps saved evidence authoritative", () => {
       studioSelectionConfirmation([sandbox], "North updated this view"),
     ).toContain("1 purchase · Sample $0.00 · Verified Sandbox $129.00");
     expect(studioSelectionConfirmation(rows, "Chart verified")).toContain(
-      "1 unpriced excluded from values",
+      "1 with no saved price left out of totals",
     );
     expect(studioSelectionConfirmation([], "Chart verified")).toBe(
       "Chart verified · 0 purchases · Sample $0.00 · Verified Sandbox $0.00.",

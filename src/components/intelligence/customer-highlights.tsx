@@ -19,10 +19,10 @@ export function CustomerHighlights({
       aria-labelledby="insights-companion-title"
     >
       <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold text-intelligence-foreground">
-        <AssistantName /> <span>· From your saved records</span>
+        <AssistantName /> <span>· From your saved purchases</span>
       </p>
       <h2 id="insights-companion-title" className="mt-2 text-xl font-semibold">
-        A clearer picture. A useful next step.
+        Useful links for your purchases
       </h2>
       <div className="mt-4 grid gap-3 md:grid-cols-2">
         {highlights.map(({ id, purchase, title, label, href, kind }) => (
@@ -58,13 +58,13 @@ export function CustomerHighlights({
       </div>
       {!highlights.length && (
         <p className="mt-3 text-sm text-muted-foreground">
-          No receipt or supported-care suggestion is available in these saved
-          records.
+          No receipt or supported care guide is available for these saved
+          purchases.
         </p>
       )}
       <p className="mt-3 text-xs text-muted-foreground">
-        Prepared from the loaded purchase window · no model call. Not live
-        price, warranty or recall monitoring.
+        Suggestions use only the purchases loaded here, without asking AI. They
+        are not live price, warranty or recall monitoring.
       </p>
     </section>
   );

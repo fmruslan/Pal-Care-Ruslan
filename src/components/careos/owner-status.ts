@@ -55,17 +55,17 @@ export function ownerSendState(raw: unknown): OwnerSendState {
   return "ready";
 }
 export const ownerSendMessage: Record<OwnerSendState, string> = {
-  checking: "Checking this browser’s AI access…",
-  ready: "This browser is remembered. North Star is ready.",
+  checking: "Checking your North connection…",
+  ready: "North Star is ready in this browser.",
   signin:
-    "This browser is not verified yet. Open AI access to finish remembering this browser; your draft is kept.",
+    "Connect this browser through AI access to ask North. Your draft is kept.",
   disabled:
-    "AI permission is not enabled for this browser. Your saved purchases and Insights still work.",
+    "North’s AI assistance isn’t enabled here. You can still browse purchases, documents and Insights.",
   exhausted:
-    "Not enough approved AI capacity remains for another complete question. Your saved records are still available.",
-  busy: "An earlier AI question is still active. Check its saved result before starting another; your draft is kept.",
+    "North has reached the available question limit. Your saved purchases, answers and documents are still available.",
+  busy: "North is still working on an earlier question. Check for its answer before asking another; your draft is kept.",
   provider:
     "Your ChatGPT connection needs attention. Your saved purchases and Insights still work.",
   unavailable:
-    "Couldn’t check AI access. Your draft is kept. Check the connection and try again.",
+    "We couldn’t check your North connection. Your draft is kept; you can still browse your purchases.",
 };

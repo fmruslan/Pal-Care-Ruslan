@@ -4,7 +4,7 @@ import type { GuardianView } from "@/lib/price-guardian/contracts";
 
 export function GuardianTimeline({ item }: { item: GuardianView }) {
   return (
-    <ol className="mt-4 space-y-3" aria-label="Price Guardian event history">
+    <ol className="mt-4 space-y-3" aria-label="Price adjustment history">
       {item.history.map((e) => (
         <li key={e.id}>
           <Card className="rounded-2xl">
@@ -21,7 +21,7 @@ export function GuardianTimeline({ item }: { item: GuardianView }) {
               >
                 {e.kind === "refund.completed" && item.verifiedAt
                   ? "Verified Sandbox refund"
-                  : "Recorded merchant workflow"}
+                  : "Saved merchant update"}
               </Badge>
             </div>
             <p className="mt-3 text-sm leading-7 text-muted-foreground">

@@ -49,7 +49,7 @@ describe("North display identity, with Pal Care remaining the product", () => {
       expect(markup).not.toMatch(/powered\s+by|CareOS/i);
       if (!compact) {
         expect(markup).toContain("Pal Care");
-        expect(markup).toContain("no live AI inference is claimed");
+        expect(markup).toContain("Example answers don’t use live AI");
       }
     },
   );

@@ -39,7 +39,7 @@ export function EvaluationAccess({
       if (!controller.signal.aborted) {
         setAccess(null);
         setStatus(
-          "Connection unavailable. Reconnect your SSH tunnel, then check access. No model call was made.",
+          "We couldn’t check AI access. Check your connection and try again. No AI question was sent; saved purchases, documents and Insights are still available.",
         );
       }
     }
@@ -72,9 +72,9 @@ export function EvaluationAccess({
   return (
     <div className="space-y-4">
       <p>
-        Use the same browser profile at <strong>http://127.0.0.1:3002</strong>.
-        Normal refreshes, app restarts and SSH reconnections do not require
-        another token while its cookie and approved window remain valid.
+        Use the same browser profile for this private preview. You don’t need
+        another token after a normal refresh or restart while this browser’s
+        saved access and approved window remain valid.
       </p>
       {access?.expiresAt && (
         <p>
@@ -84,16 +84,16 @@ export function EvaluationAccess({
       )}
       {access?.window === "expired" && (
         <p role="alert">
-          The approved testing window has expired. Ask the owner to renew it;
-          entering a token cannot extend it. After legitimate renewal, authorize
-          this browser through SSH if its expired cookies were removed.
+          The approved testing window has expired. Entering a token won’t extend
+          it. Any new access needs separate owner approval. Saved purchases,
+          documents and Insights are still available.
         </p>
       )}
       {access?.window === "unavailable" && (
         <p role="alert">
-          Private testing access is not enabled or its configuration is
-          unavailable. Ask the owner to check the private launcher; do not enter
-          a token yet.
+          AI testing access is unavailable. Ask the owner to check the private
+          preview before entering a token. You can still browse saved purchases
+          and documents, or explore Insights yourself.
         </p>
       )}
       {access?.window === "active" && (
@@ -171,14 +171,14 @@ export function EvaluationAccess({
                   setToken("");
                   setStatus(
                     r.ok
-                      ? "Scope authorized. Use its workspace link above."
-                      : "Scope not authorized. Check the selected scope and token, or ask the owner about the testing window.",
+                      ? "Browser access approved. Use the matching workspace link above."
+                      : "Browser access wasn’t approved. Check your selection and token, or ask the owner to check the testing window.",
                   );
                   await refresh();
                 } catch {
                   setToken("");
                   setStatus(
-                    "Connection unavailable. Reconnect the tunnel and check access before entering the token again.",
+                    "We couldn’t confirm browser access. Check access before entering the token again. Your saved purchases and documents remain available.",
                   );
                 } finally {
                   setBusy(false);

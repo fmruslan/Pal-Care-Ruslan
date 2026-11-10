@@ -114,7 +114,7 @@ test("Home document and care navigation need no conversation or automatic questi
     .getByRole("link", { name: /^View details for Raspberry Pi 5,/ })
     .click();
   await page
-    .getByRole("link", { name: "Explore available guidance", exact: true })
+    .getByRole("link", { name: "View available guidance", exact: true })
     .click();
   await expect(page).toHaveURL(/\/care$/);
   await expect(page.getByRole("dialog")).toHaveCount(0);

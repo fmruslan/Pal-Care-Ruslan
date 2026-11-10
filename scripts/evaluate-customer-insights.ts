@@ -120,9 +120,7 @@ const rowIds = (rows: Row[]) => rows.map((row) => row.id).sort();
 
 function summary(page: Page) {
   return page.locator("details").filter({
-    has: page
-      .locator("summary")
-      .filter({ hasText: /^Source records & accessible summary/ }),
+    has: page.locator("summary").filter({ hasText: /^Purchase details/ }),
   });
 }
 function view(page: Page, name: string) {
@@ -185,7 +183,7 @@ async function selection(
     .toEqual(rowIds(expected));
   checkpoint("filter-scope");
   await expect(page.getByLabel("Personal Insights filter scope")).toContainText(
-    `${expected.length} purchases in the current Studio selection`,
+    `${expected.length} purchases in this view`,
   );
   const source = page
     .getByTestId("customer-studio")
@@ -621,7 +619,7 @@ async function main(run: ReturnType<typeof customerAcceptanceRun>) {
         .filter({
           has: page.getByRole("heading", { level: 2, name: /headphones/i }),
         })
-        .filter({ has: page.getByText("Verified sandbox", { exact: true }) });
+        .filter({ has: page.getByText("Verified Sandbox", { exact: true }) });
       await expect(saved).toHaveCount(1);
       const product = await saved
         .getByRole("heading", { level: 2 })
@@ -634,7 +632,7 @@ async function main(run: ReturnType<typeof customerAcceptanceRun>) {
       checkpoint = "static-twin-receipt";
       await page.goto(ORIGIN + twinHref);
       const receiptHref = await page
-        .getByRole("article", { name: "Purchase Twin passport" })
+        .getByRole("article", { name: "Purchase details" })
         .getByRole("link", { name: "View receipt", exact: true })
         .getAttribute("href");
       assert.ok(
@@ -652,18 +650,16 @@ async function main(run: ReturnType<typeof customerAcceptanceRun>) {
         page.getByRole("combobox", { name: "Appearance" }),
       ).toBeEnabled();
       await expect(
-        page.getByText(/newest 100 saved purchase window/),
+        page.getByText(/up to your 100 most recent saved purchases/),
       ).toBeVisible();
       await expect(
-        page.getByText("bundled sample preview", { exact: false }),
+        page.getByText("built-in example purchases", { exact: false }),
       ).toHaveCount(0);
       await expect(view(page, "My Purchases")).toBeEnabled({ timeout: 20000 });
       const initial = page
         .locator("details")
         .filter({
-          has: page
-            .locator("summary")
-            .filter({ hasText: /^Source records & accessible summary/ }),
+          has: page.locator("summary").filter({ hasText: /^Purchase details/ }),
         })
         .getByTestId("insight-source-records");
       await expect(initial).toHaveCount(1);

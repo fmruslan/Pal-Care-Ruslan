@@ -128,7 +128,10 @@ async function openNorth(page: Page, expectedAlert?: string) {
   }
   await expect(dialog).toBeVisible();
   await expect(
-    dialog.getByText("Working… your next draft is kept.", { exact: true }),
+    dialog.getByText(
+      "Working on your question. You can keep writing your next one.",
+      { exact: true },
+    ),
   ).toHaveCount(0);
   if (expectedAlert) {
     await expect(dialog.getByRole("alert")).toHaveCount(1);
@@ -154,10 +157,10 @@ async function chooseHeadphones(page: Page, dialog: Locator) {
       response.request().method() === "GET",
   );
   await dialog
-    .getByRole("button", { name: "Change context", exact: true })
+    .getByRole("button", { name: "Choose purchase", exact: true })
     .click();
   const picker = page.getByRole("dialog", {
-    name: "Purchase context",
+    name: "Choose a purchase",
     exact: true,
   });
   expect((await lookup).ok()).toBe(true);
@@ -185,7 +188,7 @@ async function chooseHeadphones(page: Page, dialog: Locator) {
   // Radix restores focus after unmount, not necessarily before picker removal.
   // Observe that handoff before another control deliberately takes focus.
   await expect(
-    dialog.getByRole("button", { name: "Change context", exact: true }),
+    dialog.getByRole("button", { name: "Choose purchase", exact: true }),
   ).toBeFocused();
   await expect(dialog.locator(".careos-context strong")).toHaveText(
     "Everyday headphones · F-01",
@@ -291,17 +294,17 @@ test("new inline North opens with library context and an editable draft but no a
   }
   await composer.fill("Keep my existing unsent question");
   await dialog
-    .getByRole("button", { name: "Change context", exact: true })
+    .getByRole("button", { name: "Choose purchase", exact: true })
     .click();
   const picker = page.getByRole("dialog", {
-    name: "Purchase context",
+    name: "Choose a purchase",
     exact: true,
   });
   await expect(picker).toBeVisible();
   await picker.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(picker).toHaveCount(0);
   await expect(
-    dialog.getByRole("button", { name: "Change context", exact: true }),
+    dialog.getByRole("button", { name: "Choose purchase", exact: true }),
   ).toBeFocused();
   await expect(composer).toBeEditable();
   await expect(dialog.locator("[data-user-message]")).toHaveCount(0);
@@ -353,7 +356,7 @@ for (const retirement of ["dismiss", "change context"] as const) {
     await openNorth(page);
     await expect(
       dialog.locator(`[data-request-id="${turn.requestId}"]`),
-    ).toContainText("Purchase choice closed.");
+    ).toContainText("These choices are closed.");
     await expect(choice).toHaveCount(0);
     await expect(composer).toHaveValue("Keep my replacement draft");
     expect(log.mutations()).toEqual(before);
@@ -418,7 +421,7 @@ test("North identity uses a silent outlined star, neutral shell and violet acces
     }),
   ).toBeVisible();
   await expect(dialog).toContainText(
-    "Clearing never resets usage or removes purchases.",
+    "Clearing history keeps your purchases and doesn’t restore your AI allowance.",
   );
   const accessibility = await new AxeBuilder({ page })
     .include(".careos-assistant")
@@ -442,23 +445,23 @@ test("cancel an accidental searchable context picker without messages, navigatio
   await composer.fill("Keep this question while I look");
   const before = log.mutations();
   await dialog
-    .getByRole("button", { name: "Change context", exact: true })
+    .getByRole("button", { name: "Choose purchase", exact: true })
     .click();
   const picker = page.getByRole("dialog", {
-    name: "Purchase context",
+    name: "Choose a purchase",
     exact: true,
   });
   await picker
     .getByRole("textbox", { name: "Search saved purchases", exact: true })
     .fill("no-such-saved-product");
   await expect(picker.getByRole("status")).toHaveText(
-    "No matching saved purchases.",
+    "No saved purchases match. Try a product name, model or date.",
   );
   await page.keyboard.press("Escape");
   await expect(picker).toHaveCount(0);
   await expect(dialog).toBeVisible();
   await expect(
-    dialog.getByRole("button", { name: "Change context", exact: true }),
+    dialog.getByRole("button", { name: "Choose purchase", exact: true }),
   ).toBeFocused();
   await expect(composer).toHaveValue("Keep this question while I look");
   await expect(dialog.locator("[data-user-message]")).toHaveText(turn.message);
@@ -468,7 +471,7 @@ test("cancel an accidental searchable context picker without messages, navigatio
   await expect(page).toHaveURL(/\/purchases$/);
   expect(log.mutations()).toEqual(before);
   await dialog
-    .getByRole("button", { name: "Change context", exact: true })
+    .getByRole("button", { name: "Choose purchase", exact: true })
     .click();
   await expect(
     picker.getByRole("textbox", {
@@ -479,7 +482,7 @@ test("cancel an accidental searchable context picker without messages, navigatio
   await picker.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(picker).toHaveCount(0);
   await expect(
-    dialog.getByRole("button", { name: "Change context", exact: true }),
+    dialog.getByRole("button", { name: "Choose purchase", exact: true }),
   ).toBeFocused();
   await expect(composer).toHaveValue("Keep this question while I look");
   await expect(dialog.locator("[data-user-message]")).toHaveText(turn.message);
@@ -689,7 +692,7 @@ test("owned result history and draft survive navigation, Insights, return and cl
     { timeout: 20_000 },
   );
   await expect(opened.dialog.locator("[data-latest-answer]")).toContainText(
-    "dashboard state was checked",
+    "I checked the view and its purchases after making the change",
   );
   await expect(opened.dialog.locator("[data-user-message]")).toHaveText(
     "Reset this dashboard",
@@ -952,7 +955,7 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
       `[data-request-id="${planned.requestId}"]`,
     );
     await expect(recovered).toContainText(
-      "Its earlier browser execution has not been re-verified after reload",
+      "This saved answer describes an earlier Insights view. Open Insights to check the current view; no changes were reapplied after reload.",
     );
     await expect(recovered).not.toContainText("Injected old execution claim");
     await expect(
@@ -1050,7 +1053,7 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
   await expect(
     denied.locator(`[data-request-id="${planned.requestId}"]`),
   ).toContainText(
-    "Its earlier browser execution has not been re-verified after reload",
+    "This saved answer describes an earlier Insights view. Open Insights to check the current view; no changes were reapplied after reload.",
   );
   await expect(
     denied.getByRole("textbox", {

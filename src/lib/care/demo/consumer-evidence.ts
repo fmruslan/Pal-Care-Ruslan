@@ -176,9 +176,9 @@ export function withConsumerDemoOwnership(
   const consumer =
     source.kind === "price-opportunity"
       ? {
-          status: "Catalog price example",
-          summary: `A ${money(source.paidMinor - source.currentMinor)} lower simulated catalog price is saved as of ${source.asOf.slice(0, 10)}. Eligibility needs review; this is not a current price check.`,
-          action: "Review opportunity",
+          status: "Example price comparison",
+          summary: `The example catalog price is ${money(source.paidMinor - source.currentMinor)} lower, saved on ${source.asOf.slice(0, 10)}. Check the merchant’s terms before requesting an adjustment; this isn’t a current price check.`,
+          action: "Compare saved prices",
           nextStep:
             "Compare the exact product, seller's price policy and deadline before requesting an adjustment. The lower catalog price is not eligibility or money saved.",
         }
@@ -186,17 +186,17 @@ export function withConsumerDemoOwnership(
         ? {
             status: "Return progress example",
             summary:
-              "The saved scenario shows a parcel received and inspection pending. No live return progress or refund is confirmed.",
+              "This example return shows a received parcel awaiting inspection. It is not live tracking or a confirmed refund.",
             action: "View return progress",
             nextStep:
-              "Keep the return confirmation and parcel receipt. Wait for the inspection outcome before expecting a refund. This Demo has no live carrier or merchant connection.",
+              "Keep the return confirmation and parcel receipt. Wait for the inspection outcome before expecting a refund. This example isn’t connected to a carrier or merchant.",
           }
         : {
             status: "Refund example",
-            summary: `An illustrative ${money(source.amountMinor)} refund. No PayPal refund was issued.`,
+            summary: `Example refund: ${money(source.amountMinor)}. No PayPal refund was issued.`,
             action: "View refund details",
             nextStep:
-              "Review the Demo refund breakdown and original receipt. This illustration is excluded from verified refunds and money recovered.",
+              "Review the example refund breakdown and original receipt. This example is not counted as a verified refund or money recovered.",
           };
   const fact: OwnershipFact = {
     id: `consumer-demo:${source.documentId}`,

@@ -103,7 +103,7 @@ async function readRecords(root: Locator): Promise<SourceRecord[]> {
 function sourceSummary(page: Page) {
   return page.locator("details").filter({
     has: page.locator("summary").filter({
-      hasText: /^Source records & accessible summary/,
+      hasText: /^Purchase details · \d+ purchases$/,
     }),
   });
 }
@@ -151,7 +151,7 @@ async function openWorkspace(page: Page) {
   if (!(await page.getByLabel("Category", { exact: true }).isVisible()))
     await page.getByText("Filters & sort", { exact: true }).click();
   await page
-    .getByText("Loaded-window overview & saved-record suggestions", {
+    .getByText("Your purchase overview", {
       exact: true,
     })
     .click();
@@ -167,11 +167,11 @@ async function openWorkspace(page: Page) {
   } else {
     expect(ids(records)).toEqual(expect.arrayContaining(sampleIds));
     await expect(
-      page.getByText(/newest 100 saved purchase window/),
+      page.getByText(/up to your 100 most recent saved purchases/),
     ).toBeVisible();
   }
   await expect(
-    page.getByText(`${records.length} available purchases`, {
+    page.getByText(`${records.length} saved purchases shown`, {
       exact: false,
     }),
   ).toBeVisible();
@@ -205,7 +205,7 @@ async function assertSelection(
     .poll(async () => ids(await readRecords(summary)))
     .toEqual(ids(expected));
   await expect(page.getByLabel("Personal Insights filter scope")).toContainText(
-    `${expected.length} purchases in the current Studio selection`,
+    `${expected.length} purchases in this view`,
   );
   const evidence = page
     .getByTestId("customer-studio")
@@ -249,7 +249,7 @@ async function assertSelection(
   }
   await expect(
     page.getByRole("alert").filter({
-      hasText: "widget records could not be validated",
+      hasText: "We could not check the purchases in this panel",
     }),
   ).toHaveCount(0);
 }
@@ -299,9 +299,7 @@ async function closeAssistant(page: Page) {
 async function inspectTools(page: Page) {
   const tools = page.getByTestId("customer-studio-tools");
   if (!(await tools.isVisible()))
-    await page
-      .getByText("How North Star changed this view", { exact: true })
-      .click();
+    await page.getByText("Technical details", { exact: true }).click();
   await expect(tools).toBeVisible();
   await expect(tools).toContainText("view_schema → view_page");
   await expect(tools).toContainText("personal_purchase_view → view_page");
@@ -534,7 +532,7 @@ test("Insights source records retain the exact Twin, receipt and reference-care 
     reference.getByRole("link", { name: "Open receipt →", exact: true }),
   ).toHaveCount(0);
   await expect(
-    reference.getByRole("link", { name: "Supported care →", exact: true }),
+    reference.getByRole("link", { name: "View care guide →", exact: true }),
   ).toHaveAttribute("href", `/vault/${piId}/care`);
   await headphones
     .getByRole("link", { name: "Open receipt →", exact: true })
@@ -553,7 +551,7 @@ test("Insights source records retain the exact Twin, receipt and reference-care 
   );
   await expect(
     page
-      .getByRole("article", { name: "Purchase Twin passport", exact: true })
+      .getByRole("article", { name: "Purchase details", exact: true })
       .getByText("Sample amount $149.00", { exact: true }),
   ).toBeVisible();
   await expect(
@@ -591,7 +589,7 @@ test("Insights source records retain the exact Twin, receipt and reference-care 
           const card = link.closest(".motion-card")!;
           return {
             id: card.getAttribute("data-purchase-card")!,
-            origin: card.textContent?.includes("Verified sandbox")
+            origin: card.textContent?.includes("Verified Sandbox")
               ? "sandbox"
               : "sample",
             category: card.getAttribute("data-category")!,
@@ -623,7 +621,9 @@ test("one North Star host executes real Studio tools for categories, documents, 
   // This suite forbids ALL API writes: exercise the explicit native workspace
   // command, while north-records separately checks saved-record queries/charts.
   let turn = await ask(page, "Show category chart in this workspace");
-  await expect(turn.answer).toContainText("dashboard state was checked");
+  await expect(turn.answer).toContainText(
+    "I checked the view and its purchases after making the change",
+  );
   await closeAssistant(page);
   await inspectTools(page);
   await expect(page.getByTestId("studio-verified-action")).toContainText(
@@ -669,15 +669,19 @@ test("one North Star host executes real Studio tools for categories, documents, 
       message: "Open the product care view in this workspace",
       filter: (record: SourceRecord) => !!record.careHref,
       scope: "supported care",
+      scopeText: "with supported care guides",
     },
     {
       message: "What needs my attention?",
       filter: (record: SourceRecord) => record.attention,
       scope: "recorded attention items",
+      scopeText: "with saved aftercare items",
     },
   ]) {
     turn = await ask(page, request.message);
-    await expect(turn.answer).toContainText("dashboard state was checked");
+    await expect(turn.answer).toContainText(
+      "I checked the view and its purchases after making the change",
+    );
     await closeAssistant(page);
     await expect(viewButton(page, "Documents & Care")).toHaveAttribute(
       "aria-pressed",
@@ -685,7 +689,7 @@ test("one North Star host executes real Studio tools for categories, documents, 
     );
     await expect(
       page.getByLabel("Personal Insights filter scope"),
-    ).toContainText(request.scope);
+    ).toContainText(request.scopeText ?? request.scope);
     await assertSelection(page, records.filter(request.filter), false);
     await expect(page.getByTestId("insight-attention")).toBeVisible();
     await inspectTools(page);
@@ -748,7 +752,7 @@ test("one North Star host executes real Studio tools for categories, documents, 
   await expect(adjustments.getByText("$0.00", { exact: true })).toBeVisible();
 
   turn = await ask(page, "Approve a refund");
-  await expect(turn.answer).toContainText("scripted requests, not live AI");
+  await expect(turn.answer).toContainText("scripted demos, not live AI");
   await closeAssistant(page);
   await assertSelection(page, [], false);
   await expect(viewButton(page, "Price Adjustments")).toHaveAttribute(
@@ -756,7 +760,9 @@ test("one North Star host executes real Studio tools for categories, documents, 
     "true",
   );
   turn = await ask(page, "Reset this dashboard");
-  await expect(turn.answer).toContainText("dashboard state was checked");
+  await expect(turn.answer).toContainText(
+    "I checked the view and its purchases after making the change",
+  );
   await closeAssistant(page);
   await inspectTools(page);
   await expect(viewButton(page, "My Purchases")).toHaveAttribute(
@@ -778,15 +784,13 @@ test("browser-local layout add/save/restore is idempotent and does not restore p
     .getByRole("button", { name: "Customize layout", exact: true })
     .click();
   await page
-    .getByLabel("Add a useful widget", { exact: true })
+    .getByLabel("Add a chart or panel", { exact: true })
     .selectOption("category-chart");
-  await page.getByRole("button", { name: "Add widget", exact: true }).click();
+  await page.getByRole("button", { name: "Add panel", exact: true }).click();
   await expect(charts).toHaveCount(3);
-  await page.getByRole("button", { name: "Add widget", exact: true }).click();
+  await page.getByRole("button", { name: "Add panel", exact: true }).click();
   await expect(charts).toHaveCount(3);
-  await page
-    .getByRole("button", { name: "Finish layout editing", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Done editing", exact: true }).click();
   await page.getByRole("button", { name: "Save layout", exact: true }).click();
   await expect(
     page
@@ -844,7 +848,10 @@ test("browser-local layout add/save/restore is idempotent and does not restore p
     .getByRole("button", { name: "Restore layout", exact: true })
     .click();
   await expect(
-    page.getByRole("status").filter({ hasText: "No valid saved layout" }),
+    page.getByRole("status").filter({
+      hasText:
+        "We could not restore a saved layout. Your current view is unchanged.",
+    }),
   ).toBeVisible();
   await expect(charts).toHaveCount(3);
   await assertSelection(page, sandbox);
@@ -947,7 +954,7 @@ for (const narrow of [false, true])
       resized.pages.purchases.count.xSpan,
     );
     await page
-      .getByRole("button", { name: "Finish layout editing", exact: true })
+      .getByRole("button", { name: "Done editing", exact: true })
       .click();
     await page
       .getByRole("button", { name: "Reset views", exact: true })

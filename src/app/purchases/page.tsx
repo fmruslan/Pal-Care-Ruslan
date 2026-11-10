@@ -30,7 +30,7 @@ export default async function Purchases({
           </h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
             {query.view === "documents"
-              ? "Saved records, organized around your dated purchases."
+              ? "Find receipts and other saved documents by purchase and date."
               : "Everything you own, all cared for."}
           </p>
         </div>

@@ -29,8 +29,8 @@ class CalendarBoundary extends Component<
   render() {
     return this.state.failed ? (
       <p role="alert" className="p-5 text-sm text-warning">
-        The interactive Care timeline is unavailable. Your product cards and
-        source evidence remain available; no empty-state conclusion is implied.
+        Your timeline couldn’t load. You can still open your products and their
+        saved sources below. Missing events don’t mean there are no issues.
       </p>
     ) : (
       this.props.children
@@ -121,14 +121,14 @@ export function CareCalendarPanel({
               {all
                 ? "All care events"
                 : calendar.snapshot
-                  ? "Demo care timeline"
+                  ? "Your care timeline"
                   : "Your next 30 days"}
             </h2>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
               {all
                 ? "Dated events from your saved Care evidence, including past and later dates."
                 : calendar.snapshot
-                  ? "Sandbox demo snapshot · All dated sample care events, with original source dates. Not a live forecast."
+                  ? "Fictional care examples with their original dates — not a live forecast or verified coverage."
                   : "Upcoming dates for what you own. Select an event to open its exact product and evidence."}
             </p>
           </div>

@@ -163,8 +163,8 @@ function PurchaseWidget(
   if (error)
     return (
       <p role="alert" className="p-5 text-sm text-danger">
-        These widget records could not be validated. No amount or all-clear is
-        implied.
+        We could not check the purchases in this panel. Amounts and aftercare
+        status cannot be confirmed.
       </p>
     );
   if (params.widgetType === "adjustments")
@@ -183,7 +183,7 @@ function PurchaseWidget(
           </p>
           <p className="mt-2 text-sm text-muted-foreground">
             {adjustmentUnavailable
-              ? "Adjustment evidence could not be read completely. No zero-refund conclusion is established."
+              ? "Some adjustment evidence is missing. We cannot confirm a refund total, including zero."
               : "Independently verified Sandbox refunds only. Proposed or illustrative savings are not money recovered."}
           </p>
         </div>
@@ -195,8 +195,8 @@ function PurchaseWidget(
         )}
         {!adjustmentFacts.length && !adjustmentUnavailable && (
           <p className="px-5 pb-5 text-sm">
-            No recorded adjustment cases. Older purchases do not acquire a new
-            price policy.
+            No adjustment cases are saved for these purchases. New price
+            policies do not apply to older purchases automatically.
           </p>
         )}
       </div>
@@ -206,13 +206,13 @@ function PurchaseWidget(
       <div className="h-full overflow-auto p-5" data-testid="insight-attention">
         <h2 className="text-base font-semibold">What needs attention?</h2>
         <p className="mt-2 text-sm font-medium">
-          {purchases.filter((p) => p.attentionCount > 0).length} selected
-          purchases with recorded aftercare items
+          {purchases.filter((p) => p.attentionCount > 0).length} purchases in
+          this view have saved aftercare items
         </p>
         <p className="my-3 text-sm text-muted-foreground">
           {params.context.dataset.evidenceAvailable.attention
-            ? "Only recorded aftercare items appear here. Missing documents do not create a deadline or a safety warning."
-            : "Attention evidence is unavailable or incomplete. Any loaded items below are partial; an empty list is not an all-clear."}
+            ? "Only saved aftercare items appear here. Missing documents alone do not mean a deadline or safety warning."
+            : "Some aftercare information is missing. Items below may be incomplete; an empty list does not confirm everything is in order."}
         </p>
         {(params.context.dataset.evidenceAvailable.attention ||
           purchases.some((p) => p.attentionCount > 0)) && (
@@ -238,6 +238,17 @@ const pageNames: Record<InsightPage, string> = {
   purchases: "My Purchases",
   documents: "Documents & Care",
   adjustments: "Price Adjustments",
+};
+
+const widgetNames: Record<InsightWidget, string> = {
+  "purchase-grid": "Saved purchases table",
+  "category-chart": "Purchases by category",
+  "sample-value": "Sample purchase value (USD)",
+  "sandbox-value": "Verified Sandbox purchase value (USD)",
+  "recorded-value-chart": "Recorded value chart (USD)",
+  "documents-care": "Documents & care",
+  attention: "Attention & next steps",
+  adjustments: "Adjustment evidence",
 };
 
 function withSelection(
@@ -921,8 +932,8 @@ export function CustomerStudio({
           studioSelectionConfirmation(
             dataset.purchases.filter((p) => ids.includes(p.id)),
             restoreState
-              ? "Original native state restored and verified"
-              : "Saved analysis chart verified",
+              ? "Your original chart view is restored and checked"
+              : "Your saved chart is ready and checked",
           ),
         );
         return structuredClone(api.current.getState());
@@ -986,7 +997,7 @@ export function CustomerStudio({
             revision: 0,
             text: live
               ? "I can help explore saved purchases, documents, care, and recorded adjustments. I cannot approve refunds or change purchase records."
-              : "This preview supports the suggested purchase, category, documents, care, attention, verified-adjustment and reset questions. It uses scripted requests, not live AI.",
+              : "North isn't connected for this view. The suggested questions can show purchases, categories, documents, care, attention items and verified adjustments, or reset the view. These are scripted demos, not live AI.",
             steps: [],
             sources: [],
             actions: [],
@@ -1005,7 +1016,7 @@ export function CustomerStudio({
             mode: "deterministic",
             context: null,
             revision: 0,
-            text: "The evidence needed for this view is unavailable or incomplete. I have not turned missing information into a zero, an all-clear, or a missing-care conclusion. Your saved purchases and documents are still available.",
+            text: "Some information needed for this view is missing. I cannot confirm totals, aftercare status or whether care guidance is available. You can still browse your saved purchases and documents.",
             steps: [],
             sources: [],
             actions: [],
@@ -1014,12 +1025,8 @@ export function CustomerStudio({
         try {
           names = await executeCustomerAgent(api.current, plan, apply, signal);
         } catch (error) {
-          const code =
-            error instanceof Error && /^insights_[a-z_]+$/.test(error.message)
-              ? error.message
-              : "insights_execution_unverified";
           setNotice(
-            `The requested view could not be verified (${code}). No automatic retry.`,
+            "We could not confirm this view change. Check Purchase details before trying again. Nothing will retry automatically.",
           );
           throw error;
         }
@@ -1045,18 +1052,18 @@ export function CustomerStudio({
           revision: 0,
           text:
             finding && selected.length > 1
-              ? `I found ${selected.length} matching purchases. Choose the dated purchase or receipt in Source records; I have not chosen one for you.`
+              ? `I found ${selected.length} matching purchases. Choose the dated purchase or receipt in Purchase details; I have not chosen one for you.`
               : adjustments
                 ? adjustmentUnavailable
                   ? "Price adjustment evidence is unavailable. I changed the view, but cannot establish a verified-refund total."
                   : `${money(verified)} in independently verified Sandbox price adjustments in this purchase view. ${verified ? "Open the recorded evidence below." : "No verified refund is recorded in this selection."}`
-                : `${selected.length} saved ${selected.length === 1 ? "purchase" : "purchases"} in your updated view. The dashboard state was checked after the Studio tools ran.`,
+                : `${selected.length} saved ${selected.length === 1 ? "purchase" : "purchases"} in your updated view. I checked the view and its purchases after making the change.`,
           steps: [],
           sources: [],
           actions:
             selected.length === 1
               ? [
-                  { label: "Open Purchase Twin", href: selected[0].href },
+                  { label: "View purchase", href: selected[0].href },
                   ...(selected[0].receiptHref
                     ? [{ label: "Open receipt", href: selected[0].receiptHref }]
                     : []),
@@ -1088,12 +1095,12 @@ export function CustomerStudio({
     <>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold">Your interactive Insights</h2>
+          <h2 className="text-lg font-semibold">Explore your purchases</h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Real charts. Linked evidence. A view you can make your own.{" "}
+            Charts, documents and care, all linked to your saved purchases.{" "}
             {live
-              ? "Ask North to change the view; private live planning requires your Studio scope."
-              : "Suggested questions use actual Studio tools with scripted planning · no live AI."}
+              ? "Ask North to explore this view when your AI access is available."
+              : "Explore the charts or try an example question. AI isn't connected in this view."}
           </p>
         </div>
         <AskCareOS>
@@ -1220,23 +1227,23 @@ export function CustomerStudio({
         aria-label="Personal Insights filter scope"
         className="mb-4 text-sm text-muted-foreground"
       >
-        {selected.length} purchases in the current Studio selection ·{" "}
+        {selected.length} purchases in this view ·{" "}
         {filters.origin === "all"
-          ? "samples and verified records labeled separately"
+          ? "Sample and Verified Sandbox records labeled separately"
           : filters.origin === "sample"
-            ? "samples only"
-            : "verified Sandbox only"}
+            ? "Sample purchases only"
+            : "Verified Sandbox only"}
         {filters.documents ? " · with documents" : ""}
-        {filters.care ? " · supported care" : ""}
-        {filters.attention ? " · recorded attention items" : ""}
+        {filters.care ? " · with supported care guides" : ""}
+        {filters.attention ? " · with saved aftercare items" : ""}
         {filters.verified ? " · verified adjustments only" : ""}
         {filters.query ? ` · matching “${filters.query}”` : ""}
         {crossCategory ? ` · chart selection: ${crossCategory}` : ""}.
         {selectedEvidence.unpriced
-          ? ` ${selectedEvidence.unpriced} unpriced purchase excluded from monetary values, not purchase counts.`
+          ? ` ${selectedEvidence.unpriced} with no saved price left out of money totals, but still counted as purchases.`
           : ""}{" "}
-        Select a chart category to cross-filter; Clear filters clears the
-        selection.
+        Select a chart category to filter this view. Clear filters removes your
+        filters and chart selection.
       </p>
       {page === "purchases" && (
         <details className="mb-2 text-sm">
@@ -1249,7 +1256,7 @@ export function CustomerStudio({
             className="mb-4 flex flex-wrap items-center gap-2"
           >
             <span className="text-sm text-muted-foreground">
-              Cross-filter by category:
+              Filter by category:
             </span>
             {[...new Set(dataset.purchases.map((p) => p.category))].map(
               (category) => (
@@ -1299,7 +1306,7 @@ export function CustomerStudio({
           disabled={!ready || phase !== "idle" || adding}
           onClick={() => setEdit(!edit)}
         >
-          {edit ? "Finish layout editing" : "Customize layout"}
+          {edit ? "Done editing" : "Customize layout"}
         </Button>
         <Button
           variant="outline"
@@ -1315,7 +1322,7 @@ export function CustomerStudio({
               );
             } catch {
               setNotice(
-                "Layout could not be saved. Your current workspace remains available.",
+                "We could not save your layout. You can keep using this view.",
               );
             }
           }}
@@ -1340,7 +1347,7 @@ export function CustomerStudio({
               setNotice("Saved layout restored.");
             } catch {
               setNotice(
-                "No valid saved layout is available. Your current view is unchanged.",
+                "We could not restore a saved layout. Your current view is unchanged.",
               );
             }
           }}
@@ -1362,15 +1369,17 @@ export function CustomerStudio({
       {edit && (
         <div className="mb-4 flex flex-wrap items-end gap-3 rounded-xl border p-4">
           <label className="text-sm">
-            Add a useful widget
+            Add a chart or panel
             <select
-              aria-label="Add a useful widget"
+              aria-label="Add a chart or panel"
               className="mt-2 block min-h-11 rounded-xl border bg-card px-3"
               value={add}
               onChange={(e) => setAdd(e.target.value as InsightWidget)}
             >
               {insightWidgets.map((id) => (
-                <option key={id}>{id}</option>
+                <option key={id} value={id}>
+                  {widgetNames[id]}
+                </option>
               ))}
             </select>
           </label>
@@ -1383,21 +1392,21 @@ export function CustomerStudio({
                 new AbortController().signal,
               )
                 .then(() =>
-                  setNotice("Widget added. Adding it again keeps one copy."),
+                  setNotice("Panel added. Adding it again keeps one copy."),
                 )
                 .catch(() =>
                   setNotice(
-                    "The added widget could not be verified. Inspect the current layout; no automatic retry.",
+                    "We could not confirm the panel was added correctly. Check your layout before trying again. Nothing will retry automatically.",
                   ),
                 )
                 .finally(() => setAdding(false));
             }}
           >
-            Add widget
+            Add panel
           </Button>
           <p className="text-sm text-muted-foreground">
-            Move or resize widgets in Studio, or use Reset views. Layout changes
-            are browser-only.
+            Move or resize panels here, or use Reset views to start over. Layout
+            changes stay in this browser.
           </p>
         </div>
       )}
@@ -1465,36 +1474,45 @@ export function CustomerStudio({
             }}
             onErrorRaised={() =>
               setNotice(
-                "Studio reported a configuration issue. Inspect the source records below; no financial outcome is implied.",
+                "The interactive view has a setup issue. You can check the saved purchases in Purchase details below. No payment or refund is confirmed by this view.",
               )
             }
           />
         )}
       </div>
       <p className="mt-3 text-xs text-muted-foreground">
-        Actual AG Studio 3.0.0 · local evaluation, vendor notices retained.
-        Sponsor judging key not yet issued/configured. Recorded amounts include
-        labeled fictional samples; this is not a spending or coverage statement.
+        Sample amounts are fictional and shown separately from Verified Sandbox
+        amounts. These are saved records, not a statement of real spending or
+        coverage.
       </p>
       {notice && (
         <p role="status" className="mt-4 text-sm">
           {notice}
         </p>
       )}
-      {!!tools.length && (
-        <details className="mt-4 text-sm">
-          <summary className="min-h-11 cursor-pointer py-3">
-            How North Star changed this view
-          </summary>
+      <details className="mt-4 text-xs text-muted-foreground">
+        <summary className="min-h-11 cursor-pointer py-3 font-medium">
+          Technical details
+        </summary>
+        <p>
+          AG Studio 3.0.0 · local evaluation. Vendor notices and watermark
+          retained. Sponsor judging key not yet issued/configured.
+        </p>
+        <p className="mt-2">
+          {live
+            ? "Private live planning requires valid Studio authorization and available AI access."
+            : "Suggested questions use actual Studio tools with scripted planning, not live AI."}
+        </p>
+        {!!tools.length && (
           <p data-testid="customer-studio-tools">
             Executed: {tools.join(" → ")}. Presentation state read back and
             checked. No financial tools.
           </p>
-        </details>
-      )}
+        )}
+      </details>
       <details className="mt-5 rounded-2xl border bg-card p-4">
         <summary className="min-h-11 cursor-pointer py-3 font-semibold">
-          Source records & accessible summary · {selected.length} purchases
+          Purchase details · {selected.length} purchases
         </summary>
         <CustomerRecords purchases={selected} />
         {page === "adjustments" &&
