@@ -91,16 +91,19 @@ test("frozen demo calendar queries every saved sample event and opens the exact 
   await links.first().click();
   await expect(page).toHaveURL(new RegExp(href!.replaceAll("?", "\\?")));
   await expect(page.getByRole("dialog")).toBeVisible();
-  await expect(page.getByRole("dialog")).toContainText("Demo");
   const factId = new URL(href!, "http://test.local").searchParams.get(
     "careEvent",
   )!;
-  await expect(
-    page.getByRole("dialog").locator(`[data-ownership-fact="${factId}"]`),
-  ).toHaveCount(1);
-  await expect(
-    page.getByRole("dialog").locator(`[data-ownership-fact="${factId}"]`),
-  ).toBeVisible();
+  const selectedFact = page
+    .getByRole("dialog")
+    .locator(`[data-ownership-fact="${factId}"]`)
+    .filter({ visible: true });
+  await expect(selectedFact).toHaveCount(1);
+  await expect(selectedFact).toBeVisible();
+  await expect(selectedFact).toContainText(
+    /Demo|Fictional sample event · not a current verified state/,
+  );
+  await expect(selectedFact.getByRole("link").first()).toBeVisible();
   await page.goBack();
   await page.goto("/dashboard");
   await expect(

@@ -10,6 +10,8 @@
 
 **Retained CI assertion finding:** feature [42747347527](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/42747347527), `e7a308b`, passed **2,011 units** and retained **40/44** demo-browser passes, including fixed full selection, wrapping, 320px/200% text, no nested overflow and current-status/provenance checks. Four source-navigation cases stopped at an old URL pattern omitting the now-visible saved **care reminder** link (`milestone=purchase&careEvent=purchase-event…`). The assertion now includes that legitimate existing target; exact source ID, actual navigation/modal visibility and zero-write checks remain unchanged. No visual/application change, local suite, screenshot, timeout/threshold waiver or blind CI retry. Revised-head required gates remain pending.
 
+**Retained reminder-provenance assertion finding:** [42748015637](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/42748015637), `f11c081`, again passed **2,011 units** and the layout checks but stopped the same four journeys because the original care-reminder evidence truthfully says **Fictional sample event · not a current verified state**, not **Demo**. Its exact source also appears in collapsed history, unlike a current milestone. The test now requires exactly one **visible** card for the exact event ID, its explicit fictional provenance and a visible evidence link, retaining actual URL/modal/source checks. A separate unchanged current-status case retains its existing-retry flaky pass. No application/layout change or local test/screenshot campaign; revised exact-head gates remain required.
+
 ## AG Studio Excellence Pass — approved, integrated verification
 
 ### Release fallback after official AG-18794 compatibility investigation
