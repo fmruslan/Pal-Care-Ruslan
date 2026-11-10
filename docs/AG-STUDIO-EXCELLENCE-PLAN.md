@@ -2,6 +2,8 @@
 
 **Status: approved with adjustments, November 9, 2026; implementation/acceptance tracked in [STATUS](STATUS.md).** The owner approved the four product improvements and PR/private release, made 3.1 optional, and subsequently requested focused existing tests and the established rollback/deployment process rather than a new verification project. **Delivery retains 3.0.0** and its lifecycle patch; no package upgrade is a prerequisite. The sponsor's [official judging-key arrangement](AG-STUDIO-JUDGING-LICENSE.md) supersedes the trial proposal below. No key is issued/configured and no separate trial is activated. Original proposal details below retain their research context, not new acceptance claims.
 
+**Subsequent exact owner decision:** investigate official **AG-18794**, adopt Studio 3.1.0 / Charts 14.3.0 only if accessibility and essential native/North/layout/lifecycle compatibility pass; otherwise retain 3.0 and finish with the defect documented. The vendor fix resolves the landmark failure, but the isolated candidate retained a reproducible Firefox North stale-widget-evidence failure. PR #18 is closed/unmerged; the selected fallback is 3.0, with full Axe findings retained and no accessibility suppression. [Evidence and remaining release gate](STATUS.md).
+
 ## Outcome and delivery gate
 
 Make the existing Care calendar a memorable, useful example of a custom Studio widget, and make Insights feel like one polished personal-purchase workspace. Demonstrate native charts/grid/KPIs, source-backed custom widgets, layout tools and North's actual verified Studio execution in one connected journey.
