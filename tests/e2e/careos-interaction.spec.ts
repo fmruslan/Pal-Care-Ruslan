@@ -124,7 +124,10 @@ async function open(page: Page) {
     }),
   ).toBeEditable();
   await expect(
-    dialog.getByText("Working… your next draft is kept.", { exact: true }),
+    dialog.getByText(
+      "Working on your question. You can keep writing your next one.",
+      { exact: true },
+    ),
   ).toHaveCount(0);
   return {
     dialog,
@@ -302,7 +305,7 @@ test("question renders before a held response; Enter, newline, IME and repeat gu
     "Find receipt",
   );
   await expect(
-    dialog.getByText("Preparing your result…", { exact: true }),
+    dialog.getByText("Looking into your question…", { exact: true }),
   ).toBeVisible();
   await expect(dialog.getByText(/Answer begins here/)).toHaveCount(0);
   await page.screenshot({

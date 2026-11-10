@@ -32,7 +32,7 @@ for (const path of [
       ).toBeVisible();
     } else {
       await expect(
-        page.getByText("Illustrative profiles · Channel3 not connected", {
+        page.getByText("Fictional examples · no live offers", {
           exact: true,
         }),
       ).toBeVisible();

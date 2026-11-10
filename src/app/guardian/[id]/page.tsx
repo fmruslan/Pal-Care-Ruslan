@@ -14,7 +14,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { guardianLabels } from "@/components/guardian";
 
-export const metadata = { title: "Price adjustment evidence" };
+export const metadata = { title: "Price adjustment details" };
 export default async function GuardianCasePage({
   params,
 }: {
@@ -38,9 +38,9 @@ export default async function GuardianCasePage({
         ← Back to {item.productName}
       </Link>
       <PageHeading
-        eyebrow="Pal Care · Price Guardian evidence"
+        eyebrow="Pal Care · Price adjustment details"
         title={guardianLabels[item.state]}
-        description="The purchase, merchant promise, price observation, approval and provider outcome stay connected."
+        description="See the saved purchase price, merchant terms, comparison and refund status together."
         action={
           <div className="hidden sm:block">
             <AskCareOS
@@ -53,13 +53,13 @@ export default async function GuardianCasePage({
       <Card className="intelligence-wash">
         <Badge tone={item.state === "completed" ? "success" : "intelligence"}>
           {item.state === "completed"
-            ? "Provider-verified Sandbox refund"
-            : "Recorded opportunity · not a completed refund"}
+            ? "Verified Sandbox refund · no real money"
+            : "Proposed adjustment · not a completed refund"}
         </Badge>
         <dl className="mt-6 grid grid-cols-3 gap-3">
           {[
-            ["Original paid", money(item.originalMinor)],
-            ["Compared price", money(item.comparedMinor)],
+            ["Original price", money(item.originalMinor)],
+            ["Saved comparison price", money(item.comparedMinor)],
             [
               item.state === "completed" ? "Refunded" : "Proposed adjustment",
               money(item.amountMinor),
@@ -73,8 +73,8 @@ export default async function GuardianCasePage({
         </dl>
         <p className="mt-5 text-sm text-muted-foreground">
           {item.priceOrigin === "controlled_demo"
-            ? "Controlled demo merchant price change"
-            : "Merchant catalog observation"}{" "}
+            ? "Demo merchant price change · not a live retail price"
+            : "Saved merchant catalog price"}{" "}
           · {item.priceObservedAt}. PayPal does not verify merchant price
           comparisons.
         </p>
@@ -92,15 +92,16 @@ export default async function GuardianCasePage({
           <p className="mt-4 text-sm leading-7">
             Original price minus eligible merchant price:{" "}
             {money(item.originalMinor)} − {money(item.comparedMinor)}. Limited
-            to the approved policy cap of $20 and one adjustment per capture. No
+            to the approved policy cap of $20 and one adjustment per payment. No
             customer claim is required; merchant approval is required.
           </p>
           <p className="mt-3 text-sm text-muted-foreground">
-            Initial dispatch deadline: {item.expiresAt}. Reason: {item.reason}.
+            Deadline to submit the refund: {item.expiresAt}. Reason:{" "}
+            {item.reason}.
           </p>
           <details className="mt-4">
             <summary className="min-h-11 cursor-pointer text-sm font-semibold">
-              Policy snapshot · {item.policyVersion}
+              Terms saved at checkout · {item.policyVersion}
             </summary>
             <p className="text-sm leading-7 whitespace-pre-wrap">
               {item.policyTerms}
@@ -113,15 +114,15 @@ export default async function GuardianCasePage({
         <Card>
           <h2 className="section-title">Recorded outcome</h2>
           <p className="mt-4 text-sm leading-7">
-            {guardianLabels[item.state]}. Only independent PayPal retrieval can
-            establish a verified completed refund. This does not promise a
-            bank-credit timing or a real-money benefit.
+            {guardianLabels[item.state]}. A completed refund is shown only after
+            its status is checked with PayPal. Sandbox refunds involve no real
+            money and do not promise when a bank would credit a refund.
           </p>
           {item.refundId && (
             <dl className="mt-4 text-sm">
               <dt>PayPal Sandbox refund</dt>
               <dd className="mt-1 break-all font-mono">{item.refundId}</dd>
-              <dt className="mt-3">Retrieved provider status</dt>
+              <dt className="mt-3">Status checked with PayPal</dt>
               <dd>{item.providerStatus ?? "Not verified"}</dd>
               <dt className="mt-3">Completion verified</dt>
               <dd>{item.verifiedAt ?? "Not established"}</dd>
@@ -131,7 +132,7 @@ export default async function GuardianCasePage({
       </div>
       <section className="mt-7" aria-labelledby="guardian-history">
         <h2 id="guardian-history" className="section-title mb-4">
-          Living purchase history
+          Price adjustment history
         </h2>
         <ol className="space-y-3">
           {item.history.map((e) => (

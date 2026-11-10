@@ -27,10 +27,10 @@ for (const path of ["/guardian", "/merchant/operator"]) {
         page.getByRole("heading", { name: "No eligible adjustment recorded." }),
       ).toBeVisible();
       await page
-        .getByText("Explore a clearly labeled example", { exact: true })
+        .getByText("How a price adjustment could work", { exact: true })
         .click();
       await expect(
-        page.getByText("Illustrative scenario · not a saved entitlement", {
+        page.getByText("Fictional example · no refund issued", {
           exact: true,
         }),
       ).toBeVisible();

@@ -124,7 +124,7 @@ export async function demoCareBrowserJourney(
       expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
       await page.goto(origin + "/vault/00000000-0000-4000-8000-000000000205");
       const prices = page.getByRole("region", {
-        name: "Purchase and retail reference prices",
+        name: "Purchase price and retailer comparison",
         exact: true,
       });
       await expect(prices).toContainText("$1,199.00");

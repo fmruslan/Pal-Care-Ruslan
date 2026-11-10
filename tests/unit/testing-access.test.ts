@@ -77,9 +77,9 @@ describe("testing access request is not authority", () => {
     expect(html).toContain("Testing session expired");
     expect(html).toContain("Prepare testing request");
     expect(html).toContain("your existing owner OpenCode conversation");
-    expect(html).toContain("Counts");
+    expect(html).toContain("checks access, usage and expiry");
     expect(html).not.toContain('type="password"');
-    expect(html).not.toContain("Connect selected scopes via SSH");
+    expect(html).not.toContain("Request selected access via SSH");
     expect(html).not.toContain("Copy request for OpenCode"); // Only after explicit preparation.
   });
   it("does not describe active window alone as authenticated owner access", () => {
@@ -92,7 +92,7 @@ describe("testing access request is not authority", () => {
         },
       }),
     );
-    expect(html).toContain("browser permission still required");
+    expect(html).toContain("this browser still needs permission");
     expect(html).not.toContain("Owner connected");
   });
 });

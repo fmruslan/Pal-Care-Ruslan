@@ -228,7 +228,7 @@ export function assessRecordsCase(
       "coverage",
       "complete available saved scope, not hidden truncation",
       result.coverage.complete &&
-        observed.scopeText.includes("Complete available saved library"),
+        observed.scopeText.includes("All available saved purchases checked"),
     );
     if (c.expectedPreviousPeriod) {
       check(

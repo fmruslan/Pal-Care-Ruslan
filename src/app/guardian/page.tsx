@@ -13,9 +13,9 @@ export default async function GuardianPage() {
   return (
     <Shell active="/vault" source={data.source}>
       <PageHeading
-        eyebrow="Pal Care · Proactive ownership care"
-        title="Your value, looked after."
-        description="Eligible merchant price adjustments, discovered from saved purchase facts—not a customer complaint or a refund chatbot."
+        eyebrow="Pal Care · Price Guardian"
+        title="Price adjustments"
+        description="Review saved price comparisons, merchant terms and any recorded refund status. A proposed adjustment is not a completed refund."
       />
       <div className="grid gap-5 md:grid-cols-2">
         {guardian.cases.map((item) => (
@@ -26,16 +26,17 @@ export default async function GuardianPage() {
         <Card>
           <h2 className="section-title">No eligible adjustment recorded.</h2>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
-            The original purchases keep their demo-v1 terms. The new 14-day
-            price promise applies only to future eligible purchases created
-            after activation. A new Sandbox purchase and refund still require
-            separate owner approval.
+            Existing purchases keep their original merchant terms. The demo
+            14-day price promise would apply only to eligible new purchases
+            after it is activated, not earlier purchases. New Sandbox purchases
+            and refunds require separate approval from the demo owner; no real
+            money is involved.
           </p>
           <Link
             href="/vault"
             className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-primary"
           >
-            Explore your Purchase Twins →
+            View your purchases →
           </Link>
         </Card>
       )}
@@ -44,20 +45,20 @@ export default async function GuardianPage() {
           ? `Last successful catalog check: ${new Date(guardian.monitoring.lastCheck).toISOString()}.`
           : "No scheduled catalog check has been verified yet."}{" "}
         {guardian.monitoring.scheduled
-          ? "Schedule configured; check the timestamp for freshness."
-          : "Cloud scheduling is not active. Local jobs and controlled demo actions are separate from continuous monitoring."}
+          ? "A schedule is configured; the timestamp shows when a check last succeeded."
+          : "No continuous cloud monitoring is active. A saved demo check does not mean prices are being watched live."}
       </p>
       <GuardianIllustration />
       <details className="mt-6 rounded-2xl border bg-card p-5">
         <summary className="min-h-11 cursor-pointer font-semibold">
-          Read the new demo merchant promise
+          Read the demo price-adjustment terms
         </summary>
         <p className="mt-3 text-sm leading-7 whitespace-pre-wrap">
           {guardianTerms}
         </p>
         <p className="mt-4 text-xs text-muted-foreground">
-          Defined policy is not proof of activation or coverage for an earlier
-          purchase.
+          These terms do not confirm that the promise is active or applies to an
+          earlier purchase.
         </p>
       </details>
     </Shell>

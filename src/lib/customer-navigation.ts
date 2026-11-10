@@ -9,26 +9,27 @@ export const customerNavigation = [
 export const customerExploreNavigation = [
   {
     href: "/shop",
-    label: "Demo shop",
+    label: "Browse products",
     description:
-      "Browse fictional products. Sandbox checkout has separate availability and approval limits.",
+      "Explore example products. PayPal Sandbox checkout is available only when enabled.",
   },
   {
     href: "/guardian",
     label: "Price adjustment review",
     description:
-      "Review recorded eligibility and outcomes. A proposal is not a refund.",
+      "See saved price-adjustment requests and confirmed outcomes. A request is not a refund.",
   },
   {
     href: "/safety",
     label: "Safety information",
     description:
-      "Limited saved notice evidence, not comprehensive recall monitoring or an all-clear.",
+      "Read available safety notices and check which product details still need confirmation. Not comprehensive recall monitoring.",
   },
   {
     href: "/replacements",
     label: "Replacement ideas",
-    description: "Fixture examples, not live offers or purchasing advice.",
+    description:
+      "Compare example alternatives. These are not current prices or live offers.",
   },
 ] as const;
 

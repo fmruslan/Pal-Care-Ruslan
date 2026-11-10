@@ -35,7 +35,7 @@ export function PurchaseChoices({
   if (!active)
     return (
       <p className="text-sm text-muted-foreground">
-        Purchase choice closed. You can ask something else or change context
+        These choices are closed. Ask another question or choose a purchase
         above.
       </p>
     );
@@ -45,13 +45,14 @@ export function PurchaseChoices({
       className="space-y-2 rounded-xl border p-3"
     >
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold">Which purchase?</h3>
+        <h3 className="text-sm font-semibold">Which purchase do you mean?</h3>
         <Button variant="ghost" size="sm" onClick={onDismiss}>
           Dismiss
         </Button>
       </div>
       <p className="text-sm text-muted-foreground">
-        Choose once to answer this question, or ask something else.
+        Choose the purchase you mean so North uses the right receipt and
+        details. You can also ask something else.
       </p>
       {choices.map((choice) => (
         <button

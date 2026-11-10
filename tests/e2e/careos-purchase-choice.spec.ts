@@ -29,7 +29,7 @@ const originalQuestion =
 const selectionText =
   "Synthetic purchase-choice result for UI testing only. Choose a saved purchase.";
 const inactiveNote =
-  "Purchase choice closed. You can ask something else or change context above.";
+  "These choices are closed. Ask another question or choose a purchase above.";
 const choices: PurchaseChoice[] = [
   { context: sample, purchasedOn: "2026-10-18", provenance: "Sample" },
   {

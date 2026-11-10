@@ -65,14 +65,14 @@ try {
     await expect(page.locator('input[type="password"]')).toHaveCount(0);
     await expect(
       page.getByRole("button", {
-        name: /Authorize this browser|Connect selected scopes via SSH/,
+        name: /Authorize this browser|Request selected access via SSH/,
       }),
     ).toHaveCount(0);
     await page
       .getByRole("button", { name: "Check access", exact: true })
       .click();
     await expect(page.getByRole("status")).toContainText(
-      "No token refresh, renewal or model call was performed",
+      "Access checked. Nothing was renewed or reconnected, and no AI question was sent.",
     );
     await page
       .getByRole("button", { name: "Prepare testing request", exact: true })
@@ -134,7 +134,9 @@ try {
     await page
       .getByRole("button", { name: "Check access", exact: true })
       .click();
-    await expect(page.getByRole("status")).toContainText("Status unavailable");
+    await expect(page.getByRole("status")).toContainText(
+      "We couldn’t check access",
+    );
     await expect(
       page.getByText("Testing access unavailable", { exact: true }),
     ).toBeVisible();
@@ -145,7 +147,7 @@ try {
     await expect(
       page.getByText("Testing session expired", { exact: true }),
     ).toBeVisible();
-    await page.getByRole("link", { name: "Back to Home", exact: true }).click();
+    await page.getByRole("link", { name: "Back to Care", exact: true }).click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       "Your care space, Alex.",
     );

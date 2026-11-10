@@ -243,9 +243,7 @@ async function main(path: string, probeOnly = false) {
     await expect(dialog.getByRole("alert")).toHaveCount(0);
     await dialog.getByRole("button", { name: "Close CareOS" }).click();
     const summary = page.locator("details").filter({
-      has: page
-        .locator("summary")
-        .filter({ hasText: /^Source records & accessible summary/ }),
+      has: page.locator("summary").filter({ hasText: /^Purchase details/ }),
     });
     await expect(summary.locator("article[data-purchase-id]")).toHaveCount(1);
     await expect(summary.locator("article[data-purchase-id]")).toHaveAttribute(
@@ -269,7 +267,7 @@ async function main(path: string, probeOnly = false) {
     ).toHaveText("1");
     await expect(
       page.getByLabel("Personal Insights filter scope"),
-    ).toContainText("1 purchases in the current Studio selection");
+    ).toContainText("1 purchases in this view");
     await record({
       phase: "insights-passed",
       actualSdkExecutionAndReadback: true,

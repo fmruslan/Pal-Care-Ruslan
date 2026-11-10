@@ -92,9 +92,7 @@ function widget(page: Page, title: string) {
 }
 function sources(page: Page) {
   return page.locator("details").filter({
-    has: page
-      .locator("summary")
-      .filter({ hasText: /^Source records & accessible summary/ }),
+    has: page.locator("summary").filter({ hasText: /^Purchase details/ }),
   });
 }
 async function records(page: Page) {
@@ -121,7 +119,7 @@ async function selected(
     .poll(async () => (await records(page)).map((r) => r.id).sort())
     .toEqual(expected.map((r) => r.id).sort());
   await expect(page.getByLabel("Personal Insights filter scope")).toContainText(
-    `${expected.length} purchases in the current Studio selection`,
+    `${expected.length} purchases in this view`,
   );
   if (expected.length) {
     await expect(
@@ -310,7 +308,7 @@ try {
       resized.pages.purchases.count.xSpan,
     );
     await page
-      .getByRole("button", { name: "Finish layout editing", exact: true })
+      .getByRole("button", { name: "Done editing", exact: true })
       .click();
     await page
       .getByRole("button", { name: "Reset views", exact: true })
@@ -383,7 +381,7 @@ try {
     );
     await page.goto(origin + "/shop");
     const buyButtons = page.getByRole("button", {
-      name: "Buy with PayPal Sandbox",
+      name: "Start PayPal Sandbox checkout",
       exact: true,
     });
     assert((await buyButtons.count()) > 0);
@@ -394,7 +392,7 @@ try {
       page.getByRole("heading", { name: "Private CareOS evaluation" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: /Connect selected scopes via SSH/ }),
+      page.getByRole("button", { name: /Request selected access via SSH/ }),
     ).toHaveCount(0);
     assert.deepEqual(
       (await context.cookies()).filter((c) => c.name.startsWith("palcare-")),

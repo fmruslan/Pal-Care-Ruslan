@@ -187,7 +187,8 @@ test("one unlock survives refresh, browser reconnect and server restart; Custome
   await page.getByRole("button", { name: "Check access", exact: true }).click();
   await accessCheckHeld;
   const connectionStatus = page.getByRole("status").filter({
-    hasText: "Reconnect your SSH tunnel",
+    hasText:
+      "We couldn’t check AI access. Check your connection and try again.",
   });
   try {
     // A pending request legitimately leaves both empty status regions mounted.
@@ -214,7 +215,9 @@ test("one unlock survives refresh, browser reconnect and server restart; Custome
     .getByRole("button", { name: "Authorize this browser", exact: true })
     .click();
   await expect(
-    page.getByRole("status").filter({ hasText: "Scope not authorized" }),
+    page
+      .getByRole("status")
+      .filter({ hasText: "Browser access wasn’t approved" }),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Open AG Studio" })).toHaveCount(
     0,
@@ -407,7 +410,7 @@ test("owner uses a browser-bound request and real host CLI, not pasted private t
   );
   await page
     .getByRole("button", {
-      name: "Connect selected scopes via SSH",
+      name: "Request selected access via SSH",
       exact: true,
     })
     .click();
@@ -435,9 +438,9 @@ test("owner uses a browser-bound request and real host CLI, not pasted private t
     .getByRole("button", { name: "Finish owner connection", exact: true })
     .click();
   await expect(
-    page
-      .getByRole("status")
-      .filter({ hasText: "Waiting for your SSH approval" }),
+    page.getByRole("status").filter({
+      hasText: "Waiting for owner approval. Run the SSH command below",
+    }),
   ).toBeVisible();
   expect(
     (await context.cookies()).filter((c) => c.name.startsWith("palcare-ai-")),
@@ -528,7 +531,7 @@ test("owner approval cannot silently widen Customer-only to Studio", async ({
   );
   await page
     .getByRole("button", {
-      name: "Connect selected scopes via SSH",
+      name: "Request selected access via SSH",
       exact: true,
     })
     .click();

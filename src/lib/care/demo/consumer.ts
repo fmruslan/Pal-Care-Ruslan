@@ -17,10 +17,10 @@ export function consumerScenario(
       status: due ? "Delivery unconfirmed" : "Delivery expected",
       summary: due
         ? `The ${displayDate(s.estimatedAt)} arrival estimate has passed. Delivery is not confirmed.`
-        : `Estimated arrival ${displayDate(s.estimatedAt)}. This is a saved delivery example, not live tracking.`,
+        : `Estimated arrival ${displayDate(s.estimatedAt)} in this example. No live tracking is connected.`,
       action: "View delivery details",
       nextStep:
-        "Review the saved delivery updates. This Demo has no live carrier connection; elapsed time does not confirm arrival.",
+        "Review the saved updates. There’s no live carrier connection, so a passed estimate doesn’t confirm arrival.",
     };
   }
   if (s.kind === "safety")
@@ -34,12 +34,12 @@ export function consumerScenario(
     };
   if (s.kind === "gap")
     return {
-      status: "Coverage information needed",
+      status: "Coverage details needed",
       summary:
-        "Your receipt is saved, but we don't have protection terms for this item.",
+        "Your receipt is saved. Coverage terms for this item are missing.",
       action: "View purchase details",
       nextStep:
-        "Check the receipt and seller's terms. A retail listing cannot establish your coverage.",
+        "Start with your receipt and the seller’s terms. A retail listing alone doesn’t confirm coverage.",
     };
   if (s.kind === "warranty")
     return {
@@ -51,7 +51,7 @@ export function consumerScenario(
       summary: `${s.extended ? "Extended plan" : "Warranty"} example ${active ? "runs through" : pending ? "has not started; ends" : "ended on"} ${displayDate(s.endsAt)}. No real coverage is established.`,
       action: "View warranty",
       nextStep:
-        "Review the covered faults, exclusions and proof-of-purchase requirements before contacting the seller. This Demo does not provide real coverage.",
+        "Review the faults covered, exclusions and receipt requirements. These example terms don’t provide real coverage.",
     };
   if (s.kind === "return-window")
     return {
@@ -63,18 +63,18 @@ export function consumerScenario(
       summary: pending
         ? "The example return period has not started. No return eligibility is confirmed."
         : !active
-          ? "The return deadline has passed. Check the seller's terms for other options."
+          ? "The saved return deadline has passed. Check the seller’s terms for other options."
           : s.requiresUnopened
             ? `Unopened copies may be returnable until ${displayDate(s.endsAt)}. Check the packaging first.`
-            : `You have until ${displayDate(s.endsAt)} to review the return terms and your item's condition.`,
+            : `The example return window ends ${displayDate(s.endsAt)}. Review the terms and your item’s condition.`,
       action: s.requiresUnopened
         ? "Check return conditions"
         : "Review return options",
       nextStep: !active
-        ? "Review the saved deadline and seller's terms for other options. No current return eligibility is established and nothing has been submitted."
+        ? "Check the saved deadline and seller’s terms for other options. Eligibility is unconfirmed; nothing has been sent."
         : s.requiresUnopened
-          ? "Confirm the game is unopened, keep the receipt and review the seller's exclusions before requesting a return. Nothing has been submitted."
-          : "Check the condition requirements, deadline and any return fee before contacting the seller. Nothing has been submitted.",
+          ? "Check that the game is unopened, keep the receipt and review the seller’s exclusions. Nothing has been sent."
+          : "Review the condition requirements, deadline and any return fee before contacting the seller. Nothing has been sent.",
     };
   const drop = s.observations[0].priceMinor - s.observations[1].priceMinor;
   return {
@@ -83,16 +83,16 @@ export function consumerScenario(
       : !active
         ? "Price review window closed"
         : drop > 0
-          ? "Illustrative price window"
+          ? "Price review example"
           : "Price check example",
     summary:
       drop > 0
-        ? `A ${money(drop)} simulated catalog difference is shown against an illustrative ${money(s.hypotheticalPurchaseMinor)} price basis. Your purchase price is still missing; eligibility is unverified.`
-        : "Saved simulated checks show no lower catalog price. No external tracker is connected.",
-    action: drop > 0 ? "Review price details" : "View price watch",
+        ? `This example shows a ${money(drop)} catalog difference from a hypothetical ${money(s.hypotheticalPurchaseMinor)} purchase price. Your paid price is missing, so eligibility is unverified.`
+        : "The example checks show no lower catalog price. No external tracker is connected.",
+    action: drop > 0 ? "Review price details" : "View price checks",
     nextStep:
       drop > 0
-        ? "Find your original receipt to confirm what you paid, then check the exact model, merchant policy and deadline. The demo difference is not savings."
-        : "Review the recent checks and exact model. This Demo is not a live external price tracker or a promise of an adjustment.",
+        ? "Find your receipt to confirm what you paid, then check the model, seller’s policy and deadline. This example difference is not savings."
+        : "Review the saved checks and exact model. These examples aren’t live external tracking or a promise of an adjustment.",
   };
 }

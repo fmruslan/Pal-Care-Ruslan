@@ -22,7 +22,7 @@ export function PurchaseBadge({ origin }: { origin: string }) {
       {origin === "sandbox" && (
         <Check className="size-3.5" aria-hidden="true" />
       )}
-      {origin === "sandbox" ? "Verified sandbox" : "Sample"}
+      {origin === "sandbox" ? "Verified Sandbox" : "Sample"}
     </Badge>
   );
 }
@@ -33,10 +33,9 @@ export function EmptyVault({ compact = false }: { compact?: boolean }) {
       <span className="mx-auto mb-6 flex size-16 items-center justify-center rounded-2xl bg-secondary">
         <Archive className="size-7 text-primary" aria-hidden="true" />
       </span>
-      <h2 className="section-title">A little space for everything you love.</h2>
+      <h2 className="section-title">No matching purchases</h2>
       <p className="mx-auto mt-4 max-w-md text-base leading-7 text-muted-foreground">
-        No matching purchases. Try another search or explore all sample Purchase
-        Twins.
+        Try another search or view all saved purchases.
       </p>
       <Button asChild variant="outline" className="mt-7">
         <Link href="/vault">
@@ -117,7 +116,7 @@ export function TwinList({
                 </Link>
               </div>
               <p className="text-xs text-muted-foreground">
-                {record.events.length} source-labeled care event
+                {record.events.length} saved care event
                 {record.events.length !== 1 && "s"}
               </p>
               <div className="mt-auto pt-4">
@@ -154,10 +153,11 @@ export function DocumentList({
           className="mx-auto mb-5 size-8 text-primary"
           aria-hidden="true"
         />
-        <h2 className="section-title">Goodbye, lost paperwork.</h2>
+        <h2 className="section-title">No saved documents</h2>
         <p className="mx-auto mt-4 max-w-md text-sm leading-7 text-muted-foreground">
-          No documents attached. Uploads and manufacturer-manual retrieval are
-          not connected.
+          No receipt, warranty document or manual is saved for this purchase.
+          You can still view its purchase details. Document uploads and
+          automatic manual lookup aren’t available.
         </p>
       </Card>
     );
@@ -178,9 +178,8 @@ export function DocumentList({
               </span>
               <p className="mt-1 text-sm text-muted-foreground">
                 {document.origin === "sandbox"
-                  ? "Verified sandbox receipt"
+                  ? "Verified Sandbox receipt"
                   : "Sample document"}{" "}
-                · plain text
               </p>
             </div>
           </div>

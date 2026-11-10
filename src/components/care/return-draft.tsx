@@ -26,11 +26,10 @@ export function ReturnDraft({
   const [status, setStatus] = useState("");
   return (
     <section className="mt-5">
-      <h3 className="font-semibold">Prepare your next step</h3>
+      <h3 className="font-semibold">Draft a message</h3>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">
-        Prepare a message using this exact purchase. This does not submit a
-        request, contact a merchant or establish eligibility. Use fictional
-        information only.
+        Start with this purchase’s details, then edit before copying. Nothing is
+        sent, and eligibility isn’t confirmed. Use fictional information only.
       </p>
       {!draft ? (
         <Button
@@ -38,16 +37,16 @@ export function ReturnDraft({
           className="mt-3"
           onClick={() =>
             setDraft(
-              `Hello, I would like to check the ${topic} options for ${name} (${model}), purchased on ${purchasedOn}.\n\nRecord: ${origin === "sandbox" ? "PayPal Sandbox purchase of fictional goods" : "fictional sample purchase"}.${receipt ? " A saved receipt is available in Pal Care." : " No receipt is available in the saved records."}${evidenceSummary ? `\n\nSaved evidence (please verify): ${evidenceSummary.slice(0, 2000)}` : ""}\n\nPlease confirm the applicable policy, eligibility and any required next steps. No return approval, coverage or refund is assumed.\n\nReason for enquiry: [add your reason]`,
+              `Hello, could you help me check the ${topic} options for ${name} (${model}), purchased on ${purchasedOn}?\n\nPurchase: ${origin === "sandbox" ? "PayPal Sandbox purchase of fictional goods" : "fictional sample purchase"}.${receipt ? " A saved receipt is available in Pal Care." : " No receipt is available in the saved records."}${evidenceSummary ? `\n\nSaved details to check: ${evidenceSummary.slice(0, 2000)}` : ""}\n\nPlease confirm which terms apply, whether this purchase is eligible and what to do next. No return approval, coverage or refund is assumed.\n\nMy question: [add your question]`,
             )
           }
         >
-          Prepare {topic} message
+          Draft {topic} message
         </Button>
       ) : (
         <>
           <label htmlFor={fieldId} className="mt-4 block text-sm font-semibold">
-            Editable {topic} enquiry · not sent
+            Your {topic} draft · not sent
           </label>
           <textarea
             id={fieldId}
@@ -77,7 +76,9 @@ export function ReturnDraft({
               variant="ghost"
               onClick={() => {
                 setDraft("");
-                setStatus("Draft cleared. Purchase records are unchanged.");
+                setStatus(
+                  "Draft discarded. Your purchase records haven’t changed.",
+                );
               }}
             >
               Discard draft

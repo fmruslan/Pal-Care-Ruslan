@@ -28,7 +28,7 @@ test("CareOS finds the scoped receipt and stays available during navigation", as
     .getByRole("button", { name: "Send to North Star", exact: true })
     .click();
   await expect(
-    assistant.getByText("From saved records · no model call"),
+    assistant.getByText("Saved-record answer · no live AI"),
   ).toBeVisible();
   const requestId = await assistant
     .locator("article[data-request-id]")
@@ -66,7 +66,7 @@ test("CareOS finds the scoped receipt and stays available during navigation", as
     "/documents/00000000-0000-4000-8000-000000000301",
   );
   await expect(
-    assistant.getByText("From saved records · no model call"),
+    assistant.getByText("Saved-record answer · no live AI"),
   ).toBeVisible();
   expect(
     (

@@ -16,7 +16,9 @@ test("default Care opens the customer library without registration", async ({
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Your products",
   );
-  await expect(page.getByRole("note")).toContainText("Fictional customer");
+  await expect(page.getByRole("note")).toContainText(
+    "fictional Sample purchases",
+  );
 });
 
 test("vault search, filter and empty state work", async ({ page }) => {
@@ -81,14 +83,14 @@ test("Purchase Twin and downloadable receipt remain explicitly sample-only", asy
     "Everyday headphones",
   );
   const passport = page.getByRole("article", {
-    name: "Purchase Twin passport",
+    name: "Purchase details",
     exact: true,
   });
   await expect(
     passport.getByText("Sample amount $149.00", { exact: true }),
   ).toBeVisible();
   await expect(passport).toContainText(
-    "Sample Purchase Twin · not a verified PayPal purchase.",
+    "Fictional sample purchase · not a verified PayPal purchase.",
   );
   await passport
     .getByRole("button", {
@@ -102,7 +104,7 @@ test("Purchase Twin and downloadable receipt remain explicitly sample-only", asy
   await dialog.getByText("Conversation settings", { exact: true }).click();
   await expect(
     dialog.getByText(
-      "Demo · no live AI. Clearing never resets usage or removes purchases.",
+      "Demo · no live AI. Clearing history keeps your purchases and doesn’t restore your AI allowance.",
       { exact: true },
     ),
   ).toBeVisible();

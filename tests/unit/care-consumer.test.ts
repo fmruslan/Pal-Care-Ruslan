@@ -47,10 +47,10 @@ describe("consumer Care uses human presentation, never invented authority", () =
   it("uses concise labels derived from saved deadlines and never calls a sample refund complete", () => {
     const feed = feedOf();
     for (const [id, label] of [
-      [201, "Catalog price example"],
+      [201, "Example price comparison"],
       [202, "Delivery expected"],
       [203, "Safety review"],
-      [204, "Illustrative price window"],
+      [204, "Price review example"],
       [205, "Warranty details"],
       [206, "Return progress example"],
       [207, "Return ends Nov 8"],
@@ -162,11 +162,11 @@ describe("consumer Care uses human presentation, never invented authority", () =
       feed = feedOf(data);
     const pi = feed.ownership.find((v) => v.twinId === demoId(204))!;
     expect(pi.facts.find((f) => f.consumer)!.consumer!.summary).toContain(
-      "purchase price is still missing",
+      "paid price is missing",
     );
     const headphones = feed.ownership.find((v) => v.twinId === demoId(201))!;
     expect(headphones.facts[0].consumer!.summary).toContain(
-      "$20.00 lower simulated catalog price",
+      "example catalog price is $20.00 lower",
     );
     expect(headphones.facts[0].consumer!.nextStep).toContain(
       "not eligibility or money saved",
@@ -200,7 +200,7 @@ describe("consumer Care uses human presentation, never invented authority", () =
     ).toBe(true);
   });
   it.each([
-    [201, "price", "Review opportunity"],
+    [201, "price", "Compare saved prices"],
     [206, "returns", "View return progress"],
     [208, "refunds", "View refund details"],
     [205, "warranty", "View warranty"],
@@ -211,7 +211,7 @@ describe("consumer Care uses human presentation, never invented authority", () =
     (id, topic, action) => {
       const answer = careStatusAnswer(feedOf(), 1, [demoId(id)], topic);
       expect(answer.steps.join(" ")).toContain("Next:");
-      expect(answer.steps.join(" ")).toContain("Demo");
+      expect(answer.steps.join(" ")).toContain("· Sample.");
       expect(answer.actions[0].label).toContain(action);
       expect(answer.sources.length).toBeGreaterThan(0);
       expect(answer.context?.twinId).toBe(demoId(id));
@@ -225,7 +225,7 @@ describe("consumer Care uses human presentation, never invented authority", () =
     );
     expect(boots.facts[0].detail).toContain("Inspection pending");
     expect(boots.facts[0].detail).toContain(
-      "No live return progress or refund is confirmed",
+      "It is not live tracking or a confirmed refund",
     );
   });
   it.each([207, 210])(
@@ -327,7 +327,7 @@ describe("consumer Care uses human presentation, never invented authority", () =
     }
     const pi = current.ownership.find((v) => v.twinId === demoId(204))!;
     expect(pi.facts.find((f) => f.consumer)!.consumer!.summary).toContain(
-      "purchase price is still missing; eligibility is unverified",
+      "paid price is missing, so eligibility is unverified",
     );
     const phone = current.ownership.find((v) => v.twinId === demoId(209))!;
     expect(phone.facts.find((f) => f.consumer)!.consumer!.summary).toContain(

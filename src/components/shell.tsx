@@ -73,7 +73,7 @@ export function Shell({
       "Merchant workspace")
     : (customerSection(active)?.label ??
       customerExploreNavigation.find((link) => link.href === active)?.label ??
-      "Purchase Twin");
+      "Purchase details");
   return (
     <div
       className={`min-h-screen ${merchant ? "lg:grid lg:grid-cols-[224px_minmax(0,1fr)]" : "customer-shell"}`}
@@ -341,23 +341,24 @@ export function Shell({
             <details className="demo-details">
               <summary className="flex min-h-11 w-fit cursor-pointer list-none items-center gap-2 rounded-lg text-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
                 <Info className="size-4 shrink-0" aria-hidden="true" />
-                <span>Sandbox demo · fictional records · no real money</span>
+                <span>Sample purchases &amp; PayPal Sandbox</span>
                 <ChevronDown className="size-3.5 shrink-0" aria-hidden="true" />
               </summary>
               <div className="max-w-2xl rounded-xl border bg-card p-4 text-sm leading-6">
                 <strong className="font-medium text-foreground">
-                  Sandbox demo.
+                  About these purchases.
                 </strong>{" "}
-                Fictional customer. Sample and verified Sandbox records remain
-                separate. Forma and Hearth products are fictional. The Raspberry
-                Pi 5 reference has sample ownership only. Sample records are
-                labeled. Only completed PayPal Sandbox captures are labeled
-                verified.{" "}
+                Explore fictional Sample purchases alongside verified PayPal
+                Sandbox purchases. Sandbox payments use no real money. Each
+                purchase keeps its own receipt, dates and sources; a payment
+                does not confirm delivery, warranty coverage or product safety.
+                Forma and Hearth are fictional brands. Raspberry Pi 5 has a
+                sample ownership record, not a verified purchase.{" "}
                 {source === "database"
-                  ? "PostgreSQL demo records."
-                  : "Bundled preview · database not in use."}{" "}
-                Independent project, not an official PayPal product or coverage
-                promise.
+                  ? "You’re viewing saved purchase records."
+                  : "You’re viewing the built-in example collection."}{" "}
+                Pal Care is an independent project, not an official PayPal
+                service.
               </div>
             </details>
           </div>
@@ -368,7 +369,9 @@ export function Shell({
           className={`mx-auto flex max-w-[1280px] flex-wrap justify-between gap-3 px-5 pt-6 text-xs leading-6 text-muted-foreground sm:px-8 ${merchant ? "pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-8" : "pb-[calc(2rem+env(safe-area-inset-bottom))]"}`}
         >
           <span>Pal Care</span>
-          <span>Independent Sandbox demo · No coverage promise</span>
+          <Link href="/about" className="underline underline-offset-4">
+            About Pal Care
+          </Link>
         </footer>
       </div>
       {merchant && (

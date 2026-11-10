@@ -53,7 +53,7 @@ export default async function DocumentPage({
       </Link>
       <PageHeading
         title={document.title}
-        description="Your saved purchase document. Read it here or keep a text copy."
+        description="Read the saved document or download a text copy. Sample documents are fictional; Sandbox receipts involve no real money."
         action={
           <Badge tone={document.origin === "sandbox" ? "success" : "neutral"}>
             {document.origin === "sandbox"

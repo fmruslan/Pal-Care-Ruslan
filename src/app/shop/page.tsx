@@ -14,14 +14,14 @@ import { BuyButton } from "@/components/checkout-controls";
 import { REFERENCE_PRODUCT } from "@/lib/careos/knowledge";
 import { displayedPromise } from "@/lib/price-guardian/runtime";
 
-export const metadata = { title: "Demo shop" };
+export const metadata = { title: "Browse products" };
 const descriptions: Record<string, string> = {
   headphones:
     "A little more focus for your everyday. A fictional audio companion with a place for its whole ownership story.",
   kettle:
     "A thoughtful start to the morning. A fictional kitchen favorite, with the purchase details kept close.",
   speaker:
-    "A little atmosphere, wherever the day goes. A fictional speaker with a Purchase Twin of its own.",
+    "A little atmosphere, wherever the day goes. A fictional speaker with its purchase details kept together.",
 };
 export default async function Shop() {
   const data = await getDemoData();
@@ -41,8 +41,8 @@ export default async function Shop() {
     <Shell active="/shop" source={data.source}>
       <PageHeading
         eyebrow="Everyday Goods · Fictional demo merchant"
-        title="Good things. Better aftercare."
-        description="A small collection for a bigger idea: the purchase should be the beginning of a useful care experience."
+        title="Browse products"
+        description="Explore fictional products and see how a verified PayPal Sandbox checkout creates a saved purchase record. No real goods or real money."
       />
       <div
         role="status"
@@ -52,8 +52,8 @@ export default async function Shop() {
         <p>
           <strong className="font-semibold">{checkout.reason}</strong>
           {!checkout.enabled &&
-            " The catalog is still browsable; no fake payment will be substituted."}{" "}
-          Nothing ships. Use only a fictional Sandbox buyer and simulated money.
+            " You can still browse. A purchase is saved only after a test payment is verified."}{" "}
+          Nothing ships. Use only a fictional Sandbox buyer and test funds.
         </p>
       </div>
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
@@ -74,7 +74,7 @@ export default async function Shop() {
                 </h2>
                 <p className="mt-3 min-h-21 text-sm leading-7 text-muted-foreground">
                   {descriptions[product.illustration] ??
-                    "A fictional demo product. No real goods are sold."}
+                    "A fictional product for the Sandbox checkout demonstration. No real goods are sold."}
                 </p>
                 <div className="my-5 flex items-end justify-between gap-3 border-t pt-5">
                   <p className="text-2xl font-semibold tabular-nums">
@@ -104,7 +104,7 @@ export default async function Shop() {
                 {promises.find((p) => p.id === product.id)?.promise && (
                   <details className="mt-4 rounded-xl border p-3 text-xs leading-6">
                     <summary className="min-h-11 cursor-pointer font-semibold">
-                      Included demo-price-v2 price promise
+                      Demo price-adjustment terms
                     </summary>
                     <p>
                       {
@@ -130,16 +130,17 @@ export default async function Shop() {
         </span>
         <div>
           <h2 id="ownership-title" className="section-title">
-            Your purchase is just the beginning.
+            What a verified test purchase saves
           </h2>
           <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground">
-            A real, verified PayPal Sandbox capture creates a new Purchase Twin
-            with a sandbox receipt, saved product details, and a snapshotted
-            demo policy. Only supplied sample care cards are attached; no
-            manufacturer manual or warranty is invented.
+            A verified PayPal Sandbox payment creates a Purchase Twin—your saved
+            purchase record—with a Sandbox receipt, product details and a copy
+            of the merchant’s demo terms at checkout. Only available sample care
+            cards are attached; a manufacturer manual or warranty is not
+            automatically supplied.
           </p>
           <p className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
-            Purchase → Verified capture → Purchase Twin
+            Test checkout → Verified payment → Saved purchase
             <ArrowRight className="size-4" aria-hidden="true" />
           </p>
         </div>

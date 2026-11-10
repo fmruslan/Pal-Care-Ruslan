@@ -214,7 +214,7 @@ export function recordsAnswer(
                 ),
               )
             : []),
-          "This explains the saved records only; no new payment or financial action was performed.",
+          "Open a purchase below for its receipt, documents and history.",
         ]
       : [
           ...(query.categories.length
@@ -232,10 +232,10 @@ export function recordsAnswer(
                 `Evidence filter: ${query.origin === "sample" ? "Sample" : "Verified Sandbox"}.`,
               ]
             : []),
-          "Sample and Verified Sandbox values are separate; reference/unpriced records are excluded from amounts. No financial operation was performed.",
+          "Sample and Verified Sandbox values are shown separately. Purchases with no saved price are counted but left out of the amounts.",
           ...(query.document !== "any"
             ? [
-                `Saved-document filter: ${query.document}; links belong to the exact purchase, not a borrowed manual.`,
+                `Documents: ${query.document}. Each link opens a document for that exact purchase.`,
               ]
             : []),
           ...observedPatterns(result),
@@ -245,7 +245,7 @@ export function recordsAnswer(
     recordsResult: result,
   };
   if (presentation === "standard") return answer;
-  const scope = `Scope: ${[
+  const scope = `Showing: ${[
     query.categories.length
       ? `${query.categories.join(" + ")} only`
       : "all saved purchases",
@@ -267,7 +267,7 @@ export function recordsAnswer(
     return { ...answer, text: `${scope}${comparison} ${answer.text}` };
   return {
     ...answer,
-    text: `${scope}${comparison} ${records.length} matching saved purchase${records.length === 1 ? "" : "s"}. Unpriced/reference records are excluded from amounts; unknown is not zero.${coverage.complete ? "" : " Only part of the saved library is available; these are not complete-library totals."}${result.comparison ? " A recorded-value difference does not establish a cause or a complete account trend." : ""}${result.comparison?.totals.some((total) => total.amountMinor === 0) ? " Percentage growth from a zero prior value is not established." : ""} No financial operation was performed.`,
+    text: `${scope}${comparison} ${records.length} matching saved purchase${records.length === 1 ? "" : "s"}. Purchases without a saved price are excluded from amounts; unknown is not zero.${coverage.complete ? "" : " Some saved purchases are unavailable, so these totals may be incomplete."}${result.comparison ? " This compares saved amounts, not your complete account history or the reason for a change." : ""}${result.comparison?.totals.some((total) => total.amountMinor === 0) ? " A percentage change cannot be calculated from a zero starting amount." : ""}`,
     steps: result.totals.map((total) =>
       result.comparison
         ? recordedValueComparison(

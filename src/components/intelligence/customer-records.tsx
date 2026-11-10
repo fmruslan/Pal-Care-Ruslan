@@ -15,12 +15,12 @@ export function CustomerEvidence({
   const groups = [
     { label: "Saved purchases", value: facts.purchases, x: 48 },
     { label: "Saved documents", value: facts.documents, x: 160 },
-    { label: "Care products", value: facts.careProducts, x: 272 },
+    { label: "Care guides", value: facts.careProducts, x: 272 },
   ];
   return (
     <>
       <p className="text-sm leading-6 text-muted-foreground">
-        The evidence behind this selection, linked to its original purchases.
+        Documents and care guides linked to the purchases in this view.
       </p>
       <svg
         viewBox="0 0 320 90"
@@ -72,10 +72,10 @@ export function CustomerEvidence({
       </dl>
       <p className="mt-3 text-xs leading-5 text-muted-foreground">
         {facts.verified} Verified Sandbox · {facts.purchases - facts.verified}{" "}
-        Sample. Care products count distinct linked guidance pages, not warranty
+        Sample. Care guides count unique linked guidance pages, not warranty
         coverage.
         {facts.careUnavailable
-          ? " Some care evidence is unavailable; counts are partial."
+          ? " Some care information is unavailable, so counts may be incomplete."
           : ""}
       </p>
       <ul className="mt-2 flex flex-wrap gap-x-4 text-sm">
@@ -92,7 +92,7 @@ export function CustomerEvidence({
       </ul>
       <details className="mt-3 border-t text-sm">
         <summary className="min-h-11 cursor-pointer py-3 font-semibold">
-          View all selected records · {facts.purchases}
+          View selected purchases · {facts.purchases}
         </summary>
         <CustomerRecords purchases={purchases} />
       </details>
@@ -112,7 +112,7 @@ export function CustomerRecords({
       {!purchases.length && (
         <p className="py-4 text-sm text-muted-foreground">
           No saved purchases match this view. Clear the filters to explore your
-          available records.
+          saved purchases.
         </p>
       )}
       {purchases.map((p) => (
@@ -154,18 +154,18 @@ export function CustomerRecords({
                 </>
               )}
               {p.careStatus === "unavailable"
-                ? "Product-care evidence is unavailable or requires review; guidance availability is not established"
+                ? "Care information is unavailable or needs review; we cannot confirm guidance is available"
                 : p.careStatus === "available"
-                  ? "Exact-model care guidance available"
-                  : "No supported manufacturer guidance recorded"}
+                  ? "Care guidance available for this exact model"
+                  : "No supported manufacturer guidance saved"}
               .
             </p>
           )}
           {p.attentionStatus === "unavailable" && (
             <p className="mt-2 text-sm text-muted-foreground">
-              Aftercare evidence is incomplete. Any saved items below are
-              partial; no conclusion that nothing needs attention is
-              established. Saved purchase and document records remain available.
+              Some aftercare information is missing. Items below may be
+              incomplete, so we cannot confirm that nothing needs attention.
+              Your saved purchases and documents are still available.
             </p>
           )}
           {!!p.attention.length && (
@@ -177,7 +177,7 @@ export function CustomerRecords({
           )}
           <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm font-medium text-primary">
             <Link className="inline-flex min-h-11 items-center" href={p.href}>
-              Open Purchase Twin →
+              View purchase →
             </Link>
             {p.receiptHref && (
               <Link
@@ -192,14 +192,14 @@ export function CustomerRecords({
                 className="inline-flex min-h-11 items-center"
                 href={p.careHref}
               >
-                Supported care →
+                View care guide →
               </Link>
             )}
           </div>
           {!compact && !!p.documentLinks.length && (
             <details className="mt-1 text-sm">
               <summary className="min-h-11 cursor-pointer py-3 font-medium">
-                Saved documents & provenance
+                Saved documents & sources
               </summary>
               <ul>
                 {p.documentLinks.map((d) => (

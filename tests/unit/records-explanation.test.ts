@@ -95,7 +95,12 @@ describe("grounded saved-record explanations — pure presentation", () => {
         "Verified Sandbox: $0.00 (0 priced, 0 excluded).",
       ]);
       expect(answer.text).toContain("unknown is not zero");
-      expect(answer.text).toContain("No financial operation was performed");
+      expect(answer.text).toContain(
+        "Purchases without a saved price are excluded from amounts",
+      );
+      expect(answer.text).not.toMatch(
+        /refund (?:issued|completed)|payment (?:sent|captured)/i,
+      );
       expect(result.records).toHaveLength(4);
       expect(
         result.records.find((r) => r.name === "Raspberry Pi 5"),
@@ -129,7 +134,7 @@ describe("grounded saved-record explanations — pure presentation", () => {
 
     expect(
       answer.text.startsWith(
-        'Scope: Audio only; Sample only; 2026-10-01 through 2026-11-03 (inclusive; UTC); receipts: missing; saved documents: present; recorded price: present; search: "speaker". 1 matching saved purchase',
+        'Showing: Audio only; Sample only; 2026-10-01 through 2026-11-03 (inclusive; UTC); receipts: missing; saved documents: present; recorded price: present; search: "speaker". 1 matching saved purchase',
       ),
     ).toBe(true);
     expect(answer.recordsResult).toBe(result);
@@ -146,7 +151,7 @@ describe("grounded saved-record explanations — pure presentation", () => {
 
     expect(
       answer.text.startsWith(
-        "Scope: all saved purchases; Sample and Verified Sandbox; all saved dates. 4 matching saved purchases",
+        "Showing: all saved purchases; Sample and Verified Sandbox; all saved dates. 4 matching saved purchases",
       ),
     ).toBe(true);
   });
@@ -173,8 +178,10 @@ describe("grounded saved-record explanations — pure presentation", () => {
 
       expect(answer.text).toContain("2026-11-01 through 2026-11-03");
       expect(answer.text).toContain("2026-10-01 through 2026-10-31");
-      expect(answer.text).toMatch(
-        /not complete-library totals|global totals are not established/,
+      expect(answer.text).toContain(
+        presentation === "concise"
+          ? "Some saved purchases are unavailable, so these totals may be incomplete"
+          : "global totals are not established",
       );
       expect(steps).toContain("$149.00 (1 priced, 1 excluded)");
       expect(steps).toContain(
@@ -190,7 +197,11 @@ describe("grounded saved-record explanations — pure presentation", () => {
       expect(steps).toContain(
         "2026-10-01 through 2026-10-31 had $10.00 more recorded Verified Sandbox value",
       );
-      expect(`${answer.text} ${steps}`).toContain("does not establish a cause");
+      expect(`${answer.text} ${steps}`).toContain(
+        presentation === "concise"
+          ? "not your complete account history or the reason for a change"
+          : "does not establish a cause",
+      );
       if (presentation === "concise") expect(answer.steps).toHaveLength(2);
       expect(answer.recordsResult).toBe(result);
       expect(JSON.stringify(result)).toBe(before);
@@ -212,9 +223,11 @@ describe("grounded saved-record explanations — pure presentation", () => {
       "Sample: 2026-11-01 through 2026-11-03: $0.00 (0 priced, 0 excluded); 2026-10-01 through 2026-10-31: $0.00 (0 priced, 1 excluded). Both periods have equal recorded Sample value.",
       "Verified Sandbox: 2026-11-01 through 2026-11-03: $0.00 (0 priced, 0 excluded); 2026-10-01 through 2026-10-31: $30.00 (1 priced, 0 excluded). 2026-10-01 through 2026-10-31 had $30.00 more recorded Verified Sandbox value than 2026-11-01 through 2026-11-03.",
     ]);
-    expect(answer.text).toContain("not complete-library totals");
     expect(answer.text).toContain(
-      "Percentage growth from a zero prior value is not established",
+      "Some saved purchases are unavailable, so these totals may be incomplete",
+    );
+    expect(answer.text).toContain(
+      "A percentage change cannot be calculated from a zero starting amount",
     );
     expect(answer.text).not.toContain("No saved purchases match");
     expect(answer.recordsResult?.comparison).toBe(result.comparison);

@@ -86,7 +86,7 @@ export function CareCalendarRail({
       >
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
           <span className="rounded-full border border-intelligence-border bg-intelligence px-3 py-1.5 font-semibold text-intelligence-foreground">
-            Demo snapshot · {fullDate(calendar.snapshot.asOf)}
+            Example timeline · {fullDate(calendar.snapshot.asOf)}
           </span>
           <span data-care-calendar-dates>
             Saved dates: {fullDate(calendar.snapshot.from)} –{" "}
@@ -95,11 +95,11 @@ export function CareCalendarRail({
         </div>
         <div
           role="region"
-          aria-label="Demo care timeline snapshot"
+          aria-label="Example care timeline"
           data-care-calendar-viewport
         >
           <ol
-            aria-label="All demo care events"
+            aria-label="All sample care events"
             className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
           >
             {events.map((event) => (
@@ -149,14 +149,14 @@ export function CareCalendarRail({
             data-care-calendar-empty
             className="py-3 text-sm text-muted-foreground"
           >
-            No dated sample care events are saved. Missing dates are not
-            invented.
+            No care dates are saved for this example. Unknown dates stay
+            unknown.
           </p>
         )}
         <p className="mt-4 text-xs leading-5 text-muted-foreground">
-          {events.length} saved sample events · Dates stay fixed for this demo.
-          Delivery estimates are not confirmed arrivals; warranty examples are
-          not verified coverage.
+          {events.length} sample events · Original dates, shown as saved.
+          Delivery estimates don’t confirm arrival; warranty examples don’t
+          establish coverage.
         </p>
         <span data-care-event-counts className="sr-only">
           {counts.demo} Sample · {counts.verified} verified Sandbox ·{" "}

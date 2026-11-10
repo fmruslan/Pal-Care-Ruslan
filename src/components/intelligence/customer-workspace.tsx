@@ -15,7 +15,7 @@ const Studio = dynamic(
     ssr: false,
     loading: () => (
       <p role="status" className="py-8">
-        Preparing your interactive purchase workspace…
+        Preparing your purchase insights…
       </p>
     ),
   },
@@ -44,19 +44,19 @@ export function CustomerWorkspace({
           role="alert"
           className="mb-5 rounded-xl border bg-warning-surface p-4 text-sm text-warning"
         >
-          Some evidence could not be loaded: {dataset.unavailable.join(", ")}.
-          Your saved purchases remain available; missing evidence is not an
-          all-clear.
+          Some information could not be loaded: {dataset.unavailable.join(", ")}
+          . You can still browse your saved purchases. Missing information does
+          not mean everything is in order.
         </p>
       )}
       <div className="customer-insights-coverage mb-5 text-sm text-muted-foreground">
         <p className="text-sm text-muted-foreground">
-          {dataset.purchases.length} available purchases ·{" "}
+          {dataset.purchases.length} saved purchases shown ·{" "}
           {dataset.source === "database"
-            ? `newest ${dataset.limit} saved purchase window`
-            : "bundled sample preview"}
-          . This is the loaded window, not a complete PayPal purchase history.
-          Sample and verified Sandbox evidence remain separate.
+            ? `up to your ${dataset.limit} most recent saved purchases`
+            : "built-in example purchases"}
+          . This view covers saved purchases only, not your complete PayPal
+          history. Sample and Verified Sandbox records are labeled separately.
         </p>
       </div>
       {studioAllowed ? (
@@ -77,21 +77,31 @@ export function CustomerWorkspace({
         <>
           <PurchaseMetrics {...totals} />
           <p className="mb-5 text-sm text-muted-foreground">
-            Interactive AG Studio requires permitted local evaluation or
-            approved judging license configuration. Your purchase records are
-            available below.
+            Interactive charts are not available in this view. You can still
+            browse your saved purchases below.
           </p>
+          <details className="mb-5 text-xs text-muted-foreground">
+            <summary className="min-h-11 cursor-pointer py-3 font-medium">
+              Technical details
+            </summary>
+            <p>
+              AG Studio 3.0.0 requires permitted local evaluation or approved
+              judging license configuration. Sponsor judging key not yet
+              issued/configured. Vendor notices and licensing requirements
+              remain unchanged.
+            </p>
+          </details>
           <CustomerRecords purchases={dataset.purchases} />
         </>
       )}
       <details className="customer-insights-overview mt-6 rounded-2xl border bg-card px-5">
         <summary className="min-h-11 cursor-pointer py-4 text-sm font-semibold">
-          Loaded-window overview & saved-record suggestions
+          Your purchase overview
         </summary>
         <p className="mb-4 text-sm leading-6 text-muted-foreground">
-          These counts and suggestions cover the full loaded window, not the
-          current Studio selection. Use the interactive view for filtered
-          analytics and its matching source records.
+          These counts and suggestions include all purchases loaded on this
+          page, before filters. Your interactive view and Purchase details show
+          only the purchases you select.
         </p>
         {studioAllowed && <PurchaseMetrics {...totals} />}
         <CustomerHighlights purchases={dataset.purchases} />

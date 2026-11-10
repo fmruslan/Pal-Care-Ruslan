@@ -30,14 +30,14 @@ function Totals({
             {total.origin === "sample"
               ? "Sample purchase value"
               : "Verified Sandbox purchase value"}
-            {partial ? " · partial evidence" : ""}
+            {partial ? " · some records unavailable" : ""}
           </dt>
           <dd className="mt-1 text-xl font-semibold">
             {usd(total.amountMinor)}
           </dd>
           <dd className="mt-1 text-xs text-muted-foreground">
-            {total.pricedCount} priced · {total.excludedCount}{" "}
-            unpriced/reference excluded
+            {total.pricedCount} with a saved price · {total.excludedCount}{" "}
+            unpriced or reference items left out
           </dd>
         </div>
       ))}
@@ -95,8 +95,8 @@ export function RecordsResultView({
       controller.signal.throwIfAborted();
       setChartStatus(
         intent?.action === "restore"
-          ? "Original saved native state restored and verified in Insights, including chart, KPIs, filters and matching purchase rows. No fresh chart was created. Purchase records are unchanged."
-          : "Native chart, separate USD KPIs, filters and matching purchase rows were executed and verified in Insights. Purchase records are unchanged.",
+          ? "Your original Insights view is restored. Its chart, totals, filters and matching purchases were checked. No new chart was created; purchase records are unchanged."
+          : "Your chart is ready in Insights. The chart, separate USD totals, filters and matching purchases were checked. Purchase records are unchanged.",
       );
       if (presentation === "inline") {
         const title = [
@@ -111,8 +111,8 @@ export function RecordsResultView({
     } catch {
       setChartStatus(
         intent?.action === "restore"
-          ? "The original verified native state is unavailable or restoration could not be verified. No fresh chart was created. Select the original result in History; restoration is not confirmed."
-          : "The native chart could not be verified or was stopped. An already-applied view may remain; no rollback, success or automatic retry is implied. Saved records are unchanged.",
+          ? "North couldn’t restore and confirm the original Insights view. No new chart was created. Find the original answer in History; restoration isn’t confirmed."
+          : "North couldn’t confirm the chart, or it was stopped. Any view changes already shown may remain. Nothing will retry automatically; saved purchases are unchanged.",
       );
     } finally {
       active.current = null;
@@ -158,7 +158,8 @@ export function RecordsResultView({
   if (!parsed.success)
     return (
       <p role="alert">
-        This saved result could not be validated. No amount or link is inferred.
+        North couldn’t check this saved answer, so its amounts and links can’t
+        be shown. No purchase details have been guessed.
       </p>
     );
   const result = parsed.data;
@@ -185,7 +186,7 @@ export function RecordsResultView({
       </p>
       <p className="text-sm">
         {r.amountMinor === null
-          ? "Recorded price unavailable / reference item"
+          ? "No saved purchase price · unpriced or reference item"
           : usd(r.amountMinor)}
       </p>
       {r.receiptId ? (
@@ -230,12 +231,12 @@ export function RecordsResultView({
       <details className="text-xs text-muted-foreground">
         <summary className="min-h-11 cursor-pointer py-3">
           {result.coverage.complete
-            ? "Complete available saved library"
-            : "Partial saved library"}{" "}
+            ? "All available saved purchases checked"
+            : "Some saved purchases unavailable"}{" "}
           ·{" "}
           {result.coverage.source === "fixtures"
             ? "Fictional sample preview"
-            : "Saved database records"}
+            : "Saved purchase records"}
         </summary>
         <p>
           {result.coverage.availableCount} validated available records ·{" "}
@@ -287,12 +288,12 @@ export function RecordsResultView({
           />
           <p className="text-sm text-muted-foreground">
             {result.comparison.records.length} purchases in the comparison
-            period. Recorded values only; no causal trend or complete account
-            history is inferred.
+            period. Saved amounts only—not your full account history or an
+            explanation of why spending changed.
           </p>
           <details>
             <summary className="min-h-11 cursor-pointer py-3">
-              Inspect comparison-period purchases
+              View purchases from this period
             </summary>
             <ul className="list-disc pl-5">
               {result.comparison.records.map((r) => (
@@ -317,7 +318,7 @@ export function RecordsResultView({
           className="rounded-xl border p-3 text-sm text-muted-foreground"
         >
           {chartStatus ||
-            "Native chart execution is not yet confirmed. Open Insights, then apply this exact saved result; missing or changed records will be rejected."}
+            "Your chart isn’t confirmed yet. Open Insights to show this saved result. If its purchases are missing or have changed, North won’t use different ones."}
         </p>
       )}
       <div className="flex flex-wrap gap-2">
@@ -328,10 +329,10 @@ export function RecordsResultView({
             onClick={() => void applyChart()}
           >
             {applying
-              ? "Applying saved analysis…"
+              ? "Preparing your chart…"
               : intent?.action === "restore"
-                ? "Restore original native state"
-                : "Show native chart"}
+                ? "Restore original view"
+                : "Show chart in Insights"}
           </Button>
         )}
         {applying && (
@@ -384,7 +385,7 @@ export function RecordsResultView({
             }
           }}
         >
-          {pathname === "/insights" ? "View chart workspace" : "Open Insights"}
+          {pathname === "/insights" ? "Go to your chart" : "Open Insights"}
         </Link>
       </div>
       {chartStatus && result.query.format !== "chart" && (
@@ -398,8 +399,8 @@ export function RecordsResultView({
       </ResultHeading>
       {!rows.length && (
         <p>
-          No matching saved purchases. Filters have not been removed to
-          manufacture a result.
+          No saved purchases match these filters. Your filters are still in
+          place.
         </p>
       )}
       {result.query.format === "table" ? (

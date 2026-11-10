@@ -5,14 +5,14 @@ import AxeBuilder from "@axe-core/playwright";
 // Do not freeze only the browser: that would disagree with server-owned facts.
 const cutoff = (value: string) => Date.now() >= Date.parse(value);
 const currentDemoStatuses = (): Record<string, string> => ({
-  201: "Catalog price example",
+  201: "Example price comparison",
   202: cutoff("2026-11-07T18:00:00Z")
     ? "Delivery unconfirmed"
     : "Delivery expected",
   203: "Safety review",
   204: cutoff("2026-11-10T12:00:00Z")
     ? "Price review window closed"
-    : "Illustrative price window",
+    : "Price review example",
   205: cutoff("2029-10-20T12:00:00Z")
     ? "Warranty period ended"
     : "Warranty details",
@@ -39,7 +39,7 @@ test("frozen demo calendar queries every saved sample event and opens the exact 
 }) => {
   await page.goto("/dashboard");
   const panel = page.getByRole("region", {
-    name: "Demo care timeline",
+    name: "Your care timeline",
     exact: true,
   });
   await expect(
@@ -49,7 +49,7 @@ test("frozen demo calendar queries every saved sample event and opens the exact 
     "data-care-calendar-snapshot",
     "2026-11-10",
   );
-  await expect(panel).toContainText("Not a live forecast");
+  await expect(panel).toContainText("not a live forecast or verified coverage");
   await expect(panel.locator(".ag-studio-layout")).toBeVisible();
   // The vendor notice remains present and readable even in its fading state.
   await expect(panel.locator(".ag-studio-watermark")).toHaveCSS("opacity", "1");
@@ -178,7 +178,7 @@ test("demo calendar wraps every event at 320px/200% text without hidden overflow
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/dashboard");
   const panel = page.getByRole("region", {
-    name: "Demo care timeline",
+    name: "Your care timeline",
     exact: true,
   });
   await expect(
@@ -188,7 +188,7 @@ test("demo calendar wraps every event at 320px/200% text without hidden overflow
     document.documentElement.style.fontSize = "200%";
   });
   const scroll = panel.getByRole("region", {
-    name: "Demo care timeline snapshot",
+    name: "Example care timeline",
     exact: true,
   });
   const firstEvent = scroll.locator("[data-care-calendar-event]").first();
@@ -231,7 +231,7 @@ test("demo calendar shows all events without nested swipe surfaces, native frame
   await page.setViewportSize({ width: 390, height: 900 });
   await page.goto("/dashboard");
   const panel = page.getByRole("region", {
-    name: "Demo care timeline",
+    name: "Your care timeline",
     exact: true,
   });
   await expect(
@@ -332,7 +332,7 @@ test("consumer cards use one disclosure, soft truthful statuses and one active m
   await expect(page.getByRole("main")).not.toContainText("0 verified windows");
   await expect(page.locator("[data-care-demo-disclosure]")).toHaveCount(1);
   await expect(page.locator("[data-care-demo-disclosure]")).toHaveText(
-    "Sample collection · Illustrative purchases and care events",
+    "Sample collection · Example care information",
   );
   const expected = currentDemoStatuses();
   for (const [suffix, status] of Object.entries(expected))
@@ -374,14 +374,14 @@ test("current UTC facts keep ended returns and passed delivery estimates honest 
       await expect(dialog).toContainText(
         suffix === "202"
           ? "Delivery is not confirmed"
-          : "The return deadline has passed",
+          : "The saved return deadline has passed",
       );
       await expect(dialog).not.toContainText("days remaining");
     }
     await expect(dialog).toContainText(
       suffix === "202"
         ? /no live carrier connection/i
-        : /nothing has been submitted/i,
+        : /nothing has been sent/i,
     );
     await page.keyboard.press("Escape");
   }
@@ -393,7 +393,7 @@ test("current UTC facts keep ended returns and passed delivery estimates honest 
     '[data-care-product="00000000-0000-4000-8000-000000000204"]',
   );
   await expect(pi).toContainText(
-    "purchase price is still missing; eligibility is unverified",
+    "paid price is missing, so eligibility is unverified",
   );
   expect(writes).toEqual([]);
 });
@@ -407,7 +407,7 @@ test("saved Demo price, return-progress and refund sources open useful next step
   });
   await page.goto("/dashboard");
   for (const [suffix, action, heading, evidence] of [
-    ["201", "Review opportunity", "Catalog price example", "$20.00"],
+    ["201", "Compare saved prices", "Example price comparison", "$20.00"],
     [
       "206",
       "View return progress",
@@ -426,7 +426,9 @@ test("saved Demo price, return-progress and refund sources open useful next step
     );
     await card.getByRole("button", { name: action, exact: true }).click();
     const dialog = page.getByRole("dialog", { name: heading, exact: true });
-    await expect(dialog).toContainText("Demo event");
+    await expect(dialog).toContainText(
+      "Sample care example · fictional, not a real delivery, warranty or refund",
+    );
     await expect(dialog).toContainText("· Sample");
     await expect(dialog).toContainText("Next step:");
     await expect(dialog).toContainText(evidence);
@@ -546,12 +548,12 @@ test("exact refrigerator shows separate fictional amount and sourced retail snap
 }) => {
   await page.goto("/vault/00000000-0000-4000-8000-000000000205");
   const prices = page.getByRole("region", {
-    name: "Purchase and retail reference prices",
+    name: "Purchase price and retailer comparison",
   });
   await expect(prices).toContainText("$1,199.00");
   await expect(prices).toContainText("$1,099.00");
   await expect(prices).toContainText(
-    "Model/variant reference, not verified ownership",
+    "Matching model and variant reference — not proof of ownership",
   );
   await expect(
     prices.getByRole("link", { name: "View retailer source" }),
@@ -568,19 +570,19 @@ test("Pi remains unpriced and paperback reference is never an identical hardcove
 }) => {
   await page.goto("/vault/00000000-0000-4000-8000-000000000204");
   let prices = page.getByRole("region", {
-    name: "Purchase and retail reference prices",
+    name: "Purchase price and retailer comparison",
   });
   await expect(prices).toContainText("not a $0 purchase");
   await expect(prices).toContainText("$175.00");
   await expect(prices).toContainText("no difference was calculated");
   await page.goto("/vault/00000000-0000-4000-8000-000000000208");
   prices = page.getByRole("region", {
-    name: "Purchase and retail reference prices",
+    name: "Purchase price and retailer comparison",
   });
   await expect(prices).toContainText("$24.95");
   await expect(prices).toContainText("$21.99");
   await expect(prices).toContainText(
-    "Comparable product, not verified identical",
+    "Similar product — not confirmed identical",
   );
   await expect(prices).toContainText("paperback");
 });

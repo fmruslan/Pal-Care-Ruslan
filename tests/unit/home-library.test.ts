@@ -471,7 +471,7 @@ describe("organized Documents library", () => {
     );
     expect(html).toContain("No saved documents");
     expect(html).toContain(
-      "manufacturer manuals aren’t automatically supplied",
+      "These are saved care documents, not automatically supplied manuals. Sample care cards are fictional.",
     );
     expect(html).not.toContain("data-document-id=");
   });

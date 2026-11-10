@@ -87,10 +87,11 @@ function observed(scenario = c): NorthRecordsObservation {
     renderedPurchaseHrefs: scenario.expectedIds.map((id) => `/vault/${id}`),
     renderedRecordText: scenario.expectedIds.map(
       (id) =>
-        `Sample purchase ${scenario.expectedRecordValues[id] === null ? "Recorded price unavailable / reference item" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(scenario.expectedRecordValues[id]! / 100)}`,
+        `Sample purchase ${scenario.expectedRecordValues[id] === null ? "No saved purchase price · unpriced or reference item" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(scenario.expectedRecordValues[id]! / 100)}`,
     ),
     renderedAmountTexts: [],
-    scopeText: "Complete available saved library · Fictional sample preview",
+    scopeText:
+      "All available saved purchases checked · Fictional sample preview",
     outputFormat: "cards",
     applicationErrors: [],
     forbiddenRequests: [],

@@ -141,7 +141,7 @@ export async function protectionBrowserJourney(
       );
       await expect(
         main.getByRole("region", {
-          name: "Protection notifications",
+          name: "Price check updates",
           exact: true,
         }),
       ).toContainText("Possible adjustment");
@@ -206,14 +206,14 @@ export async function protectionBrowserJourney(
         exact: true,
       });
       await expect(north).toContainText(
-        "Visible cards, supporting facts and evidence revisions were checked",
+        "Their saved sources were checked; no records changed",
       );
       await expect(scope.locator("[data-care-focus-evidence]")).toContainText(
         "Actual supported checks changed from $129.00",
       );
       await scope
         .getByRole("button", {
-          name: "Review evidence & available actions",
+          name: "View sources & next steps",
           exact: true,
         })
         .click();
@@ -224,12 +224,12 @@ export async function protectionBrowserJourney(
       await expect(panel).toHaveAttribute("data-ownership-twin", twinId);
       await panel
         .getByRole("button", {
-          name: "Prepare price adjustment message",
+          name: "Draft price adjustment message",
           exact: true,
         })
         .click();
       const draft = panel.getByRole("textbox", {
-        name: "Editable price adjustment enquiry · not sent",
+        name: "Your price adjustment draft · not sent",
         exact: true,
       });
       await expect(draft).toHaveValue(/\$129\.00/);
@@ -239,7 +239,7 @@ export async function protectionBrowserJourney(
       expect(await draft.inputValue()).toContain(
         feed.protections.find((p) => p.twinId === twinId)!.deadline!,
       );
-      await expect(draft).toHaveValue(/Please confirm the applicable policy/);
+      await expect(draft).toHaveValue(/Please confirm which terms apply/);
       await draft.fill(
         (await draft.inputValue()) +
           "\nCustomer review: fictional enquiry only.",

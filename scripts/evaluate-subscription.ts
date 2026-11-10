@@ -187,7 +187,7 @@ await files.locked(async () => {
       await page.goto(app.origin + "/vault");
       const verified = await page
         .locator(".motion-card")
-        .filter({ hasText: "Verified sandbox" })
+        .filter({ hasText: "Verified Sandbox" })
         .getByRole("link", { name: /View Twin/ })
         .getAttribute("href");
       assert.ok(verified && /^\/vault\/[a-f0-9-]{36}$/.test(verified));
@@ -458,7 +458,7 @@ await files.locked(async () => {
       await headphones.goto(app.origin + "/vault");
       const verified = await headphones
         .locator(".motion-card")
-        .filter({ hasText: "Verified sandbox" })
+        .filter({ hasText: "Verified Sandbox" })
         .getByRole("link", { name: /View Twin/ })
         .getAttribute("href");
       assert.ok(verified);
@@ -658,7 +658,7 @@ await files.locked(async () => {
       await page.goto(app.origin + "/vault");
       const verified = await page
         .locator(".motion-card")
-        .filter({ hasText: "Verified sandbox" })
+        .filter({ hasText: "Verified Sandbox" })
         .getByRole("link", { name: /View Twin/ })
         .getAttribute("href");
       assert.ok(verified);

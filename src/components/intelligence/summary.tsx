@@ -59,7 +59,7 @@ export function AdjustmentStatus({
       <p className="mt-2 text-sm text-muted-foreground">
         {onStage
           ? "One case, one outcome. Select a stage to investigate."
-          : "Recorded statuses for purchases in this selection."}
+          : "Saved adjustment statuses for purchases in this view."}
       </p>
       <div className="mt-5 space-y-2">
         {stages.map((stage) => {
@@ -103,8 +103,8 @@ export function EvidenceFreshness({
       </p>
       <p className="mt-2 text-sm leading-6 text-muted-foreground">
         {example
-          ? "Fictional records for exploring this workspace. Never included in stored financial totals."
-          : "Saved observations, not a live provider query. Unknown is never counted as verified."}
+          ? "Fictional examples, not real refunds. Never included in stored financial totals."
+          : "Saved evidence, not a live payment-status check. Uncertain outcomes are not counted as verified."}
       </p>
       <ul className="mt-4 space-y-3">
         {facts.slice(0, 4).map((f) => (
@@ -119,14 +119,14 @@ export function EvidenceFreshness({
                 href={f.href}
                 className="mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-primary"
               >
-                Inspect case evidence →
+                View adjustment evidence →
               </Link>
             )}
           </li>
         ))}
       </ul>
       {!facts.length && (
-        <p className="mt-4 text-sm">No cases in this selection.</p>
+        <p className="mt-4 text-sm">No adjustment cases in this view.</p>
       )}
     </div>
   );

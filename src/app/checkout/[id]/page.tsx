@@ -29,13 +29,13 @@ export default async function CheckoutPage({
             PayPal Sandbox only
           </Badge>
           <h1 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">
-            A good start for
-            <br />
-            your next purchase.
+            Your Sandbox checkout
           </h1>
           <p className="mt-4 text-base leading-7 text-muted-foreground">
-            Buyer approval is not proof of payment. Pal Care validates PayPal’s
-            capture before creating your Purchase Twin.
+            This is a test checkout, with no real money or goods. Buyer approval
+            alone does not confirm payment. Pal Care checks the completed PayPal
+            Sandbox payment before creating a Purchase Twin—your saved purchase
+            record.
           </p>
           <ol
             aria-label="Checkout process"
@@ -58,9 +58,9 @@ export default async function CheckoutPage({
             cancelled={query.cancel === "1"}
           />
           <p className="mt-6 border-t pt-5 text-sm leading-7 text-muted-foreground">
-            Use only a fictional PayPal Sandbox buyer. Credentials stay on
-            PayPal or the server; your anonymous Pal Care checkout session stays
-            in its original browser. No registration required.
+            Use only a fictional PayPal Sandbox buyer and enter its sign-in
+            details only on PayPal. Continue this checkout in the browser where
+            you started it. No Pal Care registration is required.
           </p>
         </Card>
       </div>

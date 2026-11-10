@@ -22,13 +22,13 @@ test("catalog stays public and honestly disabled without credentials", async ({
 }) => {
   await page.goto("/shop");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Good things. Better aftercare.",
+    "Browse products",
   );
   await expect(
-    page.getByRole("button", { name: "Buy with PayPal Sandbox" }),
+    page.getByRole("button", { name: "Start PayPal Sandbox checkout" }),
   ).toHaveCount(3);
   for (const button of await page
-    .getByRole("button", { name: "Buy with PayPal Sandbox" })
+    .getByRole("button", { name: "Start PayPal Sandbox checkout" })
     .all())
     await expect(button).toBeDisabled();
   const response = await request.post("/api/checkout/orders", {
@@ -114,7 +114,7 @@ test("mock UI transport: declined and pending payments never show completion", a
   state = "failed";
   await page.getByRole("button", { name: "Check payment status" }).click();
   await expect(page.getByRole("status")).toContainText(
-    "sandbox payment failed",
+    "Sandbox payment failed",
   );
   await expect(
     page.getByRole("alert", { name: "Checkout error" }),
@@ -154,7 +154,7 @@ for (const state of ["created", "create_unknown", "expired"]) {
     ).toHaveCount(0);
     await expect(
       page.getByRole("button", {
-        name: /Check \/ complete|Retry original order creation|Cancel this checkout/,
+        name: /Check or complete|Retry original order|Cancel this checkout/,
       }),
     ).toHaveCount(0);
     await page
@@ -194,7 +194,9 @@ test("mock UI transport: open checkout expires without polling or sending a fina
     page.getByRole("link", { name: "Continue to PayPal Sandbox" }),
   ).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "Check / complete this sandbox payment" }),
+    page.getByRole("button", {
+      name: "Check or complete this Sandbox payment",
+    }),
   ).toHaveCount(0);
   expect(requests).toBe(1);
 });
@@ -277,7 +279,7 @@ for (const outcome of ["PENDING", "COMPLETED", "FAILED", "DECLINED"]) {
     );
     await page.goto(`/checkout/${checkoutId}`);
     await expect(page.getByRole("status")).toContainText(
-      "pending eCheck clearance (ECHECK)",
+      "waiting for its eCheck to clear",
     );
     await expect(
       page.getByRole("link", { name: "Continue to PayPal Sandbox" }),
@@ -288,18 +290,18 @@ for (const outcome of ["PENDING", "COMPLETED", "FAILED", "DECLINED"]) {
       await expect(page).toHaveURL(new RegExp(`/vault/${sampleTwinId}$`));
     else if (outcome === "PENDING") {
       await expect(page.getByRole("status")).toContainText(
-        "pending eCheck clearance (ECHECK)",
+        "waiting for its eCheck to clear",
       );
       await expect(page).toHaveURL(/\/checkout\//);
     } else {
       await expect(page.getByRole("status")).toContainText(
         outcome === "FAILED"
           ? "payment failed"
-          : "declined the existing sandbox capture",
+          : "declined this Sandbox payment",
       );
       await expect(
         page.getByRole("alert", { name: "Checkout error" }),
-      ).toContainText("Do not repeat capture");
+      ).toContainText("Do not try to collect this payment again");
       await expect(
         page.getByRole("button", { name: "Check payment status" }),
       ).toHaveCount(0);
@@ -339,7 +341,7 @@ test("mock UI transport: a returning already-attempted checkout automatically re
   });
   await page.goto(`/checkout/${checkoutId}?token=EXISTING-ATTEMPT-RETURN`);
   await expect(page.getByRole("status")).toContainText(
-    "pending eCheck clearance (ECHECK)",
+    "waiting for its eCheck to clear",
   );
   await page.getByRole("combobox", { name: "Appearance" }).selectOption("dark");
   expect(checks).toBe(1);

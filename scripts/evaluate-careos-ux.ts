@@ -339,7 +339,7 @@ async function main() {
       );
       async function twinLink(
         text: RegExp,
-        provenance: "Sample" | "Verified sandbox",
+        provenance: "Sample" | "Verified Sandbox",
       ) {
         const cards = page
           .locator(".motion-card")
@@ -352,7 +352,7 @@ async function main() {
         assert.ok(href && /^\/vault\/[0-9a-f-]{36}$/i.test(href));
         return { href, id: href.slice("/vault/".length), card: cards };
       }
-      const verified = await twinLink(/headphones/i, "Verified sandbox");
+      const verified = await twinLink(/headphones/i, "Verified Sandbox");
       const sample = await twinLink(/headphones/i, "Sample");
       const speaker = await twinLink(/speaker/i, "Sample");
       const pi = await twinLink(/Raspberry Pi 5/i, "Sample");
@@ -363,7 +363,7 @@ async function main() {
       assert.notEqual(verified.id, sample.id);
       await page.goto(ORIGIN + verified.href);
       const passport = page.getByRole("article", {
-        name: "Purchase Twin passport",
+        name: "Purchase details",
       });
       const receiptHref = await passport
         .getByRole("link", { name: "View receipt", exact: true })
@@ -522,7 +522,7 @@ async function main() {
           first.input!.requestId,
         );
         await expect(
-          pending.getByText("Preparing your answer…", { exact: true }),
+          pending.getByText("Looking into your question…", { exact: true }),
         ).toBeVisible();
         await expect(dialog.locator("[data-latest-answer]")).toHaveCount(0);
       });
