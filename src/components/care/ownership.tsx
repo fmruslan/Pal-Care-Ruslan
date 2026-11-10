@@ -170,9 +170,11 @@ export function FactDetails({ fact }: { fact: OwnershipFact }) {
         </ul>
       )}
       {fact.action && (
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" className="max-w-full px-3 text-left">
           <Link href={fact.action.href}>
-            {fact.consumer?.action ?? fact.action.label}
+            <span className="min-w-0 [overflow-wrap:anywhere]">
+              {fact.consumer?.action ?? fact.action.label}
+            </span>
             <ArrowRight aria-hidden="true" />
           </Link>
         </Button>
