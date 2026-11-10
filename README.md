@@ -1,5 +1,7 @@
 # Pal Care
 
+Customer navigation is **Care / Purchases & Docs / Insights**. The library has a large **Purchases / Documents** switch above its heading; direct document URLs and saved purchase histories remain unchanged. [Current verification status](docs/STATUS.md).
+
 **Customer-content presentation — under verification:** readable saved receipts, terms and care histories preserve their unchanged originals behind **View original record** and downloads. [Acceptance checkpoint](docs/STATUS.md).
 
 **Current refinement:** page-flow Insights and clearer Example purchase labels are under verification; native widgets, saved layouts and separate Sandbox totals remain. [Status](docs/STATUS.md).

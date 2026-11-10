@@ -249,7 +249,7 @@ async function navigate(page: Page, label: string, path: string) {
   });
   await navigation
     .getByRole("link", {
-      name: label === "All documents" ? "Purchases" : label,
+      name: label === "All documents" ? "Purchases & Docs" : label,
       exact: true,
     })
     .click();
@@ -659,7 +659,7 @@ test("owned result history and draft survive navigation, Insights, return and cl
   const care = await sendCare(page, opened.dialog, "Find receipt");
   await opened.composer.fill("Keep this cross-page draft");
   for (const [label, path] of [
-    ["Purchases", "/purchases"],
+    ["Purchases & Docs", "/purchases"],
     ["All documents", "/documents"],
     ["Insights", "/insights"],
   ]) {
@@ -727,7 +727,7 @@ test("owned result history and draft survive navigation, Insights, return and cl
   expect(log.mutations()).toEqual(mutations);
   expect(log.bootstraps()).toEqual(bootstraps);
   expect(log.modelWork()).toEqual(modelWork);
-  await navigate(page, "Purchases", "/purchases");
+  await navigate(page, "Purchases & Docs", "/purchases");
   opened = await openNorth(page);
   await expect(opened.composer).toHaveValue(
     "Retain this after the Insights answer",

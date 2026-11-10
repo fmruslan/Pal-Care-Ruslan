@@ -1,9 +1,8 @@
 /** Presentation-only destinations shared by desktop and mobile navigation. */
 export const customerNavigation = [
   { href: "/dashboard", label: "Care" },
-  { href: "/purchases", label: "Purchases" },
+  { href: "/purchases", label: "Purchases & Docs" },
   { href: "/insights", label: "Insights" },
-  { href: "/documents", label: "Documents" },
 ] as const;
 
 export const customerExploreNavigation = [
@@ -34,14 +33,9 @@ export const customerExploreNavigation = [
 ] as const;
 
 export function customerSection(path: string) {
-  const [pathname, search = ""] = path.split("?");
+  const [pathname] = path.split("?");
   if (/^\/care(\/|$)/.test(pathname)) return customerNavigation[0];
-  if (/^\/documents(\/|$)/.test(pathname)) return customerNavigation[3];
-  if (
-    pathname === "/purchases" &&
-    new URLSearchParams(search).getAll("view").join() === "documents"
-  )
-    return customerNavigation[3];
+  if (/^\/documents(\/|$)/.test(pathname)) return customerNavigation[1];
   if (/^\/vault(\/|$)/.test(pathname)) return customerNavigation[1];
   return customerNavigation.find(
     ({ href }) => pathname === href || pathname.startsWith(`${href}/`),

@@ -429,7 +429,7 @@ test("leaving before a chart response keeps the late saved answer without reopen
       exact: true,
     });
     await nav
-      .getByRole("link", { name: "Purchases", exact: true })
+      .getByRole("link", { name: "Purchases & Docs", exact: true })
       .press("Enter");
     await expect(page).toHaveURL(/\/purchases$/);
     await page

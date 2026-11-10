@@ -54,7 +54,7 @@ export function LibrarySearch({
         <WorkspaceSearchForm
           key={libraryHref(query)}
           action={query.view === "documents" ? "/documents" : "/purchases"}
-          className="my-3"
+          className="my-1 sm:my-3"
         >
           <input type="hidden" name="q" value={query.q} />
           <input type="hidden" name="view" value={query.view} />
@@ -338,7 +338,7 @@ export function LibraryResults({
   const from = libraryHref({ ...query, page: library.page });
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b pb-3">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b pb-1 sm:mb-4 sm:pb-3">
         <p role="status" className="text-sm text-muted-foreground">
           {library.purchaseCount} purchase
           {library.purchaseCount === 1 ? "" : "s"} · {library.documentCount}{" "}

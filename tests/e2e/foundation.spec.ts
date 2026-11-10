@@ -10,7 +10,7 @@ test("default Care opens the customer library without registration", async ({
   );
   await page
     .getByRole("navigation", { name: "Main navigation", exact: true })
-    .getByRole("link", { name: "Purchases", exact: true })
+    .getByRole("link", { name: "Purchases & Docs", exact: true })
     .click();
   await expect(page).toHaveURL(/\/purchases$/);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(

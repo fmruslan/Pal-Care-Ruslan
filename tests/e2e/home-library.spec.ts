@@ -9,7 +9,7 @@ const search = (page: import("@playwright/test").Page) =>
     exact: true,
   });
 
-test("product-first Purchases retains four visible header destinations and an actionable product on the first mobile screen", async ({
+test("product-first library retains three header destinations and an actionable product on the first mobile screen", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 664 });
@@ -20,9 +20,8 @@ test("product-first Purchases retains four visible header destinations and an ac
   });
   await expect(nav.getByRole("link")).toHaveText([
     "Care",
-    "Purchases",
+    "Purchases & Docs",
     "Insights",
-    "Documents",
   ]);
   await expect(nav).toBeVisible();
   await expect(
@@ -52,6 +51,51 @@ test("product-first Purchases retains four visible header destinations and an ac
   await expect(
     page.getByRole("link", { name: "All documents", exact: true }),
   ).toBeVisible();
+});
+
+test("large purchases/documents switch keeps search scope, original links and browser history", async ({
+  page,
+}) => {
+  const writes: string[] = [];
+  page.on("request", (r) => {
+    if (!["GET", "HEAD"].includes(r.method())) writes.push(r.url());
+  });
+  await page.goto("/purchases?q=receipt&source=sample");
+  const primary = page.getByRole("navigation", {
+    name: "Main navigation",
+    exact: true,
+  });
+  const views = page.getByRole("navigation", {
+    name: "Purchases and documents",
+    exact: true,
+  });
+  await expect(primary.getByRole("link")).toHaveText([
+    "Care",
+    "Purchases & Docs",
+    "Insights",
+  ]);
+  const purchases = views.getByRole("link", { name: "Purchases", exact: true });
+  const documents = views.getByRole("link", { name: "Documents", exact: true });
+  await expect(purchases).toHaveAttribute("aria-current", "page");
+  const heading = page.getByRole("heading", { level: 1 });
+  expect((await views.boundingBox())!.y).toBeLessThan(
+    (await heading.boundingBox())!.y,
+  );
+  for (const link of [purchases, documents])
+    expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(56);
+  await documents.focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/documents\?q=receipt&source=sample$/);
+  await expect(heading).toHaveText("Your documents");
+  await expect(documents).toHaveAttribute("aria-current", "page");
+  await expect(primary.locator('[aria-current="page"]')).toHaveText(
+    "Purchases & Docs",
+  );
+  await expect(search(page)).toHaveValue("receipt");
+  await page.goBack();
+  await expect(heading).toHaveText("Your products");
+  await expect(purchases).toHaveAttribute("aria-current", "page");
+  expect(writes).toEqual([]);
 });
 
 test("unified search opens the exact receipt directly and restores search state through browser Back", async ({
@@ -397,9 +441,11 @@ test("library, product and document reflow at 320px and 200% text with keyboard-
       name: "Main navigation",
       exact: true,
     });
-    await nav.getByRole("link", { name: "Purchases", exact: true }).focus();
+    await nav
+      .getByRole("link", { name: "Purchases & Docs", exact: true })
+      .focus();
     await expect(
-      nav.getByRole("link", { name: "Purchases", exact: true }),
+      nav.getByRole("link", { name: "Purchases & Docs", exact: true }),
     ).toBeFocused();
     const axe = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])

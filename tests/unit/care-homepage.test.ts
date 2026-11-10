@@ -88,14 +88,15 @@ describe("Care read-only domain", () => {
       }),
     ).toThrow();
   });
-  it("keeps four destinations with dated Twins under Purchases and distinct Documents", () => {
+  it("keeps dated Twins and documents under the combined library destination", () => {
     expect(customerNavigation.map((n) => n.label)).toEqual([
       "Care",
-      "Purchases",
+      "Purchases & Docs",
       "Insights",
-      "Documents",
     ]);
-    expect(customerSection("/vault/" + id(201))?.label).toBe("Purchases");
+    expect(customerSection("/vault/" + id(201))?.label).toBe(
+      "Purchases & Docs",
+    );
     expect(libraryHref(parseLibraryQuery({ q: "kettle receipt" }))).toBe(
       "/purchases?q=kettle+receipt",
     );

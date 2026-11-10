@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 
 const headphones = "00000000-0000-4000-8000-000000000201";
 
-test("Care is the default and has four calm destinations, factual cards and no automatic model calls", async ({
+test("Care is the default and has three calm destinations, factual cards and no automatic model calls", async ({
   page,
 }) => {
   const writes: string[] = [];
@@ -20,7 +20,7 @@ test("Care is the default and has four calm destinations, factual cards and no a
     page
       .getByRole("navigation", { name: "Main navigation", exact: true })
       .getByRole("link"),
-  ).toHaveText(["Care", "Purchases", "Insights", "Documents"]);
+  ).toHaveText(["Care", "Purchases & Docs", "Insights"]);
   await expect(page.locator("[data-north-search]")).toHaveCount(1);
   const main = page.getByRole("main");
   const calendar = page.getByRole("region", {
@@ -215,9 +215,20 @@ test("North keeps the exact Care purchase and original answer across Care, Purch
     .last()
     .getAttribute("data-request-id");
   const count = turns.length;
-  for (const destination of ["Purchases", "Documents", "Insights", "Care"]) {
+  for (const destination of [
+    "Purchases & Docs",
+    "Documents",
+    "Insights",
+    "Care",
+  ]) {
     await page
-      .getByRole("navigation", { name: "Main navigation", exact: true })
+      .getByRole("navigation", {
+        name:
+          destination === "Documents"
+            ? "Purchases and documents"
+            : "Main navigation",
+        exact: true,
+      })
       .getByRole("link", { name: destination, exact: true })
       .click();
     await expect(panel).toHaveCount(0);
