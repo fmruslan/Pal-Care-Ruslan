@@ -68,7 +68,7 @@ test("Care is the default and has four calm destinations, factual cards and no a
   expect(
     (await card.locator("[data-care-timeline]").boundingBox())!.height,
   ).toBeLessThan(60);
-  await card.getByText("Sources & details", { exact: true }).click();
+  await card.getByText("Sources", { exact: true }).click();
   await expect(card).toContainText("have not been established");
   await expect(card).toContainText("Review the original policy");
   await expect(

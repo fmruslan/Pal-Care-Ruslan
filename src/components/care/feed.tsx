@@ -244,7 +244,7 @@ function CareCard({
                 className={`inline-flex ${simulated ? "min-h-11" : "min-h-8"} cursor-pointer items-center gap-1 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`}
               >
                 <Info className="size-3" aria-hidden="true" />
-                Sources & details
+                Sources
               </summary>
               <p className="mb-2 max-w-2xl leading-6">{protection.detail}</p>
               {findings.map((f) => (
