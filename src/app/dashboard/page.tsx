@@ -6,6 +6,11 @@ import { studioEvaluationAllowed } from "@/lib/intelligence/access";
 import { Shell } from "@/components/shell";
 import { NorthCollection, NorthSearch } from "@/components/careos/integrated";
 import { CareFeedView, CareFilters } from "@/components/care/feed";
+import {
+  CareAttention,
+  CareHelpShortcuts,
+  HowPalCareWorks,
+} from "@/components/care/home-help";
 import { getCareFeed } from "@/lib/care/repository";
 import { parseCareFilter } from "@/lib/care/summary";
 import {
@@ -41,29 +46,50 @@ export default async function Care({
   return (
     <Shell active="/dashboard" source={feed.source}>
       <NorthCollection>
-        <h1 className="mb-6 text-[clamp(1.75rem,3vw,2.25rem)] leading-tight font-semibold tracking-tight">
+        <h1 className="text-[clamp(1.75rem,3vw,2.25rem)] leading-tight font-semibold tracking-tight">
           Care for what you own.
         </h1>
+        <p className="mt-2 mb-4 text-base leading-7 text-muted-foreground">
+          Your purchases, important dates, and the help you need.
+        </p>
       </NorthCollection>
       <NorthSearch
         query={parseLibraryQuery({})}
         searchIndex={feed.searchIndex}
-        footer={<CareFilters filter={filter} feed={feed} />}
       />
       <NorthCollection>
-        {feed.demoAsOf && (
-          <p
-            data-care-demo-disclosure
-            className="mb-3 text-xs leading-6 text-muted-foreground"
-          >
-            Example collection · Illustrative care information
-          </p>
-        )}
+        <CareHelpShortcuts feed={feed} />
+        <CareAttention feed={feed} />
         <CareCalendarPanel
           calendar={feed.demoAsOf ? demoCareCalendar(feed) : careCalendar(feed)}
           studioAllowed={studioAllowed}
         />
-        <CareFeedView feed={feed} filter={filter} filters={false} />
+        <section aria-labelledby="all-products-title" className="border-t pt-5">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2
+                id="all-products-title"
+                className="text-xl font-semibold tracking-tight sm:text-2xl"
+              >
+                All your products
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Your saved purchases and key care information.
+              </p>
+            </div>
+            <a
+              href="/purchases"
+              className="inline-flex min-h-11 items-center text-sm font-semibold text-intelligence-foreground hover:underline"
+            >
+              View purchases →
+            </a>
+          </div>
+          <CareFilters filter={filter} feed={feed} />
+          <div className="mt-4">
+            <CareFeedView feed={feed} filter={filter} filters={false} />
+          </div>
+        </section>
+        <HowPalCareWorks feed={feed} />
       </NorthCollection>
     </Shell>
   );

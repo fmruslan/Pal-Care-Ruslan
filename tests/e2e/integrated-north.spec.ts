@@ -555,6 +555,12 @@ test("secondary customer pages offer the same inline North without financial dis
       prohibited.push(r.url());
   });
   await page.goto("/shop");
+  await expect(
+    page
+      .getByRole("navigation", { name: "Main navigation", exact: true })
+      .locator('[aria-current="page"]'),
+  ).toHaveText("Care");
+  await expect(page.getByText("More tools", { exact: true })).toHaveCount(0);
   await page
     .getByRole("button", { name: "Ask North Star", exact: true })
     .click();

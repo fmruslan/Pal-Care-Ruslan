@@ -106,6 +106,120 @@ const currentAttentionCount = () =>
   Number(!cutoff("2026-11-08T12:00:00Z")) +
   Number(!cutoff("2026-11-07T12:00:00Z"));
 
+test("unified Care orders useful help, saved priority actions, real calendar, all products and purchase journey", async ({
+  page,
+}) => {
+  const writes: string[] = [];
+  page.on("request", (r) => {
+    if (!["GET", "HEAD"].includes(r.method())) writes.push(r.url());
+  });
+  await page.goto("/dashboard");
+  await expect(
+    page.getByText("Your purchases, important dates, and the help you need.", {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.getByText("More tools", { exact: true })).toHaveCount(0);
+  const help = page.getByRole("navigation", {
+    name: "Find help for your purchases",
+    exact: true,
+  });
+  await expect(
+    help.getByRole("link", { name: "Find a receipt", exact: true }),
+  ).toHaveAttribute("href", "/documents?documentCategory=receipts");
+  await expect(
+    help.getByRole("link", { name: "Care guides", exact: true }),
+  ).toHaveAttribute("href", "/documents?documentCategory=care");
+  const attention = page.locator("[data-care-attention]");
+  await expect(attention.locator("[data-care-attention-product]")).toHaveCount(
+    currentAttentionCount(),
+  );
+  await expect(attention).toContainText("Safety review");
+  await expect(attention).toContainText("Illustrative price comparison");
+  await expect(attention).toContainText("No recall match is confirmed");
+  const calendar = page.getByRole("region", {
+    name: "Your care timeline",
+    exact: true,
+  });
+  await expect(
+    calendar.locator('[data-care-calendar-engine="verified"]'),
+  ).toBeVisible();
+  await expect(calendar.locator("[data-care-calendar-event]")).toHaveCount(10);
+  await expect
+    .poll(async () => {
+      const spacing = await calendar.evaluate((root) => {
+        const studio = root.querySelector(
+            '[data-testid="care-calendar-studio"]',
+          )!,
+          content = root.querySelector(".care-rail-content")!;
+        return {
+          gap:
+            studio.getBoundingClientRect().height -
+            content.getBoundingClientRect().height,
+          row: parseFloat(getComputedStyle(document.documentElement).fontSize),
+        };
+      });
+      return spacing.gap >= 0 && spacing.gap <= spacing.row + 1;
+    })
+    .toBe(true);
+  const products = page.getByRole("region", {
+    name: "All your products",
+    exact: true,
+  });
+  await expect(products.locator("[data-care-product]")).toHaveCount(10);
+  const journey = page.getByRole("region", {
+    name: "How Pal Care works",
+    exact: true,
+  });
+  const positions = await Promise.all(
+    [help, attention, calendar, products, journey].map((el) =>
+      el.boundingBox(),
+    ),
+  );
+  for (let i = 1; i < positions.length; i++)
+    expect(positions[i]!.y).toBeGreaterThan(positions[i - 1]!.y);
+  await journey.getByText("Learn more", { exact: true }).click();
+  await expect(
+    journey.getByRole("link", {
+      name: "Explore the PayPal Sandbox shop",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    journey.getByRole("link", { name: "AG Studio Insights", exact: true }),
+  ).toHaveAttribute("href", "/insights");
+  await expect(journey).not.toContainText("Watch video");
+  await help.getByText("Prices & refunds", { exact: true }).click();
+  const prices = help.locator("details").filter({
+    has: page.locator("summary").filter({ hasText: "Prices & refunds" }),
+  });
+  await prices
+    .getByRole("link")
+    .filter({ hasText: "Everyday headphones" })
+    .click();
+  await expect(page).toHaveURL(
+    /\/vault\/00000000-0000-4000-8000-000000000201\?milestone=price$/,
+  );
+  await expect(page.getByRole("dialog")).toContainText("$20.00");
+  await page.goto("/dashboard");
+  await help.getByText("Product safety", { exact: true }).click();
+  await help
+    .getByRole("link")
+    .filter({ hasText: "Everywhere speaker" })
+    .click();
+  await expect(page).toHaveURL(/milestone=safety/);
+  const safety = page.getByRole("dialog");
+  await expect(safety).toContainText("No official recall match established");
+  await safety
+    .getByRole("link", { name: "Review safety sources", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/safety\?/);
+  expect(
+    await page.locator('a[href^="https://www.cpsc.gov/"]').count(),
+  ).toBeGreaterThan(0);
+  expect(writes).toEqual([]);
+});
+
 test("frozen demo calendar queries every saved sample event and opens the exact dated Twin/evidence", async ({
   page,
 }) => {
@@ -385,7 +499,7 @@ test("consumer cards use one disclosure, soft truthful statuses and one active m
     );
     expect(
       await card
-        .getByRole("heading", { level: 2 })
+        .getByRole("heading", { level: 3 })
         .evaluate((n) => parseFloat(getComputedStyle(n).fontSize)),
     ).toBeGreaterThanOrEqual(18);
     expect(
@@ -402,9 +516,11 @@ test("consumer cards use one disclosure, soft truthful statuses and one active m
     );
   }
   await expect(page.getByRole("main")).not.toContainText("0 verified windows");
-  await expect(page.locator("[data-care-demo-disclosure]")).toHaveCount(1);
-  await expect(page.locator("[data-care-demo-disclosure]")).toHaveText(
-    "Example collection · Illustrative care information",
+  await expect(
+    page.locator(".customer-demo-disclosure .demo-details"),
+  ).toHaveCount(1);
+  await expect(page.locator(".customer-demo-disclosure summary")).toContainText(
+    "Example purchases & PayPal Sandbox",
   );
   const expected = currentDemoStatuses();
   for (const [suffix, status] of Object.entries(expected))
@@ -537,7 +653,7 @@ test("ten persisted-fixture products use a compact responsive grid, real filters
   const cards = main.locator("[data-care-product]");
   await expect(cards).toHaveCount(10);
   await expect(
-    main.getByRole("region", { name: "Your products" }),
+    main.getByRole("region", { name: "Your products", exact: true }),
   ).toBeVisible();
   const filters = page.getByRole("navigation", {
     name: "Care filters",
@@ -563,7 +679,7 @@ test("ten persisted-fixture products use a compact responsive grid, real filters
   );
   await expect(filters).not.toContainText("Protected (3)");
   await expect(main).not.toContainText("active verified windows");
-  await expect(main).toContainText("Example collection");
+  await expect(main).toContainText("Example purchases & PayPal Sandbox");
   // Compare the same layout frame. Independent browser round trips can straddle
   // a shared calendar/heading resize and falsely report unequal row positions.
   const [first, second] = await cards.evaluateAll((nodes) =>

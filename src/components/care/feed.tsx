@@ -55,14 +55,14 @@ function GroupedPurchaseHistory({
             </Link>
           ) : null;
         })}
-      <p className="text-xs leading-6">
-        Care details apply only to {identity(selected)}. Other purchases have
-        separate records.
-      </p>
       <details>
         <summary className="inline-flex min-h-11 cursor-pointer items-center rounded-lg focus-visible:outline-2 focus-visible:outline-ring">
           {members.length} purchases · receipts & history
         </summary>
+        <p className="text-xs leading-6">
+          Care details apply only to {identity(selected)}. Other purchases have
+          separate records.
+        </p>
         <ul className="space-y-1">
           {members.map((member) => {
             return (
@@ -98,25 +98,25 @@ function ConsumerCareCard({ item, view, members }: ProductCard) {
   return (
     <OwnershipScope view={view} surface="care">
       <article
-        className="care-action-card flex h-full min-w-0 flex-col rounded-2xl border bg-card p-4 shadow-sm [overflow-wrap:anywhere] sm:p-5"
+        className="care-action-card flex h-full min-w-0 flex-col rounded-2xl border bg-card p-4 shadow-sm [overflow-wrap:anywhere]"
         data-care-card={item.id}
         data-care-product={p.id}
         data-care-consumer
       >
-        <div className="flex min-w-0 items-center gap-4">
-          <div className="care-product-art shrink-0 [&>div]:size-16 [&_svg]:h-16 [&_svg]:w-20 sm:[&>div]:size-18 sm:[&_svg]:h-18 sm:[&_svg]:w-22">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="care-product-art shrink-0 [&>div]:size-12 [&_svg]:h-12 [&_svg]:w-14">
             <ProductArt kind={p.illustration ?? "computer"} size="thumbnail" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-lg leading-6 font-semibold">
+            <h3 className="text-lg leading-6 font-semibold">
               <Link
                 href={p.href}
                 className="hover:text-primary hover:underline"
               >
                 {p.name}
               </Link>
-            </h2>
-            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+            </h3>
+            <p className="mt-1 text-sm leading-5 text-muted-foreground">
               {p.amountMinor === null ? "Added" : "Purchased"}{" "}
               <time dateTime={p.purchasedOn}>{displayDate(p.purchasedOn)}</time>{" "}
               ·{" "}
@@ -126,10 +126,10 @@ function ConsumerCareCard({ item, view, members }: ProductCard) {
             </p>
           </div>
         </div>
-        <div className="mt-3">
+        <div className="mt-2">
           <OwnershipPill compact />
         </div>
-        <p className="mt-2 text-[0.9375rem] leading-6 text-foreground">
+        <p className="mt-2 text-sm leading-6 text-foreground">
           {fact.consumer!.summary}
         </p>
         <GroupedPurchaseHistory members={members} selected={p} />
@@ -389,7 +389,7 @@ export function CareFeedView({
       {feed.demoAsOf ? (
         <section
           aria-label="Your products"
-          className="grid min-w-0 grid-cols-1 items-stretch gap-3 min-[1050px]:grid-cols-2 [&>div]:h-full [&>div>article]:h-full"
+          className="grid min-w-0 grid-cols-1 items-stretch gap-3 min-[650px]:grid-cols-2 min-[1200px]:grid-cols-4 [&>div]:h-full [&>div>article]:h-full"
         >
           {shown.map((card) => (
             <CareCard key={card.item.purchase.id} {...card} headingLevel={2} />

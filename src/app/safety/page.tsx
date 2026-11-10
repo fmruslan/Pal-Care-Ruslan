@@ -31,7 +31,7 @@ export default async function SafetyPage({
   const example = query.example === "insignia",
     { source, hash, retrievedAt } = safety.snapshot;
   return (
-    <Shell active="/vault" source={data.source}>
+    <Shell active="/safety" source={data.source}>
       <CareContextRegistration context={journey.context} />
       {journey.context && (
         <p className="mb-5 text-sm" role="note">

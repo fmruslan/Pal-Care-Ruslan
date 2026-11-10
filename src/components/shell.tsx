@@ -6,7 +6,6 @@ import {
   FileText,
   LayoutDashboard,
   Package,
-  MoreHorizontal,
   ChartNoAxesCombined,
   Info,
 } from "lucide-react";
@@ -161,42 +160,6 @@ export function Shell({
                   </WorkspaceNavigationLink>
                 ))}
               </nav>
-              <details className="customer-explore relative justify-self-end">
-                <summary className="flex min-h-11 min-w-11 cursor-pointer list-none items-center justify-center gap-2 rounded-xl px-3 text-sm font-medium text-muted-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
-                  <span className="sr-only sm:not-sr-only">More tools</span>
-                  <MoreHorizontal
-                    className="size-4 sm:hidden"
-                    aria-hidden="true"
-                  />
-                  <ChevronDown
-                    className="hidden size-4 sm:block"
-                    aria-hidden="true"
-                  />
-                </summary>
-                <nav
-                  aria-label="More tools"
-                  className="absolute right-0 z-50 mt-2 w-[min(18rem,calc(100vw-2.5rem))] rounded-2xl border bg-card p-2 shadow-card"
-                >
-                  {customerExploreNavigation.map(
-                    ({ href, label, description }) => (
-                      <WorkspaceNavigationLink
-                        key={href}
-                        href={href}
-                        aria-current={active === href ? "page" : undefined}
-                        className="flex min-h-11 flex-col items-start rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
-                      >
-                        <span>{label}</span>
-                        <span
-                          id={`customer-tool-${href.slice(1)}`}
-                          className="mt-1 text-xs leading-5 font-normal"
-                        >
-                          {description}
-                        </span>
-                      </WorkspaceNavigationLink>
-                    ),
-                  )}
-                </nav>
-              </details>
             </div>
           </header>
         )}

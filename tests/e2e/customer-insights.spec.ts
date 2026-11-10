@@ -359,16 +359,11 @@ test("customer navigation keeps three visible destinations and quieter tools", a
       page.getByRole("button", { name: "Ask North Star", exact: true }),
     ).toHaveCount(1);
   }
-  const explore = page.locator("summary").filter({ hasText: /^More tools$/ });
-  await explore.focus();
-  await explore.press("Enter");
-  const secondary = page.getByRole("navigation", { name: "More tools" });
-  await expect(secondary.getByRole("link")).toHaveCount(4);
-  for (const href of ["/shop", "/guardian", "/safety", "/replacements"])
-    await expect(secondary.locator(`a[href="${href}"]`)).toBeVisible();
+  await expect(
+    page.getByRole("navigation", { name: "More tools" }),
+  ).toHaveCount(0);
+  await expect(page.getByText("More tools", { exact: true })).toHaveCount(0);
   expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([]);
-  await page.keyboard.press("Tab");
-  await expect(secondary.getByRole("link").first()).toBeFocused();
   for (const link of await navigation.getByRole("link").all()) {
     const box = await link.boundingBox();
     expect(box!.height).toBeGreaterThanOrEqual(44);
