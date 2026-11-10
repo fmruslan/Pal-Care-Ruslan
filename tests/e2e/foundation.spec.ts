@@ -90,7 +90,7 @@ test("Purchase Twin and downloadable receipt remain explicitly sample-only", asy
     passport.getByText("Example purchase amount $149.00", { exact: true }),
   ).toBeVisible();
   await expect(passport).toContainText(
-    "Fictional sample purchase · not a verified PayPal purchase.",
+    "Example purchase · fictional, not a verified PayPal purchase.",
   );
   await passport
     .getByRole("button", {
