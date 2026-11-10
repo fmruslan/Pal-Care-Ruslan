@@ -474,7 +474,7 @@ export function IntegratedNorthView({
             </span>
           )}
         </span>
-        <div className="flex">
+        <div className="flex max-w-full flex-wrap">
           <button
             ref={contextTrigger}
             type="button"
