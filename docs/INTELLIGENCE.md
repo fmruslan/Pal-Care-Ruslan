@@ -1,5 +1,7 @@
 # Personal Purchase Intelligence and secondary merchant views
 
+**AG Studio Excellence candidate (3.0.0 retained):** supported native widget/grid/chart theming, explicit USD and date formatters, fresh/reset two-series recorded-value chart, compact selected-record Evidence & Care SVG and post-read-back North confirmations are under integrated verification. Existing layout geometry/capability validation and full accessible records remain; historical layouts are not overwritten. Integer bar labels are supported, but public Studio tick controls do not establish integer spacing. [Current status](STATUS.md) · [sponsor judging-key procedure](AG-STUDIO-JUDGING-LICENSE.md). License issuance/configuration and genuine inference are not implied by injected SDK checks.
+
 **North ☆ checkpoint 1A:** the renamed assistant's shell now presents care and customer-Insights results in one visible timeline with a shared draft/product-context control. Each underlying conversation retains its own server ownership and recovery identities. Expansion itself only changes panel size; integration of the expanded native results workspace is **Slice 2**, not claimed by 1A. Existing native filters/layouts are not reset by expanding or collapsing. Conversational library totals, date-list retrieval and result reformatting remain later checkpoints. The private preview is unchanged pending owner review. [Approved plan](NORTH-STAR-PLAN.md) · [evidence/status](STATUS.md).
 
 ## Customer-first continuation

@@ -13,14 +13,10 @@
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--border) 45%, transparent);
+  border: 1px solid var(--border);
   border-radius: 1.75rem;
   padding: 1.5rem 1.25rem 0.75rem;
-  background: linear-gradient(
-    120deg,
-    var(--card),
-    color-mix(in srgb, var(--intelligence) 35%, var(--card))
-  );
+  background: var(--card);
   box-shadow: 0 0.5rem 2rem
     color-mix(in srgb, var(--foreground) 5%, transparent);
 }
@@ -46,8 +42,8 @@
   flex-wrap: wrap;
   align-items: start;
   justify-content: space-between;
-  gap: 0.5rem 1.5rem;
-  margin-bottom: 0.25rem;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
 }
 .care-calendar-icon {
   box-sizing: content-box;
@@ -73,6 +69,7 @@
 }
 .care-rail-content {
   min-width: 0;
+  min-height: 20rem;
   padding: 0.25rem 0 0.5rem;
   color: var(--foreground);
 }
@@ -89,8 +86,10 @@
   justify-content: center;
   min-width: 2.75rem;
   min-height: 2.75rem;
-  border-radius: 50%;
+  border-radius: 0.75rem;
   color: var(--intelligence-foreground);
+  border: 1px solid var(--border);
+  background: var(--card);
 }
 .care-rail-control:hover:not(:disabled) {
   background: var(--intelligence);
@@ -129,12 +128,8 @@
   position: absolute;
   inset-inline: 0;
   bottom: 2rem;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    var(--intelligence-border),
-    color-mix(in srgb, var(--primary) 30%, var(--border))
-  );
+  height: 2px;
+  color: var(--intelligence-border);
   opacity: 0.55;
 }
 .care-rail-week {
@@ -170,10 +165,10 @@
   display: flex;
   flex: 1;
   list-style: none;
-  gap: 0.5rem;
+  gap: 0.75rem;
   padding-inline: 0.25rem;
   margin-top: 0;
-  min-height: 6.5rem;
+  min-height: 7rem;
   align-items: stretch;
 }
 .care-rail-events > li {
@@ -187,9 +182,9 @@
   align-items: start;
   gap: 0.5rem;
   padding: 0.75rem 0.625rem;
-  border: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
-  border-radius: 1rem;
-  background: color-mix(in srgb, var(--card) 86%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: var(--background);
   box-shadow: 0 0.25rem 0.75rem
     color-mix(in srgb, var(--foreground) 5%, transparent);
   transition:
@@ -205,13 +200,13 @@
   flex-shrink: 0;
 }
 .care-rail-art > [data-product-art] {
-  width: 2rem;
-  height: 2rem;
+  width: 2.25rem;
+  height: 2.25rem;
   background: transparent;
 }
 .care-rail-art svg {
-  width: 2rem;
-  height: 2rem;
+  width: 2.25rem;
+  height: 2.25rem;
 }
 .care-rail-product {
   display: block;
@@ -233,7 +228,7 @@
   align-items: center;
   margin-top: 0.25rem;
   font-size: 0.75rem;
-  line-height: 1rem;
+  line-height: 1.25rem;
   color: var(--muted-foreground);
 }
 .care-rail-provenance {

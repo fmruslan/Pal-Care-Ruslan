@@ -158,7 +158,9 @@ test("recorded chart restoration and no-new-chart instruction use original SDK s
   expect(manual.attemptedWrites).toEqual([]);
   expect(await studio.getAttribute("data-native-readback")).toBe(before);
   // A full reload deliberately loses the nonpersistent native snapshot. The
-  // same owned result must now fail visibly, never recreate the chart.
+  // same owned result must now fail visibly, never recreate the historical chart.
+  // The fresh/reset dashboard now includes one default recorded-value chart;
+  // its presence is not proof of restoring the original scoped snapshot.
   await page.goto("/dashboard");
   await page.reload();
   await submitLanguageTurn(
@@ -176,7 +178,7 @@ test("recorded chart restoration and no-new-chart instruction use original SDK s
     studio
       .locator(".ag-studio-layout-widget-title")
       .filter({ hasText: "Recorded value (USD)" }),
-  ).toHaveCount(0);
+  ).toHaveCount(1);
   omitOriginalIdentity = true;
   await submitLanguageTurn(
     page,
@@ -193,7 +195,7 @@ test("recorded chart restoration and no-new-chart instruction use original SDK s
     studio
       .locator(".ag-studio-layout-widget-title")
       .filter({ hasText: "Recorded value (USD)" }),
-  ).toHaveCount(0);
+  ).toHaveCount(1);
 });
 
 test("recorded receipt, scheduling, comparisons and pending-eCheck answers render exact evidence without financial/native actions (injected)", async ({

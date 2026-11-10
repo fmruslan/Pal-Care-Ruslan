@@ -755,10 +755,10 @@ test("a newly submitted chart follow-up opens the one Insights workspace and exe
   const widgets = page
     .getByTestId("customer-studio")
     .locator(".ag-studio-layout-widget");
-  await expect(widgets).toHaveCount(6);
+  await expect(widgets).toHaveCount(7);
   for (const [title, value] of [
-    ["Sample purchase value (USD)", "307.00"],
-    ["Verified Sandbox purchase value (USD)", "0.00"],
+    ["Sample purchase value (USD)", "$307.00"],
+    ["Verified Sandbox purchase value (USD)", "$0.00"],
   ] as const) {
     const widget = widgets.filter({
       has: page.getByText(title, { exact: true }),
@@ -783,13 +783,13 @@ test("a newly submitted chart follow-up opens the one Insights workspace and exe
   await expect(page.getByTestId("insight-documents-care")).toHaveCount(1);
   await expect(
     page.getByTestId("customer-studio").locator(".ag-studio-chart-widget"),
-  ).toHaveCount(1);
+  ).toHaveCount(2);
   await expect(
     page
       .getByTestId("customer-studio")
       .locator(".ag-studio-layout-widget-title")
       .filter({ hasText: /^Recorded value \(USD\)$/ }),
-  ).toHaveCount(0);
+  ).toHaveCount(1);
   expect(posts).toBe(0);
   expect(errors).toEqual([]);
 });
@@ -847,7 +847,7 @@ test("reopening a completed chart preserves manual native filters and still perm
       }),
     });
   await expect(sample.locator(".ag-studio-value-widget-content")).toHaveText(
-    "89.00",
+    "$89.00",
   );
   await selectHistory(dialog, first.turn.message, first.turn.requestId);
   await first.article

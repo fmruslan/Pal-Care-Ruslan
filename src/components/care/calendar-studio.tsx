@@ -311,7 +311,7 @@ function TimelineWidget(params: AgWidgetParams<CustomData, unknown, Context>) {
         </div>
       </div>
       {params.context.all && (
-        <details open className="mt-3 rounded-xl border px-3">
+        <details className="mt-3 rounded-xl border px-3">
           <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold">
             All saved dates · {events.length} events
           </summary>

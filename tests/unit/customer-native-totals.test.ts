@@ -24,6 +24,16 @@ describe("focused native Insights defaults", () => {
     });
     expect(page.widgets!.grid!.type).toBe("grid");
     expect(page.widgets!.categories!.type).toBe("bar-chart-grouped");
+    expect(page.widgets!["extra-recorded-value-chart"]).toEqual(
+      expectedCustomerWidget("purchases", "extra-recorded-value-chart"),
+    );
+    expect(page.widgets!["extra-recorded-value-chart"]?.dataMapping).toEqual({
+      categoryKey: [{ id: "purchases.category" }],
+      valueKey: [
+        { id: "purchases.sampleUsd", aggregation: "sum" },
+        { id: "purchases.sandboxUsd", aggregation: "sum" },
+      ],
+    });
   });
   it("keeps both native values reachable in the compact validated layout", () => {
     const page = customerReport(true).pages!.find((p) => p.id === "purchases")!;
@@ -41,6 +51,7 @@ describe("focused native Insights defaults", () => {
     const old = savedCustomerLayout(report);
     delete old.pages.purchases["extra-sample-value"];
     delete old.pages.purchases["extra-sandbox-value"];
+    delete old.pages.purchases["extra-recorded-value-chart"];
     const restored = restoreCustomerLayout(report, old);
     expect(
       restored.pages.find((p) => p.id === "purchases")!.widgetLayout,

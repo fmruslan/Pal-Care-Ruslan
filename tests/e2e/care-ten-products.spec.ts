@@ -125,6 +125,11 @@ test("View all opens Insights native grid and timeline with real evidence filter
   await expect(
     panel.getByRole("columnheader", { name: /Product/ }),
   ).toBeVisible();
+  const allDates = panel.locator("details").filter({
+    has: page.locator("summary").filter({ hasText: /^All saved dates/ }),
+  });
+  await expect(allDates).not.toHaveAttribute("open");
+  await allDates.locator(":scope > summary").click();
   await expect(
     panel.getByText(/Warranty expiration/, { exact: true }).first(),
   ).toBeVisible();

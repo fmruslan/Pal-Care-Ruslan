@@ -12,7 +12,7 @@ const Studio = dynamic(
   {
     ssr: false,
     loading: () => (
-      <p role="status" className="p-5 text-sm">
+      <p role="status" className="min-h-80 p-5 text-sm">
         Loading saved Care events…
       </p>
     ),
@@ -112,13 +112,18 @@ export function CareCalendarPanel({
           </div>
         </div>
         {!all && (
-          <Link
-            href="/insights?view=care-events#care-events"
-            className="inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-semibold text-intelligence-foreground focus-visible:outline-2 focus-visible:outline-ring"
-          >
-            View all care events
-            <ArrowRight aria-hidden="true" className="size-4" />
-          </Link>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span className="text-xs text-muted-foreground">
+              Interactive calendar · AG Studio
+            </span>
+            <Link
+              href="/insights?view=care-events#care-events"
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-semibold text-intelligence-foreground focus-visible:outline-2 focus-visible:outline-ring"
+            >
+              View all care events
+              <ArrowRight aria-hidden="true" className="size-4" />
+            </Link>
+          </div>
         )}
       </div>
       {!calendar.complete && (
