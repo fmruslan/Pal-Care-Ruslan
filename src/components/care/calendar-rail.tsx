@@ -70,6 +70,101 @@ export function CareCalendarRail({
         behavior: "instant",
       });
   }
+  if (calendar.snapshot) {
+    const fullDate = (day: string) =>
+      new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        timeZone: "UTC",
+      }).format(new Date(day + "T00:00:00Z"));
+    return (
+      <div
+        ref={content}
+        className="care-rail-content"
+        data-care-calendar-presentation="demo-snapshot"
+      >
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span className="rounded-full border border-intelligence-border bg-intelligence px-3 py-1.5 font-semibold text-intelligence-foreground">
+            Demo snapshot · {fullDate(calendar.snapshot.asOf)}
+          </span>
+          <span data-care-calendar-dates>
+            Saved dates: {fullDate(calendar.snapshot.from)} –{" "}
+            {fullDate(calendar.snapshot.to)} · UTC
+          </span>
+        </div>
+        <div
+          role="region"
+          aria-label="Demo care timeline snapshot"
+          data-care-calendar-viewport
+        >
+          <ol
+            aria-label="All demo care events"
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          >
+            {events.map((event) => (
+              <li
+                key={event.id}
+                className="relative min-w-0 border-l-2 border-intelligence-border pl-3"
+              >
+                <span
+                  aria-hidden="true"
+                  className="absolute -left-[5px] top-4 size-2 rounded-full bg-intelligence-accent"
+                />
+                <Link
+                  href={event.href}
+                  data-care-calendar-event={event.id}
+                  className="flex h-full min-w-0 flex-wrap items-start gap-2.5 rounded-xl border bg-background p-3 text-sm transition-colors hover:border-intelligence-border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
+                >
+                  <span className="shrink-0 [&>div]:size-9 [&_svg]:h-9 [&_svg]:w-10">
+                    <ProductArt kind={event.illustration} size="thumbnail" />
+                  </span>
+                  <span className="min-w-0 flex-1 basis-28 break-words">
+                    <time
+                      dateTime={event.date}
+                      className="mb-1 block text-xs font-semibold text-intelligence-foreground"
+                    >
+                      {fullDate(event.day)}
+                    </time>
+                    <span className="block font-semibold leading-5">
+                      {event.product}
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-muted-foreground">
+                      {event.kind}
+                    </span>
+                    <span
+                      className="sr-only"
+                      data-care-event-provenance={event.evidence}
+                    >
+                      Sample event
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </div>
+        {!events.length && (
+          <p
+            data-care-calendar-empty
+            className="py-3 text-sm text-muted-foreground"
+          >
+            No dated sample care events are saved. Missing dates are not
+            invented.
+          </p>
+        )}
+        <p className="mt-4 text-xs leading-5 text-muted-foreground">
+          {events.length} saved sample events · Dates stay fixed for this demo.
+          Delivery estimates are not confirmed arrivals; warranty examples are
+          not verified coverage.
+        </p>
+        <span data-care-event-counts className="sr-only">
+          {counts.demo} Sample · {counts.verified} verified Sandbox ·{" "}
+          {counts.recorded} recorded, unverified
+        </span>
+      </div>
+    );
+  }
   return (
     <div
       ref={content}

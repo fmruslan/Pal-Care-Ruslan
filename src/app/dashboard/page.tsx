@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { CareCalendarPanel } from "@/components/care/calendar";
-import { careCalendar } from "@/lib/care/calendar";
+import { careCalendar, demoCareCalendar } from "@/lib/care/calendar";
 import { studioEvaluationAllowed } from "@/lib/intelligence/access";
 import { Shell } from "@/components/shell";
 import { NorthCollection, NorthSearch } from "@/components/careos/integrated";
@@ -60,7 +60,7 @@ export default async function Care({
           </p>
         )}
         <CareCalendarPanel
-          calendar={careCalendar(feed)}
+          calendar={feed.demoAsOf ? demoCareCalendar(feed) : careCalendar(feed)}
           studioAllowed={studioAllowed}
         />
         <CareFeedView feed={feed} filter={filter} filters={false} />

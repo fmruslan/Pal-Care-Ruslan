@@ -34,7 +34,7 @@ export function careCalendarFilter(
   evidence = "all",
 ): AgFilterState[] {
   return [
-    ...(!all
+    ...(!all && !calendar.snapshot
       ? [
           {
             field: { id: "careEvents.day" },
@@ -123,7 +123,7 @@ export function expectedCalendarIds(
   return calendar.events
     .filter(
       (e) =>
-        (all || calendar.days.includes(e.day)) &&
+        (all || !!calendar.snapshot || calendar.days.includes(e.day)) &&
         (evidence === "all" || e.evidence === evidence),
     )
     .map((e) => e.id)

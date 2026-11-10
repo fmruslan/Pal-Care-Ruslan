@@ -1,5 +1,13 @@
 # Implementation status
 
+## Demo Care timeline snapshot — owner-requested visual update
+
+**Implemented candidate:** only the homepage with the existing sample/demo pack enabled uses **Demo care timeline**, anchored to **November 10, 2026**. All original dated **Sample** care events are queried and ID-verified through the existing Studio engine, then shown chronologically in a wrapping multi-row layout with full-year dates and exact original Twin/evidence links. No 12-event cap, rolling-date filter, horizontal swipe requirement, Today/previous/next controls or midnight/visibility date refresh in this mode. The labeled saved-date range spans the original events, including later warranty examples, rather than moving them into a fictitious 30-day window. Missing/undated facts stay missing; a purchase without a relevant dated care event is not given an invented one.
+
+**Preserved:** non-demo homepage behavior and the all-events Insights/native grid remain rolling/source-backed as before. Product cards, North answers, real due/expiry/accounting decisions, watch workers, amounts, source records and financial/provider/license authority are not frozen or modified. The sample snapshot explicitly says it is not a live forecast or verified coverage. Studio 3.0 and the previously disclosed native-axis landmark defect remain unchanged.
+
+**Verification / delivery boundary:** per the owner's speed request, no optional local suites, screenshots or visual campaign are run. Added domain coverage checks fixed demo identity/date/source selection across clocks and unchanged live behavior; affected existing demo-browser assertions now require the full verified event set, fixed snapshot label, wrapping/keyboard reachability and no nested overflow, while retaining source/Axe/provenance/zero-write checks. Required risk-selected PR/exact-main CI and normal rollback-protected private promotion remain gates, not preclaimed passes. The active **5ce7599** release is preserved through the existing immutable continuity mechanism during editing; final exact commit/run/release evidence belongs to the operational receipt/handoff, without another documentation-only release cycle. Next: owner visual review after delivery. No new owner decision is required for this already requested presentation slice; independent licensing/public hosting and real-device review remain separate.
+
 ## AG Studio Excellence Pass — approved, integrated verification
 
 ### Release fallback after official AG-18794 compatibility investigation
