@@ -199,13 +199,19 @@ export async function demoCareBrowserJourney(
         .getAttribute("data-request-id");
       expect(request).toBeTruthy();
       for (const destination of [
-        "Purchases",
+        "Purchases & Docs",
         "Documents",
         "Insights",
         "Care",
       ]) {
         await page
-          .getByRole("navigation", { name: "Main navigation", exact: true })
+          .getByRole("navigation", {
+            name:
+              destination === "Documents"
+                ? "Purchases and documents"
+                : "Main navigation",
+            exact: true,
+          })
           .getByRole("link", { name: destination, exact: true })
           .click();
         await expect(north).toHaveCount(0);
