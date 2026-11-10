@@ -108,7 +108,7 @@ test("Home document and care navigation need no conversation or automatic questi
   await page.reload();
   await page
     .getByRole("navigation", { name: "Main navigation", exact: true })
-    .getByRole("link", { name: "Purchases", exact: true })
+    .getByRole("link", { name: "Purchases & Docs", exact: true })
     .click();
   await page
     .getByRole("link", { name: /^View details for Raspberry Pi 5,/ })

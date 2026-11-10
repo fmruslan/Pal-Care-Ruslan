@@ -46,12 +46,11 @@ function renderShell(active = "/dashboard", merchant = false) {
 }
 
 describe("customer navigation contract", () => {
-  it("has exactly Care, Purchases, Insights and Documents in that order", () => {
+  it("combines purchases and documents in one primary destination", () => {
     expect(customerNavigation).toEqual([
       { href: "/dashboard", label: "Care" },
-      { href: "/purchases", label: "Purchases" },
+      { href: "/purchases", label: "Purchases & Docs" },
       { href: "/insights", label: "Insights" },
-      { href: "/documents", label: "Documents" },
     ]);
   });
 
@@ -71,7 +70,7 @@ describe("customer navigation contract", () => {
   it("keeps nested pages in their section without matching unrelated prefixes", () => {
     for (const path of ["/vault/purchase-id", "/vault/purchase-id/care"])
       expect(customerSection(path)?.href).toBe("/purchases");
-    expect(customerSection("/documents/document-id")?.href).toBe("/documents");
+    expect(customerSection("/documents/document-id")?.href).toBe("/purchases");
     expect(customerSection("/insights/detail")?.href).toBe("/insights");
     for (const path of [
       "/vaulted",
@@ -86,22 +85,22 @@ describe("customer navigation contract", () => {
         navigationLinks(renderShell("/documents/document-id"), region)
           .filter(({ current }) => current)
           .map(({ href }) => href),
-      ).toEqual(["/documents"]);
+      ).toEqual(["/purchases"]);
   });
 
-  it("selects Documents for its direct route and the legacy document view, including searches", () => {
+  it("selects the combined tab for direct and legacy document routes, including searches", () => {
     for (const path of [
       "/documents",
       "/documents?q=receipt",
       "/purchases?view=documents",
       "/purchases?q=receipt&view=documents&page=2",
     ]) {
-      expect(customerSection(path)?.href).toBe("/documents");
+      expect(customerSection(path)?.href).toBe("/purchases");
       expect(
         navigationLinks(renderShell(path), "Main navigation")
           .filter(({ current }) => current)
           .map(({ href }) => href),
-      ).toEqual(["/documents"]);
+      ).toEqual(["/purchases"]);
     }
     for (const path of [
       "/purchases?q=documents",

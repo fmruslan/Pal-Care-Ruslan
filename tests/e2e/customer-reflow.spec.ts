@@ -7,7 +7,7 @@ const widths = [320, 375, 390, 430, 834, 1440];
 const destinations = [
   ["Insights", "/insights"],
   ["Care", "/dashboard"],
-  ["Purchases", "/purchases"],
+  ["Purchases & Docs", "/purchases"],
 ] as const;
 
 async function noOverflow(page: Page, width: number) {

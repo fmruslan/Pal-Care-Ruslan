@@ -188,7 +188,7 @@ test("calm collection has one integrated field, collapsed filters and a first-sc
     page
       .getByRole("navigation", { name: "Main navigation", exact: true })
       .getByRole("link"),
-  ).toHaveText(["Care", "Purchases", "Insights", "Documents"]);
+  ).toHaveText(["Care", "Purchases & Docs", "Insights"]);
   await expect(
     page.getByRole("combobox", { name: "Category", exact: true }),
   ).not.toBeVisible();
@@ -233,7 +233,7 @@ test("receipt → totals → Audio → native chart → exact product care → p
     .click();
   await page
     .getByRole("navigation", { name: "Main navigation", exact: true })
-    .getByRole("link", { name: "Purchases", exact: true })
+    .getByRole("link", { name: "Purchases & Docs", exact: true })
     .click();
   await field(page).fill("Find receipt");
   await page
@@ -525,12 +525,12 @@ test("ordinary result lists and controls reflow at 320px and 200% text without a
   await expect(composer).toBeFocused();
   await page
     .getByRole("navigation", { name: "Main navigation", exact: true })
-    .getByRole("link", { name: "Purchases", exact: true })
+    .getByRole("link", { name: "Purchases & Docs", exact: true })
     .focus();
   await expect(
     page
       .getByRole("navigation", { name: "Main navigation", exact: true })
-      .getByRole("link", { name: "Purchases", exact: true }),
+      .getByRole("link", { name: "Purchases & Docs", exact: true }),
   ).toBeFocused();
   expect(
     (
@@ -570,7 +570,7 @@ test("secondary customer pages offer the same inline North without financial dis
     .fill("Keep this secondary-page draft");
   await page
     .getByRole("navigation", { name: "Main navigation", exact: true })
-    .getByRole("link", { name: "Purchases", exact: true })
+    .getByRole("link", { name: "Purchases & Docs", exact: true })
     .click();
   await expect(north(page)).not.toBeVisible();
   await expect(field(page)).toHaveValue("Keep this secondary-page draft");

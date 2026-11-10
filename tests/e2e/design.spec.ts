@@ -277,9 +277,8 @@ test("keyboard theme selection, reduced motion and mobile navigation remain acce
     await expect(nav).toBeVisible();
     await expect(nav.getByRole("link")).toHaveText([
       "Care",
-      "Purchases",
+      "Purchases & Docs",
       "Insights",
-      "Documents",
     ]);
     for (const link of await nav.getByRole("link").all()) {
       const box = await link.boundingBox();
@@ -289,7 +288,9 @@ test("keyboard theme selection, reduced motion and mobile navigation remain acce
     await nav.getByRole("link", { name: "Insights", exact: true }).click();
     await expect(page).toHaveURL(/\/insights$/);
     await expect(nav.locator('[aria-current="page"]')).toHaveText("Insights");
-    await nav.getByRole("link", { name: "Purchases", exact: true }).click();
+    await nav
+      .getByRole("link", { name: "Purchases & Docs", exact: true })
+      .click();
     await page
       .getByRole("link", { name: "All documents", exact: true })
       .click();

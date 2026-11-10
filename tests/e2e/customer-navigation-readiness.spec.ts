@@ -79,10 +79,10 @@ for (const width of [375, 430, 1440]) {
         page.getByRole("combobox", { name: "Appearance", exact: true }),
       ).toBeEnabled();
       await expect(nav.locator('[aria-current="page"]')).toHaveText(
-        "Documents",
+        "Purchases & Docs",
       );
       await nav
-        .getByRole("link", { name: "Purchases", exact: true })
+        .getByRole("link", { name: "Purchases & Docs", exact: true })
         .press("Enter");
       await expect(page).toHaveURL(/\/purchases$/);
       await page.getByRole("button", { name: "History", exact: true }).click();
@@ -98,15 +98,19 @@ for (const width of [375, 430, 1440]) {
       await importRequested;
       expect(held).toBe(true);
       await nav
-        .getByRole("link", { name: "Purchases", exact: true })
+        .getByRole("link", { name: "Purchases & Docs", exact: true })
         .press("Enter");
       await expect(page).toHaveURL(/\/purchases$/);
-      await nav
+      await page
+        .getByRole("navigation", {
+          name: "Purchases and documents",
+          exact: true,
+        })
         .getByRole("link", { name: "Documents", exact: true })
         .press("Enter");
       await expect(page).toHaveURL(/\/documents$/);
       await expect(nav.locator('[aria-current="page"]')).toHaveText(
-        "Documents",
+        "Purchases & Docs",
       );
       releaseImport();
       await page.getByRole("button", { name: "History", exact: true }).click();
@@ -122,15 +126,19 @@ for (const width of [375, 430, 1440]) {
       ).toBeEnabled({ timeout: 20000 });
       await expect(page.getByTestId("insight-documents-care")).toBeVisible();
       await nav
-        .getByRole("link", { name: "Purchases", exact: true })
+        .getByRole("link", { name: "Purchases & Docs", exact: true })
         .press("Enter");
       await expect(page).toHaveURL(/\/purchases$/);
-      await nav
+      await page
+        .getByRole("navigation", {
+          name: "Purchases and documents",
+          exact: true,
+        })
         .getByRole("link", { name: "Documents", exact: true })
         .press("Enter");
       await expect(page).toHaveURL(/\/documents$/);
       await expect(nav.locator('[aria-current="page"]')).toHaveText(
-        "Documents",
+        "Purchases & Docs",
       );
       const field = page.getByRole("searchbox", {
         name: "Search products and documents",
@@ -149,7 +157,7 @@ for (const width of [375, 430, 1440]) {
               url.searchParams.get("view") === "documents")),
       );
       await expect(nav.locator('[aria-current="page"]')).toHaveText(
-        "Documents",
+        "Purchases & Docs",
       );
       expect(errors).toEqual([]);
       expect(prohibited).toEqual([]);
