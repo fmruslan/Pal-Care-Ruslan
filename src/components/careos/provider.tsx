@@ -27,11 +27,14 @@ import type { CareContext, Intent } from "@/lib/careos/contracts";
 import { useConversation } from "./use-conversation";
 import {
   readPending,
+  conversationKey as careConversationKey,
   pendingKey as carePendingKey,
 } from "./conversation-client";
 import {
   readInsightPending,
   insightPendingKey,
+  insightHistoryKey,
+  readInsightHistory,
 } from "../intelligence/customer-client";
 import { RecordsResultView } from "./records-result";
 import {
@@ -69,6 +72,13 @@ import {
   northWorkspaceKey,
   readNorthWorkspace,
 } from "@/lib/north-presentation";
+import {
+  northChatsKey,
+  readNorthChats,
+  rememberNorthChat,
+  chatSummary,
+  type NorthChat,
+} from "./north-chat-state";
 import {
   ownershipPostcondition,
   careHomepagePostcondition,
@@ -118,6 +128,7 @@ export function CareOSProvider({
   integrated?: boolean;
 }) {
   const [clock, setClock] = useState(0);
+  const interactionTime = useCallback(() => Date.now(), []);
   const aiExpired =
     aiExpiresAt !== undefined && (clock === 0 || clock >= aiExpiresAt);
   useEffect(() => {
@@ -242,8 +253,39 @@ export function CareOSProvider({
     );
   const [isOpen, setOpen] = useState(false);
   const [returnFocusRequested, setReturnFocusRequested] = useState(false);
-  const [workspaceElement, setWorkspaceElement] =
-    useState<HTMLDivElement | null>(null);
+  const panelOpener = useRef<HTMLElement | null>(null);
+  function rememberOpener() {
+    if (isOpen) return;
+    const focused = document.activeElement;
+    if (
+      focused instanceof HTMLElement &&
+      focused !== document.body &&
+      !focused.closest(".north-floating-panel, .north-panel-restore")
+    )
+      panelOpener.current = focused;
+  }
+  // Keep the legacy outlet registration API, but never mount the panel inside
+  // a page that navigation can unmount or hide.
+  const setWorkspaceElement = useCallback((element: HTMLDivElement | null) => {
+    void element;
+  }, []);
+  const [portalElement, setPortalElement] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setPortalElement(document.body));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+  const [screen, setScreenState] = useState<"start" | "chat" | "history">(
+    "start",
+  );
+  const [minimized, setMinimized] = useState(false);
+  const [chats, setChats] = useState<NorthChat[]>([]);
+  const chatsRef = useRef<NorthChat[]>([]);
+  const hasChatIndex = useRef(false);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const activeChat = useRef<string | null>(null);
+  const [switchingChat, setSwitchingChat] = useState(false);
+  const switching = useRef(false);
+  const [chatNotice, setChatNotice] = useState("");
   const [activeResultId, setActiveResultId] = useState<string | null>(null);
   const [integratedHistoryOpen, setIntegratedHistoryOpen] = useState(false);
   const presentationEpoch = useRef(0);
@@ -261,6 +303,10 @@ export function CareOSProvider({
   const [mobile, setMobile] = useState(false);
   const [context, setContext] = useState<CareContext | null>(null);
   const contextRef = useRef<CareContext | null>(null);
+  const routeContext = useRef<{
+    pathname: string;
+    context: CareContext | null;
+  } | null>(null);
   const registered = useRef(false);
   const explicitContext = useRef(false);
   const [contextExplicit, setContextExplicit] = useState(false);
@@ -288,10 +334,31 @@ export function CareOSProvider({
         presentationEpoch.current++;
         setRecordsSubmission(null);
         setReturnFocusRequested(false);
-        if (integrated) setOpen(false);
       }),
-    [registerDeparture, integrated],
+    [registerDeparture],
   );
+  useEffect(() => {
+    const submitted = records.conversation?.turns.find(
+      (turn) => turn.requestId === recordsSubmission,
+    );
+    const nativeHandoff =
+      pathname === "/insights" &&
+      submitted?.answer.recordsResult?.query.format === "chart" &&
+      submitted.answer.recordsPresentation?.action !== "inspect" &&
+      !historySelection.current;
+    // A freshly answered chart owns its existing automatic /insights handoff.
+    // Explicit links cancel that intent through prepareDeparture/navigate.
+    if (nativeHandoff) return;
+    presentationEpoch.current++;
+    insights.cancelRecords();
+    careIntent.current = null;
+    const expected = ownershipIntent.current?.expected;
+    if (expected && pathname !== `/vault/${expected.twinId}`)
+      ownershipIntent.current = null;
+    setRecordsSubmission(null);
+    // Navigation never opens a closed panel or closes an explicitly open one.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
   const analytics = pathname === "/insights";
   useEffect(() => {
     const depart = () => {
@@ -306,7 +373,9 @@ export function CareOSProvider({
       ...(regular.conversation?.turns ?? []),
       ...(records.conversation?.turns ?? []),
     ],
-    insights.conversation?.turns ?? [],
+    (insights.conversation?.turns ?? []).filter(
+      (turn) => !activeChatId || submittedOrder.includes(turn.requestId),
+    ),
     submittedOrder,
   );
   const conversation = turns.length ? { turns } : null;
@@ -317,7 +386,7 @@ export function CareOSProvider({
       : regular.phase !== "idle"
         ? regular.phase
         : insights.phase;
-  const error = records.error || regular.error || insights.error;
+  const error = chatNotice || records.error || regular.error || insights.error;
   async function clear() {
     if (
       records.phase !== "idle" ||
@@ -338,7 +407,7 @@ export function CareOSProvider({
       ? regular.check
       : insights.check;
   const [draft, setDraft] = useState("");
-  const busy = phase !== "idle";
+  const busy = phase !== "idle" || switchingChat;
   const [ownerState, setOwnerState] = useState<OwnerSendState>("checking");
   const [finishNeeded, setFinishNeeded] = useState(false);
   const [browserMessage, setBrowserMessage] = useState("");
@@ -447,6 +516,8 @@ export function CareOSProvider({
   }, []);
   const register = useCallback(
     (value: CareContext | null) => {
+      routeContext.current = { pathname, context: value };
+      if (integrated && (activeChat.current || isOpen)) return;
       if (value && !explicitContext.current) {
         // A newly opened dated product supplies the visible default context;
         // an inspected library answer must not silently override that context.
@@ -458,9 +529,9 @@ export function CareOSProvider({
         updateContext(value);
       }
     },
-    [updateContext, integrated, selectHistoryScope],
+    [updateContext, integrated, selectHistoryScope, pathname, isOpen],
   );
-  function loadPresentation() {
+  function loadPresentation(now: number) {
     if (loadedPresentation.current) return;
     loadedPresentation.current = true;
     try {
@@ -476,11 +547,100 @@ export function CareOSProvider({
         }
       }
       if (integrated) {
+        const index = readNorthChats(sessionStorage.getItem(northChatsKey));
+        if (index) {
+          hasChatIndex.current = true;
+          chatsRef.current = index.chats;
+          setChats(index.chats);
+          activeChat.current = index.activeChatId;
+          setActiveChatId(index.activeChatId);
+          const chat = index.chats.find(
+            (value) => value.id === index.activeChatId,
+          );
+          // Singleton keys remain compatibility selectors only. Keep them in
+          // sync with the chosen chat before a closed-panel Send can restore.
+          if (chat?.channels.care)
+            sessionStorage.setItem(careConversationKey, chat.channels.care);
+          else regular.detach();
+          if (chat?.channels.records)
+            sessionStorage.setItem(
+              "palcare-records-conversation-v1",
+              chat.channels.records,
+            );
+          else records.detach();
+          if (!chat?.channels.insights.length) insights.detach();
+          if (chat) {
+            setDraft(chat.draft);
+            setSubmittedOrder(chat.order);
+            setDismissedChoices(chat.dismissed);
+            explicitContext.current = true;
+            setContextExplicit(true);
+            updateContext(chat.context);
+            setActiveResultId(chat.activeResultId);
+            setScreenState(chat.order.length ? "chat" : "start");
+          }
+        } else {
+          // Adopt the old singleton identities once, without deleting them or
+          // copying any answers into browser storage. Server GET fills previews.
+          const careId = sessionStorage.getItem(careConversationKey);
+          const recordsId = sessionStorage.getItem(
+            "palcare-records-conversation-v1",
+          );
+          const insightEntries = readInsightHistory(
+            sessionStorage.getItem(insightHistoryKey),
+          );
+          const validId = (id: string | null) =>
+            id && /^[a-f0-9-]{36}$/.test(id) ? id : null;
+          if (validId(careId) || validId(recordsId) || insightEntries.length) {
+            const id = crypto.randomUUID();
+            const legacyContext = saved?.context ?? contextRef.current;
+            const chat: NorthChat = {
+              id,
+              title: legacyContext
+                ? `About ${legacyContext.name}`.slice(0, 100)
+                : "Saved purchase chat",
+              preview: legacyContext
+                ? `${legacyContext.model}${legacyContext.purchasedOn ? ` · ${legacyContext.purchasedOn}` : ""}`.slice(
+                    0,
+                    180,
+                  )
+                : "Your earlier saved purchase questions",
+              context: legacyContext,
+              explicit: saved?.explicit ?? false,
+              draft: saved?.draft ?? "",
+              activeResultId: null,
+              order: [
+                ...new Set([
+                  ...(saved?.order ?? []),
+                  ...insightEntries.map((entry) => entry.requestId),
+                ]),
+              ].slice(-80),
+              dismissed: saved?.dismissed ?? [],
+              channels: {
+                care: validId(careId),
+                records: validId(recordsId),
+                insights: [
+                  ...new Set(
+                    insightEntries.map((entry) => entry.conversationId),
+                  ),
+                ].slice(-40),
+              },
+              updatedAt: now,
+            };
+            chatsRef.current = [chat];
+            setChats([chat]);
+            activeChat.current = id;
+            setActiveChatId(id);
+            setSubmittedOrder(chat.order);
+            setScreenState("chat");
+            hasChatIndex.current = true;
+          }
+        }
         const workspace = readNorthWorkspace(
           sessionStorage.getItem(northWorkspaceKey),
         );
         if (workspace) {
-          setActiveResultId(workspace.id);
+          if (!index) setActiveResultId(workspace.id);
           setOpen(workspace.open);
           selectHistoryScope(workspace.historySelected);
         }
@@ -489,6 +649,192 @@ export function CareOSProvider({
       /* Optional fictional, per-tab presentation hint. */
     }
     setPresentationLoaded(true);
+  }
+  function rememberChat(now: number, id = activeChat.current) {
+    if (!id || switching.current) return;
+    const previous = chatsRef.current.find((value) => value.id === id);
+    const chat: NorthChat = {
+      id,
+      ...(turns.length || draft.trim() || pending || !previous
+        ? chatSummary(turns, draft || pending?.input.message || "")
+        : { title: previous.title, preview: previous.preview }),
+      context: contextRef.current,
+      explicit: explicitContext.current,
+      draft,
+      activeResultId,
+      order: [
+        ...new Set([...submittedOrder, ...turns.map((turn) => turn.requestId)]),
+      ].slice(-80),
+      dismissed: dismissedChoices.slice(-80),
+      channels: {
+        care: regular.conversation?.id ?? previous?.channels.care ?? null,
+        records: records.conversation?.id ?? previous?.channels.records ?? null,
+        insights: insights.conversationIds.length
+          ? insights.conversationIds
+          : (previous?.channels.insights ?? []),
+      },
+      updatedAt: now,
+    };
+    const next = rememberNorthChat(chatsRef.current, chat);
+    chatsRef.current = next;
+    setChats(next);
+    try {
+      sessionStorage.setItem(
+        northChatsKey,
+        JSON.stringify({
+          version: 1,
+          activeChatId: activeChat.current,
+          chats: next,
+        }),
+      );
+    } catch {
+      /* Bounded metadata is optional, never a trusted transcript. */
+    }
+  }
+  useEffect(() => {
+    if (!integrated || !presentationLoaded || switching.current) return;
+    const frame = requestAnimationFrame(() => rememberChat(Date.now()));
+    return () => cancelAnimationFrame(frame);
+    // Snapshot the currently owned channels after their committed state updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    integrated,
+    presentationLoaded,
+    activeChatId,
+    activeResultId,
+    context,
+    contextExplicit,
+    draft,
+    submittedOrder,
+    dismissedChoices,
+    regular.conversation,
+    records.conversation,
+    insights.conversation,
+    pending,
+    switchingChat,
+  ]);
+
+  function cancelPresentation() {
+    presentationEpoch.current++;
+    ownershipIntent.current = null;
+    careIntent.current = null;
+    window.dispatchEvent(new CustomEvent("palcare-care-focus"));
+    insights.cancelRecords();
+    setRecordsSubmission(null);
+    setOwnershipNotice("");
+    setOwnershipNoticeFor(null);
+  }
+  function canSwitchChat() {
+    if (
+      switching.current ||
+      admitting.current ||
+      busy ||
+      pending ||
+      !regular.canDetach() ||
+      !records.canDetach() ||
+      !insights.canDetach()
+    ) {
+      setChatNotice(
+        "Check the current saved answer before switching chats. Nothing will be sent again.",
+      );
+      void open(true);
+      return false;
+    }
+    return true;
+  }
+  function newChat() {
+    rememberOpener();
+    loadPresentation(interactionTime());
+    if (!canSwitchChat()) return;
+    if (!activeChat.current && draft.trim()) {
+      activeChat.current = crypto.randomUUID();
+    }
+    rememberChat(interactionTime());
+    cancelPresentation();
+    regular.detach();
+    records.detach();
+    insights.detach();
+    activeChat.current = null;
+    setActiveChatId(null);
+    setChatNotice("");
+    setDraft("");
+    setSubmittedOrder([]);
+    setDismissedChoices([]);
+    setActiveResultId(null);
+    selectHistoryScope(false);
+    explicitContext.current = true;
+    setContextExplicit(true);
+    updateContext(
+      /^\/(vault|documents|care)\/[^/]+/.test(pathname) &&
+        routeContext.current?.pathname === pathname
+        ? routeContext.current.context
+        : null,
+    );
+    setScreenState("chat");
+    setIntegratedHistoryOpen(false);
+    setMinimized(false);
+    setOpen(true);
+    try {
+      sessionStorage.setItem(
+        northChatsKey,
+        JSON.stringify({
+          version: 1,
+          activeChatId: null,
+          chats: chatsRef.current,
+        }),
+      );
+    } catch {
+      /* Optional presentation metadata. */
+    }
+  }
+  async function chooseChat(id: string) {
+    loadPresentation(interactionTime());
+    const chat = chatsRef.current.find((value) => value.id === id);
+    if (!chat) return;
+    if (id === activeChat.current) {
+      setScreenState(chat.order.length ? "chat" : "start");
+      setIntegratedHistoryOpen(false);
+      setMinimized(false);
+      setOpen(true);
+      return;
+    }
+    if (!canSwitchChat()) return;
+    if (!activeChat.current && draft.trim())
+      activeChat.current = crypto.randomUUID();
+    rememberChat(interactionTime());
+    cancelPresentation();
+    regular.detach();
+    records.detach();
+    insights.detach();
+    switching.current = true;
+    setSwitchingChat(true);
+    activeChat.current = id;
+    setActiveChatId(id);
+    setChatNotice("");
+    setDraft(chat.draft);
+    setSubmittedOrder(chat.order);
+    setDismissedChoices(chat.dismissed);
+    setActiveResultId(chat.activeResultId);
+    explicitContext.current = true;
+    setContextExplicit(true);
+    updateContext(chat.context);
+    selectHistoryScope(true);
+    setScreenState(chat.order.length ? "chat" : "start");
+    setIntegratedHistoryOpen(false);
+    setMinimized(false);
+    setOpen(true);
+    try {
+      // IDs only select existing owned GET endpoints. Metadata cannot supply
+      // turns, authorize a model call, replay a plan or create a conversation.
+      await Promise.all([
+        chat.channels.records ? records.restore(chat.channels.records) : null,
+        chat.channels.care ? regular.restore(chat.channels.care) : null,
+        insights.restore(chat.order, chat.channels.insights),
+      ]);
+    } finally {
+      switching.current = false;
+      setSwitchingChat(false);
+    }
   }
   useEffect(() => {
     if (!integrated || !presentationLoaded) return;
@@ -508,7 +854,7 @@ export function CareOSProvider({
   }, [integrated, presentationLoaded, activeResultId, isOpen, historySelected]);
   function select(value: CareContext | null) {
     presentationEpoch.current++;
-    loadPresentation();
+    loadPresentation(interactionTime());
     selectHistoryScope(false);
     insights.cancelRecords();
     setRecordsSubmission(null);
@@ -549,9 +895,17 @@ export function CareOSProvider({
     presentationLoaded,
   ]);
   async function ask(message: string, intent?: Intent, selected?: CareContext) {
+    rememberOpener();
     const beforeAdmission = presentationEpoch.current;
-    loadPresentation();
-    if (admitting.current || busy || pending || !message.trim()) return false;
+    loadPresentation(interactionTime());
+    if (
+      admitting.current ||
+      switching.current ||
+      busy ||
+      pending ||
+      !message.trim()
+    )
+      return false;
     if (integrated) {
       // Closed Home can admit directly through its one field, before an open
       // workspace has restored any hooks. Never bypass another channel's
@@ -667,9 +1021,18 @@ export function CareOSProvider({
         return false;
       if (admittedEpoch !== presentationEpoch.current) return false;
       setOpen(true);
+      setMinimized(false);
       setReturnFocusRequested(false);
       const requestId = crypto.randomUUID();
       if (integrated) {
+        if (!activeChat.current) {
+          const id = crypto.randomUUID();
+          activeChat.current = id;
+          setActiveChatId(id);
+          hasChatIndex.current = true;
+        }
+        setChatNotice("");
+        setScreenState("chat");
         setActiveResultId(requestId);
         setIntegratedHistoryOpen(false);
         selectHistoryScope(false);
@@ -749,7 +1112,7 @@ export function CareOSProvider({
               ownershipIntent.current = { expected, requestId: turn.requestId };
               setOwnershipNotice("");
               setRecordsSubmission(null);
-              setOpen(false);
+              if (!integrated) setOpen(false);
               if (
                 `${window.location.pathname}${window.location.search}` === href
               )
@@ -783,23 +1146,41 @@ export function CareOSProvider({
     }
   }
   async function open(recoveryOnly = false) {
-    loadPresentation();
+    rememberOpener();
+    void recoveryOnly;
+    loadPresentation(interactionTime());
     setReturnFocusRequested(false);
+    setMinimized(false);
     setOpen(true);
+    const chat = chatsRef.current.find(
+      (value) => value.id === activeChat.current,
+    );
     // This GET-only channel has its own cookie/owner namespace. Restoring saved
     // records neither reads private AI history nor issues an inference grant.
-    void records.restore(false);
+    if (chat?.channels.records) void records.restore(chat.channels.records);
+    else if (!chat) void records.restore(false);
     if (conversationalAI) {
       if (await checkOwnerAccess()) {
-        void regular.restore(false);
-        void insights.restore();
+        if (chat?.channels.care) void regular.restore(chat.channels.care);
+        else if (!chat) void regular.restore(false);
+        void insights.restore(
+          hasChatIndex.current ? (chat?.order ?? []) : undefined,
+          chat?.channels.insights,
+        );
       }
       return;
     }
     if (!(await checkOwnerAccess())) return;
     if (aiAccessDisabled || evaluationWindowExpired(aiExpiresAt)) return;
-    void insights.restore();
-    const value = await restore(!analytics && !recoveryOnly);
+    void insights.restore(
+      hasChatIndex.current ? (chat?.order ?? []) : undefined,
+      chat?.channels.insights,
+    );
+    const value = chat
+      ? chat.channels.care
+        ? await restore(chat.channels.care)
+        : null
+      : await restore(false);
     const previous = value?.turns.at(-1)?.answer.context;
     if (!registered.current && !contextRef.current && previous)
       select(previous);
@@ -809,7 +1190,7 @@ export function CareOSProvider({
     // Hydrate optional tab-local hints after the committed page mounts. A frame
     // is cancelled if the root unmounts; only owned GET recovery can follow.
     const frame = requestAnimationFrame(() => {
-      loadPresentation();
+      loadPresentation(interactionTime());
       if (readNorthWorkspace(sessionStorageSafe(northWorkspaceKey))?.open)
         void open();
     });
@@ -840,16 +1221,14 @@ export function CareOSProvider({
         focused === document.documentElement ||
         !focused.isConnected
       ) {
-        const opener = document.querySelector<HTMLButtonElement>(
-          'button[aria-label="Ask North Star"]',
-        );
-        const target =
-          (opener && !opener.disabled
-            ? opener
-            : document.querySelector<HTMLElement>(
-                "[data-north-search] > div > button",
-              )) ?? document.getElementById("library-search");
-        target?.focus();
+        const original = panelOpener.current;
+        const target = original?.isConnected
+          ? original
+          : (document.getElementById("library-search") ??
+            document.querySelector<HTMLButtonElement>(
+              'button[aria-label="Ask North Star"]:not(:disabled)',
+            ));
+        target?.focus({ preventScroll: true });
       }
       setReturnFocusRequested(false);
     });
@@ -857,14 +1236,38 @@ export function CareOSProvider({
   }, [integrated, isOpen, returnFocusRequested]);
   const integratedState: IntegratedNorthState = {
     isOpen,
+    screen,
+    setScreen: (value) => {
+      setScreenState(value);
+      setIntegratedHistoryOpen(value === "history");
+    },
+    newChat: () => newChat(),
+    chats,
+    activeChatId,
+    chooseChat: (id) => void chooseChat(id),
+    minimized,
+    minimize: () => {
+      cancelPresentation();
+      setMinimized(true);
+    },
+    restorePanel: () => {
+      setMinimized(false);
+      void open();
+    },
     ownershipNotice,
     ownershipNoticeFor,
     turns,
     activeId: activeResultId,
     historyOpen: integratedHistoryOpen,
-    setHistoryOpen: setIntegratedHistoryOpen,
+    setHistoryOpen: (value) => {
+      setIntegratedHistoryOpen(value);
+      // Legacy per-turn History belongs to the current chat. Only openHistory
+      // opens the separate Previous chats picker.
+      setScreenState("chat");
+    },
     openHistory: () => {
       setIntegratedHistoryOpen(true);
+      setScreenState("history");
       void open();
     },
     choose: (id) => {
@@ -875,6 +1278,9 @@ export function CareOSProvider({
         insights.cancelRecords();
         setRecordsSubmission(null);
         setActiveResultId(id);
+        setScreenState("chat");
+        setIntegratedHistoryOpen(false);
+        setMinimized(false);
         setOpen(true);
       }
     },
@@ -882,7 +1288,13 @@ export function CareOSProvider({
     open: () => void open(),
     draft,
     setDraft: (value) => {
-      loadPresentation();
+      loadPresentation(interactionTime());
+      if (!activeChat.current && value.trim()) {
+        const id = crypto.randomUUID();
+        activeChat.current = id;
+        setActiveChatId(id);
+        hasChatIndex.current = true;
+      }
       setDraft(value);
       setDismissedChoices((prior) => [
         ...new Set([
@@ -910,7 +1322,7 @@ export function CareOSProvider({
     select,
     recordsSubmission,
     consumeRecords: () => setRecordsSubmission(null),
-    navigate: closeWorkspace,
+    navigate: cancelPresentation,
     check: () => void check(),
     clear: () => void clear(),
     unsent: [...regular.unsent, ...records.unsent],
@@ -957,11 +1369,10 @@ export function CareOSProvider({
       {children}
       {integrated &&
         visible &&
-        isOpen &&
-        workspaceElement &&
+        portalElement &&
         createPortal(
           <IntegratedNorthView state={integratedState} />,
-          workspaceElement,
+          portalElement,
         )}
       {!integrated && visible && (
         <Dialog.Root

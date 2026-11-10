@@ -63,12 +63,12 @@ export function RecordsResultView({
   onNavigate: () => void;
   autoApply?: boolean;
   onAutoApplyStarted?: () => void;
-  presentation?: "inline" | "transcript";
+  presentation?: "inline" | "transcript" | "panel";
   headingLevel?: 2 | 3;
   intent?: import("@/lib/careos/contracts").CareAnswer["recordsPresentation"];
 }) {
   const ResultHeading = headingLevel === 2 ? "h2" : "h3";
-  const [shown, setShown] = useState(10);
+  const [shown, setShown] = useState(presentation === "panel" ? 3 : 10);
   const [copied, setCopied] = useState(false);
   const [applying, setApplying] = useState(false);
   const [chartStatus, setChartStatus] = useState("");
@@ -99,7 +99,7 @@ export function RecordsResultView({
           ? "Your original Insights view is restored. Its chart, totals, filters and matching purchases were checked. No new chart was created; purchase records are unchanged."
           : "Your chart is ready in Insights. The chart, separate USD totals, filters and matching purchases were checked. Purchase records are unchanged.",
       );
-      if (presentation === "inline") {
+      if (presentation === "inline" || presentation === "panel") {
         const title = [
           ...document.querySelectorAll<HTMLElement>(
             ".ag-studio-layout-widget-title",
@@ -225,8 +225,9 @@ export function RecordsResultView({
   ));
   return (
     <div
-      className={`space-y-4 ${presentation === "inline" ? "north-native-records" : ""}`}
+      className={`space-y-4 ${presentation === "inline" ? "north-native-records" : presentation === "panel" ? "north-panel-records" : ""}`}
       data-records-result
+      data-records-presentation={presentation}
       data-snapshot-id={result.snapshotId}
     >
       <details className="text-xs text-muted-foreground">
@@ -406,7 +407,7 @@ export function RecordsResultView({
           place.
         </p>
       )}
-      {result.query.format === "table" ? (
+      {result.query.format === "table" && presentation !== "panel" ? (
         <>
           <div
             role="region"
@@ -500,7 +501,12 @@ export function RecordsResultView({
         <Button
           variant="outline"
           onClick={() =>
-            setShown((n) => Math.min(n + 20, result.records.length))
+            setShown((n) =>
+              Math.min(
+                n + (presentation === "panel" ? 3 : 20),
+                result.records.length,
+              ),
+            )
           }
         >
           Show more purchases ({result.records.length - shown} remaining)

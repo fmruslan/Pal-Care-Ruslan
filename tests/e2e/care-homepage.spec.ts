@@ -192,7 +192,12 @@ test("North keeps the exact Care purchase and original answer across Care, Purch
     })
     .click();
   const panel = page.getByRole("dialog", { name: "North Star", exact: true });
-  await expect(panel.locator(".careos-context strong")).toContainText("F-01");
+  await expect(
+    panel.getByRole("region", {
+      name: "Persistent purchase context",
+      exact: true,
+    }),
+  ).toContainText("F-01");
   expect(turns).toEqual([]);
   await panel
     .getByRole("textbox", { name: "Ask about your purchases", exact: true })
@@ -201,8 +206,18 @@ test("North keeps the exact Care purchase and original answer across Care, Purch
     .getByRole("button", { name: "Send to North Star", exact: true })
     .click();
   await expect(
-    panel.getByLabel("Document contents", { exact: true }),
-  ).toContainText("Example receipt. No payment was processed.");
+    panel.getByRole("link", {
+      name: "View full receipt or document",
+      exact: true,
+    }),
+  ).toHaveAttribute("href", "/documents/00000000-0000-4000-8000-000000000301");
+  const originalDocument = await page.request.get(
+    "/documents/00000000-0000-4000-8000-000000000301",
+  );
+  expect(originalDocument.ok()).toBe(true);
+  expect(await originalDocument.text()).toContain(
+    "Example receipt. No payment was processed.",
+  );
   const original = await panel
     .locator("[data-request-id]")
     .last()
@@ -224,17 +239,23 @@ test("North keeps the exact Care purchase and original answer across Care, Purch
       })
       .getByRole("link", { name: destination, exact: true })
       .click();
-    await expect(panel).toHaveCount(0);
-    await page.getByRole("button", { name: "History", exact: true }).click();
+    await expect(panel).toBeVisible();
+    await expect(panel).toHaveAttribute("aria-modal", "false");
     await expect(
       panel.locator(`[data-request-id="${original}"]`),
     ).toBeVisible();
     await expect(
+      panel.getByRole("link", {
+        name: "View full receipt or document",
+        exact: true,
+      }),
+    ).toHaveAttribute(
+      "href",
+      "/documents/00000000-0000-4000-8000-000000000301",
+    );
+    await expect(
       panel.getByLabel("Document contents", { exact: true }),
-    ).toContainText("Example receipt. No payment was processed.");
-    await panel
-      .getByRole("button", { name: "Close North Star", exact: true })
-      .click();
+    ).toHaveCount(0);
   }
   expect(turns.length).toBe(count);
 });

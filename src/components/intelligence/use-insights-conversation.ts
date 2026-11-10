@@ -25,6 +25,7 @@ export type InsightsRun = (
   requestId: string,
   signal: AbortSignal,
   recovery: {
+    conversationId?: string;
     plan?: CustomerPlan;
     planning: (id: string) => void;
     planned: (plan: CustomerPlan) => void;
@@ -51,13 +52,32 @@ export function useInsightsConversation(
   const history = useRef<InsightHistoryEntry[]>([]);
   const historyLoaded = useRef(false);
   const historyRestored = useRef(false);
+  const selectedRequests = useRef<string[] | undefined>(undefined);
+  const restoredIds = useRef<string[]>([]);
   const [turns, setTurns] = useState<CareTurn[]>([]);
+  const [conversationIds, setConversationIds] = useState<string[]>([]);
   const [pending, setPending] = useState<PendingQuestion | null>(null);
   const [phase, setPhase] = useState<
     "idle" | "restoring" | "sending" | "checking" | "clearing"
   >("idle");
   const [error, setError] = useState("");
   const [recoverable, setRecoverable] = useState<string | null>(null);
+  function syncConversationIds() {
+    const ids = [
+      ...new Set([
+        ...restoredIds.current,
+        ...history.current
+          .filter(
+            (entry) =>
+              !selectedRequests.current ||
+              selectedRequests.current.includes(entry.requestId),
+          )
+          .map((entry) => entry.conversationId),
+        ...(lastConversation.current ? [lastConversation.current] : []),
+      ]),
+    ].slice(-40);
+    setConversationIds((prior) => (prior.join() === ids.join() ? prior : ids));
+  }
   function loadHistory() {
     if (historyLoaded.current) return;
     historyLoaded.current = true;
@@ -68,9 +88,18 @@ export function useInsightsConversation(
     } catch {
       /* Optional ID-only index. */
     }
+    syncConversationIds();
   }
   function remember(value: InsightPending) {
     if (!value.conversationId) return;
+    if (
+      selectedRequests.current &&
+      !selectedRequests.current.includes(value.requestId)
+    )
+      selectedRequests.current = [
+        ...selectedRequests.current,
+        value.requestId,
+      ].slice(-80);
     loadHistory();
     history.current = [
       ...history.current.filter((entry) => entry.requestId !== value.requestId),
@@ -80,6 +109,7 @@ export function useInsightsConversation(
         createdAt: value.createdAt,
       },
     ].slice(-40);
+    syncConversationIds();
     try {
       sessionStorage.setItem(
         insightHistoryKey,
@@ -116,7 +146,34 @@ export function useInsightsConversation(
       status,
     };
   }
-  async function restore() {
+  /** Local detachment never deletes server history or forgets unknown work. */
+  function canDetach() {
+    if (controller.current || hint.current) return false;
+    try {
+      return !readInsightPending(sessionStorage.getItem(insightPendingKey));
+    } catch {
+      return historyLoaded.current;
+    }
+  }
+  function detach() {
+    if (!canDetach()) return false;
+    setTurns([]);
+    setError("");
+    setRecoverable(null);
+    lastConversation.current = null;
+    restoredIds.current = [];
+    reset.current?.();
+    // The global UUID-only index remains for separately selected chats. New
+    // sends must not restore every historical plan into the new chat.
+    historyRestored.current = true;
+    selectedRequests.current = [];
+    setConversationIds([]);
+    return true;
+  }
+  async function restore(
+    requestIds?: string[],
+    conversationIds: string[] = [],
+  ) {
     if (controller.current) return;
     try {
       const value = readInsightPending(
@@ -130,7 +187,20 @@ export function useInsightsConversation(
       /* Optional. */
     }
     loadHistory();
-    if (historyRestored.current || !history.current.length) return;
+    if (requestIds) {
+      historyRestored.current = false;
+      selectedRequests.current = requestIds;
+    }
+    syncConversationIds();
+    const scope = selectedRequests.current;
+    const entries = scope
+      ? history.current.filter((entry) => scope.includes(entry.requestId))
+      : history.current;
+    if (!entries.length && !conversationIds.length) {
+      historyRestored.current = true;
+      return;
+    }
+    if (historyRestored.current) return;
     historyRestored.current = true;
     const abort = new AbortController();
     controller.current = abort;
@@ -142,9 +212,10 @@ export function useInsightsConversation(
     try {
       const restored: CareTurn[] = [];
       let partial = false;
-      for (const id of new Set(
-        history.current.map((entry) => entry.conversationId),
-      )) {
+      for (const id of new Set([
+        ...entries.map((entry) => entry.conversationId),
+        ...conversationIds,
+      ])) {
         if (restoreSignal.aborted) {
           partial = true;
           break;
@@ -161,14 +232,23 @@ export function useInsightsConversation(
           partial = true;
           continue;
         }
-        for (const entry of history.current.filter(
-          (value) => value.conversationId === id,
-        )) {
+        if (!restoredIds.current.includes(id)) restoredIds.current.push(id);
+        const requested = scope
+          ? scope.map((requestId) => ({ requestId }))
+          : entries.filter((value) => value.conversationId === id);
+        for (const entry of requested) {
           const turn = saved.turns.find(
             (value) => value.requestId === entry.requestId,
           );
           if (!turn) {
-            partial = true;
+            if (
+              entries.some(
+                (known) =>
+                  known.requestId === entry.requestId &&
+                  known.conversationId === id,
+              )
+            )
+              partial = true;
             continue;
           }
           let plan: CustomerPlan | undefined;
@@ -216,6 +296,7 @@ export function useInsightsConversation(
         "Saved Insights history could not be restored. Your original request has not been resent or applied.",
       );
     } finally {
+      syncConversationIds();
       controller.current = null;
       setPhase("idle");
     }
@@ -235,9 +316,13 @@ export function useInsightsConversation(
         value.requestId,
         abort.signal,
         {
+          ...(lastConversation.current
+            ? { conversationId: lastConversation.current }
+            : {}),
           ...(recovered && value.plan ? { plan: value.plan } : {}),
           planning: (id) => {
             lastConversation.current = id;
+            syncConversationIds();
             if (hint.current?.requestId === value.requestId) {
               save({ ...hint.current, conversationId: id });
               setPending(asPending(hint.current!, "sending"));
@@ -386,7 +471,14 @@ export function useInsightsConversation(
       }
       const ids = new Set(
         [
-          ...history.current.map((entry) => entry.conversationId),
+          ...restoredIds.current,
+          ...history.current
+            .filter(
+              (entry) =>
+                !selectedRequests.current ||
+                selectedRequests.current.includes(entry.requestId),
+            )
+            .map((entry) => entry.conversationId),
           hint.current?.conversationId,
           lastConversation.current,
         ].filter((id): id is string => !!id),
@@ -406,10 +498,20 @@ export function useInsightsConversation(
       setPending(null);
       setRecoverable(null);
       lastConversation.current = null;
-      history.current = [];
+      restoredIds.current = [];
+      history.current = history.current.filter(
+        (entry) => !ids.has(entry.conversationId),
+      );
+      if (selectedRequests.current) selectedRequests.current = [];
+      syncConversationIds();
       historyRestored.current = true;
       try {
-        sessionStorage.removeItem(insightHistoryKey);
+        if (history.current.length)
+          sessionStorage.setItem(
+            insightHistoryKey,
+            JSON.stringify(history.current),
+          );
+        else sessionStorage.removeItem(insightHistoryKey);
       } catch {
         /* Optional. */
       }
@@ -424,6 +526,7 @@ export function useInsightsConversation(
     }
   }
   return {
+    conversationIds,
     conversation: turns.length
       ? { id: "browser-insights", expiresAt: "", turns }
       : null,
@@ -434,6 +537,9 @@ export function useInsightsConversation(
     check,
     clear,
     restore,
+    canDetach,
+    detach,
+    start: detach,
     recoverable,
     applySaved: () =>
       hint.current?.plan ? run(hint.current, true) : Promise.resolve(false),

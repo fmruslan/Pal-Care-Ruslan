@@ -43,8 +43,8 @@ test("official care evidence remains distinct from sample ownership and missing 
       exact: true,
     }),
   ).toHaveValue("");
-  // North now uses document flow. Capture its complete settled section rather
-  // than an unrelated page-scroll offset selected during an async answer.
+  // Compare the existing settled assistant reference in its approved floating
+  // panel, independently of the underlying page's preserved reading position.
   // Page placement, clipping, source anchoring and focus have separate strict
   // accessibility/continuity coverage; do not mask or relax the pixel tolerance.
   await expect(assistant).toHaveScreenshot("assistant.png");

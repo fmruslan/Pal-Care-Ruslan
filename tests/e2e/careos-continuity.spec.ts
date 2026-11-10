@@ -47,17 +47,17 @@ test("product switching, refresh and clear preserve useful context without mixin
       /Safe shutdown for Raspberry Pi 5 running Raspberry Pi OS/,
     ),
   ).toBeVisible();
-  await expect(dialog.locator("[data-answer-scope]")).toHaveText(
-    "Raspberry Pi 5 · 5 · Oct 7, 2026 · Example purchase",
-  );
+  await expect(
+    dialog.locator("[data-latest-answer] [data-answer-scope]"),
+  ).toHaveText("Raspberry Pi 5 · 5 · Oct 7, 2026 · Example purchase");
   await dialog.getByRole("button", { name: "History", exact: true }).click();
   await dialog
     .getByRole("region", { name: "Previous North results", exact: true })
     .getByRole("button", { name: "Find receipt", exact: true })
     .click();
-  await expect(dialog.locator("[data-answer-scope]")).toHaveText(
-    "Everyday headphones · F-01 · Oct 18, 2026 · Example purchase",
-  );
+  await expect(
+    dialog.locator("[data-latest-answer] [data-answer-scope]"),
+  ).toHaveText("Everyday headphones · F-01 · Oct 18, 2026 · Example purchase");
   await dialog.getByRole("button", { name: "History", exact: true }).click();
   await dialog
     .getByRole("region", { name: "Previous North results", exact: true })
@@ -79,7 +79,10 @@ test("product switching, refresh and clear preserve useful context without mixin
   await expect(
     dialog.getByText("No receipt is attached to this purchase."),
   ).toBeVisible();
-  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog
+    .locator("header")
+    .getByRole("button", { name: "Previous chats", exact: true })
+    .click();
   await dialog.getByText("Conversation settings", { exact: true }).click();
   await dialog
     .getByRole("button", { name: "Clear conversation history", exact: true })
@@ -121,7 +124,7 @@ test("Home document and care navigation need no conversation or automatic questi
   expect(mutations).toEqual([]);
 });
 
-test("assistant reflows in main content and supports nonmodal keyboard traversal without payment requests", async ({
+test("assistant sheet reflows and supports nonmodal keyboard traversal without payment requests", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 800 });
@@ -130,9 +133,7 @@ test("assistant reflows in main content and supports nonmodal keyboard traversal
   await launcher(page).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog).toHaveAttribute("aria-modal", "false");
-  expect(await dialog.evaluate((node) => !!node.closest("#main-content"))).toBe(
-    true,
-  );
+  await expect(dialog).toHaveCSS("position", "fixed");
   await dialog
     .getByLabel("Ask about your purchases", { exact: true })
     .fill("Can I get a refund?");
@@ -227,6 +228,14 @@ test("CareOS errors are visible, safe, and never replaced with fixture answers",
   );
   await page.goto(forma);
   await launcher(page).click();
+  await page
+    .getByRole("dialog")
+    .getByLabel("Ask about your purchases", { exact: true })
+    .fill("Find receipt");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Send to North Star", exact: true })
+    .click();
   await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
     "temporarily unavailable",
   );

@@ -98,7 +98,7 @@ for (const kind of ["care", "records", "Insights"] as const) {
       },
     );
     await page.goto("/purchases");
-    await expect(field(page)).toHaveValue("Keep this new question unsent");
+    await expect(field(page)).toHaveValue("");
     await expect(north(page)).toHaveCount(0);
     const envelope = await page.evaluate(
       (key) => sessionStorage.getItem(key),
@@ -125,7 +125,7 @@ for (const kind of ["care", "records", "Insights"] as const) {
       .getByRole("button", { name: "Close North Star", exact: true })
       .click();
     await expect(
-      page.getByRole("button", { name: "History", exact: true }),
+      page.getByRole("button", { name: "Ask North Star", exact: true }),
     ).toBeFocused();
     await field(page).fill("Headphones");
     await page.getByRole("button", { name: "Search", exact: true }).click();
@@ -239,40 +239,44 @@ test("receipt → totals → Audio → native chart → exact product care → p
   await page
     .getByRole("button", { name: "Ask North Star", exact: true })
     .click();
+  // The narrow assistant links to the unchanged full record instead of
+  // embedding the document reader. Verify the original through a read only.
   await expect(
     north(page).getByLabel("Document contents", { exact: true }),
-  ).toContainText("Example receipt. No payment was processed.");
+  ).toHaveCount(0);
+  const originalReceipt = await page.request.get(`/documents/${receipt}`);
+  expect(originalReceipt.ok()).toBe(true);
+  expect(await originalReceipt.text()).toContain(
+    "Example receipt. No payment was processed.",
+  );
   await expect(
-    north(page).getByRole("link", {
+    north(page).locator("[data-native-north-result]").getByRole("link", {
       name: "View full receipt or document",
       exact: true,
     }),
   ).toHaveAttribute("href", `/documents/${receipt}`);
-  const inline = north(page);
+  const panel = north(page);
   await expect(
-    inline
-      .getByRole("region", {
-        name: "Receipt and document preview",
-        exact: true,
-      })
-      .getByRole("heading", {
-        level: 2,
-        name: "Pour-over kettle receipt",
-        exact: true,
-      }),
+    panel.getByRole("link", {
+      name: "View full receipt or document",
+      exact: true,
+    }),
   ).toBeVisible();
   expect(
     (
       await new AxeBuilder({ page })
-        .include("[data-north-workspace-slot]")
+        .include('[role="dialog"][aria-label="North Star"]')
         .withRules(["heading-order"])
         .analyze()
     ).violations,
   ).toEqual([]);
-  expect(await inline.evaluate((element) => !!element.closest("main"))).toBe(
-    true,
+  expect(await panel.evaluate((element) => !!element.closest("main"))).toBe(
+    false,
   );
-  await expect(inline).toHaveAttribute("aria-modal", "false");
+  expect(
+    await panel.evaluate((element) => getComputedStyle(element).position),
+  ).toBe("fixed");
+  await expect(panel).toHaveAttribute("aria-modal", "false");
   const totals = await ask(page, "Show all my purchases and totals");
   expect(totals.answer.recordsResult.records).toHaveLength(4);
   expect(
@@ -295,14 +299,14 @@ test("receipt → totals → Audio → native chart → exact product care → p
   const chart = await ask(page, "Show that as a chart");
   expect(chart.answer.recordsResult.records).toHaveLength(2);
   await expect(page).toHaveURL(/\/insights$/);
-  await expect(inline.getByRole("status")).toContainText(
+  await expect(panel.getByRole("status")).toContainText(
     "The chart, separate USD totals, filters and matching purchases were checked",
     { timeout: 25000 },
   );
   await expect(
     page.getByTestId("customer-studio").getByRole("figure").last(),
   ).toBeInViewport();
-  await inline.locator(`a[href="/vault/${headphones}"]`).first().click();
+  await panel.locator(`a[href="/vault/${headphones}"]`).first().click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Everyday headphones",
   );
@@ -314,15 +318,17 @@ test("receipt → totals → Audio → native chart → exact product care → p
     .click();
   const care = await ask(page, "Product care");
   expect(care.answer.context.twinId).toBe(headphones);
-  await expect(inline).toContainText(/manual|care|guidance/i);
+  await expect(panel).toContainText(/manual|care|guidance/i);
   const before = posts.length;
-  await inline
+  await panel
     .getByRole("button", { name: "Previous result", exact: true })
     .click();
   await expect(
-    inline.locator(`[data-request-id="${chart.requestId}"]`),
+    panel.locator(`[data-request-id="${chart.requestId}"]`),
   ).toBeVisible();
-  await expect(inline.locator("[data-records-result]")).toContainText("Audio");
+  await expect(
+    panel.locator("[data-native-north-result] [data-records-result]"),
+  ).toContainText("Audio");
   expect(posts).toHaveLength(before);
   expect(financial).toEqual([]);
 });
@@ -373,14 +379,14 @@ test("History selection anchors a new follow-up to the selected owned result, no
   ).toBe(true);
   expect(bullets.answer.recordsResult.query.format).toBe("bullets");
   await expect(
-    north(page).getByRole("list", {
+    north(page).locator("[data-native-north-result]").getByRole("list", {
       name: "Matching saved purchases",
       exact: true,
     }),
   ).toHaveClass(/list-disc/);
 });
 
-test("full-width results, draft and owned History survive reload without automatic turn or chart replay", async ({
+test("floating results, draft and owned History survive reload without automatic turn or chart replay", async ({
   page,
 }) => {
   await page.goto("/purchases");
@@ -411,7 +417,7 @@ test("full-width results, draft and owned History survive reload without automat
   ).toHaveValue("Keep this follow-up draft");
   expect(
     await north(page).evaluate((element) => getComputedStyle(element).position),
-  ).toBe("static");
+  ).toBe("fixed");
   expect(forbidden).toEqual([]);
 });
 
@@ -479,7 +485,7 @@ test("explicit purchase B remains authoritative after reload while result A stay
   expect((await request).postDataJSON().twinId).toBe(kettle);
   expect(answerB.answer.context.twinId).toBe(kettle);
   await expect(
-    north(page).getByRole("link", {
+    north(page).locator("[data-native-north-result]").getByRole("link", {
       name: "View full receipt or document",
       exact: true,
     }),
@@ -508,8 +514,16 @@ test("ordinary result lists and controls reflow at 320px and 200% text without a
     .getByRole("button", { name: "Ask North Star", exact: true })
     .click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "How can I help with your purchases?",
+    "Your products",
   );
+  await expect(
+    north(page).getByRole("heading", {
+      name: "Hi! I’m North ☆",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(field(page)).toBeVisible();
+  await expect(page.locator("[data-purchase-card]")).toHaveCount(4);
   await ask(page, "Show all my purchases");
   await page.evaluate(() => {
     document.documentElement.style.fontSize = "200%";
@@ -541,7 +555,7 @@ test("ordinary result lists and controls reflow at 320px and 200% text without a
   ).toEqual([]);
 });
 
-test("secondary customer pages offer the same inline North without financial dispatch", async ({
+test("secondary customer pages preserve the same floating North across navigation without financial dispatch", async ({
   page,
 }) => {
   const prohibited: string[] = [];
@@ -568,7 +582,7 @@ test("secondary customer pages offer the same inline North without financial dis
   expect(
     await north(page).evaluate(
       (node) =>
-        !!node.closest("main") && getComputedStyle(node).position === "static",
+        !node.closest("main") && getComputedStyle(node).position === "fixed",
     ),
   ).toBe(true);
   await north(page)
@@ -578,9 +592,12 @@ test("secondary customer pages offer the same inline North without financial dis
     .getByRole("navigation", { name: "Main navigation", exact: true })
     .getByRole("link", { name: "Purchases & Docs", exact: true })
     .click();
-  await expect(north(page)).not.toBeVisible();
-  await expect(field(page)).toHaveValue("Keep this secondary-page draft");
-  await page.getByRole("button", { name: "History", exact: true }).click();
+  await expect(north(page)).toBeVisible();
+  await expect(field(page)).toHaveValue("");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Your products",
+  );
+  await expect(page.locator("[data-purchase-card]")).toHaveCount(4);
   await expect(
     north(page).getByRole("textbox", {
       name: "Ask about your purchases",
@@ -627,9 +644,6 @@ test("literal search remains provider-free during a pending answer and late char
       .getByRole("button", { name: "Send to North Star", exact: true })
       .click();
     await held;
-    await north(page)
-      .getByRole("button", { name: "Close North Star", exact: true })
-      .click();
     await field(page).fill("Headphones");
     await field(page).press("Enter");
     await expect(page).toHaveURL(
@@ -642,7 +656,10 @@ test("literal search remains provider-free during a pending answer and late char
     const response = await saved;
     expect(response.ok()).toBe(true);
     const turn = await response.json();
-    await page.getByRole("button", { name: "History", exact: true }).click();
+    await north(page)
+      .locator("header")
+      .getByRole("button", { name: "History", exact: true })
+      .click();
     await north(page)
       .getByRole("region", { name: "Previous North results", exact: true })
       .getByRole("button", { name: "Show that as a chart", exact: true })
