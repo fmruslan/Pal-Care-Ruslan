@@ -28,7 +28,7 @@ test("synthetic test-DB flow: proactive opportunity → protected approval → i
       adjustment.getByText("Awaiting merchant approval", { exact: true }),
     ).toBeVisible();
     const evidence = adjustment.getByRole("link", {
-      name: "View adjustment evidence",
+      name: "View adjustment details",
       exact: true,
     });
     await expect(evidence).toHaveAttribute(
