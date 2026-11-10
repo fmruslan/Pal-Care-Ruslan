@@ -90,7 +90,13 @@ export function CareCalendarPanel({
             : "care-calendar-heading"
         }
       >
-        <div className="flex items-start gap-3">
+        <div
+          className={
+            calendar.snapshot
+              ? "flex min-w-0 flex-wrap items-start gap-3"
+              : "flex items-start gap-3"
+          }
+        >
           <CalendarDays
             aria-hidden="true"
             className={
@@ -99,7 +105,11 @@ export function CareCalendarPanel({
                 : "care-calendar-icon"
             }
           />
-          <div>
+          <div
+            className={
+              calendar.snapshot ? "min-w-0 flex-1 basis-48" : undefined
+            }
+          >
             <h2
               id={all ? "care-events-title" : "care-calendar-title"}
               className={
