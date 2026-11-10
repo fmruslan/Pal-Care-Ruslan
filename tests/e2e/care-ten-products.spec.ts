@@ -484,8 +484,14 @@ test("ten persisted-fixture products use a compact responsive grid, real filters
   await expect(filters).not.toContainText("Protected (3)");
   await expect(main).not.toContainText("active verified windows");
   await expect(main).toContainText("Sample collection");
-  const first = await cards.nth(0).boundingBox();
-  const second = await cards.nth(1).boundingBox();
+  // Compare the same layout frame. Independent browser round trips can straddle
+  // a shared calendar/heading resize and falsely report unequal row positions.
+  const [first, second] = await cards.evaluateAll((nodes) =>
+    nodes.slice(0, 2).map((node) => {
+      const rect = node.getBoundingClientRect();
+      return { y: rect.y, height: rect.height };
+    }),
+  );
   if (info.project.name.startsWith("desktop")) {
     expect(first!.y).toBe(second!.y);
     // Owner-approved readable type replaces the former 215px compactness target.
