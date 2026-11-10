@@ -86,7 +86,7 @@ test("frozen demo calendar queries every saved sample event and opens the exact 
   }
   const href = await links.first().getAttribute("href");
   expect(href).toMatch(
-    /^\/vault\/[a-f0-9-]+\?milestone=(return-window|price|warranty|delivery)&careEvent=.+$/,
+    /^\/vault\/[a-f0-9-]+\?milestone=(return-window|price|warranty|delivery|purchase)&careEvent=.+$/,
   );
   await links.first().click();
   await expect(page).toHaveURL(new RegExp(href!.replaceAll("?", "\\?")));
