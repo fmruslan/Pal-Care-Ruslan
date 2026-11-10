@@ -23,6 +23,7 @@ export type CareCalendar = {
   events: CareCalendarEvent[];
   complete: boolean;
   unavailable: string[];
+  snapshot?: { asOf: string; from: string; to: string };
 };
 const DAY = 86400000;
 /** UTC calendar days: today and the next 29 days, never the frozen Demo clock. */
@@ -121,6 +122,20 @@ export function upcomingCareEvents(calendar: CareCalendar) {
   return calendar.events.filter(
     (e) => e.day >= calendar.today && e.day < calendar.endExclusive,
   );
+}
+/** Homepage demo presentation only. Never move source dates or freeze live care. */
+export function demoCareCalendar(feed: CareFeed): CareCalendar {
+  const calendar = careCalendar(feed, new Date("2026-11-10T00:00:00Z"));
+  const events = calendar.events.filter((event) => event.evidence === "Demo");
+  return {
+    ...calendar,
+    events,
+    snapshot: {
+      asOf: "2026-11-10",
+      from: events[0]?.day ?? calendar.today,
+      to: events.at(-1)?.day ?? calendar.today,
+    },
+  };
 }
 export function careEventCounts(events: CareCalendarEvent[]) {
   return {

@@ -4,6 +4,7 @@ import {
   careCalendarDays,
   upcomingCareEvents,
   careEventCounts,
+  demoCareCalendar,
 } from "../../src/lib/care/calendar";
 import { careFeed } from "../../src/lib/care/model";
 import { demoData } from "../../src/lib/demo/fixtures";
@@ -13,6 +14,7 @@ import { emptyOverview } from "../../src/lib/price-guardian/projections";
 import {
   careCalendarData,
   careCalendarReport,
+  careCalendarFilter,
   expectedCalendarIds,
   validateCalendarRows,
 } from "../../src/lib/intelligence/care-calendar-state";
@@ -28,6 +30,32 @@ const feedOf = (clock = "2026-11-05T12:00:00Z") =>
     now: new Date(clock),
   });
 describe("shared rolling Care calendar", () => {
+  it("freezes only the demo presentation and queries every original sample event without date truncation", () => {
+    const earlier = feedOf("2026-11-05T12:00:00Z");
+    const later = feedOf("2030-07-12T08:00:00Z");
+    const snapshot = demoCareCalendar(earlier);
+    const laterSnapshot = demoCareCalendar(later);
+    const identities = (calendar: ReturnType<typeof demoCareCalendar>) =>
+      calendar.events.map((event) => [
+        event.id,
+        event.date,
+        event.href,
+        event.sources,
+      ]);
+    expect(snapshot.snapshot?.asOf).toBe("2026-11-10");
+    expect(snapshot.snapshot).toEqual(laterSnapshot.snapshot);
+    expect(identities(snapshot)).toEqual(identities(laterSnapshot));
+    expect(snapshot.events.length).toBeGreaterThan(2);
+    expect(snapshot.events).toEqual(
+      careCalendar(earlier).events.filter((event) => event.evidence === "Demo"),
+    );
+    expect(careCalendarFilter(snapshot, false)).toEqual([]);
+    expect(expectedCalendarIds(snapshot, false, "all")).toEqual(
+      snapshot.events.map((event) => event.id).sort(),
+    );
+    expect(careCalendar(later).today).toBe("2030-07-12");
+    expect(careCalendar(later).snapshot).toBeUndefined();
+  });
   it("uses supported borderless Studio presentation without changing event rows or Insights grid layout", () => {
     const calendar = careCalendar(feedOf()),
       before = structuredClone(calendar);

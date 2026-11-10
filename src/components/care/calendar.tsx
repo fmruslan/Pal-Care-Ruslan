@@ -48,6 +48,7 @@ export function CareCalendarPanel({
 }) {
   const router = useRouter();
   useEffect(() => {
+    if (calendar.snapshot) return;
     const nextMidnight = Date.parse(calendar.today + "T00:00:00Z") + 86400000;
     const timer = setTimeout(
       () => router.refresh(),
@@ -65,7 +66,7 @@ export function CareCalendarPanel({
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", refresh);
     };
-  }, [calendar.today, calendar.endExclusive, router]);
+  }, [calendar.today, calendar.endExclusive, calendar.snapshot, router]);
   return (
     <section
       id={all ? "care-events" : "next-30-days"}
@@ -75,7 +76,12 @@ export function CareCalendarPanel({
           ? "mb-6 min-w-0 rounded-2xl border bg-card shadow-sm"
           : "care-calendar-panel mb-6 min-w-0"
       }
-      data-care-calendar-range={`${calendar.today}/${calendar.endExclusive}`}
+      data-care-calendar-range={
+        calendar.snapshot
+          ? `${calendar.snapshot.from}/${calendar.snapshot.to}`
+          : `${calendar.today}/${calendar.endExclusive}`
+      }
+      data-care-calendar-snapshot={calendar.snapshot?.asOf}
     >
       <div
         className={
@@ -84,7 +90,13 @@ export function CareCalendarPanel({
             : "care-calendar-heading"
         }
       >
-        <div className="flex items-start gap-3">
+        <div
+          className={
+            calendar.snapshot
+              ? "flex min-w-0 flex-wrap items-start gap-3"
+              : "flex items-start gap-3"
+          }
+        >
           <CalendarDays
             aria-hidden="true"
             className={
@@ -93,7 +105,11 @@ export function CareCalendarPanel({
                 : "care-calendar-icon"
             }
           />
-          <div>
+          <div
+            className={
+              calendar.snapshot ? "min-w-0 flex-1 basis-48" : undefined
+            }
+          >
             <h2
               id={all ? "care-events-title" : "care-calendar-title"}
               className={
@@ -102,12 +118,18 @@ export function CareCalendarPanel({
                   : "text-xl font-semibold tracking-tight sm:text-2xl"
               }
             >
-              {all ? "All care events" : "Your next 30 days"}
+              {all
+                ? "All care events"
+                : calendar.snapshot
+                  ? "Demo care timeline"
+                  : "Your next 30 days"}
             </h2>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
               {all
                 ? "Dated events from your saved Care evidence, including past and later dates."
-                : "Upcoming dates for what you own. Select an event to open its exact product and evidence."}
+                : calendar.snapshot
+                  ? "Sandbox demo snapshot · All dated sample care events, with original source dates. Not a live forecast."
+                  : "Upcoming dates for what you own. Select an event to open its exact product and evidence."}
             </p>
           </div>
         </div>

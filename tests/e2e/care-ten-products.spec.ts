@@ -34,30 +34,38 @@ const currentAttentionCount = () =>
   Number(!cutoff("2026-11-08T12:00:00Z")) +
   Number(!cutoff("2026-11-07T12:00:00Z"));
 
-test("30-day calendar queries the real Studio engine and opens the exact dated Twin/evidence", async ({
+test("frozen demo calendar queries every saved sample event and opens the exact dated Twin/evidence", async ({
   page,
 }) => {
   await page.goto("/dashboard");
   const panel = page.getByRole("region", {
-    name: "Your next 30 days",
+    name: "Demo care timeline",
     exact: true,
   });
   await expect(
     panel.locator('[data-care-calendar-engine="verified"]'),
   ).toBeVisible({ timeout: 20000 });
-  const today = new Date().toISOString().slice(0, 10),
-    last = new Date(Date.parse(today) + 30 * 86400000)
-      .toISOString()
-      .slice(0, 10);
   await expect(panel).toHaveAttribute(
-    "data-care-calendar-range",
-    `${today}/${last}`,
+    "data-care-calendar-snapshot",
+    "2026-11-10",
   );
+  await expect(panel).toContainText("Not a live forecast");
   await expect(panel.locator(".ag-studio-layout")).toBeVisible();
   // The vendor notice remains present and readable even in its fading state.
   await expect(panel.locator(".ag-studio-watermark")).toHaveCSS("opacity", "1");
-  await expect(panel.locator("[data-care-today]")).toHaveText("Today");
+  await expect(
+    panel.getByRole("button", { name: /Today|Previous dates|Next dates/ }),
+  ).toHaveCount(0);
   let links = panel.locator("[data-care-calendar-event]");
+  expect(await links.count()).toBeGreaterThan(2);
+  const exactIds = (await panel
+    .locator("[data-care-calendar-engine]")
+    .getAttribute("data-care-calendar-ids"))!.split("|");
+  expect(
+    await links.evaluateAll((nodes) =>
+      nodes.map((node) => node.getAttribute("data-care-calendar-event")).sort(),
+    ),
+  ).toEqual(exactIds);
   // The immutable Demo dates must age out honestly. Still exercise exact
   // navigation through the full saved timeline when the rolling window is empty.
   if ((await links.count()) === 0) {
@@ -78,21 +86,24 @@ test("30-day calendar queries the real Studio engine and opens the exact dated T
   }
   const href = await links.first().getAttribute("href");
   expect(href).toMatch(
-    /^\/vault\/[a-f0-9-]+\?milestone=(return-window|price|warranty|delivery)&careEvent=.+$/,
+    /^\/vault\/[a-f0-9-]+\?milestone=(return-window|price|warranty|delivery|purchase)&careEvent=.+$/,
   );
   await links.first().click();
   await expect(page).toHaveURL(new RegExp(href!.replaceAll("?", "\\?")));
   await expect(page.getByRole("dialog")).toBeVisible();
-  await expect(page.getByRole("dialog")).toContainText("Demo");
   const factId = new URL(href!, "http://test.local").searchParams.get(
     "careEvent",
   )!;
-  await expect(
-    page.getByRole("dialog").locator(`[data-ownership-fact="${factId}"]`),
-  ).toHaveCount(1);
-  await expect(
-    page.getByRole("dialog").locator(`[data-ownership-fact="${factId}"]`),
-  ).toBeVisible();
+  const selectedFact = page
+    .getByRole("dialog")
+    .locator(`[data-ownership-fact="${factId}"]`)
+    .filter({ visible: true });
+  await expect(selectedFact).toHaveCount(1);
+  await expect(selectedFact).toBeVisible();
+  await expect(selectedFact).toContainText(
+    /Demo|Fictional sample event · not a current verified state/,
+  );
+  await expect(selectedFact.getByRole("link").first()).toBeVisible();
   await page.goBack();
   await page.goto("/dashboard");
   await expect(
@@ -161,13 +172,13 @@ test("View all opens Insights native grid and timeline with real evidence filter
   ).toBeVisible();
 });
 
-test("calendar scrolls inside its panel at 320px/200% text without page overflow and retains keyboard links", async ({
+test("demo calendar wraps every event at 320px/200% text without hidden overflow and retains keyboard links", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/dashboard");
   const panel = page.getByRole("region", {
-    name: "Your next 30 days",
+    name: "Demo care timeline",
     exact: true,
   });
   await expect(
@@ -177,15 +188,15 @@ test("calendar scrolls inside its panel at 320px/200% text without page overflow
     document.documentElement.style.fontSize = "200%";
   });
   const scroll = panel.getByRole("region", {
-    name: "30-day Care calendar, scroll horizontally",
+    name: "Demo care timeline snapshot",
     exact: true,
   });
-  await scroll.focus();
-  await expect(scroll).toBeFocused();
+  const firstEvent = scroll.locator("[data-care-calendar-event]").first();
+  await firstEvent.focus();
+  await expect(firstEvent).toBeFocused();
   expect(await scroll.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(
-    true,
+    false,
   );
-  await page.keyboard.press("ArrowRight");
   await expect
     .poll(() =>
       scroll.evaluate((el) => {
@@ -199,11 +210,9 @@ test("calendar scrolls inside its panel at 320px/200% text without page overflow
       }),
     )
     .toBe(false);
-  await panel
-    .getByRole("button", { name: "Next dates →", exact: true })
-    .click();
-  expect(await scroll.evaluate((el) => el.scrollLeft)).toBeGreaterThan(0);
-  await panel.getByRole("button", { name: "Today", exact: true }).click();
+  await expect(
+    panel.getByRole("button", { name: /Today|Previous dates|Next dates/ }),
+  ).toHaveCount(0);
   expect(await scroll.evaluate((el) => el.scrollLeft)).toBe(0);
   expect(
     await page.evaluate(
@@ -216,13 +225,13 @@ test("calendar scrolls inside its panel at 320px/200% text without page overflow
   ).toEqual([]);
 });
 
-test("consumer calendar has one swipe surface, no native frames or vertical clipping", async ({
+test("demo calendar shows all events without nested swipe surfaces, native frames or vertical clipping", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 900 });
   await page.goto("/dashboard");
   const panel = page.getByRole("region", {
-    name: "Your next 30 days",
+    name: "Demo care timeline",
     exact: true,
   });
   await expect(
@@ -255,7 +264,7 @@ test("consumer calendar has one swipe surface, no native frames or vertical clip
       })
       .map((el) => el.hasAttribute("data-care-calendar-viewport")),
   );
-  expect(horizontal).toEqual([true]);
+  expect(horizontal).toEqual([]);
   await expect(panel.locator(".ag-studio-root-inner")).toHaveCSS(
     "border-top-width",
     "0px",
