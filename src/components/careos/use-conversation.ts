@@ -52,6 +52,11 @@ export function useConversation(channel: "care" | "records" = "care") {
     try {
       unsentRef.current = readUnsent(sessionStorage.getItem(unsentKey));
       setUnsent(unsentRef.current);
+      const recovery = readPending(sessionStorage.getItem(pendingKey));
+      if (!pendingRef.current && recovery?.status === "not-sent") {
+        rememberUnsent(recovery);
+        storePending(null);
+      }
     } catch {
       /* Optional tab-local recovery storage. */
     }
@@ -199,11 +204,17 @@ export function useConversation(channel: "care" | "records" = "care") {
     if (locked.current) return null;
     if (typeof createIfMissing === "string") {
       if (!/^[a-f0-9-]{36}$/.test(createIfMissing)) return null;
-      let recoveringCurrent = false;
+      let selectingInitial = false;
       if (!current.current && !initialized.current) {
         try {
           const recovery = readPending(sessionStorage.getItem(pendingKey));
-          recoveringCurrent = recovery?.conversationId === createIfMissing;
+          // The initial owned GET must still hydrate recovery. Detaching here
+          // marks the channel initialized and would skip both legacy unsent
+          // hints and the original dispatched envelope in ensure().
+          selectingInitial =
+            !recovery ||
+            recovery.status === "not-sent" ||
+            recovery.conversationId === createIfMissing;
         } catch {
           /* Unavailable hints cannot authorize detachment. */
         }
@@ -211,7 +222,7 @@ export function useConversation(channel: "care" | "records" = "care") {
       if (
         current.current?.id !== createIfMissing &&
         selectedId.current !== createIfMissing &&
-        !recoveringCurrent &&
+        !selectingInitial &&
         !detach()
       )
         return null;

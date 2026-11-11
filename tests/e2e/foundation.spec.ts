@@ -100,7 +100,9 @@ test("Purchase Twin and downloadable receipt remain explicitly sample-only", asy
     .click();
   const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
   await expect(dialog.locator("[data-user-message]")).toHaveCount(0);
-  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog
+    .getByRole("button", { name: "Previous chats", exact: true })
+    .click();
   await dialog.getByText("Conversation settings", { exact: true }).click();
   await expect(
     dialog.getByText(

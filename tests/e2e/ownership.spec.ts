@@ -306,7 +306,15 @@ test("injected North highlights the homepage milestone beside its answer, valida
     .getByRole("button", { name: "Close North Star", exact: true })
     .click();
   await page.getByRole("button", { name: "History", exact: true }).click();
-  await page
+  await north
+    .getByRole("region", { name: "Previous chats", exact: true })
+    .getByRole("button", { name: /Show all my purchases/ })
+    .click();
+  await north
+    .locator("header")
+    .getByRole("button", { name: "History", exact: true })
+    .click();
+  await north
     .getByRole("region", { name: "Previous North results" })
     .getByRole("button")
     .first()

@@ -374,6 +374,15 @@ test("New chat lazily creates a separate conversation and Previous chats restore
   const originalFirst = structuredClone(firstConversation);
   await composer(page).fill("Keep the headphones follow-up draft");
   const beforeNew = [...state.writes];
+  // Returning to the welcome screen is presentation-only, even after a turn.
+  await panelControl(page, "North Star start").click();
+  await expect(
+    panel(page).getByRole("region", { name: "North start", exact: true }),
+  ).toBeVisible();
+  await expect(composer(page)).toHaveValue(
+    "Keep the headphones follow-up draft",
+  );
+  expect(state.writes).toEqual(beforeNew);
   await panelControl(page, "New chat").click();
   await expect(composer(page)).toHaveValue("");
   await expect(

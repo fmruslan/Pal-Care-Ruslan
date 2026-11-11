@@ -307,8 +307,18 @@ test("a delayed answer retains its original product after client-side navigation
   await launcher(page).click();
   release();
   const dialog = page.getByRole("dialog");
+  await expect(page).toHaveURL(new RegExp(`${raspberry}$`));
+  // Ordinary library navigation preserves the conversation pin. Only an
+  // explicit purchase selection changes it; the delayed answer also stays A.
+  await expect(dialog.locator(".north-panel-context strong")).toHaveText(
+    "Everyday headphones · F-01",
+  );
   await expect(
-    dialog.getByText("Raspberry Pi 5 · 5", { exact: true }),
+    page.getByRole("heading", {
+      level: 1,
+      name: "Raspberry Pi 5",
+      exact: true,
+    }),
   ).toBeVisible();
   await expect(dialog.locator("[data-answer-scope]")).toHaveText(
     "Everyday headphones · F-01 · Oct 18, 2026 · Example purchase",

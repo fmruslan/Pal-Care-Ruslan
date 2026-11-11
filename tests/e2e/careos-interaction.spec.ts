@@ -551,6 +551,12 @@ test("clear and submission are guarded while saved history is restoring", async 
 test("source disclosure keeps focus and reading position through expansion", async ({
   page,
 }) => {
+  // Opening North is lazy: supply the existing owned conversation reference
+  // instead of implicitly creating a conversation just to obtain its history.
+  await page.addInitScript(
+    (id) => sessionStorage.setItem("palcare-careos-conversation", id),
+    id,
+  );
   const state = await transport(page, { history: true });
   state.saved.turns[0].answer.sources = [
     {

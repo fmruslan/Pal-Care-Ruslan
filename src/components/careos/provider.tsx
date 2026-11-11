@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
@@ -27,8 +28,10 @@ import type { CareContext, Intent } from "@/lib/careos/contracts";
 import { useConversation } from "./use-conversation";
 import {
   readPending,
+  readUnsent,
   conversationKey as careConversationKey,
   pendingKey as carePendingKey,
+  unsentKey as careUnsentKey,
 } from "./conversation-client";
 import {
   readInsightPending,
@@ -94,6 +97,9 @@ type AssistantState = {
   integrated?: IntegratedNorthState;
   setWorkspaceElement: (element: HTMLDivElement | null) => void;
 };
+type ChatPresentation = Partial<
+  Pick<NorthChat, "draft" | "order" | "dismissed" | "activeResultId">
+>;
 const AssistantContext = createContext<AssistantState | null>(null);
 function sessionStorageSafe(key: string) {
   try {
@@ -577,21 +583,49 @@ export function CareOSProvider({
             setContextExplicit(true);
             updateContext(chat.context);
             setActiveResultId(chat.activeResultId);
-            setScreenState(chat.order.length ? "chat" : "start");
+            setScreenState(
+              chat.order.length ||
+                chat.channels.care ||
+                chat.channels.records ||
+                chat.channels.insights.length
+                ? "chat"
+                : "start",
+            );
           }
         } else {
           // Adopt the old singleton identities once, without deleting them or
           // copying any answers into browser storage. Server GET fills previews.
-          const careId = sessionStorage.getItem(careConversationKey);
-          const recordsId = sessionStorage.getItem(
-            "palcare-records-conversation-v1",
+          const careRecovery = readPending(
+            sessionStorage.getItem(carePendingKey),
           );
+          const recordsRecovery = readPending(
+            sessionStorage.getItem("palcare-records-pending-v1"),
+          );
+          const careId =
+            careRecovery?.conversationId ??
+            sessionStorage.getItem(careConversationKey);
+          const recordsId =
+            recordsRecovery?.conversationId ??
+            sessionStorage.getItem("palcare-records-conversation-v1");
+          // Adopt legacy editable hints once into this chat's UUID index. The
+          // actual hint store remains separate; no transcript/authority is copied.
+          const legacyQuestions = [
+            ...readUnsent(sessionStorage.getItem(careUnsentKey)),
+            ...readUnsent(sessionStorage.getItem("palcare-records-unsent-v1")),
+            ...(careRecovery ? [careRecovery] : []),
+            ...(recordsRecovery ? [recordsRecovery] : []),
+          ];
           const insightEntries = readInsightHistory(
             sessionStorage.getItem(insightHistoryKey),
           );
           const validId = (id: string | null) =>
             id && /^[a-f0-9-]{36}$/.test(id) ? id : null;
-          if (validId(careId) || validId(recordsId) || insightEntries.length) {
+          if (
+            validId(careId) ||
+            validId(recordsId) ||
+            insightEntries.length ||
+            legacyQuestions.length
+          ) {
             const id = crypto.randomUUID();
             const legacyContext = saved?.context ?? contextRef.current;
             const chat: NorthChat = {
@@ -612,6 +646,9 @@ export function CareOSProvider({
               order: [
                 ...new Set([
                   ...(saved?.order ?? []),
+                  ...legacyQuestions.map(
+                    (question) => question.input.requestId,
+                  ),
                   ...insightEntries.map((entry) => entry.requestId),
                 ]),
               ].slice(-80),
@@ -650,22 +687,33 @@ export function CareOSProvider({
     }
     setPresentationLoaded(true);
   }
-  function rememberChat(now: number, id = activeChat.current) {
+  function rememberChat(
+    now: number,
+    id = activeChat.current,
+    overrides: ChatPresentation = {},
+  ) {
     if (!id || switching.current) return;
     const previous = chatsRef.current.find((value) => value.id === id);
+    const nextDraft = overrides.draft ?? draft;
     const chat: NorthChat = {
       id,
-      ...(turns.length || draft.trim() || pending || !previous
-        ? chatSummary(turns, draft || pending?.input.message || "")
+      ...(turns.length || nextDraft.trim() || pending || !previous
+        ? chatSummary(turns, nextDraft || pending?.input.message || "")
         : { title: previous.title, preview: previous.preview }),
       context: contextRef.current,
       explicit: explicitContext.current,
-      draft,
-      activeResultId,
+      draft: nextDraft,
+      activeResultId:
+        overrides.activeResultId === undefined
+          ? activeResultId
+          : overrides.activeResultId,
       order: [
-        ...new Set([...submittedOrder, ...turns.map((turn) => turn.requestId)]),
+        ...new Set([
+          ...(overrides.order ?? submittedOrder),
+          ...turns.map((turn) => turn.requestId),
+        ]),
       ].slice(-80),
-      dismissed: dismissedChoices.slice(-80),
+      dismissed: (overrides.dismissed ?? dismissedChoices).slice(-80),
       channels: {
         care: regular.conversation?.id ?? previous?.channels.care ?? null,
         records: records.conversation?.id ?? previous?.channels.records ?? null,
@@ -691,29 +739,6 @@ export function CareOSProvider({
       /* Bounded metadata is optional, never a trusted transcript. */
     }
   }
-  useEffect(() => {
-    if (!integrated || !presentationLoaded || switching.current) return;
-    const frame = requestAnimationFrame(() => rememberChat(Date.now()));
-    return () => cancelAnimationFrame(frame);
-    // Snapshot the currently owned channels after their committed state updates.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    integrated,
-    presentationLoaded,
-    activeChatId,
-    activeResultId,
-    context,
-    contextExplicit,
-    draft,
-    submittedOrder,
-    dismissedChoices,
-    regular.conversation,
-    records.conversation,
-    insights.conversation,
-    pending,
-    switchingChat,
-  ]);
-
   function cancelPresentation() {
     presentationEpoch.current++;
     ownershipIntent.current = null;
@@ -792,7 +817,14 @@ export function CareOSProvider({
     const chat = chatsRef.current.find((value) => value.id === id);
     if (!chat) return;
     if (id === activeChat.current) {
-      setScreenState(chat.order.length ? "chat" : "start");
+      setScreenState(
+        chat.order.length ||
+          chat.channels.care ||
+          chat.channels.records ||
+          chat.channels.insights.length
+          ? "chat"
+          : "start",
+      );
       setIntegratedHistoryOpen(false);
       setMinimized(false);
       setOpen(true);
@@ -819,7 +851,14 @@ export function CareOSProvider({
     setContextExplicit(true);
     updateContext(chat.context);
     selectHistoryScope(true);
-    setScreenState(chat.order.length ? "chat" : "start");
+    setScreenState(
+      chat.order.length ||
+        chat.channels.care ||
+        chat.channels.records ||
+        chat.channels.insights.length
+        ? "chat"
+        : "start",
+    );
     setIntegratedHistoryOpen(false);
     setMinimized(false);
     setOpen(true);
@@ -836,22 +875,49 @@ export function CareOSProvider({
       setSwitchingChat(false);
     }
   }
-  useEffect(() => {
-    if (!integrated || !presentationLoaded) return;
+  function rememberPresentation(
+    overrides: ChatPresentation & {
+      open?: boolean;
+      historySelected?: boolean;
+    } = {},
+  ) {
+    // A synchronous first opener may just have hydrated queued state. Its next
+    // layout commit owns persistence; never overwrite saved hints with the
+    // pre-hydration render's empty draft/order.
+    if (!presentationLoaded || switching.current) return;
+    const now = interactionTime();
+    if (integrated) rememberChat(now, activeChat.current, overrides);
     try {
       sessionStorage.setItem(
-        northWorkspaceKey,
+        interactionKey,
         JSON.stringify({
           version: 1,
-          id: activeResultId,
-          open: isOpen,
-          historySelected,
+          context: contextRef.current,
+          explicit: explicitContext.current,
+          order: (overrides.order ?? submittedOrder).slice(-80),
+          dismissed: (overrides.dismissed ?? dismissedChoices).slice(-80),
+          draft: overrides.draft ?? draft,
+          savedAt: now,
         }),
       );
+      if (integrated)
+        sessionStorage.setItem(
+          northWorkspaceKey,
+          JSON.stringify({
+            version: 1,
+            id:
+              overrides.activeResultId === undefined
+                ? activeResultId
+                : overrides.activeResultId,
+            open: overrides.open ?? isOpen,
+            historySelected:
+              overrides.historySelected ?? historySelection.current,
+          }),
+        );
     } catch {
-      /* Optional UUID-only hint. */
+      /* Optional presentation metadata, never a transcript or authority. */
     }
-  }, [integrated, presentationLoaded, activeResultId, isOpen, historySelected]);
+  }
   function select(value: CareContext | null) {
     presentationEpoch.current++;
     loadPresentation(interactionTime());
@@ -861,38 +927,49 @@ export function CareOSProvider({
     explicitContext.current = true;
     setContextExplicit(true);
     updateContext(value);
-    setDismissedChoices((prior) => [
-      ...prior,
+    const dismissed = [
+      ...dismissedChoices,
       ...turns
         .filter((turn) => turn.answer.outcome === "selection")
         .map((turn) => turn.requestId),
-    ]);
+    ];
+    setDismissedChoices(dismissed);
+    rememberPresentation({ dismissed });
   }
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!presentationLoaded) return;
-    try {
-      sessionStorage.setItem(
-        interactionKey,
-        JSON.stringify({
-          version: 1,
-          context,
-          explicit: contextExplicit,
-          order: submittedOrder.slice(-80),
-          dismissed: dismissedChoices.slice(-80),
-          draft,
-          savedAt: Date.now(),
-        }),
-      );
-    } catch {
-      /* Keep in-memory drafts/context when storage is unavailable. */
-    }
+    // Commit IDs/context/draft before the visible result can be followed by an
+    // immediate reload. pagehide also flushes the latest committed snapshot.
+    const persist = () => rememberPresentation();
+    persist();
+    window.addEventListener("pagehide", persist);
+    const hide = () => {
+      if (document.visibilityState === "hidden") persist();
+    };
+    document.addEventListener("visibilitychange", hide);
+    return () => {
+      window.removeEventListener("pagehide", persist);
+      document.removeEventListener("visibilitychange", hide);
+    };
+    // Event handlers additionally persist edits before React's next commit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    integrated,
+    activeChatId,
+    activeResultId,
+    isOpen,
+    historySelected,
     context,
     contextExplicit,
     submittedOrder,
     dismissedChoices,
     draft,
     presentationLoaded,
+    regular.conversation,
+    records.conversation,
+    insights.conversation,
+    pending,
+    switchingChat,
   ]);
   async function ask(message: string, intent?: Intent, selected?: CareContext) {
     rememberOpener();
@@ -1039,18 +1116,29 @@ export function CareOSProvider({
       }
       insights.cancelRecords();
       setRecordsSubmission(savedRecords ? requestId : null);
-      setSubmittedOrder((prior) => [...prior, requestId]);
+      const order = [...submittedOrder, requestId];
+      setSubmittedOrder(order);
       setDiscoveryNotice("");
       setOwnershipNotice("");
       careIntent.current = null;
       window.dispatchEvent(new CustomEvent("palcare-care-focus"));
       setOwnershipNoticeFor(null);
-      setDismissedChoices((prior) => [
-        ...prior,
+      const dismissed = [
+        ...dismissedChoices,
         ...turns
           .filter((t) => t.answer.outcome === "selection")
           .map((t) => t.requestId),
-      ]);
+      ];
+      setDismissedChoices(dismissed);
+      // Persist admission identity before the first asynchronous channel create
+      // or turn request. Unknown dispatch still lives in its original hint store.
+      rememberPresentation({
+        order,
+        dismissed,
+        activeResultId: requestId,
+        open: true,
+        historySelected: false,
+      });
       if (savedRecords)
         return await records.send(
           {
@@ -1152,6 +1240,7 @@ export function CareOSProvider({
     setReturnFocusRequested(false);
     setMinimized(false);
     setOpen(true);
+    if (presentationLoaded) rememberPresentation({ open: true });
     const chat = chatsRef.current.find(
       (value) => value.id === activeChat.current,
     );
@@ -1163,11 +1252,11 @@ export function CareOSProvider({
     // This GET-only channel has its own cookie/owner namespace. Restoring saved
     // records neither reads private AI history nor issues an inference grant.
     if (chat?.channels.records) void records.restore(chat.channels.records);
-    else if (!chat) void records.restore(false);
+    else void records.restore(false);
     if (conversationalAI) {
       if ((await checkOwnerAccess()) && stillCurrent()) {
         if (chat?.channels.care) void regular.restore(chat.channels.care);
-        else if (!chat) void regular.restore(false);
+        else void regular.restore(false);
         void insights.restore(
           hasChatIndex.current ? (chat?.order ?? []) : undefined,
           chat?.channels.insights,
@@ -1184,23 +1273,27 @@ export function CareOSProvider({
     const value = chat
       ? chat.channels.care
         ? await restore(chat.channels.care)
-        : null
+        : await restore(false)
       : await restore(false);
     if (!stillCurrent()) return;
     const previous = value?.turns.at(-1)?.answer.context;
     if (!registered.current && !contextRef.current && previous)
       select(previous);
   }
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!integrated) return;
-    // Hydrate optional tab-local hints after the committed page mounts. A frame
-    // is cancelled if the root unmounts; only owned GET recovery can follow.
-    const frame = requestAnimationFrame(() => {
+    // A microtask cannot be suspended/cancelled with browser animation frames.
+    // Deliberate events also hydrate synchronously through the one-time guard.
+    let mounted = true;
+    queueMicrotask(() => {
+      if (!mounted) return;
       loadPresentation(interactionTime());
       if (readNorthWorkspace(sessionStorageSafe(northWorkspaceKey))?.open)
         void open();
     });
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      mounted = false;
+    };
     // One-time root bootstrap, not a replay subscription to changing turns.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [integrated]);
@@ -1213,6 +1306,7 @@ export function CareOSProvider({
     insights.cancelRecords();
     setRecordsSubmission(null);
     setOpen(false);
+    rememberPresentation({ open: false });
     if (integrated) setReturnFocusRequested(true);
   }
   useEffect(() => {
@@ -1288,6 +1382,11 @@ export function CareOSProvider({
         setIntegratedHistoryOpen(false);
         setMinimized(false);
         setOpen(true);
+        rememberPresentation({
+          activeResultId: id,
+          open: true,
+          historySelected: true,
+        });
       }
     },
     close: closeWorkspace,
@@ -1302,14 +1401,16 @@ export function CareOSProvider({
         hasChatIndex.current = true;
       }
       setDraft(value);
-      setDismissedChoices((prior) => [
+      const dismissed = [
         ...new Set([
-          ...prior,
+          ...dismissedChoices,
           ...turns
             .filter((turn) => turn.answer.outcome === "selection")
             .map((turn) => turn.requestId),
         ]),
-      ]);
+      ];
+      setDismissedChoices(dismissed);
+      rememberPresentation({ draft: value, dismissed });
     },
     submit,
     ask: (message) => {
@@ -1346,7 +1447,11 @@ export function CareOSProvider({
       void ask(message, undefined, selected);
     },
     dismissedChoices,
-    dismissChoice: (id) => setDismissedChoices((prior) => [...prior, id]),
+    dismissChoice: (id) => {
+      const dismissed = [...dismissedChoices, id];
+      setDismissedChoices(dismissed);
+      rememberPresentation({ dismissed });
+    },
     recoverable: insights.recoverable,
     connected: insights.connected,
     applySaved: () => void insights.applySaved(),
