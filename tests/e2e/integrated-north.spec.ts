@@ -365,7 +365,7 @@ async function ask(page: Page, message: string) {
   return turn;
 }
 
-test("calm collection has one integrated field, collapsed filters and a first-screen opening action", async ({
+test("calm collection has one integrated field, collapsed filters, first-screen North and reachable product details", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 664 });
@@ -394,11 +394,23 @@ test("calm collection has one integrated field, collapsed filters and a first-sc
   await expect(
     page.getByRole("combobox", { name: "Category", exact: true }),
   ).not.toBeVisible();
-  const box = await page
-    .locator("[data-purchase-card] .library-product-link")
-    .first()
-    .boundingBox();
+  // The approved shared header action now occupies this first-screen slot.
+  // Keep its original 664px budget and separately prove direct purchase access.
+  const launcher = page.getByRole("button", {
+    name: "Explore with North Star",
+    exact: true,
+  });
+  const box = await launcher.boundingBox();
   expect(box!.y + box!.height).toBeLessThan(664);
+  const firstPurchase = page
+    .locator("[data-purchase-card] .library-product-link")
+    .first();
+  await expect(firstPurchase).toHaveAttribute(
+    "href",
+    /^\/vault\/[a-f0-9-]{36}$/,
+  );
+  await firstPurchase.scrollIntoViewIfNeeded();
+  await expect(firstPurchase).toBeInViewport();
   await field(page).fill("Headphones");
   await field(page).press("Enter");
   await expect(page.getByRole("status")).toContainText("purchase");
