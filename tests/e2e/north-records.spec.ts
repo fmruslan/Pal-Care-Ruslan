@@ -82,6 +82,20 @@ async function selectHistory(
   );
 }
 
+async function showAllFourPurchases(article: Locator) {
+  const items = article
+    .getByRole("list", { name: "Matching saved purchases", exact: true })
+    .locator(":scope > li");
+  await expect(items).toHaveCount(3);
+  await article
+    .getByRole("button", {
+      name: "Show more purchases (1 remaining)",
+      exact: true,
+    })
+    .click();
+  await expect(items).toHaveCount(4);
+}
+
 test("New chat is lazy and separates owned conversations; Previous chats restores the original result and draft by GET without replay", async ({
   page,
   context,
@@ -112,6 +126,16 @@ test("New chat is lazy and separates owned conversations; Previous chats restore
   await header.getByRole("button", { name: "New chat", exact: true }).click();
   await expect(dialog.locator("article[data-request-id]")).toHaveCount(0);
   await expect(composer).toHaveValue("");
+  await expect(
+    dialog.getByRole("region", {
+      name: "North Star conversation",
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(mutations).toEqual(beforeNew);
+  await header
+    .getByRole("button", { name: "North Star start", exact: true })
+    .click();
   await expect(
     dialog.getByRole("region", { name: "North start", exact: true }),
   ).toBeVisible();
@@ -202,6 +226,7 @@ test("actual saved records → bullets → totals → category/date follow-up re
   await expect(
     list.article.getByRole("list", { name: "Matching saved purchases" }),
   ).toHaveClass(/list-disc/);
+  await showAllFourPurchases(list.article);
   await expect(
     list.article
       .getByRole("list", { name: "Matching saved purchases" })
@@ -734,6 +759,7 @@ test("saved totals apply a real native chart and provenance KPIs, then exact pro
       .locator("canvas")
       .first(),
   ).toBeVisible();
+  await showAllFourPurchases(totals.article);
   const pi = totals.article.getByRole("link", {
     name: "Raspberry Pi 5 · 5",
     exact: true,
@@ -942,6 +968,7 @@ test("reopening a completed chart preserves manual native filters and still perm
     "$89.00",
   );
   await selectHistory(dialog, first.turn.message, first.turn.requestId);
+  await showAllFourPurchases(first.article);
   await first.article
     .getByRole("link", { name: "Raspberry Pi 5 · 5", exact: true })
     .click();
@@ -1072,6 +1099,7 @@ test("care follow-up stays with the exact product; explicit analysis and short f
   await page.goto("/purchases");
   let dialog = await open(page);
   const library = await ask(page, "Show my purchases");
+  await showAllFourPurchases(library.article);
   await library.article
     .getByRole("link", { name: "Raspberry Pi 5 · 5", exact: true })
     .click();

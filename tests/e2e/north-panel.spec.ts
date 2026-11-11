@@ -71,6 +71,7 @@ test("separate chats use distinct actual saved-record conversations without dele
   const saved = await page.request.get(
     `/api/careos/records/conversations/${firstConversation.id}`,
   );
+
   expect(saved.ok()).toBe(true);
   const original = (await saved.json()) as Conversation;
   expect(original.turns.map((turn) => turn.requestId)).toEqual([
@@ -93,6 +94,50 @@ test("separate chats use distinct actual saved-record conversations without dele
   await expect(
     panel(page).locator(`[data-request-id="${second.requestId}"]`),
   ).toHaveCount(0);
+});
+
+test("a known-unsent question stays with its original chat and is never replayed by switching", async ({
+  page,
+}) => {
+  const state = await interceptConversations(page);
+  const message = "Help me care for these headphones";
+  let creates = 0;
+  await page.route("**/api/careos/conversations", async (route) => {
+    creates++;
+    await route.fulfill({ status: 503, json: { error: "careos_unavailable" } });
+  });
+  await page.goto(`/vault/${headphones.twinId}`);
+  await page
+    .getByRole("button", {
+      name: "Ask North Star about this purchase",
+      exact: true,
+    })
+    .click();
+  await composer(page).fill(message);
+  await panel(page)
+    .getByRole("button", { name: "Send to North Star", exact: true })
+    .click();
+  await expect(panel(page).locator("[data-unsent-question]")).toContainText(
+    message,
+  );
+  expect(creates).toBe(1);
+  await panelControl(page, "New chat").click();
+  await expect(panel(page).locator("[data-unsent-question]")).toHaveCount(0);
+  await expect(composer(page)).toHaveValue("");
+  await panelControl(page, "Previous chats").click();
+  await panel(page)
+    .getByRole("region", { name: "Previous chats", exact: true })
+    .getByRole("button", { name: message, exact: false })
+    .click();
+  await expect(panel(page).locator("[data-unsent-question]")).toContainText(
+    message,
+  );
+  await panel(page)
+    .getByRole("button", { name: "Edit unsent question", exact: true })
+    .click();
+  await expect(composer(page)).toHaveValue(message);
+  expect(creates).toBe(1);
+  expect(state.writes).toEqual([]);
 });
 
 async function interceptConversations(page: Page) {

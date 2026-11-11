@@ -1101,6 +1101,21 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
           ...available,
         ]),
       );
+      const index = JSON.parse(
+        sessionStorage.getItem("palcare-north-chats-v1")!,
+      ) as {
+        activeChatId: string;
+        chats: Array<{
+          id: string;
+          order: string[];
+          channels: { insights: string[] };
+        }>;
+      };
+      const active = index.chats.find((chat) => chat.id === index.activeChatId);
+      if (!active) throw Error("injected_active_chat_missing");
+      active.order = [deniedRequestId, ...active.order];
+      active.channels.insights = [deniedPlanId, ...active.channels.insights];
+      sessionStorage.setItem("palcare-north-chats-v1", JSON.stringify(index));
     },
     { deniedPlanId, deniedRequestId },
   );

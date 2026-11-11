@@ -187,7 +187,7 @@ export function useConversation(channel: "care" | "records" = "care") {
     setError("");
     unsentRef.current = [];
     setUnsent([]);
-    unsentLoaded.current = true;
+    unsentLoaded.current = false;
     try {
       sessionStorage.removeItem(conversationKey);
     } catch {

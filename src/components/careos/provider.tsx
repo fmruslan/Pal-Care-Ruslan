@@ -827,8 +827,8 @@ export function CareOSProvider({
       // IDs only select existing owned GET endpoints. Metadata cannot supply
       // turns, authorize a model call, replay a plan or create a conversation.
       await Promise.all([
-        chat.channels.records ? records.restore(chat.channels.records) : null,
-        chat.channels.care ? regular.restore(chat.channels.care) : null,
+        records.restore(chat.channels.records ?? false),
+        regular.restore(chat.channels.care ?? false),
         insights.restore(chat.order, chat.channels.insights),
       ]);
     } finally {
@@ -1155,12 +1155,17 @@ export function CareOSProvider({
     const chat = chatsRef.current.find(
       (value) => value.id === activeChat.current,
     );
+    const openingEpoch = presentationEpoch.current;
+    const openingChat = activeChat.current;
+    const stillCurrent = () =>
+      openingEpoch === presentationEpoch.current &&
+      openingChat === activeChat.current;
     // This GET-only channel has its own cookie/owner namespace. Restoring saved
     // records neither reads private AI history nor issues an inference grant.
     if (chat?.channels.records) void records.restore(chat.channels.records);
     else if (!chat) void records.restore(false);
     if (conversationalAI) {
-      if (await checkOwnerAccess()) {
+      if ((await checkOwnerAccess()) && stillCurrent()) {
         if (chat?.channels.care) void regular.restore(chat.channels.care);
         else if (!chat) void regular.restore(false);
         void insights.restore(
@@ -1170,7 +1175,7 @@ export function CareOSProvider({
       }
       return;
     }
-    if (!(await checkOwnerAccess())) return;
+    if (!(await checkOwnerAccess()) || !stillCurrent()) return;
     if (aiAccessDisabled || evaluationWindowExpired(aiExpiresAt)) return;
     void insights.restore(
       hasChatIndex.current ? (chat?.order ?? []) : undefined,
@@ -1181,6 +1186,7 @@ export function CareOSProvider({
         ? await restore(chat.channels.care)
         : null
       : await restore(false);
+    if (!stillCurrent()) return;
     const previous = value?.turns.at(-1)?.answer.context;
     if (!registered.current && !contextRef.current && previous)
       select(previous);
@@ -1325,7 +1331,10 @@ export function CareOSProvider({
     navigate: cancelPresentation,
     check: () => void check(),
     clear: () => void clear(),
-    unsent: [...regular.unsent, ...records.unsent],
+    unsent: [...regular.unsent, ...records.unsent].filter(
+      (question) =>
+        !integrated || submittedOrder.includes(question.input.requestId),
+    ),
     ownerAccess,
     ownerState,
     accessMessage: browserMessage,

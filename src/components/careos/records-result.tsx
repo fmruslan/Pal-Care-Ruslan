@@ -11,6 +11,7 @@ import {
 } from "@/lib/careos/records/contracts";
 import { Button } from "../ui/button";
 import { useInsightsControl } from "../intelligence/customer-control";
+import type { CareContext } from "@/lib/careos/contracts";
 
 const usd = (minor: number) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
@@ -51,6 +52,7 @@ export function RecordsResultView({
   result: raw,
   requestId,
   onNavigate,
+  onSelectPurchase,
   autoApply = false,
   onAutoApplyStarted,
   presentation = "transcript",
@@ -61,6 +63,7 @@ export function RecordsResultView({
   /** Actual rendered turn identity; presentation evidence, never authority. */
   requestId: string;
   onNavigate: () => void;
+  onSelectPurchase?: (context: CareContext) => void;
   autoApply?: boolean;
   onAutoApplyStarted?: () => void;
   presentation?: "inline" | "transcript" | "panel";
@@ -175,7 +178,23 @@ export function RecordsResultView({
     >
       <Link
         href={`/vault/${r.id}`}
-        onClick={onNavigate}
+        onClick={(event) => {
+          if (
+            !event.metaKey &&
+            !event.ctrlKey &&
+            !event.shiftKey &&
+            !event.altKey &&
+            event.button === 0
+          )
+            onSelectPurchase?.({
+              twinId: r.id,
+              name: r.name,
+              model: r.model,
+              origin: r.origin,
+              purchasedOn: r.purchasedOn,
+            });
+          onNavigate();
+        }}
         className="inline-flex min-h-11 items-center font-semibold text-primary underline"
       >
         {r.name} · {r.model}

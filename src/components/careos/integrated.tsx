@@ -268,6 +268,7 @@ export function IntegratedNorthView({
   const panelRef = useVisibleViewport();
   const panel = useRef<HTMLElement | null>(null);
   const restore = useRef<HTMLButtonElement | null>(null);
+  const composing = useRef(false);
   const attachPanel = useCallback(
     (node: HTMLElement | null) => {
       panel.current = node;
@@ -276,6 +277,7 @@ export function IntegratedNorthView({
     [panelRef],
   );
   useEffect(() => {
+    if (!s.isOpen || s.minimized) composing.current = false;
     if (!s.isOpen) return;
     const frame = requestAnimationFrame(() => {
       (s.minimized ? restore.current : panel.current)?.focus({
@@ -284,7 +286,15 @@ export function IntegratedNorthView({
     });
     return () => cancelAnimationFrame(frame);
   }, [s.isOpen, s.minimized]);
-  const composing = useRef(false);
+  useEffect(() => {
+    if (!s.isOpen || s.minimized) return;
+    const frame = requestAnimationFrame(() => {
+      const focused = document.activeElement;
+      if (!focused || focused === document.body || !focused.isConnected)
+        panel.current?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [s.screen, s.isOpen, s.minimized]);
   const active = s.activeId
     ? s.turns.find((t) => t.requestId === s.activeId)
     : s.turns.at(-1);
@@ -337,7 +347,7 @@ export function IntegratedNorthView({
         }
       }}
     >
-      <header className="north-panel-header">
+      <header className="north-panel-header" role="presentation">
         <div className="north-panel-topbar">
           <button
             type="button"
@@ -472,7 +482,10 @@ export function IntegratedNorthView({
               <h2 className="text-lg font-semibold">Previous chats</h2>
               <Button
                 variant="ghost"
-                onClick={() => s.setScreen(s.activeChatId ? "chat" : "start")}
+                onClick={() => {
+                  s.setScreen(s.activeChatId ? "chat" : "start");
+                  panel.current?.focus({ preventScroll: true });
+                }}
               >
                 <ArrowLeft className="size-4" aria-hidden="true" /> Back
               </Button>
@@ -769,6 +782,7 @@ export function IntegratedNorthView({
                           autoApply={s.recordsSubmission === active.requestId}
                           onAutoApplyStarted={s.consumeRecords}
                           onNavigate={s.navigate}
+                          onSelectPurchase={s.select}
                         />
                       )}
                       {!!answer!.steps.length && (
@@ -974,7 +988,7 @@ export function IntegratedNorthView({
         returnFocus={contextTrigger}
       />
       {s.screen !== "history" && (
-        <footer className="north-panel-footer">
+        <footer className="north-panel-footer" role="presentation">
           <div
             className="north-panel-context"
             aria-label="Persistent purchase context"
