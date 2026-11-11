@@ -450,14 +450,9 @@ globalThis.fetch = async (input, init) => {
             { timeout: 20000 },
           )
           .toBe(200);
-        // Exercise the real, unmodified owner route after this child's startup.
-        const ownerRead = await fetch(
-          providerFailureRecoveryLoopback + "/api/ai/owner",
-          {
-            headers: { host: new URL(OWNER_ORIGIN).host },
-          },
-        );
-        expect(ownerRead.status).toBe(200);
+        // Protected owner-route assertions belong to the real browser journeys
+        // through the exact-origin bridge below, not a Node-fetch startup probe
+        // with neither that browser's cookies nor its request headers.
       },
       stop,
       async route(context: BrowserContext, recordsOwner: string) {

@@ -63,7 +63,10 @@ async function ledger() {
 async function status(page: Page) {
   return page.evaluate(async () => {
     const response = await fetch("/api/ai/owner");
-    if (!response.ok) throw Error(`owner status ${response.status}`);
+    if (!response.ok) {
+      const error = await response.json();
+      throw Error(`owner status ${response.status}: ${error.error ?? "unknown"}`);
+    }
     return response.json();
   });
 }
