@@ -118,6 +118,9 @@ for (const width of [375, 430, 1440]) {
         "Purchases & Docs",
       );
       releaseImport();
+      await page
+        .getByRole("button", { name: "Explore with North Star", exact: true })
+        .click();
       await dialog
         .getByRole("button", { name: "Previous chats", exact: true })
         .click();

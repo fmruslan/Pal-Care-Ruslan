@@ -405,6 +405,15 @@ test("library filters and North drafts preserve pinned context through product, 
       url.searchParams.get("category") === "Kitchen",
   );
   await page
+    .getByRole("navigation", { name: "Purchases and documents", exact: true })
+    .getByRole("link", { name: "Documents", exact: true })
+    .click();
+  await expect(page).toHaveURL(
+    (url) =>
+      url.pathname === "/documents" &&
+      url.searchParams.get("category") === "Kitchen",
+  );
+  await page
     .getByTestId("library-documents")
     .getByRole("link", { name: /^Open Pour-over kettle receipt,/ })
     .click();
