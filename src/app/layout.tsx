@@ -11,6 +11,7 @@ import {
 } from "@/lib/private-preview-origin";
 import "./globals.css";
 import "./customer-visual.css";
+import { hostedDemo } from "@/lib/hosted-demo";
 
 const inter = localFont({
   src: "../../public/fonts/InterVariable-v4.1.woff2",
@@ -52,6 +53,11 @@ export default function RootLayout({
   const expires = Date.parse(process.env.CAREOS_EVALUATION_EXPIRES_AT ?? "");
   return (
     <html lang="en" suppressHydrationWarning className={inter.variable}>
+      <head>
+        {hostedDemo(process.env) && (
+          <meta name="palcare-hosted-guest" content="true" />
+        )}
+      </head>
       <body>
         <ThemeProvider>
           <a

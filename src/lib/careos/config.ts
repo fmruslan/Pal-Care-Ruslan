@@ -75,12 +75,12 @@ export function parseCareConfig(env: Record<string, string | undefined>) {
         .number()
         .int()
         .min(SOL_RESERVATION_MICRO)
-        .max(EVALUATION_MAX_MICRO),
+        .max(hosted ? 18000000 : EVALUATION_MAX_MICRO),
       totalMicro: z.coerce
         .number()
         .int()
         .min(SOL_RESERVATION_MICRO)
-        .max(EVALUATION_MAX_MICRO),
+        .max(hosted ? 18000000 : EVALUATION_MAX_MICRO),
       budgetId: z.string().regex(/^[a-z0-9-]{1,40}$/),
     })
     .safeParse({
@@ -94,8 +94,17 @@ export function parseCareConfig(env: Record<string, string | undefined>) {
         env.CAREOS_RESPONSES_BASE_URL ??
         (hosted ? "https://api.deepseek.com" : "https://api.openai.com/v1"),
       writerUrl: env.CAREOS_DATABASE_URL,
-      dailyMicro: env.CAREOS_DAILY_BUDGET_MICRO,
-      totalMicro: env.CAREOS_TOTAL_BUDGET_MICRO,
+      // Upgrade only the original hosted $5 configuration to the owner-approved
+      // $18 ceiling, leaving $2 of the stated $20 credits outside the app cap.
+      // Keep the original budget ID, all charges/unknowns and explicit lower caps.
+      dailyMicro:
+        hosted && env.CAREOS_DAILY_BUDGET_MICRO === "5000000"
+          ? "18000000"
+          : env.CAREOS_DAILY_BUDGET_MICRO,
+      totalMicro:
+        hosted && env.CAREOS_TOTAL_BUDGET_MICRO === "5000000"
+          ? "18000000"
+          : env.CAREOS_TOTAL_BUDGET_MICRO,
       budgetId: env.CAREOS_BUDGET_ID,
     });
   if (!config.success) throw new CareError("careos_live_not_authorized");

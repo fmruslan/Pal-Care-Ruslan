@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { customerPlanSchema } from "@/lib/intelligence/customer-commands";
+import { ensureGuestAccess } from "../careos/guest-client";
 
 export const insightPendingKey = "palcare-insights-pending-v1";
 export const insightHistoryKey = "palcare-insights-history-v1";
@@ -134,6 +135,7 @@ export async function customerPlanApi<T>(
   conversationId?: string,
   signal?: AbortSignal,
 ): Promise<T> {
+  if (method === "POST") await ensureGuestAccess();
   const response = await fetch(
     `/api/intelligence/customer/plan${conversationId ? `?conversationId=${encodeURIComponent(conversationId)}` : ""}`,
     {

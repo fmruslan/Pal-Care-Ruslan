@@ -210,6 +210,29 @@ export class PostgresStore implements ConversationStore {
       `spend:total:${this.spending.budgetId}`,
     ];
   }
+  /** Read-only aggregate of the existing ledger, including unknown reservations. */
+  async spendingStatus() {
+    return this.tx(async (client) => {
+      const keys = [
+        ...this.spendKeys(),
+        `spend:blocked:${this.spending.budgetId}`,
+      ];
+      const result = await client.query(
+        "select key, amount from care_buckets where key = any($1::text[])",
+        [keys],
+      );
+      const amounts = new Map(
+        result.rows.map((row) => [row.key, Number(row.amount)]),
+      );
+      return {
+        dailyMicro: this.spending.dailyMicro,
+        totalMicro: this.spending.totalMicro,
+        dailyUsedMicro: amounts.get(keys[0]) ?? 0,
+        totalUsedMicro: amounts.get(keys[1]) ?? 0,
+        blocked: amounts.has(keys[2]),
+      };
+    });
+  }
   async reserve(id: string, owner: string, requestId: string) {
     const reserved = this.spending.reservationMicro ?? CALL_RESERVATION_MICRO;
     if (![CALL_RESERVATION_MICRO, SOL_RESERVATION_MICRO].includes(reserved))

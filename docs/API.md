@@ -372,3 +372,17 @@ never grants model access. Provider keys are server-only; original PostgreSQL
 rate limits, per-call reservations and API budget enforcement remain. Private
 subscription/evaluation authorization is unchanged. [Setup](RENDER-JUDGE.md) ·
 [implementation and unverified hosted gates](STATUS.md).
+# Hosted guest admission
+
+In explicit Render/DeepSeek demo mode only, `POST /api/ai/evaluation` accepts an
+empty JSON object from the exact configured Origin and automatically sets bounded
+signed customer/Studio guest cookies (Secure, HttpOnly, Strict, path `/`, no Domain,
+maximum 24 hours and never beyond the configured deadline). It returns only
+`{"guest":true}`; existing valid scopes are neither replaced nor extended.
+Private/manual authorization contracts remain unchanged. Hosted manual token
+submission is rejected; `/ai-evaluation` redirects to Care. North and native
+Studio clients transparently admit guests before explicit POSTs. Read-only history
+recovery never starts inference. Existing owner namespaces, persistent quotas,
+reservations/unknown accounting and financial-off guards remain enforced.
+Hosted GET status additionally returns aggregate `budget` limits, used/reserved
+microdollars and a block flag from the original ledger, with private/no-store headers.

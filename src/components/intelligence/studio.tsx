@@ -1,4 +1,5 @@
 "use client";
+import { ensureGuestAccess } from "../careos/guest-client";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useTheme } from "next-themes";
 import {
@@ -329,6 +330,7 @@ export function IntelligenceStudio({
           live
             ? async (message, signal) => {
                 const post = async (body: unknown) => {
+                  await ensureGuestAccess();
                   const r = await fetch("/api/intelligence/plan", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
