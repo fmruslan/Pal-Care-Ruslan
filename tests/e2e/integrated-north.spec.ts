@@ -103,6 +103,48 @@ for (const route of ["/dashboard", "/purchases", "/documents", "/insights"]) {
     expect(fixed!.height).toBeGreaterThanOrEqual(44);
     await page.evaluate(() => scrollTo(0, innerHeight / 2));
     await expectClearCorner();
+    if (route === "/dashboard") {
+      await expect(
+        page.locator('[data-care-calendar-engine="verified"]'),
+      ).toBeVisible();
+      // Reproduce an async section reflow after scrolling, with unchanged main
+      // dimensions: the original main-only ResizeObserver missed this case.
+      await page.evaluate(() => {
+        const link = document.querySelector<HTMLAnchorElement>(
+          'main a[href="/purchases"]',
+        )!;
+        scrollTo(
+          0,
+          scrollY + link.getBoundingClientRect().top - innerHeight * 0.35,
+        );
+      });
+      await expectClearCorner();
+      const reflow = await page.evaluate(() => {
+        const main = document.querySelector("main")!;
+        const calendar = main.querySelector<HTMLElement>(
+          "[data-care-calendar-range]",
+        )!;
+        const link = main.querySelector<HTMLAnchorElement>(
+          'a[href="/purchases"]',
+        )!;
+        const products = link.closest("section")!;
+        const launcher = document.querySelector(".north-floating-launcher")!;
+        const height = main.getBoundingClientRect().height;
+        const delta =
+          launcher.getBoundingClientRect().top -
+          link.getBoundingClientRect().top;
+        calendar.style.paddingBottom = `${parseFloat(getComputedStyle(calendar).paddingBottom) + delta}px`;
+        products.style.marginBottom = `${parseFloat(getComputedStyle(products).marginBottom) - delta}px`;
+        return {
+          delta,
+          before: height,
+          after: main.getBoundingClientRect().height,
+        };
+      });
+      expect(reflow.delta).toBeGreaterThan(0);
+      expect(reflow.after).toBeCloseTo(reflow.before, 0);
+      await expectClearCorner();
+    }
     await page.evaluate(() =>
       scrollTo(0, document.documentElement.scrollHeight),
     );

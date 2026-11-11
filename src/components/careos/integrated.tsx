@@ -165,7 +165,42 @@ export function NorthWorkspaceSlot() {
     };
     const main = document.querySelector("main");
     const resize = new ResizeObserver(schedule);
-    if (main) resize.observe(main);
+    if (main) {
+      resize.observe(main);
+      // Streamed/native sections can trade space without resizing main. Watch
+      // those bounded surfaces too, not every subtree mutation (e.g. Axe).
+      main
+        .querySelectorAll("section")
+        .forEach((section) => resize.observe(section));
+    }
+    // Fonts and async native content can move controls after the last scroll
+    // event without changing any observed box's size. React to actual layout
+    // shifts, ignoring shifts caused solely by this launcher's own placement.
+    const shifts = PerformanceObserver.supportedEntryTypes.includes(
+      "layout-shift",
+    )
+      ? new PerformanceObserver((list) => {
+          if (
+            list.getEntries().some((entry) => {
+              const sources = (
+                entry as PerformanceEntry & {
+                  sources?: Array<{ node?: Node }>;
+                }
+              ).sources;
+              return (
+                !sources?.length ||
+                sources.some(
+                  ({ node }) =>
+                    node !== button && !button.contains(node ?? null),
+                )
+              );
+            })
+          )
+            schedule();
+        })
+      : null;
+    shifts?.observe({ type: "layout-shift" });
+    document.fonts.addEventListener("loadingdone", schedule);
     window.addEventListener("scroll", schedule, {
       passive: true,
       capture: true,
@@ -177,6 +212,8 @@ export function NorthWorkspaceSlot() {
     return () => {
       cancelAnimationFrame(frame);
       resize.disconnect();
+      shifts?.disconnect();
+      document.fonts.removeEventListener("loadingdone", schedule);
       window.removeEventListener("scroll", schedule, true);
       window.removeEventListener("resize", schedule);
       document.removeEventListener("click", schedule);

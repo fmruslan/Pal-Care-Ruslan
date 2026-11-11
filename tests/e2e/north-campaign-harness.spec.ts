@@ -100,6 +100,11 @@ test("injected semantic orchestration renders a fresh missing-receipt search wit
     },
   );
   await page.goto("/dashboard");
+  // Opening an empty panel uses the shared launcher, never the disabled Ask
+  // submit. Keep all actual question transport/UUID/financial guards below.
+  await expect(
+    page.getByRole("button", { name: "Ask North Star", exact: true }),
+  ).toBeDisabled();
   for (const c of scenarios) {
     const result = await exerciseRecordsScenario(page, c, "turns");
     const score = assessRecordsCase(
