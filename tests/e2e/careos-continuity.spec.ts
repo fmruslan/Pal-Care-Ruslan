@@ -4,7 +4,7 @@ import AxeBuilder from "@axe-core/playwright";
 const forma = "/vault/00000000-0000-4000-8000-000000000201";
 const raspberry = "/vault/00000000-0000-4000-8000-000000000204";
 const launcher = (page: import("@playwright/test").Page) =>
-  page.getByRole("button", { name: "Ask North Star", exact: true });
+  page.getByRole("button", { name: "Explore with North Star", exact: true });
 
 test("product switching, refresh and clear preserve useful context without mixing documents", async ({
   page,

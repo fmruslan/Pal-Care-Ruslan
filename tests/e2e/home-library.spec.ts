@@ -408,7 +408,7 @@ test("independent search and North drafts preserve pinned context through produc
     timeout: 20000,
   });
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   await expect(composer).toHaveValue(
     "Continue care after the explicit metadata search",

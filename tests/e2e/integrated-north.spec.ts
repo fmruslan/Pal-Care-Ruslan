@@ -12,6 +12,205 @@ const field = (page: Page) =>
     exact: true,
   });
 
+for (const route of ["/dashboard", "/purchases", "/documents", "/insights"]) {
+  test(`shared top and floating North launchers stay clear on ${route} while scrolling without dispatching`, async ({
+    page,
+  }) => {
+    const writes: string[] = [];
+    await page.route("**/api/**", async (route) => {
+      if (!["GET", "HEAD", "OPTIONS"].includes(route.request().method())) {
+        writes.push(new URL(route.request().url()).pathname);
+        return route.abort();
+      }
+      return route.continue();
+    });
+    const top = page.getByRole("button", {
+      name: "Explore with North Star",
+      exact: true,
+    });
+    const floating = page.getByRole("button", {
+      name: "Open North Star",
+      exact: true,
+    });
+    const expectClearCorner = async () => {
+      await expect
+        .poll(() =>
+          page.locator(".north-floating-launcher").evaluate((node) => {
+            // A densely packed mobile surface may make the lower corner yield;
+            // a hidden, noninteractive icon cannot obscure its controls/text.
+            if (getComputedStyle(node).visibility === "hidden") return [];
+            const box = node.getBoundingClientRect();
+            return [
+              ...document.querySelectorAll<HTMLElement>(
+                'a, button, input, textarea, select, summary, [role="button"], [role="tab"]',
+              ),
+            ]
+              .filter(
+                (element) =>
+                  element !== node &&
+                  !node.contains(element) &&
+                  getComputedStyle(element).visibility !== "hidden",
+              )
+              .filter((element) => {
+                const r = element.getBoundingClientRect();
+                return (
+                  r.width > 0 &&
+                  r.height > 0 &&
+                  r.left < box.right &&
+                  r.right > box.left &&
+                  r.top < box.bottom &&
+                  r.bottom > box.top
+                );
+              })
+              .map(
+                (element) =>
+                  element.getAttribute("aria-label") ??
+                  element.textContent?.trim(),
+              );
+          }),
+        )
+        .toEqual([]);
+    };
+    await page.goto(route);
+    await expect(top).toHaveCount(1);
+    await expect(top).toBeVisible();
+    await expect(floating).toHaveCount(1);
+    await expect(floating).toBeVisible();
+    await expectClearCorner();
+    if (route === "/insights") {
+      const studio = page.getByTestId("customer-studio");
+      await expect(studio.getByRole("grid")).toBeVisible({ timeout: 20000 });
+      await expect(
+        studio.locator(".ag-studio-layout-widget-loading-overlay-active"),
+      ).toHaveCount(0);
+    }
+    const header = await page.locator(".customer-header").boundingBox();
+    const button = await top.boundingBox();
+    const main = await page.getByRole("main").boundingBox();
+    expect(button!.y).toBeGreaterThanOrEqual(header!.y + header!.height);
+    expect(button!.x + button!.width).toBeCloseTo(
+      main!.x +
+        main!.width -
+        (await page.evaluate(() =>
+          parseFloat(
+            getComputedStyle(document.querySelector("main")!).paddingRight,
+          ),
+        )),
+      0,
+    );
+    const fixed = await floating.boundingBox();
+    expect(fixed!.width).toBeGreaterThanOrEqual(44);
+    expect(fixed!.height).toBeGreaterThanOrEqual(44);
+    await page.evaluate(() => scrollTo(0, innerHeight / 2));
+    await expectClearCorner();
+    await page.evaluate(() =>
+      scrollTo(0, document.documentElement.scrollHeight),
+    );
+    await expect(floating).toHaveCSS("position", "fixed");
+    await expect(floating).toBeVisible();
+    await expectClearCorner();
+    // Chart initialization can increase document height after a scroll. Read
+    // back the actual footer action, not an earlier document-height estimate.
+    const about = page
+      .locator("footer")
+      .last()
+      .getByRole("link", { name: "About Pal Care", exact: true });
+    await about.scrollIntoViewIfNeeded();
+    await expect(about).toBeInViewport();
+    await expectClearCorner();
+    await expect(
+      page.getByRole("navigation", { name: "Mobile navigation", exact: true }),
+    ).toHaveCount(0);
+    expect(writes).toEqual([]);
+  });
+}
+
+test("shared top and floating North launchers preserve one panel, drafts and history without moving the page or dispatching", async ({
+  page,
+}) => {
+  const writes: string[] = [];
+  await page.route("**/api/**", async (route) => {
+    if (!["GET", "HEAD", "OPTIONS"].includes(route.request().method())) {
+      writes.push(new URL(route.request().url()).pathname);
+      return route.abort();
+    }
+    return route.continue();
+  });
+  const top = page.getByRole("button", {
+    name: "Explore with North Star",
+    exact: true,
+  });
+  const floating = page.getByRole("button", {
+    name: "Open North Star",
+    exact: true,
+  });
+  await page.goto("/purchases");
+  await page.locator("footer").last().scrollIntoViewIfNeeded();
+  await expect(floating).toBeVisible();
+  const geometry = () =>
+    page.evaluate(() => ({
+      scroll: scrollY,
+      width: document.querySelector("main")!.getBoundingClientRect().width,
+      viewport: document.documentElement.clientWidth,
+    }));
+  const before = await geometry();
+  await floating.click();
+  await expect(north(page)).toHaveCount(1);
+  await expect(floating).toHaveCount(0);
+  expect(await geometry()).toEqual(before);
+  await north(page)
+    .getByRole("button", { name: "New chat", exact: true })
+    .click();
+  const composer = north(page).getByRole("textbox", {
+    name: "Ask about your purchases",
+    exact: true,
+  });
+  await composer.fill("Keep this shared unsent draft");
+  const chat = await page.evaluate(
+    () =>
+      JSON.parse(sessionStorage.getItem("palcare-north-chats-v1")!)
+        .activeChatId,
+  );
+  await north(page)
+    .getByRole("button", { name: "Close North Star", exact: true })
+    .click();
+  await expect(floating).toBeFocused();
+  await top.scrollIntoViewIfNeeded();
+  const atTop = await geometry();
+  await top.click();
+  await expect(north(page)).toHaveCount(1);
+  await expect(composer).toHaveValue("Keep this shared unsent draft");
+  expect(await geometry()).toEqual(atTop);
+  expect(
+    await page.evaluate(
+      () =>
+        JSON.parse(sessionStorage.getItem("palcare-north-chats-v1")!)
+          .activeChatId,
+    ),
+  ).toBe(chat);
+  await north(page)
+    .getByRole("button", { name: "Previous chats", exact: true })
+    .click();
+  await expect(
+    north(page).getByRole("region", { name: "Previous chats", exact: true }),
+  ).toBeVisible();
+  await north(page)
+    .getByRole("button", { name: "Close North Star", exact: true })
+    .click();
+  await floating.click();
+  await expect(
+    north(page).getByRole("region", { name: "Previous chats", exact: true }),
+  ).toBeVisible();
+  await north(page)
+    .getByRole("button", { name: "Minimize North Star", exact: true })
+    .click();
+  await expect(floating).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Restore North Star", exact: true }),
+  ).toHaveCount(1);
+  expect(writes).toEqual([]);
+});
+
 for (const kind of ["care", "records", "Insights"] as const) {
   test(`closed Home admission preserves an uncertain ${kind} envelope before any new conversational POST`, async ({
     page,
@@ -105,7 +304,7 @@ for (const kind of ["care", "records", "Insights"] as const) {
       key,
     );
     await page
-      .getByRole("button", { name: "Ask North Star", exact: true })
+      .getByRole("button", { name: "Explore with North Star", exact: true })
       .click();
     await expect(north(page)).toBeVisible();
     expect(posts).toEqual([]);
@@ -125,7 +324,10 @@ for (const kind of ["care", "records", "Insights"] as const) {
       .getByRole("button", { name: "Close North Star", exact: true })
       .click();
     await expect(
-      page.getByRole("button", { name: "Ask North Star", exact: true }),
+      page.getByRole("button", {
+        name: "Explore with North Star",
+        exact: true,
+      }),
     ).toBeFocused();
     await field(page).fill("Headphones");
     await page.getByRole("button", { name: "Search", exact: true }).click();
@@ -338,7 +540,7 @@ test("History selection anchors a new follow-up to the selected owned result, no
 }) => {
   await page.goto("/purchases");
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   await ask(page, "Show all my purchases");
   const audio = await ask(page, "Only Audio");
@@ -391,7 +593,7 @@ test("floating results, draft and owned History survive reload without automatic
 }) => {
   await page.goto("/purchases");
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   const turn = await ask(page, "Show all my purchases");
   await north(page)
@@ -511,7 +713,7 @@ test("ordinary result lists and controls reflow at 320px and 200% text without a
   await page.setViewportSize({ width: 320, height: 900 });
   await page.goto("/purchases");
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Your products",
@@ -576,7 +778,7 @@ test("secondary customer pages preserve the same floating North across navigatio
   ).toHaveText("Care");
   await expect(page.getByText("More tools", { exact: true })).toHaveCount(0);
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   await expect(north(page)).toBeVisible();
   expect(
@@ -612,7 +814,7 @@ test("literal search remains provider-free during a pending answer and late char
 }) => {
   await page.goto("/purchases");
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   await ask(page, "Show all my purchases");
   let release!: () => void, signalHeld!: () => void;

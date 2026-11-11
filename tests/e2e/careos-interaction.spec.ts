@@ -114,7 +114,7 @@ async function transport(
 async function open(page: Page) {
   await page.goto(forma);
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   const dialog = page.getByRole("dialog");
   await expect(
@@ -164,7 +164,7 @@ test("legacy unsent hello never traps Send or suggestions and can be edited with
   );
   await page.reload();
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   const dialog = page.getByRole("dialog"),
     composer = dialog.getByLabel("Ask about your purchases", { exact: true });
@@ -259,7 +259,7 @@ test("an expired conversation hint does not strand a question that never reached
   }, expired);
   await page.reload();
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.locator("[data-unsent-question]")).toContainText("hello");
@@ -395,7 +395,7 @@ test("long atomic answers scroll inside the panel and prior results can be selec
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   await expect(dialog.locator("[data-user-message]").last()).toHaveText(
     "A long answer please",
@@ -503,7 +503,7 @@ test("clear and submission are guarded while saved history is restoring", async 
   }, id);
   await page.goto(forma);
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   const dialog = page.getByRole("dialog");
   await dialog

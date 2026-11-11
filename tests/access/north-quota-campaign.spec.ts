@@ -176,7 +176,7 @@ test("quota-only policy survives historical deadline, uses normal host-approved 
       exact: true,
     });
     const open = page.getByRole("button", {
-      name: "Ask North Star",
+      name: "Explore with North Star",
       exact: true,
     });
     await expect(

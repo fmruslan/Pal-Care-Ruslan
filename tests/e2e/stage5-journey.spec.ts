@@ -48,7 +48,7 @@ test("customer journey preserves purchase identity through CareOS, recall, repla
     .click();
   await expect(page).toHaveURL(new RegExp(`/safety\\?twinId=${twin}`));
   await expect(
-    page.getByRole("button", { name: "Ask North Star", exact: true }),
+    page.getByRole("button", { name: "Explore with North Star", exact: true }),
   ).toBeVisible();
   // Leave the inline result to continue in the source page's normal flow.
   const close = page.getByRole("button", {
@@ -69,7 +69,7 @@ test("customer journey preserves purchase identity through CareOS, recall, repla
       .locator('[aria-current="page"]'),
   ).toHaveText("Headphones");
   await expect(
-    page.getByRole("button", { name: "Ask North Star", exact: true }),
+    page.getByRole("button", { name: "Explore with North Star", exact: true }),
   ).toBeVisible();
   await page
     .getByRole("link", { name: "Back to product →", exact: true })
@@ -103,7 +103,7 @@ test("air-fryer reference handoff stays labeled, retains CareOS and never invent
   ).toHaveText("Air fryers");
   await page.reload();
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   await expect(
     page.getByRole("dialog", { name: "North Star", exact: true }),

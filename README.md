@@ -1,5 +1,7 @@
 # Pal Care
 
+**North launcher refinement — candidate under verification:** shared **Explore with North ☆** below the customer header plus a subtle scrolling-accessible corner icon open the same preserved panel. The requested **300-new-call** evaluation prioritizes practical product guidance; actual current access/accounting, results and remaining limits are recorded in [STATUS](docs/STATUS.md), not inferred from the target.
+
 **Approved North refinement — in progress:** one floating desktop panel/mobile sheet, compact start/chat/history and separate preserved conversations; existing navigation and underlying pages remain unchanged. [Current evidence](docs/STATUS.md).
 
 The unified Care homepage brings saved-record help shortcuts, priority actions, the native AG Studio timeline and the complete product collection together. **Care / Purchases & Docs / Insights** stays primary; secondary tools remain available in the purchase journey and contextual actions. [Implementation and release evidence](docs/STATUS.md).

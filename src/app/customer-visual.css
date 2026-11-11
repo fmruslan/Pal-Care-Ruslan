@@ -363,6 +363,31 @@
   outline-offset: 2px;
 }
 /* One nonmodal overlay; no body lock, backdrop or customer-page layout change. */
+.customer-shell {
+  /* Permanent end clearance, never conditional on the assistant opening. */
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+}
+.north-floating-launcher {
+  position: fixed;
+  z-index: 40;
+  right: max(0.75rem, env(safe-area-inset-right));
+  bottom: calc(
+    0.75rem + env(safe-area-inset-bottom) + var(--north-launcher-lift, 0px)
+  );
+  visibility: var(--north-launcher-visibility, hidden);
+  border-radius: 50%;
+  border-color: var(--intelligence-border);
+  background: var(--card);
+  color: var(--intelligence-foreground);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--foreground) 8%, transparent);
+}
+.north-floating-launcher:hover {
+  background: var(--intelligence);
+}
+/* Other modal work owns the screen; no launcher over a source/checkout dialog. */
+body:has([role="dialog"][aria-modal="true"]) .north-floating-launcher {
+  visibility: hidden;
+}
 .north-floating-panel.careos-assistant {
   position: fixed;
   z-index: 60;

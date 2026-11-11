@@ -61,7 +61,7 @@ test("a lost customer plan recovers by GET and requires explicit SDK application
     });
     if (!restoreOpen)
       await page
-        .getByRole("button", { name: "Ask North Star", exact: true })
+        .getByRole("button", { name: "Explore with North Star", exact: true })
         .click();
     const dialog = page.getByRole("dialog", {
       name: "North Star",

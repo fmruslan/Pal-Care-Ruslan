@@ -88,7 +88,7 @@ async function injectConversation(page: Page) {
 async function openAssistant(page: Page) {
   await page.goto(purchase);
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
   await expect(dialog.getByText(answerText, { exact: true })).toBeVisible();
@@ -375,7 +375,7 @@ test("keyboard focus remains visible with reduced motion and traverses the nonmo
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto(purchase);
   const launcher = page.getByRole("button", {
-    name: "Ask North Star",
+    name: "Explore with North Star",
     exact: true,
   });
   await expectControlFits(launcher);

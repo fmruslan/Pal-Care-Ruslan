@@ -86,7 +86,7 @@ for (const width of [375, 430, 1440]) {
         .press("Enter");
       await expect(page).toHaveURL(/\/purchases$/);
       await page
-        .getByRole("button", { name: "Ask North Star", exact: true })
+        .getByRole("button", { name: "Explore with North Star", exact: true })
         .click();
       await dialog
         .getByRole("button", { name: "New chat", exact: true })

@@ -153,7 +153,7 @@ async function transport(page: Page) {
 async function open(page: Page) {
   await page.goto(speakerHref);
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
   await expect(

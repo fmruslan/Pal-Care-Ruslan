@@ -45,7 +45,7 @@ test("CareOS finds the scoped receipt and stays available during navigation", as
   ).toContainText("Example receipt. No payment was processed.");
   if (!(await assistant.isVisible()))
     await page
-      .getByRole("button", { name: "Ask North Star", exact: true })
+      .getByRole("button", { name: "Explore with North Star", exact: true })
       .click();
   // The original document reader is already visible; North must not duplicate
   // that receipt preview. Its retained answer still exposes the exact source.
@@ -78,7 +78,7 @@ test("CareOS finds the scoped receipt and stays available during navigation", as
   await page.keyboard.press("Escape");
   await expect(assistant).not.toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Ask North Star", exact: true }),
+    page.getByRole("button", { name: "Explore with North Star", exact: true }),
   ).toBeFocused();
   expect(financialRequests).toBe(0);
 });

@@ -51,8 +51,6 @@ import {
   studioSelectionConfirmation,
 } from "@/lib/intelligence/customer-presentation";
 import { useInsightsControl } from "./customer-control";
-import { AskCareOS } from "../careos/provider";
-import { AssistantName } from "../assistant-name";
 import { executeCustomerAgent } from "./customer-agent";
 import { customerPlanApi } from "./customer-client";
 import { purchaseStudioTheme } from "./studio-theme";
@@ -1109,9 +1107,6 @@ export function CustomerStudio({
               : "Explore the charts or try an example question. AI isn't connected in this view."}
           </p>
         </div>
-        <AskCareOS>
-          Explore with <AssistantName />
-        </AskCareOS>
       </div>
       <div className="mb-4 flex flex-wrap gap-2" aria-label="Insight views">
         {insightPages.map((id) => (

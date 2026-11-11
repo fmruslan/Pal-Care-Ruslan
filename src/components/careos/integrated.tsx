@@ -94,22 +94,129 @@ export type IntegratedNorthState = {
   applySaved: () => void;
 };
 
-/** Contextual entry only; the root provider owns the single floating panel. */
+/** Shared launchers only; all chat/draft/context state stays in the root host. */
 export function NorthWorkspaceSlot() {
   const assistant = useOptionalCareOS();
+  const north = assistant?.integrated;
   const pathname = usePathname();
-  return assistant?.integrated &&
-    !["/dashboard", "/purchases", "/documents"].includes(pathname) ? (
-    <div className="my-3">
+  const floating = useRef<HTMLButtonElement>(null);
+  const isOpen = north?.isOpen;
+  useEffect(() => {
+    const button = floating.current;
+    if (!button || isOpen) return;
+    let frame = 0;
+    const position = () => {
+      frame = 0;
+      const box = button.getBoundingClientRect();
+      const lift =
+        parseFloat(button.style.getPropertyValue("--north-launcher-lift")) || 0;
+      const baseline = box.top + lift;
+      const obstacles: DOMRect[] = [];
+      for (const element of document.querySelectorAll<HTMLElement>(
+        'a, button, input, textarea, select, summary, [role="button"], [role="tab"], [role="gridcell"], [contenteditable="true"], p, h1, h2, h3, label, dt, dd',
+      )) {
+        if (
+          element === button ||
+          button.contains(element) ||
+          getComputedStyle(element).visibility === "hidden"
+        )
+          continue;
+        if (element.matches("p, h1, h2, h3, label, dt, dd")) {
+          const range = document.createRange();
+          range.selectNodeContents(element);
+          obstacles.push(...range.getClientRects());
+        } else obstacles.push(element.getBoundingClientRect());
+      }
+      let y = baseline;
+      const limit =
+        Math.max(
+          document.querySelector(".customer-header")?.getBoundingClientRect()
+            .bottom ?? 0,
+          innerHeight * 0.45,
+        ) + 8;
+      for (let i = 0; i < 100 && y >= limit; i++) {
+        const collisions = obstacles.filter(
+          (r) =>
+            r.width > 0 &&
+            r.height > 0 &&
+            r.left < box.right + 8 &&
+            r.right > box.left - 8 &&
+            r.top < y + box.height + 8 &&
+            r.bottom > y - 8,
+        );
+        if (!collisions.length) break;
+        y = Math.min(...collisions.map((r) => r.top)) - box.height - 8;
+      }
+      // Keep a clear corner target, never a click-through layer over a control
+      // or text. If dense content leaves no safe lower-corner gap, yield until
+      // scrolling exposes one; the shared header action remains available.
+      button.style.setProperty(
+        "--north-launcher-lift",
+        `${Math.max(0, baseline - y)}px`,
+      );
+      button.style.setProperty(
+        "--north-launcher-visibility",
+        y >= limit ? "visible" : "hidden",
+      );
+      button.dataset.northPositioned = "true";
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(position);
+    };
+    const main = document.querySelector("main");
+    const resize = new ResizeObserver(schedule);
+    if (main) resize.observe(main);
+    window.addEventListener("scroll", schedule, {
+      passive: true,
+      capture: true,
+    });
+    window.addEventListener("resize", schedule, { passive: true });
+    document.addEventListener("click", schedule);
+    document.addEventListener("input", schedule);
+    schedule();
+    return () => {
+      cancelAnimationFrame(frame);
+      resize.disconnect();
+      window.removeEventListener("scroll", schedule, true);
+      window.removeEventListener("resize", schedule);
+      document.removeEventListener("click", schedule);
+      document.removeEventListener("input", schedule);
+    };
+  }, [isOpen, pathname]);
+  if (!north) return null;
+  return (
+    <div className="mb-3 flex justify-end" data-north-launchers>
       <Button
-        variant="intelligence"
+        type="button"
+        variant="outline"
+        className="max-w-full flex-wrap border-intelligence-foreground bg-intelligence text-intelligence-foreground hover:bg-intelligence/80"
         onClick={assistant.open}
-        aria-label="Ask North Star"
+        aria-label="Explore with North Star"
+        aria-haspopup="dialog"
+        aria-expanded={north.isOpen && !north.minimized}
       >
-        Ask <AssistantName />
+        Explore with <AssistantName />
       </Button>
+      {!north.isOpen && (
+        <Button
+          ref={floating}
+          type="button"
+          variant="outline"
+          size="icon"
+          className="north-floating-launcher"
+          aria-label="Open North Star"
+          aria-haspopup="dialog"
+          aria-expanded={false}
+          title="Open North ☆"
+          onClick={assistant.open}
+        >
+          <span aria-hidden="true" className="text-2xl leading-none">
+            ☆
+          </span>
+        </Button>
+      )}
     </div>
-  ) : null;
+  );
 }
 
 export function NorthCollection({ children }: { children: ReactNode }) {
@@ -205,13 +312,13 @@ export function NorthSearch({
         <button
           type="button"
           aria-label="Ask North Star"
-          disabled={!!text.trim() && (north?.busy || !!north?.pending)}
+          disabled={!text.trim() || north?.busy || !!north?.pending}
           onClick={() => {
             if (text.trim() && north) {
               setValue("");
               north.setDraft(text);
               north.ask(text);
-            } else north?.open();
+            }
           }}
           className="inline-flex min-h-11 max-w-full shrink-0 items-center justify-center gap-1 rounded-xl px-2 text-sm font-semibold text-intelligence-foreground"
         >
