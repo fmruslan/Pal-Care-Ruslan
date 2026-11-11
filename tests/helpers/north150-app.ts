@@ -319,6 +319,9 @@ export async function createNorth150App() {
               headers: {
                 ...headers,
                 host: new URL(OWNER_ORIGIN).host,
+                // This loopback proxy must not reuse an idle Next HTTP socket
+                // across long native/care steps. No API/model retry is added.
+                connection: "close",
               },
             });
           } catch (error) {
