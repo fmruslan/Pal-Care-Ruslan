@@ -70,6 +70,16 @@ export async function createProviderFailureRecoveryApp() {
   let stopping = false;
   let generation = 0;
   let output = "";
+  let readOnlyEvidence:
+    { attemptedWrites: string[]; getPaths: string[] } | undefined;
+  const ownerCookieEvidence: Array<{
+    action: string;
+    maxAge: number;
+    secure: boolean;
+    httpOnly: boolean;
+    sameSite: string | undefined;
+    path: string | undefined;
+  }> = [];
   const sha = (bytes: string | Buffer) =>
     createHash("sha256").update(bytes).digest("hex");
 
@@ -235,6 +245,26 @@ globalThis.fetch = async (input, init) => {
       release,
       ciReceiptHash: recoveryHash(ci),
       ciReceipt: ci,
+      ownerCookieEvidence: () => structuredClone(ownerCookieEvidence),
+      async readOnly(
+        work: (evidence: {
+          attemptedWrites: string[];
+          getPaths: string[];
+        }) => Promise<void>,
+      ) {
+        if (readOnlyEvidence) throw Error("read-only journey already active");
+        const evidence = {
+          attemptedWrites: [] as string[],
+          getPaths: [] as string[],
+        };
+        readOnlyEvidence = evidence;
+        try {
+          await work(evidence);
+        } finally {
+          readOnlyEvidence = undefined;
+        }
+        expect(evidence.attemptedWrites).toEqual([]);
+      },
       fallbackManifestHash,
       pool,
       verifyFallback: () =>
@@ -464,6 +494,20 @@ globalThis.fetch = async (input, init) => {
           const dispatchedGeneration = generation;
           if (url.origin !== OWNER_ORIGIN)
             return route.abort("blockedbyclient");
+          // One durable bridge owns every request. A temporary page.route guard
+          // must not hand an in-flight API route back to a handler removed by
+          // unroute: that can both double-handle and bypass the loopback bridge.
+          const readOnly = readOnlyEvidence;
+          if (readOnly) {
+            if (!["GET", "HEAD"].includes(request.method())) {
+              readOnly.attemptedWrites.push(
+                `${request.method()} ${url.pathname}`,
+              );
+              return route.abort("blockedbyclient");
+            }
+            if (request.method() === "GET")
+              readOnly.getPaths.push(url.pathname);
+          }
           const headers = await request.allHeaders();
           // WebKit omits Cookie from allHeaders. Only synthetic jar cookies are
           // forwarded. This is NOT native private-HTTPS/cookie acceptance.
@@ -494,10 +538,11 @@ globalThis.fetch = async (input, init) => {
                 throw Error("unexpected owner cookie outside synthetic ledger");
             }
           }
-          if (!headers.cookie && cookies.length)
-            headers.cookie = cookies
-              .map((cookie) => `${cookie.name}=${cookie.value}`)
-              .join("; ");
+          // APIRequestContext's loopback jar must never supply a partial/stale
+          // Cookie header. Forward the entire validated SYNTHETIC browser jar.
+          headers.cookie = cookies
+            .map((cookie) => `${cookie.name}=${cookie.value}`)
+            .join("; ");
           let response: Awaited<ReturnType<typeof route.fetch>>;
           try {
             response = await route.fetch({
@@ -511,6 +556,39 @@ globalThis.fetch = async (input, init) => {
           } catch (error) {
             if (!stopping) throw error;
             return route.abort("aborted");
+          }
+          if (
+            request.method() === "POST" &&
+            url.pathname === "/api/ai/owner" &&
+            response.ok()
+          ) {
+            for (const header of response.headersArray()) {
+              if (
+                header.name.toLowerCase() !== "set-cookie" ||
+                !header.value.startsWith(OWNER_COOKIE + "=")
+              )
+                continue;
+              // Observe only synthetic server cookie ATTRIBUTES. Never retain
+              // a cookie secret. Browser response headers may omit Set-Cookie
+              // on this loopback bridge; actual TLS acceptance is separate.
+              const attributes = header.value
+                .split(";")
+                .slice(1)
+                .map((s) => s.trim());
+              ownerCookieEvidence.push({
+                action: request.postDataJSON().action,
+                maxAge: Number(
+                  attributes.find((s) => /^max-age=/i.test(s))?.split("=")[1],
+                ),
+                secure: attributes.some((s) => /^secure$/i.test(s)),
+                httpOnly: attributes.some((s) => /^httponly$/i.test(s)),
+                sameSite: attributes
+                  .find((s) => /^samesite=/i.test(s))
+                  ?.split("=")[1]
+                  .toLowerCase(),
+                path: attributes.find((s) => /^path=/i.test(s))?.split("=")[1],
+              });
+            }
           }
           if (
             request.method() === "POST" &&

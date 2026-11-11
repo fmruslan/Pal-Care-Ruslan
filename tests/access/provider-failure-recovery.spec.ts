@@ -18,6 +18,7 @@ import {
 import { north150Hash } from "../helpers/north150-fixture";
 import { widgetDefinition } from "../../src/lib/intelligence/customer-state";
 import { malformedGuideSteps } from "../fixtures/product-guide-prose";
+import { referenceSource } from "../../src/lib/careos/knowledge";
 import type { AgReportState } from "ag-studio";
 import {
   createProviderFailureRecoveryFixture,
@@ -65,7 +66,9 @@ async function status(page: Page) {
     const response = await fetch("/api/ai/owner");
     if (!response.ok) {
       const error = await response.json();
-      throw Error(`owner status ${response.status}: ${error.error ?? "unknown"}`);
+      throw Error(
+        `owner status ${response.status}: ${error.error ?? "unknown"}`,
+      );
     }
     return response.json();
   });
@@ -154,6 +157,16 @@ async function historyGet(page: Page) {
   const rows = await app!.pool.query(
     "select id,md5(row_to_json(r)::text) hash from care_requests r where conversation_id=$1 order by id",
     [fixture!.failedConversationId],
+  );
+  expect(
+    rows.rows.some((row) => row.id === fixture!.failedTurn.requestId),
+  ).toBe(true);
+  const recordCookie = (await page.context().cookies(OWNER_ORIGIN)).find(
+    (cookie) => cookie.name === "palcare-records",
+  );
+  expect(recordCookie).toBeDefined();
+  expect(north150Hash(`records-v1:${recordCookie!.value}`)).toBe(
+    fixture!.recordsOwner,
   );
   const result = await page.evaluate(async (id) => {
     const response = await fetch(`/api/careos/records/conversations/${id}`);
@@ -265,8 +278,16 @@ async function installPairApproveFinish(page: Page) {
     .click();
   const finish = await finishResponse;
   expect(finish.status()).toBe(200);
-  const setCookie = (await finish.allHeaders())["set-cookie"];
-  const maxAge = Number(/Max-Age=(\d+)/i.exec(setCookie)?.[1]);
+  const cookieEvidence = app!
+    .ownerCookieEvidence()
+    .findLast((entry) => entry.action === "finish");
+  expect(cookieEvidence).toMatchObject({
+    secure: true,
+    httpOnly: true,
+    sameSite: "strict",
+    path: "/",
+  });
+  const maxAge = cookieEvidence?.maxAge ?? NaN;
   expect(maxAge).toBeGreaterThan(0);
   expect(app!.clock.now() + maxAge * 1000).toBeLessThanOrEqual(
     fixture!.pinnedExpiresAt + 1000,
@@ -510,14 +531,49 @@ test("host install → normal pair/approve/Finish → Audio native chart → sou
   const care = await careResponse.json();
   expect(care.answer.steps.join(" ")).toContain("Shutdown");
   expect(care.answer.sources.length).toBeGreaterThan(0);
+  const piTwin = "00000000-0000-4000-8000-000000000204";
+  expect(care.answer.context).toMatchObject({
+    twinId: piTwin,
+    name: "Raspberry Pi 5",
+    model: "5",
+    origin: "sample",
+  });
+  const careHref = `/vault/${piTwin}/care#source-${referenceSource.id}`;
   expect(care.answer.sources).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        id: "00000000-0000-4000-8000-000000000501",
-        href: "https://www.raspberrypi.com/documentation/computers/getting-started.html#shutdown",
+        id: referenceSource.id,
+        href: careHref,
       }),
     ]),
   );
+  // Stay inside the isolated browser bridge. APIRequestContext would bypass
+  // routing and could reach the deployed private host; never use it here.
+  const citation = await page.evaluate(
+    async ({ href, id }) => {
+      const response = await fetch(new URL(href, location.origin).pathname, {
+        redirect: "error",
+      });
+      const document = new DOMParser().parseFromString(
+        await response.text(),
+        "text/html",
+      );
+      const source = document.getElementById(`source-${id}`);
+      return {
+        status: response.status,
+        sourcePresent: !!source,
+        links: [...(source?.querySelectorAll("a") ?? [])].map((a) =>
+          a.getAttribute("href"),
+        ),
+        text: source?.textContent ?? "",
+      };
+    },
+    { href: careHref, id: referenceSource.id },
+  );
+  expect(citation.status).toBe(200);
+  expect(citation.sourcePresent).toBe(true);
+  expect(citation.links).toContain(referenceSource.url);
+  expect(citation.text).toContain("CC BY-SA 4.0");
   expect(
     (await ledger()).events
       .filter(
@@ -566,23 +622,7 @@ test("exact malformed historical guide keeps PostgreSQL fingerprint/row and rest
   const transportBefore = await app!.transport();
   const ownerBefore = await ledger();
   async function restoreAndRead() {
-    const attemptedWrites: string[] = [];
-    const getPaths: string[] = [];
-    const guard: Parameters<Page["route"]>[1] = async (route) => {
-      const request = route.request();
-      if (!["GET", "HEAD"].includes(request.method())) {
-        attemptedWrites.push(
-          `${request.method()} ${new URL(request.url()).pathname}`,
-        );
-        await route.abort("blockedbyclient");
-        return;
-      }
-      if (request.method() === "GET")
-        getPaths.push(new URL(request.url()).pathname);
-      await route.fallback();
-    };
-    await page.route("**/*", guard);
-    try {
+    await app!.readOnly(async ({ attemptedWrites, getPaths }) => {
       const fetched = await page.evaluate(async (id) => {
         const response = await fetch(`/api/careos/records/conversations/${id}`);
         return { status: response.status, body: await response.json() };
@@ -649,9 +689,7 @@ test("exact malformed historical guide keeps PostgreSQL fingerprint/row and rest
       expect(attemptedWrites).toEqual([]);
       expect(await saved.snapshot()).toEqual(saved.rows);
       expect(await app!.transport()).toEqual(transportBefore);
-    } finally {
-      await page.unroute("**/*", guard);
-    }
+    });
   }
   await restoreAndRead();
   expect(await ledger()).toEqual(ownerBefore);
