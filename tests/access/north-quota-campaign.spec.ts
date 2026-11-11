@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { createNorth150App } from "../helpers/north150-app";
 import {
   north150Fixture,
+  north150Hash,
   north150QuotaApproval,
   north150Token,
 } from "../helpers/north150-fixture";
@@ -83,13 +84,64 @@ test("quota-only policy survives historical deadline, uses normal host-approved 
     )!;
     expect(cookie.value).not.toBe(north150Token);
     await f.owner.approve(pair.id);
+    const approved = (await f.files.read("owner-state.json")) as OwnerState;
+    const approvedBrowser = approved.sessions.find((s) => s.id === pair.id)!;
+    expect(approvedBrowser.tokenHash).toBe(north150Hash(cookie.value));
+    expect(approvedBrowser.finishedAt).toBeUndefined();
+    const checked = page.waitForResponse(
+      (r) =>
+        r.request().method() === "GET" &&
+        r.url() === OWNER_ORIGIN + "/api/ai/owner",
+    );
     await page
       .getByRole("button", { name: "Check status", exact: true })
       .click();
+    const checkedResponse = await checked;
+    expect(checkedResponse.status()).toBe(200);
+    const current = await checkedResponse.json();
+    expect(current).toMatchObject({
+      remembered: true,
+      browserCompletion: "finish-needed",
+      browserAccess: "finish-needed",
+      pairing: null,
+    });
+    // The pending-request Finish button is replaced when this GET clears its
+    // pairing ID. Wait for that exact status to render before clicking it.
+    await expect(
+      page.getByLabel("Browser verification diagnostic"),
+    ).toContainText(`Diagnostic: finish-needed · ${current.diagnosticId}`);
+    const finished = page.waitForResponse(
+      (r) =>
+        r.request().method() === "POST" &&
+        r.url() === OWNER_ORIGIN + "/api/ai/owner" &&
+        r.request().postDataJSON()?.action === "finish",
+    );
     await page
       .getByRole("button", { name: "Finish remembering browser", exact: true })
       .click();
+    const finishResponse = await finished;
+    expect(finishResponse.status()).toBe(200);
+    expect(await finishResponse.json()).toEqual({ ok: true });
+    await expect(page.getByRole("status")).toHaveText(
+      "Browser remembered. AI permission is unchanged.",
+    );
     await expect(page.getByText("Remembered", { exact: true })).toBeVisible();
+    expect(
+      (await context.cookies(OWNER_ORIGIN)).find((c) => c.name === OWNER_COOKIE)
+        ?.value,
+    ).toBe(cookie.value);
+    const completed = (await f.files.read("owner-state.json")) as OwnerState;
+    expect(completed.sessions).toEqual(
+      approved.sessions.map((s) =>
+        s.id === pair.id ? { ...s, finishedAt: expect.any(Number) } : s,
+      ),
+    );
+    expect(completed.events.slice(0, approved.events.length)).toEqual(
+      approved.events,
+    );
+    expect(completed.events.slice(approved.events.length)).toEqual([
+      expect.objectContaining({ kind: "finish-browser", subject: pair.id }),
+    ]);
     await expect(
       page.getByText(/Campaign policy: no fixed calendar expiration/),
     ).toBeVisible();
@@ -98,6 +150,9 @@ test("quota-only policy survives historical deadline, uses normal host-approved 
     );
     expect(status).toMatchObject({
       remembered: true,
+      browserCompletion: "complete",
+      browserAccess: "remembered",
+      pairing: null,
       used: 63,
       remaining: 100,
       maxRetries: 0,
