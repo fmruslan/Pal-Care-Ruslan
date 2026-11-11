@@ -8,27 +8,15 @@ import {
   type ReactNode,
 } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import {
-  ArrowLeft,
-  ArrowUp,
-  FileText,
-  History,
-  Minus,
-  Search,
-  X,
-} from "lucide-react";
+import { usePathname } from "next/navigation";
+import { ArrowLeft, ArrowUp, FileText, History, Minus, X } from "lucide-react";
 import { useOptionalCareOS } from "./provider";
 import { AssistantName } from "../assistant-name";
 import { RecordsResultView } from "./records-result";
 import { PurchaseChoices } from "./purchase-choices";
 import { ContextPicker } from "./context-picker";
 import { Button } from "../ui/button";
-import { libraryHref, type LibraryQuery } from "@/lib/library-navigation";
-import {
-  documentPreviewId,
-  isLiteralLibrarySearch,
-} from "@/lib/north-presentation";
+import { documentPreviewId } from "@/lib/north-presentation";
 import type { CareContext, CareTurn } from "@/lib/careos/contracts";
 import type { PendingQuestion } from "./conversation-client";
 import { displayDate } from "@/lib/demo/presentation";
@@ -258,139 +246,6 @@ export function NorthWorkspaceSlot() {
 
 export function NorthCollection({ children }: { children: ReactNode }) {
   return <>{children}</>;
-}
-
-export function NorthSearch({
-  query,
-  searchIndex,
-  footer,
-}: {
-  query: LibraryQuery;
-  searchIndex: string[];
-  footer?: ReactNode;
-}) {
-  const assistant = useOptionalCareOS();
-  const north = assistant?.integrated;
-  const router = useRouter();
-  const [value, setValue] = useState(query.q);
-  const composing = useRef(false);
-  const history = () => {
-    north?.openHistory();
-  };
-  // Page search is independent of the panel's prepared question/follow-up draft.
-  const text = value;
-  const submit = (forceSearch = false) => {
-    if (!text.trim()) return;
-    if (forceSearch || isLiteralLibrarySearch(text, searchIndex) || !north) {
-      north?.navigate();
-      router.push(libraryHref(query, { q: text.trim(), page: 1 }));
-    } else {
-      if (north.busy || north.pending) {
-        north.openHistory();
-        return;
-      }
-      setValue("");
-      north.setDraft(text);
-      north.ask(text);
-    }
-  };
-  return (
-    <div className="mb-4" data-north-search>
-      <form
-        role="search"
-        aria-label="Search or ask North"
-        className="north-unified-search flex min-w-0 flex-wrap items-center gap-2 rounded-2xl border border-intelligence-border bg-card px-3 shadow-sm focus-within:ring-2 focus-within:ring-intelligence-foreground"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (!composing.current) submit(true);
-        }}
-      >
-        <button
-          type="submit"
-          aria-label="Search"
-          disabled={!text.trim()}
-          className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-muted-foreground disabled:opacity-40"
-        >
-          <Search className="size-5" aria-hidden="true" />
-        </button>
-        <label className="sr-only" htmlFor="library-search">
-          Search products and documents
-        </label>
-        <input
-          id="library-search"
-          name="q"
-          type="search"
-          value={text}
-          maxLength={2000}
-          placeholder="Find a receipt, product, or ask North..."
-          autoComplete="off"
-          className="h-13 min-w-0 flex-1 bg-transparent text-base outline-none"
-          onChange={(e) => {
-            setValue(e.target.value);
-          }}
-          onKeyDown={(e) => {
-            if (
-              e.key === "Enter" &&
-              !e.nativeEvent.isComposing &&
-              !composing.current &&
-              e.keyCode !== 229
-            ) {
-              e.preventDefault();
-              if (!e.repeat) submit();
-            }
-          }}
-          onCompositionStart={() => {
-            composing.current = true;
-          }}
-          onCompositionEnd={() => {
-            composing.current = false;
-          }}
-        />
-        <button
-          type="button"
-          aria-label="Ask North Star"
-          disabled={!text.trim() || north?.busy || !!north?.pending}
-          onClick={() => {
-            if (text.trim() && north) {
-              setValue("");
-              north.setDraft(text);
-              north.ask(text);
-            }
-          }}
-          className="inline-flex min-h-11 max-w-full shrink-0 items-center justify-center gap-1 rounded-xl px-2 text-sm font-semibold text-intelligence-foreground"
-        >
-          <span>Ask North</span>
-          <span aria-hidden="true" className="text-2xl">
-            ☆
-          </span>
-        </button>
-      </form>
-      {north?.pending && (
-        <p role="status" className="mt-2 text-sm text-muted-foreground">
-          Still waiting on an earlier question. You can search saved purchases
-          and documents, or check History. North won’t resend it automatically.
-        </p>
-      )}
-      <div
-        className={
-          footer
-            ? "mt-3 flex flex-wrap items-center justify-between gap-2"
-            : "flex justify-end"
-        }
-      >
-        {footer}
-        <button
-          type="button"
-          aria-label={north?.isOpen ? "Browse previous chats" : "History"}
-          className="inline-flex min-h-11 items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-          onClick={history}
-        >
-          <History className="size-3.5" aria-hidden="true" />
-          History
-        </button>
-      </div>
-    </div>
-  );
 }
 
 const startSuggestions = [

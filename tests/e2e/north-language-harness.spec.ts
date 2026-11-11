@@ -69,7 +69,7 @@ test("language recovery selects an accepted owned anchor without replay, then su
   expect(posts[2].message).toBe("Only Audio");
 });
 
-for (const kind of ["search", "follow-up"] as const) {
+for (const kind of ["launcher", "follow-up"] as const) {
   test(`language runner waits for a late ${kind} input without dispatching early`, async ({
     page,
   }) => {
@@ -95,16 +95,10 @@ for (const kind of ["search", "follow-up"] as const) {
     await page.evaluate((kind) => {
       const form = document.createElement("form");
       const field = document.createElement("input");
-      field.type = kind === "search" ? "search" : "text";
-      field.setAttribute(
-        "aria-label",
-        kind === "search"
-          ? "Search products and documents"
-          : "Ask about your purchases",
-      );
+      field.type = "text";
+      field.setAttribute("aria-label", "Ask about your purchases");
       const button = document.createElement("button");
-      button.textContent =
-        kind === "search" ? "Ask North Star" : "Send to North Star";
+      button.textContent = "Send to North Star";
       form.append(field, button);
       form.onsubmit = (event) => {
         event.preventDefault();
@@ -114,7 +108,15 @@ for (const kind of ["search", "follow-up"] as const) {
           body: JSON.stringify({ message: field.value }),
         });
       };
-      document.getElementById("mount")!.append(form);
+      const mount = document.getElementById("mount")!;
+      if (kind === "launcher") {
+        const launcher = document.createElement("button");
+        launcher.textContent = "Explore with North Star";
+        launcher.onclick = () => {
+          mount.append(form);
+        };
+        mount.append(launcher);
+      } else mount.append(form);
     }, kind);
     expect((await submitted).ok()).toBe(true);
     expect(dispatches).toBe(1);
@@ -127,7 +129,7 @@ test("language runner handles a closing page during click without abandoning its
   await page.route("**/language-click-failure", (route) =>
     route.fulfill({
       contentType: "text/html",
-      body: '<input type="search" aria-label="Search products and documents"><button>Ask North Star</button>',
+      body: '<input type="text" aria-label="Ask about your purchases"><button>Send to North Star</button>',
     }),
   );
   await page.goto("/language-click-failure");
@@ -154,7 +156,7 @@ test("language runner handles a closing page during click without abandoning its
   expect(closing).toHaveLength(1);
 });
 
-test("language runner uses both real inline composers and preserves exact questions (injected, zero provider calls)", async ({
+test("language runner opens the shared panel and preserves exact first/follow-up questions (injected, zero provider calls)", async ({
   page,
 }) => {
   const inputs: string[] = [];

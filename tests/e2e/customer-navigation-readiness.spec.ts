@@ -118,7 +118,12 @@ for (const width of [375, 430, 1440]) {
         "Purchases & Docs",
       );
       releaseImport();
-      await page.getByRole("button", { name: "History", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Explore with North Star", exact: true })
+        .click();
+      await dialog
+        .getByRole("button", { name: "Previous chats", exact: true })
+        .click();
       await expect(
         dialog.getByRole("heading", { name: "Previous chats", exact: true }),
       ).toBeVisible();
@@ -153,14 +158,17 @@ for (const width of [375, 430, 1440]) {
         name: "Search products and documents",
         exact: true,
       });
-      await field.fill("receipt");
+      await expect(field).toHaveCount(0);
       await expect(
         page.getByRole("button", { name: "Ask North Star", exact: true }),
-      ).toHaveText(/Ask North/);
-      await page.getByRole("button", { name: "Search", exact: true }).click();
+      ).toHaveCount(0);
+      await page
+        .getByRole("navigation", { name: "Document categories", exact: true })
+        .getByRole("link", { name: /^Receipts/ })
+        .press("Enter");
       await expect(page).toHaveURL(
         (url) =>
-          url.searchParams.get("q") === "receipt" &&
+          url.searchParams.get("documentCategory") === "receipts" &&
           (url.pathname === "/documents" ||
             (url.pathname === "/purchases" &&
               url.searchParams.get("view") === "documents")),

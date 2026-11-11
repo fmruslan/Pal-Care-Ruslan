@@ -1,5 +1,6 @@
 // Actual Next/DOM + real isolated PostgreSQL evidence; North transport is injected.
 import { spawn } from "node:child_process";
+import { submitLanguageTurn } from "../../scripts/north-language-browser";
 import { mkdir } from "node:fs/promises";
 import { chromium, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
@@ -192,15 +193,10 @@ export async function protectionBrowserJourney(
           });
         },
       );
-      await page
-        .getByRole("searchbox", {
-          name: "Search products and documents",
-          exact: true,
-        })
-        .fill("Show all my purchases and their price protection next steps");
-      await page
-        .getByRole("button", { name: "Ask North Star", exact: true })
-        .click();
+      await submitLanguageTurn(
+        page,
+        "Show all my purchases and their price protection next steps",
+      );
       const north = page.getByRole("dialog", {
         name: "North Star",
         exact: true,

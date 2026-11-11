@@ -4,7 +4,7 @@ import { CareCalendarPanel } from "@/components/care/calendar";
 import { careCalendar, demoCareCalendar } from "@/lib/care/calendar";
 import { studioEvaluationAllowed } from "@/lib/intelligence/access";
 import { Shell } from "@/components/shell";
-import { NorthCollection, NorthSearch } from "@/components/careos/integrated";
+import { NorthCollection } from "@/components/careos/integrated";
 import { CareFeedView, CareFilters } from "@/components/care/feed";
 import {
   CareAttention,
@@ -53,10 +53,6 @@ export default async function Care({
           Your purchases, important dates, and the help you need.
         </p>
       </NorthCollection>
-      <NorthSearch
-        query={parseLibraryQuery({})}
-        searchIndex={feed.searchIndex}
-      />
       <NorthCollection>
         <CareHelpShortcuts feed={feed} />
         <CareAttention feed={feed} />

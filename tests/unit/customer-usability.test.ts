@@ -13,7 +13,7 @@ import {
   HowPalCareWorks,
 } from "../../src/components/care/home-help";
 import { careProductCards } from "../../src/lib/care/summary";
-import { NorthSearch } from "../../src/components/careos/integrated";
+import { LibrarySearch } from "../../src/components/home-library";
 import { careFeed } from "../../src/lib/care/model";
 import {
   withTenProductFixtures,
@@ -77,19 +77,20 @@ describe("customer usability presentation", () => {
     expect(journey).not.toContain("Verified Sandbox receipt");
     expect(journey).not.toContain("Watch video");
   });
-  it("names Ask North visibly while preserving its accessible Ask North Star control", () => {
+  it("removes the page-level North search while retaining provider-free library filters and legacy query state", () => {
     const markup = renderToStaticMarkup(
-      createElement(NorthSearch, {
-        query: parseLibraryQuery({}),
-        searchIndex: ["headphones receipt"],
+      createElement(LibrarySearch, {
+        query: parseLibraryQuery({ q: "receipt" }),
+        categories: ["Audio", "Kitchen"],
       }),
     );
-    expect(markup).toMatch(
-      /aria-label="Ask North Star"[\s\S]*?<span>Ask North<\/span>/,
-    );
-    expect(markup).toContain('aria-label="Search"');
-    expect(markup).toContain('aria-label="Search or ask North"');
-    expect(markup).toContain("History");
+    expect(markup).not.toContain('type="search"');
+    expect(markup).not.toContain('aria-label="Ask North Star"');
+    expect(markup).not.toContain('aria-label="Search or ask North"');
+    expect(markup).not.toContain("data-north-search");
+    expect(markup).toContain("Filters &amp; sort");
+    expect(markup).toContain('type="hidden" name="q" value="receipt"');
+    expect(markup).toContain("Clear filters");
   });
 
   it("keeps known milestones in the main timeline and gaps in a closed accessible disclosure", () => {

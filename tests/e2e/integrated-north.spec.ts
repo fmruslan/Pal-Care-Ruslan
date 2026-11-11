@@ -72,11 +72,37 @@ for (const route of ["/dashboard", "/purchases", "/documents", "/insights"]) {
         .toEqual([]);
     };
     await page.goto(route);
+    await expect(field(page)).toHaveCount(0);
+    await expect(
+      page.locator("[data-north-search], #library-search"),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Ask North Star", exact: true }),
+    ).toHaveCount(0);
     await expect(top).toHaveCount(1);
     await expect(top).toBeVisible();
-    await expect(floating).toHaveCount(1);
-    await expect(floating).toBeVisible();
+    // Dense tablet collections may legitimately yield the corner icon. Keep its
+    // DOM identity/collision contract, then exercise it in real clear footer space.
+    const floatingNode = page.locator(".north-floating-launcher");
+    await expect(floatingNode).toHaveCount(1);
     await expectClearCorner();
+    await top.click();
+    const composer = north(page).getByRole("textbox", {
+      name: "Ask about your purchases",
+      exact: true,
+    });
+    await composer.fill(`Keep the unsent ${route} question`);
+    await north(page)
+      .getByRole("button", { name: "Close North Star", exact: true })
+      .click();
+    await page.locator("footer").last().scrollIntoViewIfNeeded();
+    await expect(floating).toBeVisible();
+    await floating.click();
+    await expect(composer).toHaveValue(`Keep the unsent ${route} question`);
+    await north(page)
+      .getByRole("button", { name: "Close North Star", exact: true })
+      .click();
+    await page.evaluate(() => scrollTo(0, 0));
     if (route === "/insights") {
       const studio = page.getByTestId("customer-studio");
       await expect(studio.getByRole("grid")).toBeVisible({ timeout: 20000 });
@@ -98,7 +124,7 @@ for (const route of ["/dashboard", "/purchases", "/documents", "/insights"]) {
         )),
       0,
     );
-    const fixed = await floating.boundingBox();
+    const fixed = await floatingNode.boundingBox();
     expect(fixed!.width).toBeGreaterThanOrEqual(44);
     expect(fixed!.height).toBeGreaterThanOrEqual(44);
     await page.evaluate(() => scrollTo(0, innerHeight / 2));
@@ -239,6 +265,8 @@ test("shared top and floating North launchers preserve one panel, drafts and his
   await north(page)
     .getByRole("button", { name: "Close North Star", exact: true })
     .click();
+  await page.locator("footer").last().scrollIntoViewIfNeeded();
+  await expect(floating).toBeVisible();
   await floating.click();
   await expect(
     north(page).getByRole("region", { name: "Previous chats", exact: true }),
@@ -339,7 +367,7 @@ for (const kind of ["care", "records", "Insights"] as const) {
       },
     );
     await page.goto("/purchases");
-    await expect(field(page)).toHaveValue("");
+    await expect(field(page)).toHaveCount(0);
     await expect(north(page)).toHaveCount(0);
     const envelope = await page.evaluate(
       (key) => sessionStorage.getItem(key),
@@ -371,12 +399,17 @@ for (const kind of ["care", "records", "Insights"] as const) {
         exact: true,
       }),
     ).toBeFocused();
-    await field(page).fill("Headphones");
-    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await page.getByText("Filters & sort", { exact: true }).click();
+    await page
+      .getByRole("combobox", { name: "Category", exact: true })
+      .selectOption("Audio");
+    await page
+      .getByRole("button", { name: "Apply filters", exact: true })
+      .click();
     await expect(page).toHaveURL(
       (url) =>
         url.pathname === "/purchases" &&
-        url.searchParams.get("q") === "Headphones",
+        url.searchParams.get("category") === "Audio",
     );
     expect(posts).toEqual([]);
     expect(await page.evaluate((key) => sessionStorage.getItem(key), key)).toBe(
@@ -407,7 +440,7 @@ async function ask(page: Page, message: string) {
   return turn;
 }
 
-test("calm collection has one integrated field, collapsed filters, first-screen North and reachable product details", async ({
+test("calm collection has only shared North launchers, collapsed filters and reachable product details", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 664 });
@@ -422,11 +455,8 @@ test("calm collection has one integrated field, collapsed filters, first-screen 
   await expect(
     page.getByText("Everything you own, all cared for.", { exact: true }),
   ).toBeVisible();
-  await expect(field(page)).toHaveCount(1);
-  await expect(field(page)).toHaveAttribute(
-    "placeholder",
-    "Find a receipt, product, or ask North...",
-  );
+  await expect(field(page)).toHaveCount(0);
+  await expect(page.locator("[data-north-search]")).toHaveCount(0);
   await expect(page.locator(".careos-launcher")).toHaveCount(0);
   await expect(
     page
@@ -453,10 +483,15 @@ test("calm collection has one integrated field, collapsed filters, first-screen 
   );
   await firstPurchase.scrollIntoViewIfNeeded();
   await expect(firstPurchase).toBeInViewport();
-  await field(page).fill("Headphones");
-  await field(page).press("Enter");
+  await page.getByText("Filters & sort", { exact: true }).click();
+  await page
+    .getByRole("combobox", { name: "Category", exact: true })
+    .selectOption("Audio");
+  await page
+    .getByRole("button", { name: "Apply filters", exact: true })
+    .click();
   await expect(page.getByRole("status")).toContainText("purchase");
-  await expect(page.locator("[data-purchase-card]")).toHaveCount(1);
+  await expect(page.locator("[data-purchase-card]")).toHaveCount(2);
   expect(writes).toEqual([]);
 });
 
@@ -491,10 +526,10 @@ test("receipt → totals → Audio → native chart → exact product care → p
     .getByRole("navigation", { name: "Main navigation", exact: true })
     .getByRole("link", { name: "Purchases & Docs", exact: true })
     .click();
-  await field(page).fill("Find receipt");
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
+  await ask(page, "Find receipt");
   // The narrow assistant links to the unchanged full record instead of
   // embedding the document reader. Verify the original through a read only.
   await expect(
@@ -778,7 +813,7 @@ test("ordinary result lists and controls reflow at 320px and 200% text without a
       exact: true,
     }),
   ).toBeVisible();
-  await expect(field(page)).toBeVisible();
+  await expect(field(page)).toHaveCount(0);
   await expect(page.locator("[data-purchase-card]")).toHaveCount(4);
   await ask(page, "Show all my purchases");
   await page.evaluate(() => {
@@ -849,7 +884,7 @@ test("secondary customer pages preserve the same floating North across navigatio
     .getByRole("link", { name: "Purchases & Docs", exact: true })
     .click();
   await expect(north(page)).toBeVisible();
-  await expect(field(page)).toHaveValue("");
+  await expect(field(page)).toHaveCount(0);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Your products",
   );
@@ -863,7 +898,7 @@ test("secondary customer pages preserve the same floating North across navigatio
   expect(prohibited).toEqual([]);
 });
 
-test("literal search remains provider-free during a pending answer and late chart work cannot hijack it", async ({
+test("library filters remain provider-free during a pending answer and late chart work cannot hijack them", async ({
   page,
 }) => {
   await page.goto("/purchases");
@@ -900,14 +935,19 @@ test("literal search remains provider-free during a pending answer and late char
       .getByRole("button", { name: "Send to North Star", exact: true })
       .click();
     await held;
-    await field(page).fill("Headphones");
-    await field(page).press("Enter");
+    await page.getByText("Filters & sort", { exact: true }).click();
+    await page
+      .getByRole("combobox", { name: "Category", exact: true })
+      .selectOption("Audio");
+    await page
+      .getByRole("button", { name: "Apply filters", exact: true })
+      .click();
     await expect(page).toHaveURL(
       (url) =>
         url.pathname === "/purchases" &&
-        url.searchParams.get("q") === "Headphones",
+        url.searchParams.get("category") === "Audio",
     );
-    await expect(page.locator("[data-purchase-card]")).toHaveCount(1);
+    await expect(page.locator("[data-purchase-card]")).toHaveCount(2);
     release();
     const response = await saved;
     expect(response.ok()).toBe(true);
@@ -929,7 +969,7 @@ test("literal search remains provider-free during a pending answer and late char
     await expect(page).toHaveURL(
       (url) =>
         url.pathname === "/purchases" &&
-        url.searchParams.get("q") === "Headphones",
+        url.searchParams.get("category") === "Audio",
     );
     await expect(page.getByTestId("customer-studio")).toHaveCount(0);
   } finally {

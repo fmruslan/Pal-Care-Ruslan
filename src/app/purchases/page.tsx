@@ -20,7 +20,6 @@ export default async function Purchases({
   const data = await getSavedRecordsData();
   const query = parseLibraryQuery((await searchParams) ?? {});
   const library = homeLibrary(data, query);
-  const searchIndex = library.searchIndex;
   return (
     <Shell
       active={query.view === "documents" ? "/documents" : "/purchases"}
@@ -62,7 +61,6 @@ export default async function Purchases({
       <LibrarySearch
         query={query}
         categories={library.categories}
-        searchIndex={searchIndex}
         purchases={library.allPurchases}
       />
       <NorthCollection>

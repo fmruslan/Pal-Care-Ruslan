@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { submitLanguageTurn } from "../../scripts/north-language-browser";
 import AxeBuilder from "@axe-core/playwright";
 import { careFeed } from "../../src/lib/care/model";
 import { careStatusAnswer } from "../../src/lib/care/answer";
@@ -258,15 +259,7 @@ test("injected North highlights the homepage milestone beside its answer, valida
       });
     },
   );
-  await page
-    .getByRole("searchbox", {
-      name: "Search products and documents",
-      exact: true,
-    })
-    .fill("Show all my purchases");
-  await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
-    .click();
+  await submitLanguageTurn(page, "Show all my purchases");
   const north = page.getByRole("dialog", { name: "North Star", exact: true });
   await expect(north).toContainText(
     "Their saved sources were checked; no records changed",
@@ -322,7 +315,12 @@ test("injected North highlights the homepage milestone beside its answer, valida
   await north
     .getByRole("button", { name: "Close North Star", exact: true })
     .click();
-  await page.getByRole("button", { name: "History", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Explore with North Star", exact: true })
+    .click();
+  await north
+    .getByRole("button", { name: "Previous chats", exact: true })
+    .click();
   await north
     .getByRole("region", { name: "Previous chats", exact: true })
     .getByRole("button", { name: /Show all my purchases/ })
@@ -550,14 +548,7 @@ test("injected North proposal executes and reads back exact milestone; saved His
   // Use a recognized records entry to exercise its real execution callback in
   // provider-off CI; the proposed ownership action itself is fully injected.
   await page.goto("/purchases");
-  const field = page.getByRole("searchbox", {
-    name: "Search products and documents",
-    exact: true,
-  });
-  await field.fill("Show all my purchases");
-  await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
-    .click();
+  await submitLanguageTurn(page, "Show all my purchases");
   await expect(page).toHaveURL(
     new RegExp(`/vault/${twin}\\?milestone=delivery$`),
   );
@@ -568,7 +559,9 @@ test("injected North proposal executes and reads back exact milestone; saved His
   await delivery
     .getByRole("button", { name: "Close care details", exact: true })
     .click();
-  await page.getByRole("button", { name: "History", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Explore with North Star", exact: true })
+    .click();
   const north = page.getByRole("dialog", { name: "North Star", exact: true });
   await expect(north).toContainText(
     "Opened the saved delivery details for this purchase and checked the matching sources",
