@@ -237,6 +237,7 @@ export function Shell({
           id="main-content"
           className={`mx-auto max-w-[1280px] break-words px-5 py-4 sm:px-8 sm:py-6 ${merchant ? "" : "customer-main"}`}
         >
+          {!merchant && <NorthWorkspaceSlot />}
           {northReviewPresentation(process.env) && (
             <details
               aria-label="Private North testing preview"
@@ -326,7 +327,6 @@ export function Shell({
             </details>
           </div>
           {children}
-          {!merchant && <NorthWorkspaceSlot />}
         </main>
         <footer
           className={`mx-auto flex max-w-[1280px] flex-wrap justify-between gap-3 px-5 pt-6 text-xs leading-6 text-muted-foreground sm:px-8 ${merchant ? "pb-[calc(7rem+env(safe-area-inset-bottom))] lg:pb-8" : "pb-[calc(2rem+env(safe-area-inset-bottom))]"}`}

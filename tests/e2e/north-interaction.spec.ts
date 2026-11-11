@@ -109,7 +109,7 @@ async function openNorth(page: Page, expectedAlert?: string) {
     }
   });
   const launcher = page.getByRole("button", {
-    name: "Ask North Star",
+    name: "Explore with North Star",
     exact: true,
   });
   if (!restoreOpen && !(await dialog.isVisible())) {
@@ -341,7 +341,7 @@ test("opening and minimizing North keeps page scroll, collection nodes and indep
   // Native click scrolling would mask an opening jump. Deliberate DOM
   // activation of the existing page launcher keeps this measurement exact.
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .evaluate((node: HTMLButtonElement) => node.click());
   const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
   await expect(dialog).toBeVisible();
@@ -491,7 +491,7 @@ test("North identity uses a silent outlined star, neutral shell and violet acces
   await dialog.getByRole("button", { name: "Back", exact: true }).click();
   await page.keyboard.press("Escape");
   await expect(
-    page.getByRole("button", { name: "Ask North Star", exact: true }),
+    page.getByRole("button", { name: "Explore with North Star", exact: true }),
   ).toBeFocused();
 });
 

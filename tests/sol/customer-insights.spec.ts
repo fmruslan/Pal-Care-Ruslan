@@ -74,7 +74,7 @@ test("injected customer planning uses Studio capability, actual SDK state, stric
     timeout: 20000,
   });
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   const assistant = page.getByRole("dialog");
   await assistant

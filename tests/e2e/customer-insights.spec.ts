@@ -278,7 +278,7 @@ async function showSources(page: Page) {
 
 async function ask(page: Page, message: string) {
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
   await expect(dialog).toHaveAttribute("aria-modal", "false");
@@ -359,7 +359,10 @@ test("customer navigation keeps three visible destinations and quieter tools", a
     );
     await expect(page.locator('a[href^="/merchant"]')).toHaveCount(0);
     await expect(
-      page.getByRole("button", { name: "Ask North Star", exact: true }),
+      page.getByRole("button", {
+        name: "Explore with North Star",
+        exact: true,
+      }),
     ).toHaveCount(1);
   }
   await expect(
@@ -568,7 +571,7 @@ test("Insights source records retain the exact Twin, receipt and reference-care 
       .getByText("Example purchase amount $149.00", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Ask North Star", exact: true }),
+    page.getByRole("button", { name: "Explore with North Star", exact: true }),
   ).toHaveCount(1);
 
   const savedSandbox = records.find(
@@ -631,7 +634,7 @@ test("one North Star host executes real Studio tools for categories, documents, 
   test.setTimeout(90_000);
   const records = await openWorkspace(page);
   await expect(
-    page.getByRole("button", { name: "Ask North Star", exact: true }),
+    page.getByRole("button", { name: "Explore with North Star", exact: true }),
   ).toHaveCount(1);
   // This suite forbids ALL API writes: exercise the explicit native workspace
   // command, while north-records separately checks saved-record queries/charts.
@@ -1037,7 +1040,7 @@ test("native Insights and the unified assistant support keyboard, reduced motion
     ).violations,
   ).toEqual([]);
   const launcher = page.getByRole("button", {
-    name: "Ask North Star",
+    name: "Explore with North Star",
     exact: true,
   });
   await launcher.focus();

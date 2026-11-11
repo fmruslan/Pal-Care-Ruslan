@@ -1348,10 +1348,15 @@ export function CareOSProvider({
         const original = panelOpener.current;
         const target = original?.isConnected
           ? original
-          : (document.getElementById("library-search") ??
+          : ((original?.classList.contains("north-floating-launcher")
+              ? document.querySelector<HTMLButtonElement>(
+                  'button[aria-label="Open North Star"]',
+                )
+              : null) ??
             document.querySelector<HTMLButtonElement>(
-              'button[aria-label="Ask North Star"]:not(:disabled)',
-            ));
+              'button[aria-label="Explore with North Star"]',
+            ) ??
+            document.getElementById("library-search"));
         target?.focus({ preventScroll: true });
       }
       setReturnFocusRequested(false);

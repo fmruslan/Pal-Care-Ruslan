@@ -15,7 +15,7 @@ async function openNorth(page: Page) {
   });
   if (!restoreOpen && !(await dialog.isVisible())) {
     await page
-      .getByRole("button", { name: "Ask North Star", exact: true })
+      .getByRole("button", { name: "Explore with North Star", exact: true })
       .click();
   }
   await expect(dialog).toBeVisible();

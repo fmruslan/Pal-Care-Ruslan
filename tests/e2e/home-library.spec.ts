@@ -9,7 +9,7 @@ const search = (page: import("@playwright/test").Page) =>
     exact: true,
   });
 
-test("product-first library retains three header destinations and an actionable product on the first mobile screen", async ({
+test("product-first library retains three header destinations, first-screen North and directly reachable purchases", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 664 });
@@ -30,12 +30,17 @@ test("product-first library retains three header destinations and an actionable 
   const product = page.locator("[data-purchase-card]").first();
   const open = product.locator(".library-product-link");
   await expect(open).toBeVisible();
-  const box = await open.boundingBox();
+  const north = page.getByRole("button", {
+    name: "Explore with North Star",
+    exact: true,
+  });
+  const box = await north.boundingBox();
   const geometry = await page.evaluate(() =>
     [
       ".customer-header",
       "h1",
       "[data-north-search]",
+      "[data-north-launchers]",
       "[data-testid='library-results']",
       "[data-purchase-card]",
       ".library-product-link",
@@ -46,6 +51,11 @@ test("product-first library retains three header destinations and an actionable 
     }),
   );
   expect(box!.y + box!.height, JSON.stringify(geometry)).toBeLessThan(664);
+  const searchBox = await search(page).boundingBox();
+  expect(searchBox!.y + searchBox!.height).toBeLessThan(664);
+  await expect(open).toHaveAttribute("href", /^\/vault\/[a-f0-9-]{36}$/);
+  await open.scrollIntoViewIfNeeded();
+  await expect(open).toBeInViewport();
   await expect(product.locator("[data-product-art]")).toBeVisible();
   expect((await open.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   await expect(
@@ -408,7 +418,7 @@ test("independent search and North drafts preserve pinned context through produc
     timeout: 20000,
   });
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   await expect(composer).toHaveValue(
     "Continue care after the explicit metadata search",

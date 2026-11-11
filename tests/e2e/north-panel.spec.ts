@@ -35,7 +35,7 @@ const search = (page: Page) =>
     exact: true,
   });
 const launcher = (page: Page) =>
-  page.getByRole("button", { name: "Ask North Star", exact: true });
+  page.getByRole("button", { name: "Explore with North Star", exact: true });
 const panelControl = (page: Page, name: string) =>
   panel(page)
     .locator("header")

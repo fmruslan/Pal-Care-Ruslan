@@ -44,7 +44,7 @@ test("purchase details use the existing assistant, keep drafts across appearance
   await dialog.getByRole("button", { name: "Close North Star" }).click();
   await page.getByRole("combobox", { name: "Appearance" }).selectOption("dark");
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   await expect(composer).toHaveValue("Keep my unsent care question");
   await expect(dialog.locator(".careos-composer")).toHaveCSS(

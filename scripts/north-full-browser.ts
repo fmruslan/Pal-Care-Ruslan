@@ -81,7 +81,7 @@ export async function exerciseRecordsScenario(
   const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
   if (!(await dialog.isVisible()))
     await page
-      .getByRole("button", { name: "Ask North Star", exact: true })
+      .getByRole("button", { name: "Explore with North Star", exact: true })
       .click();
   const composer = dialog.getByRole("textbox", {
     name: "Ask about your purchases",

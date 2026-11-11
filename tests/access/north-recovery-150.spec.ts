@@ -222,7 +222,7 @@ test("post-stop same synthetic credential → real Send/ledger → native Insigh
   );
   await page.goto(OWNER_ORIGIN + "/dashboard");
   await page
-    .getByRole("button", { name: "Ask North Star", exact: true })
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   const composer = page.getByRole("textbox", {
     name: "Ask about your purchases",

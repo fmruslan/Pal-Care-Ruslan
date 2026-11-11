@@ -113,7 +113,7 @@ for (const width of widths) {
     for (const link of await nav.getByRole("link").all())
       await reachable(link, width);
     const launcher = page.getByRole("button", {
-      name: "Ask North Star",
+      name: "Explore with North Star",
       exact: true,
     });
     await reachable(launcher, width);
