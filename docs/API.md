@@ -366,8 +366,8 @@ No new endpoint or public writer is added. With the separately gated `CARE_DEMO_
 
 The explicit Render-only DeepSeek configuration reuses the existing conversation,
 records `/interpret` and validated native Studio endpoints. `/api/ai/evaluation`
-accepts the existing distinct customer/Studio access tokens through December16,
-2026 at00:00UTC on the exact configured HTTPS Render origin. A records cookie alone
+accepts the existing distinct customer/Studio access tokens through December31,
+2026 Pacific time (exclusive expiry January1,2027 at08:00UTC) on the exact configured HTTPS Render origin. A records cookie alone
 never grants model access. Provider keys are server-only; original PostgreSQL
 rate limits, per-call reservations and API budget enforcement remain. Private
 subscription/evaluation authorization is unchanged. [Setup](RENDER-JUDGE.md) ·

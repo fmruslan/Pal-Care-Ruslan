@@ -6,7 +6,7 @@ services:
     runtime: node
     region: oregon
     plan: 0.5c-512mb
-    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm build
+    buildCommand: (git remote get-url origin >/dev/null 2>&1 || git remote add origin https://github.com/fmruslan/Pal-Care-Ruslan.git) && corepack enable && pnpm install --frozen-lockfile && pnpm build
     # Migrations/seeding run in a separately authorized operator environment.
     # Never provide owner/migration credentials to this web service.
     startCommand: pnpm start --port $PORT
@@ -52,7 +52,7 @@ services:
       - key: CAREOS_EVALUATION_ENABLED
         value: "true"
       - key: CAREOS_EVALUATION_EXPIRES_AT
-        value: "2026-12-16T00:00:00Z"
+        value: "2027-01-01T08:00:00Z"
       - key: CAREOS_CUSTOMER_ACCESS_HASH
         sync: false
       - key: CAREOS_STUDIO_ACCESS_HASH
