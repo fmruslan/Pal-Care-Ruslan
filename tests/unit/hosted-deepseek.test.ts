@@ -11,6 +11,7 @@ import { ResponsesProvider } from "../../src/lib/careos/providers/responses";
 import { pricedDeepSeekUsage } from "../../src/lib/careos/model-policy";
 import { studioEvaluationAllowed } from "../../src/lib/intelligence/access";
 import { northConversationalPresentation } from "../../src/lib/private-preview-origin";
+import { evaluationRefreshDelay } from "../../src/lib/careos/window";
 
 const token = "a".repeat(64);
 const env = {
@@ -71,6 +72,13 @@ function response(text = '{"intent":"summary"}', extra = {}) {
   );
 }
 describe("Render-only DeepSeek; injected transport, no live calls", () => {
+  it("does not overflow the browser timer for the judging-period access window", () => {
+    expect(
+      evaluationRefreshDelay(Date.parse(env.CAREOS_EVALUATION_EXPIRES_AT), now),
+    ).toBe(2147483647);
+    expect(evaluationRefreshDelay(now + 1000, now)).toBe(1050);
+    expect(evaluationRefreshDelay(now - 1000, now)).toBe(0);
+  });
   it("uses the hosted model only on explicit isolated Render configuration", () => {
     expect(hostedDemo(env)).toBe(true);
     expect(parseCareConfig(env)).toMatchObject({
