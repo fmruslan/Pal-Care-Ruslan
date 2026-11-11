@@ -51,8 +51,7 @@ test("product-first library retains three header destinations, first-screen Nort
     }),
   );
   expect(box!.y + box!.height, JSON.stringify(geometry)).toBeLessThan(664);
-  const searchBox = await search(page).boundingBox();
-  expect(searchBox!.y + searchBox!.height).toBeLessThan(664);
+  await expect(search(page)).toHaveCount(0);
   await expect(open).toHaveAttribute("href", /^\/vault\/[a-f0-9-]{36}$/);
   await open.scrollIntoViewIfNeeded();
   await expect(open).toBeInViewport();
@@ -101,27 +100,28 @@ test("large purchases/documents switch keeps search scope, original links and br
   await expect(primary.locator('[aria-current="page"]')).toHaveText(
     "Purchases & Docs",
   );
-  await expect(search(page)).toHaveValue("receipt");
+  await expect(search(page)).toHaveCount(0);
+  await expect(page.locator('input[type="hidden"][name="q"]')).toHaveValue(
+    "receipt",
+  );
   await page.goBack();
   await expect(heading).toHaveText("Your products");
   await expect(purchases).toHaveAttribute("aria-current", "page");
   expect(writes).toEqual([]);
 });
 
-test("unified search opens the exact receipt directly and restores search state through browser Back", async ({
+test("legacy query links open the exact receipt and restore their scope through browser Back without a search bar", async ({
   page,
 }) => {
   const forbidden: string[] = [];
   page.on("request", (r) => {
     if (r.method() !== "GET" && r.method() !== "HEAD") forbidden.push(r.url());
   });
-  await page.goto("/purchases");
-  // The server-rendered search field is visible before its draft state hydrates.
+  await page.goto("/purchases?q=kettle+receipt");
   await expect(
     page.getByRole("combobox", { name: "Appearance", exact: true }),
   ).toBeEnabled();
-  await search(page).fill("kettle receipt");
-  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(search(page)).toHaveCount(0);
   await expect(page.getByRole("status")).toContainText(
     "1 purchase · 1 document",
   );
@@ -137,7 +137,7 @@ test("unified search opens the exact receipt directly and restores search state 
     page.getByRole("article", { name: "Document contents" }),
   ).toContainText("Hearth");
   await page.goBack();
-  await expect(search(page)).toHaveValue("kettle receipt");
+  await expect(page).toHaveURL(/\/purchases\?q=kettle\+receipt$/);
   await expect(results.locator("[data-document-id]")).toHaveCount(1);
   await page
     .locator(`[data-purchase-card="${kettle}"] .library-product-link`)
@@ -145,7 +145,7 @@ test("unified search opens the exact receipt directly and restores search state 
   await page
     .getByRole("link", { name: "Back to Purchases", exact: true })
     .click();
-  await expect(search(page)).toHaveValue("kettle receipt");
+  await expect(page).toHaveURL(/\/purchases\?q=kettle\+receipt$/);
   expect(forbidden).toEqual([]);
 });
 
@@ -162,8 +162,7 @@ test("All documents is one action away; legacy routes preserve filters and docum
   await expect(page.getByTestId("library-documents")).toContainText(
     "Oct 12, 2026",
   );
-  await search(page).fill("kettle receipt");
-  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await page.goto("/documents?q=kettle+receipt");
   await expect(
     page.getByRole("heading", { name: "Matching purchases", exact: true }),
   ).toHaveCount(0);
@@ -176,9 +175,11 @@ test("All documents is one action away; legacy routes preserve filters and docum
   await expect(
     page.getByRole("combobox", { name: "Appearance", exact: true }),
   ).toBeEnabled();
-  await expect(page.locator('input[id="library-search"]')).toHaveCount(1);
+  await expect(page.locator('input[id="library-search"]')).toHaveCount(0);
   await expect(page).toHaveURL(/\/purchases\?q=kettle&category=Kitchen$/);
-  await expect(search(page)).toHaveValue("kettle");
+  await expect(page.locator('input[type="hidden"][name="q"]')).toHaveValue(
+    "kettle",
+  );
   await page
     .locator("summary")
     .filter({ hasText: /^Filters & sort/ })
@@ -190,7 +191,7 @@ test("All documents is one action away; legacy routes preserve filters and docum
   await expect(
     page.getByRole("combobox", { name: "Appearance", exact: true }),
   ).toBeEnabled();
-  await expect(page.locator('input[id="library-search"]')).toHaveCount(1);
+  await expect(page.locator('input[id="library-search"]')).toHaveCount(0);
   await expect(page).toHaveURL(/\/documents$/);
   expect(
     (await request.get(`/api/documents/${receipt}/download`)).status(),
@@ -243,8 +244,9 @@ test("Documents categories compose with metadata and exact dated purchase filter
     "data-document-id",
     receipt,
   );
-  await search(page).fill("kettle receipt");
-  await page.getByRole("button", { name: "Search", exact: true }).click();
+  const scoped = new URL(page.url());
+  scoped.searchParams.set("q", "kettle receipt");
+  await page.goto(scoped.href);
   await expect(page).toHaveURL(
     (url) =>
       url.pathname === "/documents" &&
@@ -271,7 +273,9 @@ test("Documents categories compose with metadata and exact dated purchase filter
     );
   });
   await page.goBack();
-  await expect(search(page)).toHaveValue("kettle receipt");
+  await expect(page.locator('input[type="hidden"][name="q"]')).toHaveValue(
+    "kettle receipt",
+  );
   await categories
     .getByRole("link", { name: /^Warranties & coverage/ })
     .click();
@@ -353,7 +357,7 @@ test("visible product sections, dated receipt, source labels and safe return nav
   ).toContainText("Example receipt. No payment was processed.");
 });
 
-test("independent search and North drafts preserve pinned context through product, document and Insights navigation without auto-send", async ({
+test("library filters and North drafts preserve pinned context through product, document and Insights navigation without auto-send", async ({
   page,
 }) => {
   const turns: string[] = [],
@@ -385,13 +389,21 @@ test("independent search and North drafts preserve pinned context through produc
   await page
     .getByRole("link", { name: "Back to Purchases", exact: true })
     .click();
-  // Page search must neither inherit nor clear the panel's prepared question.
-  await expect(search(page)).toHaveValue("");
-  await search(page).fill("kettle receipt");
+  // Ordinary library filtering must not clear the panel's prepared question.
+  await expect(search(page)).toHaveCount(0);
   await expect(page).toHaveURL(/\/purchases$/);
-  await page.getByRole("button", { name: "Search", exact: true }).click();
-  await expect(page).toHaveURL(/\/purchases\?q=kettle\+receipt$/);
-  await expect(search(page)).toHaveValue("kettle receipt");
+  await page.getByText("Filters & sort", { exact: true }).click();
+  await page
+    .getByRole("combobox", { name: "Category", exact: true })
+    .selectOption("Kitchen");
+  await page
+    .getByRole("button", { name: "Apply filters", exact: true })
+    .click();
+  await expect(page).toHaveURL(
+    (url) =>
+      url.pathname === "/purchases" &&
+      url.searchParams.get("category") === "Kitchen",
+  );
   await page
     .getByTestId("library-documents")
     .getByRole("link", { name: /^Open Pour-over kettle receipt,/ })
@@ -403,7 +415,7 @@ test("independent search and North drafts preserve pinned context through produc
     })
     .click();
   await expect(composer).toHaveValue("Retain this Home-library draft");
-  await composer.fill("Continue care after the explicit metadata search");
+  await composer.fill("Continue care after the explicit library filter");
   await expect(dialog.locator(".north-panel-context strong")).toHaveText(
     "Pour-over kettle · H-02",
   );
@@ -421,7 +433,7 @@ test("independent search and North drafts preserve pinned context through produc
     .getByRole("button", { name: "Explore with North Star", exact: true })
     .click();
   await expect(composer).toHaveValue(
-    "Continue care after the explicit metadata search",
+    "Continue care after the explicit library filter",
   );
   await expect(dialog.locator(".north-panel-context strong")).toHaveText(
     "Pour-over kettle · H-02",

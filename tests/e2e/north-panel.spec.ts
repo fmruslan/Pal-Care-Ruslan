@@ -263,8 +263,8 @@ for (const viewport of [
     await cards.first().evaluate((node) => {
       node.setAttribute("data-north-mount-probe", "retained");
     });
-    await search(page).evaluate((node) => {
-      node.setAttribute("data-north-search-probe", "retained");
+    await page.locator('select[name="category"]').evaluate((node) => {
+      node.setAttribute("data-north-filter-probe", "retained");
     });
     await launcher(page).scrollIntoViewIfNeeded();
     const before = await cards.first().boundingBox();
@@ -299,11 +299,11 @@ for (const viewport of [
       "data-north-mount-probe",
       "retained",
     );
-    await expect(search(page)).toHaveAttribute(
-      "data-north-search-probe",
+    await expect(page.locator('select[name="category"]')).toHaveAttribute(
+      "data-north-filter-probe",
       "retained",
     );
-    await expect(search(page)).toBeVisible();
+    await expect(search(page)).toHaveCount(0);
     expect(await cards.first().boundingBox()).toEqual(before);
     expect(await page.evaluate(() => ({ x: scrollX, y: scrollY }))).toEqual(
       scrollBefore,

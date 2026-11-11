@@ -1,5 +1,9 @@
 # Pal Care
 
+**North buttons only — candidate under verification:** the page-level search/Ask North bar and its History row are removed from Care, Purchases and Documents. Use **Explore with North ☆** or the floating star to open the same panel, composer, chats and drafts. Library filters, legacy query URLs, purchase-specific actions and native Insights remain. The 300-attempt live evaluation is paused at browser admission; this UI task makes no model/access/accounting change. [Current gates](docs/STATUS.md).
+
+The release descriptions below retain their historical checkpoints; current implementation and activation evidence is in [STATUS](docs/STATUS.md).
+
 **Shared North launchers are live on [private Pal Care](https://greatbison.tail9e8802.ts.net:8444/dashboard).** Both open the same preserved panel; the corner icon yields to dense content. Current-interface guidance and the separately approved **300 new genuine attempts** are the next candidate, **not yet activated/evaluated**. [Actual release and remaining gates](docs/STATUS.md).
 
 **North launcher refinement — candidate under verification:** shared **Explore with North ☆** below the customer header plus a subtle scrolling-accessible corner icon open the same preserved panel. The requested **300-new-call** evaluation prioritizes practical product guidance; actual current access/accounting, results and remaining limits are recorded in [STATUS](docs/STATUS.md), not inferred from the target.

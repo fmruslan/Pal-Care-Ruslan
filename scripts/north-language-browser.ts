@@ -3,25 +3,24 @@ import { expect, type Page, type Route } from "@playwright/test";
 /** Same visible customer interaction for live runs and injected harness checks.
  * Does not decide authority, create a profile, or retry a request. */
 export async function submitLanguageTurn(page: Page, message: string) {
-  const search = page.getByRole("searchbox", {
-    name: "Search products and documents",
-    exact: true,
-  });
   const composer = page.getByRole("textbox", {
     name: "Ask about your purchases",
     exact: true,
   });
-  // Database pages can finish navigation before their streamed inputs mount.
-  // Choose only after an actual visible input exists, not an early DOM count.
+  // Pages expose only the two shared launchers. Opening is non-destructive and
+  // does not dispatch; every explicit question uses the preserved panel composer.
+  const launcher = page.getByRole("button", {
+    name: "Explore with North Star",
+    exact: true,
+  });
   await expect(
-    search.or(composer).filter({ visible: true }).first(),
+    launcher.or(composer).filter({ visible: true }).first(),
   ).toBeVisible();
-  // The floating panel no longer replaces page search. Use its active composer
-  // when present, rather than clicking a page control underneath the sheet.
-  const fromSearch = !(await composer.isVisible());
-  await (fromSearch ? search : composer).fill(message);
+  if (!(await composer.isVisible())) await launcher.click();
+  await expect(composer).toBeVisible();
+  await composer.fill(message);
   const button = page.getByRole("button", {
-    name: fromSearch ? "Ask North Star" : "Send to North Star",
+    name: "Send to North Star",
     exact: true,
   });
   await expect(button).toBeEnabled();

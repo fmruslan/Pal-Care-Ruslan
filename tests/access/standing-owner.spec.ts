@@ -210,8 +210,8 @@ test("recovered browser status enables the real ordinary-language composer while
       `[data-native-north-result][data-request-id="${first.requestId}"]`,
     ),
   ).toBeVisible();
-  // The page search remains mounted beneath North. Exercise the exact panel
-  // follow-up composer that rejected the server's recovery-active status.
+  // Exercise the exact panel follow-up composer that rejected the server's
+  // recovery-active status, with no page search field left underneath.
   await page.goto(OWNER_ORIGIN + "/dashboard");
   // The composer can mount before asynchronous owned-history restoration.
   // Wait for the actual anchor before submitting its follow-up.
@@ -225,7 +225,7 @@ test("recovered browser status enables the real ordinary-language composer while
       name: "Search products and documents",
       exact: true,
     }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
   const composer = dialog.getByRole("textbox", {
     name: "Ask about your purchases",

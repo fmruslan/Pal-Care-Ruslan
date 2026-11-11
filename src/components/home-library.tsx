@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { WorkspaceNavigationLink as Link } from "./intelligence/workspace-navigation-link";
 import { WorkspaceSearchForm } from "./intelligence/workspace-search-form";
-import { NorthSearch, NorthCollection } from "./careos/integrated";
+import { NorthCollection } from "./careos/integrated";
 import { ProductArt } from "./product-art";
 import { PurchaseBadge } from "./vault";
 import { Button } from "./ui/button";
@@ -29,12 +29,10 @@ type Library = ReturnType<typeof homeLibrary>;
 export function LibrarySearch({
   query,
   categories,
-  searchIndex = [],
   purchases = [],
 }: {
   query: LibraryQuery;
   categories: string[];
-  searchIndex?: string[];
   purchases?: LibraryPurchase[];
 }) {
   const filtered =
@@ -45,11 +43,6 @@ export function LibrarySearch({
     query.sort !== "newest";
   return (
     <>
-      <NorthSearch
-        key={libraryHref(query)}
-        query={query}
-        searchIndex={searchIndex}
-      />
       <NorthCollection>
         <WorkspaceSearchForm
           key={libraryHref(query)}

@@ -276,7 +276,7 @@ test("new North panel opens beside the collection with library context and an ed
       name: "Search products and documents",
       exact: true,
     }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(dialog.locator("[data-user-message]")).toHaveCount(0);
   await expect(
     dialog.getByRole("button", {
@@ -323,16 +323,13 @@ test("new North panel opens beside the collection with library context and an ed
   );
 });
 
-test("opening and minimizing North keeps page scroll, collection nodes and independent search/draft intact without dispatch", async ({
+test("opening and minimizing North keeps page scroll, collection/filter nodes and draft intact without dispatch", async ({
   page,
 }) => {
   const log = requestLog(page);
   await page.goto("/purchases");
-  const search = page.getByRole("searchbox", {
-    name: "Search products and documents",
-    exact: true,
-  });
-  const mountedSearch = await search.elementHandle();
+  const category = page.locator('select[name="category"]');
+  const mountedFilter = await category.elementHandle();
   const collection = await page
     .getByRole("heading", { name: "Your products", level: 1, exact: true })
     .elementHandle();
@@ -346,27 +343,27 @@ test("opening and minimizing North keeps page scroll, collection nodes and indep
   const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
   await expect(dialog).toBeVisible();
   expect(await page.evaluate(() => scrollY)).toBe(scrollBefore);
-  expect(await mountedSearch!.evaluate((node) => node.isConnected)).toBe(true);
+  expect(await mountedFilter!.evaluate((node) => node.isConnected)).toBe(true);
   expect(await collection!.evaluate((node) => node.isConnected)).toBe(true);
   const composer = dialog.getByRole("textbox", {
     name: "Ask about your purchases",
     exact: true,
   });
   await composer.fill("Keep this panel question unsent");
-  await search.fill("headphones");
+  await expect(category).toHaveValue("all");
   await expect(composer).toHaveValue("Keep this panel question unsent");
   await dialog
     .getByRole("button", { name: "Minimize North Star", exact: true })
     .click();
   await expect(dialog).toHaveCount(0);
-  await expect(search).toHaveValue("headphones");
+  await expect(category).toHaveValue("all");
   await page
     .getByRole("button", { name: "Restore North Star", exact: true })
     .click();
   await expect(dialog).toBeVisible();
   await expect(composer).toHaveValue("Keep this panel question unsent");
-  await expect(search).toHaveValue("headphones");
-  expect(await mountedSearch!.evaluate((node) => node.isConnected)).toBe(true);
+  await expect(category).toHaveValue("all");
+  expect(await mountedFilter!.evaluate((node) => node.isConnected)).toBe(true);
   expect(await collection!.evaluate((node) => node.isConnected)).toBe(true);
   expect(log.mutations()).toEqual([]);
 });
@@ -1313,13 +1310,13 @@ test("an uncertain Insights plan blocks new sends until GET recovery, then offer
     { careId, planId, requestId, context: headphoneContext },
   );
   await page.goto("/purchases");
-  // A restored panel draft must not overwrite the independent page search.
+  // A restored panel draft remains owned by the panel; no page bar is recreated.
   await expect(
     page.getByRole("searchbox", {
       name: "Search products and documents",
       exact: true,
     }),
-  ).toHaveValue("");
+  ).toHaveCount(0);
   const originalPending = await page.evaluate(() =>
     sessionStorage.getItem("palcare-insights-pending-v1"),
   );

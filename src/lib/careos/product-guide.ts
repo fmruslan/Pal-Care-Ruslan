@@ -19,13 +19,13 @@ export const productGuide = {
     title: "Purchases & Docs",
     href: "/purchases",
     facts:
-      "Purchases & Docs → Purchases / Documents switch. Search; Filters & sort; open intended dated product. Example purchase ≠ Verified Sandbox; similar headphones have distinct histories. No universal import/uploads.",
+      "Purchases & Docs → Purchases / Documents switch. Use Filters & sort, then open the intended dated product. Ask through either North button; no page search bar. Example purchase ≠ Verified Sandbox. No universal import/uploads.",
   },
   receipts: {
     title: "Receipts and documents",
     href: "/documents",
     facts:
-      "Purchases & Docs → Documents → search/filter, or Care → Find a receipt. Dated purchase → Documents → View original record/download. Example receipts are fictional, not manuals/verified payments. Missing stays missing.",
+      "Purchases & Docs → Documents → category/purchase filters, or Care → Find a receipt. Dated purchase → Documents → View original record/download. Ask in North's panel. Example receipts are fictional; missing stays missing.",
   },
   deadlines: {
     title: "Returns and warranty evidence",

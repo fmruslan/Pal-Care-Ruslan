@@ -21,7 +21,13 @@ test("Care is the default and has three calm destinations, factual cards and no 
       .getByRole("navigation", { name: "Main navigation", exact: true })
       .getByRole("link"),
   ).toHaveText(["Care", "Purchases & Docs", "Insights"]);
-  await expect(page.locator("[data-north-search]")).toHaveCount(1);
+  await expect(page.locator("[data-north-search]")).toHaveCount(0);
+  await expect(
+    page.getByRole("searchbox", {
+      name: "Search products and documents",
+      exact: true,
+    }),
+  ).toHaveCount(0);
   const main = page.getByRole("main");
   const calendar = page.getByRole("region", {
     name: "Your next 30 days",
@@ -47,13 +53,13 @@ test("Care is the default and has three calm destinations, factual cards and no 
   await expect(
     card.getByRole("link", { name: "Details", exact: true }),
   ).toBeVisible();
-  const searchBox = await page
-    .locator("[data-north-search] form")
+  const opener = await page
+    .getByRole("button", { name: "Explore with North Star", exact: true })
     .boundingBox();
   const calendarBox = (await calendar.boundingBox())!;
   // The approved homepage puts help and priority items before the calendar;
-  // its primary search/action must remain on the first mobile screen.
-  expect(searchBox!.y + searchBox!.height).toBeLessThan(664);
+  // its shared North opener must remain on the first mobile screen.
+  expect(opener!.y + opener!.height).toBeLessThan(664);
   expect(
     (await main.locator("[data-care-product]").first().boundingBox())!.y,
   ).toBeGreaterThanOrEqual(calendarBox.y + calendarBox.height);
@@ -167,7 +173,7 @@ test("Completed has no invented outcomes and legacy library links preserve their
       name: "Search products and documents",
       exact: true,
     }),
-  ).toHaveValue("kettle");
+  ).toHaveCount(0);
   await expect(page.locator("[data-purchase-card]")).toHaveCount(1);
   await page.goto("/documents");
   await expect(page).toHaveURL(/\/documents$/);

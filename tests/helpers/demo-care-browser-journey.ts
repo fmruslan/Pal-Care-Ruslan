@@ -1,6 +1,7 @@
 // Real dedicated PostgreSQL -> restricted Next runtime -> DOM. North transport
 // is injected; no live model, PayPal, application database or private authority.
 import { spawn } from "node:child_process";
+import { submitLanguageTurn } from "../../scripts/north-language-browser";
 import { mkdir } from "node:fs/promises";
 import { chromium, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
@@ -163,15 +164,10 @@ export async function demoCareBrowserJourney(
           });
         },
       );
-      await page
-        .getByRole("searchbox", {
-          name: "Search products and documents",
-          exact: true,
-        })
-        .fill("What is my refrigerator's retail reference price?");
-      await page
-        .getByRole("button", { name: "Ask North Star", exact: true })
-        .click();
+      await submitLanguageTurn(
+        page,
+        "What is my refrigerator's retail reference price?",
+      );
       const north = page.getByRole("dialog", {
         name: "North Star",
         exact: true,
@@ -182,15 +178,7 @@ export async function demoCareBrowserJourney(
       await north
         .getByRole("button", { name: "Close North Star", exact: true })
         .click();
-      await page
-        .getByRole("searchbox", {
-          name: "Search products and documents",
-          exact: true,
-        })
-        .fill("What's coming up in my next 30 days?");
-      await page
-        .getByRole("button", { name: "Ask North Star", exact: true })
-        .click();
+      await submitLanguageTurn(page, "What's coming up in my next 30 days?");
       await expect(north).toContainText("Your next 30 days");
       await expect(north).toContainText("0 verified Sandbox");
       const request = await north

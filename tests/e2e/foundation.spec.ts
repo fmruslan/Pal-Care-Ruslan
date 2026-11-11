@@ -21,7 +21,9 @@ test("default Care opens the customer library without registration", async ({
   );
 });
 
-test("vault search, filter and empty state work", async ({ page }) => {
+test("legacy vault query URLs, filters and empty states work without a page search bar", async ({
+  page,
+}) => {
   await page.goto("/vault");
   // A streamed Next response can briefly contain an inaccessible staging copy.
   // Target the actual accessible control, then require one hydrated DOM form.
@@ -29,19 +31,17 @@ test("vault search, filter and empty state work", async ({ page }) => {
     name: "Search products and documents",
     exact: true,
   });
-  await expect(search).toHaveCount(1);
+  await expect(search).toHaveCount(0);
   await expect(
     page.getByRole("combobox", { name: "Appearance", exact: true }),
   ).toBeEnabled();
-  await expect(page.locator('input[id="library-search"]')).toHaveCount(1);
-  await search.fill("headphones");
-  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page.locator('input[id="library-search"]')).toHaveCount(0);
+  await page.goto("/purchases?q=headphones");
   await expect(page.getByRole("status")).toContainText("1 purchase");
   await expect(
     page.getByRole("heading", { name: "Everyday headphones", exact: true }),
   ).toBeVisible();
-  await search.fill("not-in-catalog");
-  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await page.goto("/purchases?q=not-in-catalog");
   await expect(
     page.getByRole("heading", {
       name: "No matching purchases",
@@ -49,7 +49,7 @@ test("vault search, filter and empty state work", async ({ page }) => {
   ).toBeVisible();
   await page.getByRole("link", { name: "Show all purchases" }).first().click();
   await expect(page).toHaveURL(/\/purchases$/);
-  await expect(search).toHaveValue("");
+  await expect(search).toHaveCount(0);
   await page.getByText("Filters & sort", { exact: true }).click();
   await expect(
     page.getByRole("combobox", { name: "Category", exact: true }),
