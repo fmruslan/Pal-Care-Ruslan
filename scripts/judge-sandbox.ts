@@ -176,7 +176,9 @@ export function sanitizedSandbox(
       ...d,
       content:
         redact(d.content) +
-        "\n\nHistorical judge copy: provider references pseudonymized; no new provider verification.",
+        (d.origin === "sandbox"
+          ? "\n\nHistorical judge copy: provider references pseudonymized; no new provider verification."
+          : ""),
     })),
     events: events.map((e) => ({
       ...e,

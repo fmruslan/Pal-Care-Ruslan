@@ -163,6 +163,35 @@ describe("validated customer documents", () => {
       label: "Sandbox amount",
       value: "$129.00",
     });
+    const orderAlias = "ARCHIVE" + "A".repeat(24),
+      captureAlias = "ARCHIVE" + "B".repeat(24);
+    const archiveNote =
+      "\n\nHistorical judge copy: provider references pseudonymized; no new provider verification.";
+    const archiveDoc = {
+      ...doc,
+      content:
+        doc.content
+          .replaceAll("TESTORDER12345", orderAlias)
+          .replaceAll("TESTCAPTURE12345", captureAlias) + archiveNote,
+    };
+    const archiveRecord = {
+      ...record,
+      twin: {
+        ...record.twin,
+        paypalOrderId: orderAlias,
+        paypalCaptureId: captureAlias,
+      },
+    };
+    const historical = documentPresentation(archiveDoc, archiveRecord);
+    expect(historical.recognized).toBe(true);
+    expect(historical.status).toBe("Historical PayPal Sandbox verification");
+    expect(historical.limitation).toContain("No new provider verification");
+    expect(
+      documentPresentation(
+        { ...doc, content: doc.content + archiveNote },
+        record,
+      ).recognized,
+    ).toBe(false);
     expect(
       documentPresentation(
         { ...doc, content: doc.content.replace("129.00", "149.00") },
