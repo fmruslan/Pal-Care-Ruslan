@@ -14,8 +14,9 @@ async function openNorth(page: Page) {
     }
   });
   if (!restoreOpen && !(await dialog.isVisible())) {
-    await page.getByRole("button", { name: "History", exact: true }).click();
-    await dialog.getByRole("button", { name: "History", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Ask North Star", exact: true })
+      .click();
   }
   await expect(dialog).toBeVisible();
   return dialog;
@@ -212,12 +213,17 @@ for (const pending of [
           name: "Clear conversation history",
           exact: true,
         });
-        await dialog
-          .getByRole("button", { name: "History", exact: true })
-          .click();
+        // Welcome and active chat place this same unique action differently.
+        const previousChats = dialog.getByRole("button", {
+          name: "Previous chats",
+          exact: true,
+        });
+        await expect(previousChats).toHaveCount(1);
+        await previousChats.click();
         await options.click();
         await expect(clear).toBeEnabled();
         await clear.click();
+        await dialog.getByRole("button", { name: "Back", exact: true }).click();
         await expect(dialog.getByRole("alert")).toBeVisible();
         await expect(dialog.getByRole("alert")).not.toBeEmpty();
         await expect(dialog.locator("[data-pending-question]")).toHaveAttribute(
@@ -240,9 +246,12 @@ for (const pending of [
         // Only this exact JSON 404 is confirmed missing for customerPlanApi;
         // denial, a lease, network failure or a generic 404 is not that proof.
         outcome = 404;
+        await expect(previousChats).toHaveCount(1);
+        await previousChats.click();
         if (!(await clear.isVisible())) await options.click();
         await expect(clear).toBeEnabled();
         await clear.click();
+        await dialog.getByRole("button", { name: "Back", exact: true }).click();
         await expect(dialog.getByRole("alert")).toHaveCount(0);
         await expect(dialog.locator("[data-pending-question]")).toHaveCount(0);
         expect(requests).toEqual([

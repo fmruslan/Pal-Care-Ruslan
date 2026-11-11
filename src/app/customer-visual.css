@@ -357,33 +357,191 @@
   height: auto;
   aspect-ratio: 1;
 }
-.north-inline-workspace textarea:focus-visible,
+.north-floating-panel textarea:focus-visible,
 .north-unified-search:focus-within {
   outline: 2px solid var(--intelligence-foreground);
   outline-offset: 2px;
 }
-.north-inline-workspace.careos-assistant {
-  position: static;
-  inset: auto;
+/* One nonmodal overlay; no body lock, backdrop or customer-page layout change. */
+.north-floating-panel.careos-assistant {
+  position: fixed;
+  z-index: 60;
+  inset: auto 0 var(--careos-keyboard-bottom, 0px);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
   width: 100%;
-  height: auto;
-  max-height: none;
-  border-radius: 0;
-  overflow: visible;
+  height: min(78dvh, 48rem);
+  max-height: min(100dvh, var(--careos-visible-height, 100dvh));
+  overflow: hidden;
+  border: 1px solid var(--intelligence-border);
+  border-radius: 1.5rem 1.5rem 0 0;
+  background: color-mix(in srgb, var(--intelligence) 48%, var(--card));
+  color: var(--foreground);
+  box-shadow: 0 1rem 3rem color-mix(in srgb, var(--foreground) 18%, transparent);
+  overflow-wrap: anywhere;
 }
-.north-inline-workspace .careos-context {
-  padding: 0;
-  max-height: none;
-  overflow: visible;
+.north-panel-header {
+  flex-shrink: 0;
+  padding: 8px;
+  border-bottom: 1px solid var(--intelligence-border);
 }
-.north-inline-workspace .careos-transcript {
-  padding: 0;
-  overflow: visible;
-  scrollbar-gutter: auto;
+.north-panel-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+}
+.north-panel-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 0.75rem;
+  color: var(--muted-foreground);
+}
+.north-panel-icon:hover {
+  color: var(--foreground);
+  background: var(--intelligence);
+}
+.north-floating-panel[data-careos-keyboard="true"] .north-panel-chat-actions {
+  display: none;
+}
+.north-floating-panel button:focus-visible,
+.north-floating-panel a:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+.north-floating-panel .north-panel-body {
+  flex: 1;
+  min-height: 112px;
+  padding: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   overflow-anchor: auto;
 }
-.north-inline-workspace .careos-composer {
+.north-panel-start {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.north-start-star {
+  font-size: 2.75rem;
+  line-height: 1;
+  color: var(--intelligence-foreground);
+}
+.north-start-suggestions {
+  display: grid;
+  gap: 0.5rem;
+}
+.north-start-suggestions button,
+.north-history-chat,
+.north-document-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 2.75rem;
   padding: 0.75rem;
+  border: 1px solid var(--intelligence-border);
+  border-radius: 0.875rem;
+  background: var(--card);
+  text-align: left;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.north-start-suggestions button {
+  justify-content: space-between;
+}
+.north-history-chat {
+  display: block;
+}
+.north-history-chat[aria-current="true"] {
+  border-color: var(--intelligence-foreground);
+}
+.north-chat-question {
+  width: fit-content;
+  max-width: 100%;
+  margin-left: auto;
+  padding: 8px 12px;
+  border-radius: 1rem 1rem 0.25rem 1rem;
+  background: var(--intelligence);
+}
+.north-chat-answer {
+  padding-bottom: 0.75rem;
+}
+.north-panel-records dl {
+  grid-template-columns: minmax(0, 1fr);
+}
+.north-panel-footer {
+  flex-shrink: 1;
+  min-height: 0;
+  max-height: 45%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 0.75rem max(0.75rem, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--intelligence-border);
+}
+.north-panel-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0 0.5rem;
+  padding-block: 0.25rem;
+}
+.north-floating-panel .careos-composer {
+  padding: 0.5rem;
+}
+.north-floating-panel .careos-composer textarea {
+  max-height: min(9rem, 18dvh);
+}
+.north-floating-panel button,
+.north-floating-panel a {
+  max-width: 100%;
+  white-space: normal;
+}
+.north-jump-latest {
+  align-self: center;
+  flex-shrink: 0;
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  color: var(--intelligence-foreground);
+  font-size: 0.875rem;
+  text-decoration: underline;
+}
+.north-panel-restore {
+  position: fixed;
+  z-index: 60;
+  right: 1rem;
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  max-width: calc(100vw - 2rem);
+}
+@media (min-width: 64rem) {
+  .north-floating-panel.careos-assistant {
+    inset: auto 1.25rem 1.25rem auto;
+    width: min(26.25rem, calc(100vw - 2.5rem));
+    height: min(46rem, calc(100dvh - 7rem));
+    max-height: calc(100dvh - 2.5rem);
+    border-radius: 1.5rem;
+  }
+}
+@media (max-width: 23rem) {
+  .north-panel-topbar {
+    flex-wrap: wrap;
+  }
+  .north-panel-topbar > div {
+    margin-left: auto;
+  }
+}
+@media (max-width: 63.999rem) and (max-height: 500px) {
+  .north-floating-panel.careos-assistant {
+    height: calc(100dvh - 56px);
+  }
 }
 .north-native-records > ul:not(.list-disc) {
   display: grid;

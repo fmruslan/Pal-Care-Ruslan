@@ -176,14 +176,20 @@ async function expectUsableTranscript(transcript: Locator, bottom = 800) {
     `usable transcript excludes vertical padding: ${JSON.stringify(await transcript.evaluate((node) => [...node.parentElement!.children].map((child) => ({ class: child.className, height: child.getBoundingClientRect().height, top: child.getBoundingClientRect().top }))))}`,
   ).toBeGreaterThanOrEqual(80);
   expect(geometry.scrollHeight).toBeGreaterThanOrEqual(geometry.clientHeight);
-  // Main-content answers use document scrolling, never a fixed-height drawer.
-  // Sources contains hidden list items until disclosed; read the actual answer
-  // bullets through page flow, not a closed source or a drawer scroll viewport.
+  expect(["auto", "scroll"]).toContain(geometry.overflowY);
+  expect(geometry.scrollHeight).toBeGreaterThan(geometry.clientHeight);
+  const pageScroll = await transcript.evaluate(() => scrollY);
+  // Read the actual answer bullets within the panel's independent scroll area,
+  // not hidden source items. Reading must not move the underlying page.
   const last = transcript
     .locator("[data-latest-answer] > ul.list-disc > li")
     .last();
   await last.scrollIntoViewIfNeeded();
   await expect(last).toBeInViewport();
+  expect(await transcript.evaluate((node) => node.scrollTop)).toBeGreaterThan(
+    0,
+  );
+  expect(await transcript.evaluate(() => scrollY)).toBe(pageScroll);
   await expect(transcript).not.toHaveCSS("position", "fixed");
 }
 
@@ -289,7 +295,10 @@ test("320px assistant has readable body/composer text and reachable 44px primary
     dialog.getByRole("button", { name: "History", exact: true }),
   ])
     await expectControlFits(control);
-  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog
+    .locator("header")
+    .getByRole("button", { name: "Previous chats", exact: true })
+    .click();
   await dialog.getByText("Conversation settings", { exact: true }).click();
   await expectControlFits(
     dialog.getByRole("button", {
@@ -297,7 +306,7 @@ test("320px assistant has readable body/composer text and reachable 44px primary
       exact: true,
     }),
   );
-  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog.getByRole("button", { name: "Back", exact: true }).click();
   const action = dialog.getByRole("link", {
     name: "View full receipt or document",
     exact: true,
@@ -338,7 +347,10 @@ test("200% text enlargement at 320px preserves readable content, controls and a 
     dialog.getByRole("button", { name: "History", exact: true }),
   ])
     await expectControlFits(control);
-  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog
+    .locator("header")
+    .getByRole("button", { name: "Previous chats", exact: true })
+    .click();
   await dialog.getByText("Conversation settings", { exact: true }).click();
   await expectControlFits(
     dialog.getByRole("button", {
@@ -347,7 +359,7 @@ test("200% text enlargement at 320px preserves readable content, controls and a 
     }),
   );
   await expectNoHorizontalClipping(page, dialog);
-  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog.getByRole("button", { name: "Back", exact: true }).click();
   // Optional review artifact only: never a snapshot baseline or live evidence.
   await page.screenshot({
     path: info.outputPath("careos-320-text200-injected.png"),
@@ -456,32 +468,30 @@ test("keyboard focus remains visible with reduced motion and traverses the nonmo
   await page.keyboard.press("Tab");
   await expect(send).toBeFocused();
   await expectControlFits(send);
-  const back = dialog.getByRole("button", {
-    name: "Back to browsing",
-    exact: true,
-  });
   await page.keyboard.press("Tab");
-  await expect(back).toBeFocused();
-  await expectControlFits(back);
+  await expect(dialog).toBeVisible();
+  await expect(composer).toHaveValue(draft);
 
-  // Back is the document's last tabbable control. Firefox need not wrap its
-  // activeElement to the page start when forward Tab reaches browser chrome.
-  // Instead cross the real leading page/workspace boundary in both directions.
-  const history = dialog.getByRole("button", { name: "History", exact: true });
-  const precedingPageLink = page.getByRole("link", {
-    name: "View official recall notice",
-    exact: true,
-  });
-  await history.focus();
-  await expectControlFits(history);
+  // Cross the actual leading page/panel keyboard boundary in both directions.
+  // The panel's fixed position does not imply a focus trap or page inertness.
+  const firstControl = dialog.getByRole("button").first();
+  await firstControl.focus();
+  await expectControlFits(firstControl);
   await page.keyboard.press("Shift+Tab");
-  await expect(precedingPageLink).toBeFocused();
   expect(
     await dialog.evaluate((node) => node.contains(document.activeElement)),
-    "North must allow keyboard exit to the actual preceding page link",
+    "North must allow keyboard exit to the actual preceding page control",
   ).toBe(false);
+  expect(
+    await page.evaluate(() =>
+      document.activeElement?.matches(
+        "a[href], button, input, select, textarea, summary, [tabindex]",
+      ),
+    ),
+    "keyboard exit reaches a page control, not a modal sentinel",
+  ).toBe(true);
   await page.keyboard.press("Tab");
-  await expect(history).toBeFocused();
+  await expect(firstControl).toBeFocused();
   await expect(composer).toHaveValue(draft);
   expect(
     await page.evaluate(
@@ -511,7 +521,7 @@ test("keyboard focus remains visible with reduced motion and traverses the nonmo
   expect(state.forbiddenRequests).toEqual([]);
 });
 
-test("keyboard-sized viewport keeps page-flow composer, result and recovery controls reachable without losing draft", async ({
+test("keyboard-sized viewport keeps panel composer, result and recovery controls reachable without losing draft", async ({
   page,
 }) => {
   const state = await injectConversation(page);
@@ -558,28 +568,30 @@ test("assistant-only axe checks use the project's light or dark appearance (inje
   expect(state.forbiddenRequests).toEqual([]);
 });
 
-test("wide North results occupy main-content width in page flow without overlay or reading-space reservation", async ({
+test("desktop North stays a compact fixed nonmodal panel without overlay or reading-space reservation", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   const state = await injectConversation(page);
-  const { dialog } = await openAssistant(page);
+  const { dialog, transcript, composer } = await openAssistant(page);
   const geometry = await dialog.evaluate((panel) => {
-    const main = panel.closest("#main-content")!;
-    const slot = panel.parentElement!;
     const p = panel.getBoundingClientRect();
-    const s = slot.getBoundingClientRect();
     return {
-      insideMain: !!main,
       position: getComputedStyle(panel).position,
       width: p.width,
-      slotWidth: s.width,
+      right: p.right,
+      bottom: p.bottom,
+      viewportWidth: innerWidth,
+      viewportHeight: innerHeight,
     };
   });
-  expect(geometry.insideMain).toBe(true);
-  expect(["static", "relative"]).toContain(geometry.position);
-  expect(geometry.width).toBeGreaterThan(700);
-  expect(Math.abs(geometry.width - geometry.slotWidth)).toBeLessThanOrEqual(2);
+  expect(geometry.position).toBe("fixed");
+  expect(geometry.width).toBeGreaterThanOrEqual(400);
+  expect(geometry.width).toBeLessThanOrEqual(440);
+  expect(geometry.right).toBeLessThanOrEqual(geometry.viewportWidth);
+  expect(geometry.bottom).toBeLessThanOrEqual(geometry.viewportHeight);
+  await expectUsableTranscript(transcript, 1000);
+  await expectControlFits(composer, 1000);
   await expect(dialog).toHaveAttribute("aria-modal", "false");
   await expect(page.locator(".careos-overlay")).toHaveCount(0);
   await expect(

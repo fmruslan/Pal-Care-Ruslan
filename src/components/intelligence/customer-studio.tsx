@@ -958,6 +958,11 @@ export function CustomerStudio({
         const beforePlanning = stateFingerprint(api.current.getState());
         if (recovery.plan) plan = validateCustomerPlan(recovery.plan);
         else if (live) {
+          // A restored chat resumes only its existing cookie-owned conversation;
+          // the server still authorizes this UUID before planning. New chat's
+          // detach callback clears the native instance's prior conversation.
+          if (recovery.conversationId)
+            conversation.current = recovery.conversationId;
           if (!conversation.current)
             conversation.current = (
               await customerPlanApi<{ id: string }>(

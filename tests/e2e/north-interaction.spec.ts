@@ -12,7 +12,7 @@ import type {
   TurnInput,
 } from "../../src/lib/careos/contracts";
 
-// Integrated main-content regression. The E2E server uses fictional saved records and
+// Integrated panel regression. The E2E server uses fictional saved records and
 // fixture assistance; this is not genuine-model, financial or real-device proof.
 const headphoneId = "00000000-0000-4000-8000-000000000201";
 const headphone = `/vault/${headphoneId}`;
@@ -113,18 +113,9 @@ async function openNorth(page: Page, expectedAlert?: string) {
     exact: true,
   });
   if (!restoreOpen && !(await dialog.isVisible())) {
-    // Home's star submits the unified field; History is the read-only opener
-    // when a retained draft is present. Neither restore nor history can replay.
-    if (
-      ["/dashboard", "/purchases", "/documents"].includes(
-        new URL(page.url()).pathname,
-      )
-    ) {
-      await page.getByRole("button", { name: "History", exact: true }).click();
-      await dialog
-        .getByRole("button", { name: "History", exact: true })
-        .click();
-    } else await launcher.click();
+    // Page search is independent of a retained panel draft. Empty-search entry
+    // opens North without submitting or changing the selected owned result.
+    await launcher.click();
   }
   await expect(dialog).toBeVisible();
   await expect(
@@ -190,7 +181,7 @@ async function chooseHeadphones(page: Page, dialog: Locator) {
   await expect(
     dialog.getByRole("button", { name: "Choose purchase", exact: true }),
   ).toBeFocused();
-  await expect(dialog.locator(".careos-context strong")).toHaveText(
+  await expect(dialog.locator(".north-panel-context strong")).toHaveText(
     "Everyday headphones · F-01",
   );
 }
@@ -205,13 +196,19 @@ async function selectHistory(
     name: "Previous North results",
     exact: true,
   });
+  const messages = await history.locator("ol button").allTextContents();
+  const selectedIndex = messages.findIndex((text) => text.trim() === message);
+  expect(selectedIndex).toBeGreaterThanOrEqual(0);
   await history.getByRole("button", { name: message, exact: true }).click();
-  await expect(dialog.locator("[data-user-message]")).toHaveText(message);
-  await expect(dialog.locator("article[data-request-id]")).toHaveCount(1);
-  await expect(dialog.locator("article[data-request-id]")).toHaveAttribute(
-    "data-request-id",
-    requestId,
+  await expect(dialog.locator("[data-user-message]").last()).toHaveText(
+    message,
   );
+  await expect(dialog.locator("article[data-request-id]")).toHaveCount(
+    selectedIndex + 1,
+  );
+  await expect(
+    dialog.locator("article[data-request-id]").last(),
+  ).toHaveAttribute("data-request-id", requestId);
 }
 
 async function sendCare(page: Page, dialog: Locator, message: string) {
@@ -238,11 +235,8 @@ async function sendCare(page: Page, dialog: Locator, message: string) {
 }
 
 async function navigate(page: Page, label: string, path: string) {
-  const close = page.getByRole("button", {
-    name: "Close North Star",
-    exact: true,
-  });
-  if (await close.isVisible()) await close.click();
+  const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
+  const wasOpen = await dialog.isVisible();
   const navigation = page.getByRole("navigation", {
     name: "Main navigation",
     exact: true,
@@ -260,21 +254,29 @@ async function navigate(page: Page, label: string, path: string) {
   await expect(page).toHaveURL(
     (url) => `${url.pathname}${url.search}` === path,
   );
+  if (wasOpen) await expect(dialog).toBeVisible();
 }
 
-test("new inline North opens with library context and an editable draft but no automatic question", async ({
+test("new North panel opens beside the collection with library context and an editable draft but no automatic question", async ({
   page,
 }) => {
   const log = requestLog(page);
   await page.goto("/purchases");
   const { dialog, composer } = await openNorth(page);
-  await expect(dialog.locator(".careos-context strong")).toHaveText(
+  await expect(dialog.locator(".north-panel-context strong")).toHaveText(
     "All saved purchases",
   );
   await expect(dialog).toHaveAttribute("aria-modal", "false");
-  expect(await dialog.evaluate((node) => !!node.closest("#main-content"))).toBe(
-    true,
-  );
+  await expect(dialog).toHaveCSS("position", "fixed");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Your products", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("searchbox", {
+      name: "Search products and documents",
+      exact: true,
+    }),
+  ).toBeVisible();
   await expect(dialog.locator("[data-user-message]")).toHaveCount(0);
   await expect(
     dialog.getByRole("button", {
@@ -316,9 +318,57 @@ test("new inline North opens with library context and an editable draft but no a
   await expect(composer).toBeFocused();
   expect(log.mutations()).toEqual(before);
   await sendCare(page, dialog, "What does North Star do?");
-  await expect(dialog.locator("[data-user-message]")).toHaveText(
+  await expect(dialog.locator("[data-user-message]").last()).toHaveText(
     "What does North Star do?",
   );
+});
+
+test("opening and minimizing North keeps page scroll, collection nodes and independent search/draft intact without dispatch", async ({
+  page,
+}) => {
+  const log = requestLog(page);
+  await page.goto("/purchases");
+  const search = page.getByRole("searchbox", {
+    name: "Search products and documents",
+    exact: true,
+  });
+  const mountedSearch = await search.elementHandle();
+  const collection = await page
+    .getByRole("heading", { name: "Your products", level: 1, exact: true })
+    .elementHandle();
+  await page.evaluate(() => scrollTo(0, 160));
+  const scrollBefore = await page.evaluate(() => scrollY);
+  // Native click scrolling would mask an opening jump. Deliberate DOM
+  // activation of the existing page launcher keeps this measurement exact.
+  await page
+    .getByRole("button", { name: "Ask North Star", exact: true })
+    .evaluate((node: HTMLButtonElement) => node.click());
+  const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
+  await expect(dialog).toBeVisible();
+  expect(await page.evaluate(() => scrollY)).toBe(scrollBefore);
+  expect(await mountedSearch!.evaluate((node) => node.isConnected)).toBe(true);
+  expect(await collection!.evaluate((node) => node.isConnected)).toBe(true);
+  const composer = dialog.getByRole("textbox", {
+    name: "Ask about your purchases",
+    exact: true,
+  });
+  await composer.fill("Keep this panel question unsent");
+  await search.fill("headphones");
+  await expect(composer).toHaveValue("Keep this panel question unsent");
+  await dialog
+    .getByRole("button", { name: "Minimize North Star", exact: true })
+    .click();
+  await expect(dialog).toHaveCount(0);
+  await expect(search).toHaveValue("headphones");
+  await page
+    .getByRole("button", { name: "Restore North Star", exact: true })
+    .click();
+  await expect(dialog).toBeVisible();
+  await expect(composer).toHaveValue("Keep this panel question unsent");
+  await expect(search).toHaveValue("headphones");
+  expect(await mountedSearch!.evaluate((node) => node.isConnected)).toBe(true);
+  expect(await collection!.evaluate((node) => node.isConnected)).toBe(true);
+  expect(log.mutations()).toEqual([]);
 });
 
 for (const retirement of ["dismiss", "change context"] as const) {
@@ -369,7 +419,10 @@ test("North identity uses a silent outlined star, neutral shell and violet acces
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/purchases");
   const { dialog, composer, transcript } = await openNorth(page);
-  const heading = dialog.locator("header > div").first();
+  const heading = dialog.getByRole("button", {
+    name: "North Star start",
+    exact: true,
+  });
   await expect(heading).toBeVisible();
   await expect(dialog).toHaveAccessibleName("North Star");
   await expect(heading.locator('svg[aria-hidden="true"]')).toHaveAttribute(
@@ -378,6 +431,10 @@ test("North identity uses a silent outlined star, neutral shell and violet acces
   );
   await expect(dialog.getByText(/powered by/i)).toHaveCount(0);
   await expect(page.locator("body")).toContainText("Pal Care");
+  await dialog
+    .getByRole("list", { name: "Question suggestions", exact: true })
+    .getByRole("button", { name: "Find a receipt", exact: true })
+    .click();
   await expect(transcript).toHaveCount(1);
   const colors = await dialog.evaluate((node) => {
     const style = getComputedStyle(node);
@@ -410,7 +467,10 @@ test("North identity uses a silent outlined star, neutral shell and violet acces
       exact: true,
     }),
   ).toHaveCount(0);
-  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog
+    .locator("header")
+    .getByRole("button", { name: "Previous chats", exact: true })
+    .click();
   await dialog
     .getByText("Conversation settings", { exact: true })
     .press("Enter");
@@ -428,7 +488,7 @@ test("North identity uses a silent outlined star, neutral shell and violet acces
     .withTags(["wcag2a", "wcag2aa", "wcag21aa"])
     .analyze();
   expect(accessibility.violations).toEqual([]);
-  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog.getByRole("button", { name: "Back", exact: true }).click();
   await page.keyboard.press("Escape");
   await expect(
     page.getByRole("button", { name: "Ask North Star", exact: true }),
@@ -464,8 +524,10 @@ test("cancel an accidental searchable context picker without messages, navigatio
     dialog.getByRole("button", { name: "Choose purchase", exact: true }),
   ).toBeFocused();
   await expect(composer).toHaveValue("Keep this question while I look");
-  await expect(dialog.locator("[data-user-message]")).toHaveText(turn.message);
-  await expect(dialog.locator(".careos-context strong")).toHaveText(
+  await expect(dialog.locator("[data-user-message]").last()).toHaveText(
+    turn.message,
+  );
+  await expect(dialog.locator(".north-panel-context strong")).toHaveText(
     "All saved purchases",
   );
   await expect(page).toHaveURL(/\/purchases$/);
@@ -485,7 +547,9 @@ test("cancel an accidental searchable context picker without messages, navigatio
     dialog.getByRole("button", { name: "Choose purchase", exact: true }),
   ).toBeFocused();
   await expect(composer).toHaveValue("Keep this question while I look");
-  await expect(dialog.locator("[data-user-message]")).toHaveText(turn.message);
+  await expect(dialog.locator("[data-user-message]").last()).toHaveText(
+    turn.message,
+  );
   expect(log.mutations()).toEqual(before);
 });
 
@@ -519,7 +583,7 @@ test("explicitly choosing the identical implicit purchase persists across anothe
     .getByRole("link", { name: /^View details for Raspberry Pi 5,/ })
     .click();
   await openNorth(page);
-  await expect(dialog.locator(".careos-context strong")).toHaveText(
+  await expect(dialog.locator(".north-panel-context strong")).toHaveText(
     "Everyday headphones · F-01",
   );
   await expect(composer).toHaveValue(
@@ -527,7 +591,7 @@ test("explicitly choosing the identical implicit purchase persists across anothe
   );
   await page.reload();
   await openNorth(page);
-  await expect(dialog.locator(".careos-context strong")).toHaveText(
+  await expect(dialog.locator(".north-panel-context strong")).toHaveText(
     "Everyday headphones · F-01",
   );
   await expect(composer).toHaveValue(
@@ -547,8 +611,10 @@ test("search and directly change/remove persistent purchase context without subm
   await composer.fill("A draft that context controls cannot consume");
   const before = log.mutations();
   await chooseHeadphones(page, dialog);
-  await expect(dialog.locator(".careos-context")).toContainText("Oct 18, 2026");
-  await expect(dialog.locator(".careos-context")).toContainText(
+  await expect(dialog.locator(".north-panel-context")).toContainText(
+    "Oct 18, 2026",
+  );
+  await expect(dialog.locator(".north-panel-context")).toContainText(
     "Example purchase",
   );
   await expect(composer).toHaveValue(
@@ -563,13 +629,15 @@ test("search and directly change/remove persistent purchase context without subm
   await dialog
     .getByRole("button", { name: "Remove purchase context", exact: true })
     .click();
-  await expect(dialog.locator(".careos-context strong")).toHaveText(
+  await expect(dialog.locator(".north-panel-context strong")).toHaveText(
     "All saved purchases",
   );
   await expect(composer).toHaveValue(
     "A draft that context controls cannot consume",
   );
-  await expect(dialog.locator("[data-user-message]")).toHaveText(prior.message);
+  await expect(dialog.locator("[data-user-message]").last()).toHaveText(
+    prior.message,
+  );
   expect(prior.answer.context).toBeNull();
   expect(prior.answer.questionScope).not.toBe("library");
   const priorAnswer = dialog.locator(`[data-request-id="${prior.requestId}"]`);
@@ -612,7 +680,7 @@ test("a supported library query returns computed records, never a selected item'
       expect(turn.answer.recordsResult.totals[0].amountMinor).toBe(30700);
     expect(turn.answer.text).not.toMatch(/\$\s*129|129\.00/);
     expect(turn.answer.purchaseChoices).toBeUndefined();
-    await expect(dialog.locator(".careos-context strong")).toHaveText(
+    await expect(dialog.locator(".north-panel-context strong")).toHaveText(
       "Everyday headphones · F-01",
     );
     await expect(
@@ -639,13 +707,12 @@ test("a supported library query returns computed records, never a selected item'
   // Earlier library answers keep their scope after another product answer.
   for (const turn of libraryTurns) {
     await selectHistory(dialog, turn.message, turn.requestId);
-    await expect(dialog.locator("[data-answer-scope]")).toHaveClass(
+    await expect(dialog.locator("[data-answer-scope]").last()).toHaveClass(
       /\bsr-only\b/,
     );
-    await expect(dialog.locator("article[data-request-id]")).toHaveAttribute(
-      "data-answer-mode",
-      turn.answer.mode,
-    );
+    await expect(
+      dialog.locator("article[data-request-id]").last(),
+    ).toHaveAttribute("data-answer-mode", turn.answer.mode);
   }
 });
 
@@ -670,12 +737,12 @@ test("owned result history and draft survive navigation, Insights, return and cl
       });
     opened = await openNorth(page);
     await expect(opened.composer).toHaveValue("Keep this cross-page draft");
-    await expect(opened.dialog.locator("[data-user-message]")).toHaveText(
-      care.message,
-    );
-    await expect(opened.dialog.locator(".careos-context strong")).toHaveText(
-      "Everyday headphones · F-01",
-    );
+    await expect(
+      opened.dialog.locator("[data-user-message]").last(),
+    ).toHaveText(care.message);
+    await expect(
+      opened.dialog.locator(".north-panel-context strong"),
+    ).toHaveText("Everyday headphones · F-01");
     await expect(
       opened.dialog.getByRole("link", {
         name: "View full receipt or document",
@@ -696,22 +763,23 @@ test("owned result history and draft survive navigation, Insights, return and cl
   await expect(opened.dialog.locator("[data-latest-answer]")).toContainText(
     "I checked the view and its purchases after making the change",
   );
-  await expect(opened.dialog.locator("[data-user-message]")).toHaveText(
+  await expect(opened.dialog.locator("[data-user-message]").last()).toHaveText(
     "Reset this dashboard",
   );
   const planId = await opened.dialog
     .locator("article[data-request-id]")
+    .last()
     .getAttribute("data-request-id");
   await selectHistory(opened.dialog, care.message, care.requestId);
   await expect(
-    opened.dialog.locator("article[data-request-id]"),
+    opened.dialog.locator("article[data-request-id]").last(),
   ).toHaveAttribute("data-request-id", care.requestId);
-  await expect(opened.dialog.locator("[data-answer-scope]")).toContainText(
-    "Everyday headphones · F-01",
-  );
+  await expect(
+    opened.dialog.locator("[data-latest-answer] [data-answer-scope]"),
+  ).toContainText("Everyday headphones · F-01");
   await selectHistory(opened.dialog, "Reset this dashboard", planId!);
   await expect(
-    opened.dialog.locator("article[data-request-id]"),
+    opened.dialog.locator("article[data-request-id]").last(),
   ).toHaveAttribute("data-request-id", planId!);
   expect(planId).not.toBe(care.requestId);
   await opened.composer.fill("Retain this after the Insights answer");
@@ -732,20 +800,20 @@ test("owned result history and draft survive navigation, Insights, return and cl
   await expect(opened.composer).toHaveValue(
     "Retain this after the Insights answer",
   );
-  await expect(opened.dialog.locator("[data-user-message]")).toHaveText(
+  await expect(opened.dialog.locator("[data-user-message]").last()).toHaveText(
     "Reset this dashboard",
   );
   await expect(
-    opened.dialog.locator("article[data-request-id]"),
+    opened.dialog.locator("article[data-request-id]").last(),
   ).toHaveAttribute("data-request-id", planId!);
   await selectHistory(opened.dialog, care.message, care.requestId);
   await expect(
-    opened.dialog.locator("article[data-request-id]"),
+    opened.dialog.locator("article[data-request-id]").last(),
   ).toHaveAttribute("data-request-id", care.requestId);
-  await expect(opened.dialog.locator("[data-answer-scope]")).toContainText(
-    "Everyday headphones · F-01",
-  );
-  await expect(opened.dialog.locator(".careos-context strong")).toHaveText(
+  await expect(
+    opened.dialog.locator("[data-latest-answer] [data-answer-scope]"),
+  ).toContainText("Everyday headphones · F-01");
+  await expect(opened.dialog.locator(".north-panel-context strong")).toHaveText(
     "Everyday headphones · F-01",
   );
   expect(log.mutations()).toEqual(mutations);
@@ -767,7 +835,7 @@ test("Insights routes supported library queries and exact-product receipt/amount
     dialog,
     "Find purchases with receipts.",
   );
-  await expect(dialog.locator("[data-user-message]")).toHaveText(
+  await expect(dialog.locator("[data-user-message]").last()).toHaveText(
     "Find purchases with receipts.",
   );
   expect(libraryTurn.answer.questionScope).toBe("library");
@@ -786,7 +854,7 @@ test("Insights routes supported library queries and exact-product receipt/amount
     /\bsr-only\b/,
   );
   const libraryId = await library.getAttribute("data-request-id");
-  await expect(dialog.locator(".careos-context strong")).toHaveText(
+  await expect(dialog.locator(".north-panel-context strong")).toHaveText(
     "Everyday headphones · F-01",
   );
   const productReceipt = await sendCare(page, dialog, "Find receipt");
@@ -828,6 +896,7 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
   const log = requestLog(page);
   const careId = "00000000-0000-4000-8000-000000008101";
   const planId = "00000000-0000-4000-8000-000000008102";
+  const chatId = "00000000-0000-4000-8000-000000008108";
   const plannedQuestion = "Show my documents";
   const first = injectedTurn(
     "00000000-0000-4000-8000-000000008103",
@@ -890,8 +959,7 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
       });
   });
   await page.goto("/insights");
-  // Wait for the root's initial presentation commit before installing the saved
-  // tab fixture. Otherwise its queued bootstrap can overwrite the injected order.
+  // Let the initial page settle before preparing the saved-chat fixture.
   await expect
     .poll(() =>
       page.evaluate(
@@ -899,8 +967,15 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
       ),
     )
     .toBe(true);
-  await page.evaluate(
-    ({ careId, planId, order, context }) => {
+  // Install once before reload hydration: the departing page flushes its own
+  // presentation on pagehide. Later reloads must exercise actual persistence,
+  // not reinstall the expected order, draft or selected result.
+  await page.addInitScript(
+    ({ careId, planId, chatId, order, context }) => {
+      const fixtureKey = "palcare-e2e-merged-history-installed";
+      if (sessionStorage.getItem(fixtureKey) === chatId) return;
+      const draft = "Keep this draft through history reload";
+      const savedAt = Date.now();
       sessionStorage.setItem("palcare-careos-conversation", careId);
       sessionStorage.setItem(
         "palcare-insights-history-v1",
@@ -908,7 +983,7 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
           {
             conversationId: planId,
             requestId: order[1],
-            createdAt: Date.now(),
+            createdAt: savedAt,
           },
         ]),
       );
@@ -919,14 +994,49 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
           context,
           explicit: true,
           order,
-          draft: "Keep this draft through history reload",
-          savedAt: Date.now(),
+          draft,
+          savedAt,
         }),
       );
+      // Modern metadata is authoritative; singleton keys are compatibility
+      // selectors and cannot add turns to a different existing chat.
+      sessionStorage.setItem(
+        "palcare-north-chats-v1",
+        JSON.stringify({
+          version: 1,
+          activeChatId: chatId,
+          chats: [
+            {
+              id: chatId,
+              title: "Earlier saved receipt question",
+              preview: "Later saved care question",
+              context,
+              explicit: true,
+              draft,
+              activeResultId: order[2],
+              order,
+              dismissed: [],
+              channels: { care: careId, records: null, insights: [planId] },
+              updatedAt: savedAt,
+            },
+          ],
+        }),
+      );
+      sessionStorage.setItem(
+        "palcare-north-workspace-v1",
+        JSON.stringify({
+          version: 1,
+          id: order[2],
+          open: false,
+          historySelected: false,
+        }),
+      );
+      sessionStorage.setItem(fixtureKey, chatId);
     },
     {
       careId,
       planId,
+      chatId,
       order: [first.requestId, planned.requestId, last.requestId],
       context: headphoneContext,
     },
@@ -940,9 +1050,17 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
       timeout: 20_000,
     });
     const { dialog, composer } = await openNorth(page);
-    await expect(dialog.locator("[data-user-message]")).toHaveText(
+    await expect(dialog.locator("[data-user-message]").last()).toHaveText(
       last.message,
     );
+    await expect(dialog.locator("article[data-request-id]")).toHaveCount(3);
+    expect(
+      await dialog
+        .locator("article[data-request-id]")
+        .evaluateAll((nodes) =>
+          nodes.map((node) => node.getAttribute("data-request-id")),
+        ),
+    ).toEqual([first.requestId, planned.requestId, last.requestId]);
     await dialog.getByRole("button", { name: "History", exact: true }).click();
     await expect(
       dialog
@@ -966,20 +1084,18 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
     await expect(composer).toHaveValue(
       "Keep this draft through history reload",
     );
-    await expect(dialog.locator(".careos-context strong")).toHaveText(
+    await expect(dialog.locator(".north-panel-context strong")).toHaveText(
       "Everyday headphones · F-01",
     );
-    await expect(dialog.locator("article[data-request-id]")).toHaveCount(1);
+    await expect(dialog.locator("article[data-request-id]")).toHaveCount(2);
     await selectHistory(dialog, first.message, first.requestId);
-    await expect(dialog.locator("article[data-request-id]")).toHaveAttribute(
-      "data-request-id",
-      first.requestId,
-    );
+    await expect(
+      dialog.locator("article[data-request-id]").last(),
+    ).toHaveAttribute("data-request-id", first.requestId);
     await selectHistory(dialog, last.message, last.requestId);
-    await expect(dialog.locator("article[data-request-id]")).toHaveAttribute(
-      "data-request-id",
-      last.requestId,
-    );
+    await expect(
+      dialog.locator("article[data-request-id]").last(),
+    ).toHaveAttribute("data-request-id", last.requestId);
     await expect
       .poll(() =>
         page.evaluate(
@@ -1019,8 +1135,10 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
   // history. The browser's ID index never supplies private transcript content.
   const deniedPlanId = "00000000-0000-4000-8000-000000008106";
   const deniedRequestId = "00000000-0000-4000-8000-000000008107";
-  await page.evaluate(
+  await page.addInitScript(
     ({ deniedPlanId, deniedRequestId }) => {
+      const fixtureKey = "palcare-e2e-denied-history-installed";
+      if (sessionStorage.getItem(fixtureKey) === deniedPlanId) return;
       const available = JSON.parse(
         sessionStorage.getItem("palcare-insights-history-v1")!,
       );
@@ -1035,6 +1153,22 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
           ...available,
         ]),
       );
+      const index = JSON.parse(
+        sessionStorage.getItem("palcare-north-chats-v1")!,
+      ) as {
+        activeChatId: string;
+        chats: Array<{
+          id: string;
+          order: string[];
+          channels: { insights: string[] };
+        }>;
+      };
+      const active = index.chats.find((chat) => chat.id === index.activeChatId);
+      if (!active) throw Error("injected_active_chat_missing");
+      active.order = [deniedRequestId, ...active.order];
+      active.channels.insights = [deniedPlanId, ...active.channels.insights];
+      sessionStorage.setItem("palcare-north-chats-v1", JSON.stringify(index));
+      sessionStorage.setItem(fixtureKey, deniedPlanId);
     },
     { deniedPlanId, deniedRequestId },
   );
@@ -1047,7 +1181,9 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
   await expect(denied.getByRole("alert")).toContainText(
     "Some saved Insights history is unavailable. Available entries were restored",
   );
-  await expect(denied.locator("[data-user-message]")).toHaveText(last.message);
+  await expect(denied.locator("[data-user-message]").last()).toHaveText(
+    last.message,
+  );
   await expect(
     denied.locator(`[data-request-id="${deniedRequestId}"]`),
   ).toHaveCount(0);
@@ -1177,12 +1313,13 @@ test("an uncertain Insights plan blocks new sends until GET recovery, then offer
     { careId, planId, requestId, context: headphoneContext },
   );
   await page.goto("/purchases");
+  // A restored panel draft must not overwrite the independent page search.
   await expect(
     page.getByRole("searchbox", {
       name: "Search products and documents",
       exact: true,
     }),
-  ).toHaveValue("Find receipt");
+  ).toHaveValue("");
   const originalPending = await page.evaluate(() =>
     sessionStorage.getItem("palcare-insights-pending-v1"),
   );
@@ -1196,7 +1333,7 @@ test("an uncertain Insights plan blocks new sends until GET recovery, then offer
   const { dialog, composer } = await openNorth(page);
   const expectRetainedDraftAndContext = async () => {
     await expect(composer).toHaveValue("Find receipt");
-    await expect(dialog.locator(".careos-context strong")).toHaveText(
+    await expect(dialog.locator(".north-panel-context strong")).toHaveText(
       "Everyday headphones · F-01",
     );
     await expect(

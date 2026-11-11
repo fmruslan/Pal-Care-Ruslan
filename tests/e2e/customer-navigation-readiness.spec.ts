@@ -85,7 +85,12 @@ for (const width of [375, 430, 1440]) {
         .getByRole("link", { name: "Purchases & Docs", exact: true })
         .press("Enter");
       await expect(page).toHaveURL(/\/purchases$/);
-      await page.getByRole("button", { name: "History", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Ask North Star", exact: true })
+        .click();
+      await dialog
+        .getByRole("button", { name: "New chat", exact: true })
+        .click();
       await dialog
         .getByLabel("Ask about your purchases", { exact: true })
         .fill(draft);
@@ -114,6 +119,10 @@ for (const width of [375, 430, 1440]) {
       );
       releaseImport();
       await page.getByRole("button", { name: "History", exact: true }).click();
+      await expect(
+        dialog.getByRole("heading", { name: "Previous chats", exact: true }),
+      ).toBeVisible();
+      await dialog.getByRole("button", { name: new RegExp(draft) }).click();
       await expect(
         dialog.getByLabel("Ask about your purchases", { exact: true }),
       ).toHaveValue(draft);

@@ -16,7 +16,9 @@ export async function submitLanguageTurn(page: Page, message: string) {
   await expect(
     search.or(composer).filter({ visible: true }).first(),
   ).toBeVisible();
-  const fromSearch = await search.isVisible();
+  // The floating panel no longer replaces page search. Use its active composer
+  // when present, rather than clicking a page control underneath the sheet.
+  const fromSearch = !(await composer.isVisible());
   await (fromSearch ? search : composer).fill(message);
   const button = page.getByRole("button", {
     name: fromSearch ? "Ask North Star" : "Send to North Star",

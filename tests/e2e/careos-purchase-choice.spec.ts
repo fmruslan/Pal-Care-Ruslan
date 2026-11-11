@@ -189,11 +189,12 @@ async function selectHistory(
     .getByRole("button", { name: turn!.message, exact: true });
   await expect(entries).toHaveCount(sameMessage.length);
   await entries.nth(index).click();
-  await expect(dialog.locator("article[data-request-id]")).toHaveAttribute(
-    "data-request-id",
-    requestId,
+  const activeResult = dialog.locator("article[data-native-north-result]");
+  await expect(activeResult).toHaveCount(1);
+  await expect(activeResult).toHaveAttribute("data-request-id", requestId);
+  await expect(activeResult.locator("[data-user-message]")).toHaveText(
+    turn!.message,
   );
-  await expect(dialog.locator("[data-user-message]")).toHaveText(turn!.message);
 }
 
 // Catch accidental browser-local date conversion (the stored dates are UTC).
@@ -253,17 +254,17 @@ test("one direct dated choice creates exactly one scoped follow-up without navig
   expect(followUp.message).toBe(original.message);
   expect(followUp.revision).toBeGreaterThan(original.revision);
   await expect(group).toHaveCount(0);
-  // Only the active pending follow-up is rendered; the immutable selection
-  // remains available through History, not alongside the new answer.
+  // While the follow-up is pending, only its question is rendered. Once it
+  // completes, the original selection returns as an inactive transcript entry.
   await expect(selection).toHaveCount(0);
   await expect(dialog.locator("article[data-request-id]")).toHaveCount(1);
   await expect(dialog.locator("[data-pending-question]")).toHaveAttribute(
     "data-request-id",
     followUp.requestId,
   );
-  await expect(dialog.locator("[data-user-message]")).toHaveText(
-    originalQuestion,
-  );
+  await expect(
+    dialog.locator("[data-pending-question] [data-user-message]"),
+  ).toHaveText(originalQuestion);
   await expect(
     dialog.getByRole("link", { name: "Open receipt", exact: true }),
   ).toHaveCount(0);
@@ -283,8 +284,23 @@ test("one direct dated choice creates exactly one scoped follow-up without navig
   await expect(dialog.locator("strong")).toHaveText(
     "Everyday headphones · F-01",
   );
-  await expect(selection).toHaveCount(0);
+  await expect(selection).toHaveAttribute(
+    "data-request-id",
+    original.requestId,
+  );
+  await expect(
+    selection.getByText(inactiveNote, { exact: true }),
+  ).toBeVisible();
+  await expect(group).toHaveCount(0);
+  await expect(selection.getByRole("button")).toHaveCount(0);
+  await expect(selection.getByRole("link")).toHaveCount(0);
+  await expect(selection.locator("[data-user-message]")).toHaveText(
+    originalQuestion,
+  );
   await expect(answer).toHaveAttribute("data-request-id", followUp.requestId);
+  await expect(
+    dialog.locator("article[data-native-north-result]"),
+  ).toHaveAttribute("data-request-id", followUp.requestId);
   expect(state.inputs).toHaveLength(2);
 
   await page.reload();
@@ -369,7 +385,12 @@ test("dismiss a clarification without changing history, context or the next draf
   await composer.fill("Keep this different question unsent");
   await expect(composer).toHaveValue("Keep this different question unsent");
   await expect(dialog.getByText(inactiveNote, { exact: true })).toBeVisible();
-  await expect(dialog.locator("[data-user-message]")).toHaveText(
+  const activeResult = dialog.locator("article[data-native-north-result]");
+  await expect(activeResult).toHaveAttribute(
+    "data-request-id",
+    state.inputs[0].requestId,
+  );
+  await expect(activeResult.locator("[data-user-message]")).toHaveText(
     originalQuestion,
   );
   await selectHistory(dialog, state.saved, state.saved.turns[0].requestId);

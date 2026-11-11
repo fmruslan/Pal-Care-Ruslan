@@ -343,7 +343,7 @@ test("visible product sections, dated receipt, source labels and safe return nav
   ).toContainText("Example receipt. No payment was processed.");
 });
 
-test("one North field retains drafts until explicit search, while pinned context survives product, document and Insights navigation without auto-send", async ({
+test("independent search and North drafts preserve pinned context through product, document and Insights navigation without auto-send", async ({
   page,
 }) => {
   const turns: string[] = [],
@@ -375,9 +375,13 @@ test("one North field retains drafts until explicit search, while pinned context
   await page
     .getByRole("link", { name: "Back to Purchases", exact: true })
     .click();
-  await expect(search(page)).toHaveValue("Retain this Home-library draft");
+  // Page search must neither inherit nor clear the panel's prepared question.
+  await expect(search(page)).toHaveValue("");
   await search(page).fill("kettle receipt");
+  await expect(page).toHaveURL(/\/purchases$/);
   await page.getByRole("button", { name: "Search", exact: true }).click();
+  await expect(page).toHaveURL(/\/purchases\?q=kettle\+receipt$/);
+  await expect(search(page)).toHaveValue("kettle receipt");
   await page
     .getByTestId("library-documents")
     .getByRole("link", { name: /^Open Pour-over kettle receipt,/ })
@@ -388,9 +392,9 @@ test("one North field retains drafts until explicit search, while pinned context
       exact: true,
     })
     .click();
-  await expect(composer).toHaveValue("");
+  await expect(composer).toHaveValue("Retain this Home-library draft");
   await composer.fill("Continue care after the explicit metadata search");
-  await expect(dialog.locator(".careos-context strong")).toHaveText(
+  await expect(dialog.locator(".north-panel-context strong")).toHaveText(
     "Pour-over kettle · H-02",
   );
   await dialog
@@ -409,7 +413,7 @@ test("one North field retains drafts until explicit search, while pinned context
   await expect(composer).toHaveValue(
     "Continue care after the explicit metadata search",
   );
-  await expect(dialog.locator(".careos-context strong")).toHaveText(
+  await expect(dialog.locator(".north-panel-context strong")).toHaveText(
     "Pour-over kettle · H-02",
   );
   expect(turns).toEqual([]);

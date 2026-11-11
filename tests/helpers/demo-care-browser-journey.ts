@@ -214,10 +214,9 @@ export async function demoCareBrowserJourney(
           })
           .getByRole("link", { name: destination, exact: true })
           .click();
-        await expect(north).toHaveCount(0);
-        await page
-          .getByRole("button", { name: "History", exact: true })
-          .click();
+        // The fixed nonmodal panel survives tab navigation; the underlying
+        // destination and its collection/Studio stay available beside it.
+        await expect(north).toBeVisible();
         await expect(
           north.locator(`[data-request-id="${request}"]`),
         ).toBeVisible();
@@ -228,6 +227,9 @@ export async function demoCareBrowserJourney(
             exact: true,
           }),
         ).toHaveCount(0);
+        await north
+          .getByRole("button", { name: "History", exact: true })
+          .click();
         await north
           .getByRole("region", { name: "Previous North results", exact: true })
           .getByRole("button", {
@@ -247,10 +249,10 @@ export async function demoCareBrowserJourney(
           })
           .click();
         await expect(north).toContainText("Your next 30 days");
-        await north
-          .getByRole("button", { name: "Close North Star", exact: true })
-          .click();
       }
+      await north
+        .getByRole("button", { name: "Close North Star", exact: true })
+        .click();
       expect(turns).toBe(2);
       expect(forbidden).toEqual([]);
       await page.screenshot({

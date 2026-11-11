@@ -283,7 +283,10 @@ async function ask(page: Page, message: string) {
   const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
   await expect(dialog).toHaveAttribute("aria-modal", "false");
   expect(await dialog.evaluate((node) => !!node.closest("#main-content"))).toBe(
-    true,
+    false,
+  );
+  expect(await dialog.evaluate((node) => getComputedStyle(node).position)).toBe(
+    "fixed",
   );
   const composer = dialog.getByLabel("Ask about your purchases", {
     exact: true,

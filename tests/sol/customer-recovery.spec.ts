@@ -10,19 +10,32 @@ test("a lost customer plan recovers by GET and requires explicit SDK application
     { name: "palcare-ai-studio", value: studio, url: origin },
   ]);
   let planPosts = 0;
-  let recoveryReads = 0;
+  const postActions: string[] = [];
+  const planRequests: { requestId: string; conversationId: string }[] = [];
+  const reads: { phase: string; conversationId: string | null }[] = [];
+  let readPhase = "bootstrap";
   let releasePlanning!: () => void;
   const planningGate = new Promise<void>((resolve) => {
     releasePlanning = resolve;
   });
   await page.route("**/api/intelligence/customer/plan**", async (route) => {
     const request = route.request();
-    if (request.method() === "GET") recoveryReads++;
+    if (request.method() === "GET")
+      reads.push({
+        phase: readPhase,
+        conversationId: new URL(request.url()).searchParams.get(
+          "conversationId",
+        ),
+      });
+    if (request.method() === "POST")
+      postActions.push(request.postDataJSON()?.action);
     if (
       request.method() === "POST" &&
       request.postDataJSON()?.action === "plan"
     ) {
       planPosts++;
+      const { requestId, conversationId } = request.postDataJSON();
+      planRequests.push({ requestId, conversationId });
       await planningGate;
       const saved = await route.fetch();
       expect(saved.status()).toBe(200);
@@ -84,14 +97,51 @@ test("a lost customer plan recovers by GET and requires explicit SDK application
     dialog.getByRole("button", { name: "Check for saved answer", exact: true }),
   ).toBeVisible({ timeout: 20000 });
   expect(planPosts).toBe(1);
+  expect(postActions).toEqual(["start", "plan"]);
+  expect(reads).toEqual([]);
+  const originalHint = await page.evaluate(() =>
+    sessionStorage.getItem("palcare-insights-pending-v1"),
+  );
+  expect(originalHint).not.toBeNull();
+  const original = JSON.parse(originalHint!);
+  expect(planRequests).toEqual([
+    { requestId: original.requestId, conversationId: original.conversationId },
+  ]);
+  const bootstrapResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      response.request().method() === "GET" &&
+      url.pathname === "/api/intelligence/customer/plan" &&
+      url.searchParams.get("conversationId") === original.conversationId
+    );
+  });
   dialog = await load();
+  expect((await bootstrapResponse).status()).toBe(200);
   await expect(dialog.locator("[data-pending-question]")).toContainText(
     "Which purchases have care instructions?",
   );
+  await expect(dialog.locator("[data-pending-question]")).toHaveAttribute(
+    "data-request-id",
+    original.requestId,
+  );
+  const check = dialog.getByRole("button", {
+    name: "Check for saved answer",
+    exact: true,
+  });
+  // Reopening restores this chat's owned conversation by GET. That read must
+  // finish once, without replaying the uncertain plan or applying its SDK view.
+  await expect(check).toBeEnabled();
+  expect(reads).toEqual([
+    { phase: "bootstrap", conversationId: original.conversationId },
+  ]);
+  expect(
+    await page.evaluate(() =>
+      sessionStorage.getItem("palcare-insights-pending-v1"),
+    ),
+  ).toBe(originalHint);
   expect(planPosts).toBe(1);
-  await dialog
-    .getByRole("button", { name: "Check for saved answer", exact: true })
-    .click();
+  readPhase = "check";
+  await check.click();
   await expect(dialog.getByText(/Planning result recovered/)).toBeVisible();
   await expect(
     page.getByRole("button", {
@@ -100,7 +150,12 @@ test("a lost customer plan recovers by GET and requires explicit SDK application
       includeHidden: true,
     }),
   ).toHaveAttribute("aria-pressed", "true");
-  expect(recoveryReads).toBe(1);
+  const expectedReads = [
+    { phase: "bootstrap", conversationId: original.conversationId },
+    { phase: "check", conversationId: original.conversationId },
+  ];
+  expect(reads).toEqual(expectedReads);
+  readPhase = "apply";
   await dialog
     .getByRole("button", { name: "Apply saved view", exact: true })
     .click();
@@ -115,4 +170,6 @@ test("a lost customer plan recovers by GET and requires explicit SDK application
     }),
   ).toHaveAttribute("aria-pressed", "true");
   expect(planPosts).toBe(1);
+  expect(postActions).toEqual(["start", "plan"]);
+  expect(reads).toEqual(expectedReads);
 });

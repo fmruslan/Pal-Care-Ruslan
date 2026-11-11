@@ -17,19 +17,9 @@ async function open(page: Page) {
     }
   });
   if (!restoreOpen && !(await dialog.isVisible())) {
-    if (
-      ["/dashboard", "/purchases", "/documents"].includes(
-        new URL(page.url()).pathname,
-      )
-    ) {
-      await page.getByRole("button", { name: "History", exact: true }).click();
-      await dialog
-        .getByRole("button", { name: "History", exact: true })
-        .click();
-    } else
-      await page
-        .getByRole("button", { name: "Ask North Star", exact: true })
-        .click();
+    await page
+      .getByRole("button", { name: "Ask North Star", exact: true })
+      .click();
   }
   await expect(dialog).toBeVisible();
   await expect(
@@ -73,16 +63,137 @@ async function selectHistory(
   requestId: string,
 ) {
   await dialog.getByRole("button", { name: "History", exact: true }).click();
-  await dialog
-    .getByRole("region", { name: "Previous North results", exact: true })
-    .getByRole("button", { name: message, exact: true })
+  const history = dialog.getByRole("region", {
+    name: "Previous North results",
+    exact: true,
+  });
+  const messages = await history.locator("ol button").allTextContents();
+  const selectedIndex = messages.findIndex((text) => text.trim() === message);
+  expect(selectedIndex).toBeGreaterThanOrEqual(0);
+  await history.getByRole("button", { name: message, exact: true }).click();
+  await expect(dialog.locator("article[data-request-id]")).toHaveCount(
+    selectedIndex + 1,
+  );
+  await expect(
+    dialog.locator("article[data-request-id]").last(),
+  ).toHaveAttribute("data-request-id", requestId);
+  await expect(dialog.locator("[data-user-message]").last()).toHaveText(
+    message,
+  );
+}
+
+async function showAllFourPurchases(article: Locator) {
+  const items = article
+    .getByRole("list", { name: "Matching saved purchases", exact: true })
+    .locator(":scope > li");
+  await expect(items).toHaveCount(3);
+  await article
+    .getByRole("button", {
+      name: "Show more purchases (1 remaining)",
+      exact: true,
+    })
     .click();
+  await expect(items).toHaveCount(4);
+}
+
+test("New chat is lazy and separates owned conversations; Previous chats restores the original result and draft by GET without replay", async ({
+  page,
+  context,
+}) => {
+  const mutations: string[] = [];
+  page.on("request", (request) => {
+    if (!["GET", "HEAD", "OPTIONS"].includes(request.method()))
+      mutations.push(`${request.method()} ${new URL(request.url()).pathname}`);
+  });
+  await page.goto("/purchases");
+  const dialog = await open(page);
+  const composer = dialog.getByRole("textbox", {
+    name: "Ask about your purchases",
+    exact: true,
+  });
+  const header = dialog.locator("header");
+  await expect(
+    dialog.getByRole("region", { name: "North start", exact: true }),
+  ).toBeVisible();
+  expect(mutations).toEqual([]);
+  const original = await ask(page, "Show my purchases");
+  const originalId = await page.evaluate(() =>
+    sessionStorage.getItem("palcare-records-conversation-v1"),
+  );
+  expect(originalId).toBeTruthy();
+  await composer.fill("Keep this draft in the original chat");
+  const beforeNew = [...mutations];
+  await header.getByRole("button", { name: "New chat", exact: true }).click();
+  await expect(dialog.locator("article[data-request-id]")).toHaveCount(0);
+  await expect(composer).toHaveValue("");
+  await expect(
+    dialog.getByRole("region", {
+      name: "North Star conversation",
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(mutations).toEqual(beforeNew);
+  await header
+    .getByRole("button", { name: "North Star start", exact: true })
+    .click();
+  await expect(
+    dialog.getByRole("region", { name: "North start", exact: true }),
+  ).toBeVisible();
+  expect(mutations).toEqual(beforeNew);
+  const suggestion = "Find a receipt";
+  await dialog
+    .getByRole("list", { name: "Question suggestions", exact: true })
+    .getByRole("button", { name: suggestion, exact: true })
+    .click();
+  await expect(composer).toHaveValue(suggestion);
+  await expect(dialog.locator("[data-user-message]")).toHaveCount(0);
+  expect(mutations).toEqual(beforeNew);
+  const second = await ask(page, "Find purchases with receipts");
+  const secondId = await page.evaluate(() =>
+    sessionStorage.getItem("palcare-records-conversation-v1"),
+  );
+  expect(secondId).toBeTruthy();
+  expect(secondId).not.toBe(originalId);
+  expect(second.turn.requestId).not.toBe(original.turn.requestId);
+  await expect(dialog.locator("article[data-request-id]")).toHaveCount(1);
+  const beforeSelection = [...mutations];
+  await header
+    .getByRole("button", { name: "Previous chats", exact: true })
+    .click();
+  await dialog
+    .getByRole("region", { name: "Previous chats", exact: true })
+    .getByRole("button")
+    .filter({ has: page.getByText("Show my purchases", { exact: true }) })
+    .click();
+  await expect(composer).toHaveValue("Keep this draft in the original chat");
+  await expect(dialog.locator("article[data-request-id]")).toHaveCount(1);
   await expect(dialog.locator("article[data-request-id]")).toHaveAttribute(
     "data-request-id",
-    requestId,
+    original.turn.requestId,
   );
-  await expect(dialog.locator("[data-user-message]")).toHaveText(message);
-}
+  expect(mutations).toEqual(beforeSelection);
+  // Both transcripts remain server-owned and unchanged after local separation.
+  for (const [conversationId, requestId] of [
+    [originalId, original.turn.requestId],
+    [secondId, second.turn.requestId],
+  ]) {
+    const saved = await context.request.get(
+      `/api/careos/records/conversations/${conversationId}`,
+    );
+    expect(saved.ok()).toBe(true);
+    expect(
+      (await saved.json()).turns.map((turn: CareTurn) => turn.requestId),
+    ).toEqual([requestId]);
+  }
+  await page.reload();
+  await open(page);
+  await expect(composer).toHaveValue("Keep this draft in the original chat");
+  await expect(dialog.locator("article[data-request-id]")).toHaveAttribute(
+    "data-request-id",
+    original.turn.requestId,
+  );
+  expect(mutations).toEqual(beforeSelection);
+});
 
 test("actual saved records → bullets → totals → category/date follow-up retains exact snapshots and no model transport", async ({
   page,
@@ -115,6 +226,7 @@ test("actual saved records → bullets → totals → category/date follow-up re
   await expect(
     list.article.getByRole("list", { name: "Matching saved purchases" }),
   ).toHaveClass(/list-disc/);
+  await showAllFourPurchases(list.article);
   await expect(
     list.article
       .getByRole("list", { name: "Matching saved purchases" })
@@ -178,7 +290,7 @@ test("North opens library-first and what have I bought returns linked results wi
   const dialog = await open(page);
   await expect(dialog).toBeVisible();
   await expect(dialog).toHaveAccessibleName("North Star");
-  await expect(dialog.locator(".careos-context strong")).toHaveText(
+  await expect(dialog.locator(".north-panel-context strong")).toHaveText(
     "All saved purchases",
   );
   await expect(
@@ -201,7 +313,7 @@ test("North opens library-first and what have I bought returns linked results wi
   expect(prohibited).toEqual([]);
 });
 
-test("enlarged narrow-screen text keeps result and composer reachable in page flow", async ({
+test("enlarged narrow-screen text keeps result and bottom composer reachable in the panel", async ({
   page,
 }) => {
   const posts: string[] = [];
@@ -225,7 +337,7 @@ test("enlarged narrow-screen text keeps result and composer reachable in page fl
   await input.focus();
   await input.fill(draft);
   // A textarea scroll target need not expose its ancestor's disclosure/padding.
-  // Test the complete page-flow composer explicitly, at the same viewport.
+  // Test the complete bottom composer explicitly, at the same viewport.
   await dialog.locator(".careos-composer").scrollIntoViewIfNeeded();
   await expect(input).toBeFocused();
   const geometry = await dialog.evaluate((el) => {
@@ -647,6 +759,7 @@ test("saved totals apply a real native chart and provenance KPIs, then exact pro
       .locator("canvas")
       .first(),
   ).toBeVisible();
+  await showAllFourPurchases(totals.article);
   const pi = totals.article.getByRole("link", {
     name: "Raspberry Pi 5 · 5",
     exact: true,
@@ -656,7 +769,7 @@ test("saved totals apply a real native chart and provenance KPIs, then exact pro
     /\/vault\/00000000-0000-4000-8000-000000000204$/,
   );
   if (!(await dialog.isVisible())) dialog = await open(page);
-  await expect(dialog.locator(".careos-context")).toContainText(
+  await expect(dialog.locator(".north-panel-context")).toContainText(
     "Raspberry Pi 5",
   );
   await dialog
@@ -855,6 +968,7 @@ test("reopening a completed chart preserves manual native filters and still perm
     "$89.00",
   );
   await selectHistory(dialog, first.turn.message, first.turn.requestId);
+  await showAllFourPurchases(first.article);
   await first.article
     .getByRole("link", { name: "Raspberry Pi 5 · 5", exact: true })
     .click();
@@ -862,7 +976,7 @@ test("reopening a completed chart preserves manual native filters and still perm
     /\/vault\/00000000-0000-4000-8000-000000000204$/,
   );
   if (!(await dialog.isVisible())) dialog = await open(page);
-  await expect(dialog.locator(".careos-context")).toContainText(
+  await expect(dialog.locator(".north-panel-context")).toContainText(
     "Raspberry Pi 5",
   );
   const response = page.waitForResponse(
@@ -921,7 +1035,7 @@ test("formatting plus receipt refinement changes the actual linked list, while a
   );
 });
 
-test("document and priced predicates produce a desktop table or narrow linked cards with exact document links, without granting model access", async ({
+test("document and priced predicates produce compact panel cards with exact document links, without granting model access", async ({
   page,
 }) => {
   await page.goto("/purchases");
@@ -940,47 +1054,25 @@ test("document and priced predicates produce a desktop table or narrow linked ca
   const table = result.article.getByRole("table", {
     name: "Matching saved purchases",
   });
-  const narrow = page.viewportSize()!.width < 768;
-  const rendered = narrow
-    ? result.article.getByRole("list", {
-        name: "Matching saved purchases",
-        exact: true,
-      })
-    : table;
-  if (narrow) {
-    await expect(rendered.locator(":scope > li")).toHaveCount(3);
-    await expect(rendered.locator(":scope > li").first()).toContainText(
-      "$149.00",
-    );
-    await expect(table).toHaveCount(0);
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth - innerWidth,
-      ),
-    ).toBeLessThanOrEqual(1);
-  } else {
-    await expect(table.getByRole("row")).toHaveCount(4);
-    const amount = table.getByRole("row").nth(1).getByRole("cell").nth(3);
-    await expect(amount).toHaveText("$149.00");
-    await expect(amount).toHaveCSS("white-space", "nowrap");
-    const scrollRegion = result.article.getByRole("region", {
-      name: "Scrollable saved-purchase table",
-      exact: true,
-    });
-    const widths = await scrollRegion.evaluate((node) => ({
-      visible: node.clientWidth,
-      content: node.scrollWidth,
-    }));
-    await expect(table).toHaveCSS("min-width", "704px");
-    if (widths.visible < 704) {
-      expect(widths.content).toBeGreaterThan(widths.visible);
-      await scrollRegion.focus();
-      await scrollRegion.press("ArrowRight");
-      await expect
-        .poll(() => scrollRegion.evaluate((node) => node.scrollLeft))
-        .toBeGreaterThan(0);
-    } else expect(widths.content).toBe(widths.visible);
-  }
+  const rendered = result.article.getByRole("list", {
+    name: "Matching saved purchases",
+    exact: true,
+  });
+  await expect(rendered.locator(":scope > li")).toHaveCount(3);
+  await expect(rendered.locator(":scope > li").first()).toContainText(
+    "$149.00",
+  );
+  await expect(table).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth - innerWidth,
+    ),
+  ).toBeLessThanOrEqual(1);
+  const widths = await result.article.evaluate((node) => ({
+    visible: node.clientWidth,
+    content: node.scrollWidth,
+  }));
+  expect(widths.content).toBeLessThanOrEqual(widths.visible + 1);
   await expect(
     rendered.getByRole("link", {
       name: "Headphones receipt",
@@ -1007,6 +1099,7 @@ test("care follow-up stays with the exact product; explicit analysis and short f
   await page.goto("/purchases");
   let dialog = await open(page);
   const library = await ask(page, "Show my purchases");
+  await showAllFourPurchases(library.article);
   await library.article
     .getByRole("link", { name: "Raspberry Pi 5 · 5", exact: true })
     .click();
@@ -1016,7 +1109,7 @@ test("care follow-up stays with the exact product; explicit analysis and short f
   if (!(await dialog.isVisible())) dialog = await open(page);
   // A link click resolves before Next's route/context effects necessarily do.
   // Assert the actual handoff before submitting; retain the exact reply checks.
-  await expect(dialog.locator(".careos-context")).toContainText(
+  await expect(dialog.locator(".north-panel-context")).toContainText(
     "Raspberry Pi 5",
   );
   for (const message of [
@@ -1054,20 +1147,15 @@ test("care follow-up stays with the exact product; explicit analysis and short f
   );
   expect(total.turn.answer.recordsResult?.totals[0].amountMinor).toBe(21800);
   const table = await ask(page, "Table please");
-  if (page.viewportSize()!.width < 768) {
-    await expect(
-      table.article
-        .getByRole("list", { name: "Matching saved purchases", exact: true })
-        .locator(":scope > li"),
-    ).toHaveCount(3);
-  } else {
-    await expect(
-      table.article
-        .getByRole("table", { name: "Matching saved purchases" })
-        .getByRole("row"),
-    ).toHaveCount(4);
-  }
-  await expect(dialog.locator(".careos-context")).toContainText(
+  await expect(
+    table.article
+      .getByRole("list", { name: "Matching saved purchases", exact: true })
+      .locator(":scope > li"),
+  ).toHaveCount(3);
+  await expect(
+    table.article.getByRole("table", { name: "Matching saved purchases" }),
+  ).toHaveCount(0);
+  await expect(dialog.locator(".north-panel-context")).toContainText(
     "Raspberry Pi 5",
   );
 });

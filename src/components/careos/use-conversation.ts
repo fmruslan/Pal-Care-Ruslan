@@ -40,6 +40,8 @@ export function useConversation(channel: "care" | "records" = "care") {
   const locked = useRef(false);
   const initialized = useRef(false);
   const initializing = useRef<Promise<Conversation | null> | null>(null);
+  const selectedId = useRef<string | null>(null);
+  const detached = useRef(false);
   const [error, setError] = useState("");
   const [unsent, setUnsent] = useState<PendingQuestion[]>([]);
   const unsentRef = useRef<PendingQuestion[]>([]);
@@ -50,6 +52,11 @@ export function useConversation(channel: "care" | "records" = "care") {
     try {
       unsentRef.current = readUnsent(sessionStorage.getItem(unsentKey));
       setUnsent(unsentRef.current);
+      const recovery = readPending(sessionStorage.getItem(pendingKey));
+      if (!pendingRef.current && recovery?.status === "not-sent") {
+        rememberUnsent(recovery);
+        storePending(null);
+      }
     } catch {
       /* Optional tab-local recovery storage. */
     }
@@ -93,6 +100,7 @@ export function useConversation(channel: "care" | "records" = "care") {
     }
   }
   function save(value: Conversation) {
+    selectedId.current = value.id;
     current.current = value;
     setConversation(value);
     if (
@@ -113,9 +121,9 @@ export function useConversation(channel: "care" | "records" = "care") {
     if (current.current) return current.current;
     if (initializing.current) return initializing.current;
     initializing.current = (async () => {
-      let id: string | null = null;
+      let id: string | null = selectedId.current;
       try {
-        id = sessionStorage.getItem(conversationKey);
+        if (!detached.current) id ??= sessionStorage.getItem(conversationKey);
         if (!initialized.current) {
           const restored = readPending(sessionStorage.getItem(pendingKey));
           // A just-submitted question takes precedence over a storage hint.
@@ -158,13 +166,78 @@ export function useConversation(channel: "care" | "records" = "care") {
       initializing.current = null;
     }
   }
-  async function restore(createIfMissing = true) {
+  /** Detach is local only. Dispatched uncertainty must be recovered, not hidden. */
+  function canDetach() {
+    if (locked.current || pendingRef.current) return false;
+    try {
+      const saved = readPending(sessionStorage.getItem(pendingKey));
+      return (
+        !saved ||
+        saved.status === "not-sent" ||
+        !!current.current?.turns.some(
+          (turn) => turn.requestId === saved.input.requestId,
+        )
+      );
+    } catch {
+      return initialized.current;
+    }
+  }
+  function detach() {
+    if (!canDetach()) return false;
+    current.current = null;
+    selectedId.current = null;
+    detached.current = true;
+    initialized.current = true;
+    setConversation(null);
+    setError("");
+    unsentRef.current = [];
+    setUnsent([]);
+    unsentLoaded.current = false;
+    try {
+      sessionStorage.removeItem(conversationKey);
+    } catch {
+      /* A detached in-memory channel never inherits an old storage identity. */
+    }
+    return true;
+  }
+  async function restore(createIfMissing: boolean | string = true) {
     if (locked.current) return null;
+    if (typeof createIfMissing === "string") {
+      if (!/^[a-f0-9-]{36}$/.test(createIfMissing)) return null;
+      let selectingInitial = false;
+      if (!current.current && !initialized.current) {
+        try {
+          const recovery = readPending(sessionStorage.getItem(pendingKey));
+          // The initial owned GET must still hydrate recovery. Detaching here
+          // marks the channel initialized and would skip both legacy unsent
+          // hints and the original dispatched envelope in ensure().
+          selectingInitial =
+            !recovery ||
+            recovery.status === "not-sent" ||
+            recovery.conversationId === createIfMissing;
+        } catch {
+          /* Unavailable hints cannot authorize detachment. */
+        }
+      }
+      if (
+        current.current?.id !== createIfMissing &&
+        selectedId.current !== createIfMissing &&
+        !selectingInitial &&
+        !detach()
+      )
+        return null;
+      selectedId.current = createIfMissing;
+      try {
+        sessionStorage.setItem(conversationKey, createIfMissing);
+      } catch {
+        /* Explicit owned GET works without optional storage. */
+      }
+    }
     locked.current = true;
     setPhase("restoring");
     setError("");
     try {
-      const value = await ensure(createIfMissing);
+      const value = await ensure(createIfMissing === true);
       if (!value) return null;
       // Reopen checks uncertain work through GET only, never repeats the turn POST.
       if (pendingRef.current?.conversationId) {
@@ -314,6 +387,7 @@ export function useConversation(channel: "care" | "records" = "care") {
         }
       }
       current.current = null;
+      selectedId.current = null;
       setConversation(null);
       storePending(null);
       unsentRef.current = [];
@@ -341,5 +415,8 @@ export function useConversation(channel: "care" | "records" = "care") {
     send,
     check,
     clear,
+    canDetach,
+    detach,
+    start: detach,
   };
 }

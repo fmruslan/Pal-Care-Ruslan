@@ -274,6 +274,17 @@ test("an expired conversation hint does not strand a question that never reached
     await page.evaluate(() =>
       sessionStorage.getItem("palcare-careos-conversation"),
     ),
+  ).toBe(expired);
+  state.hold.release();
+  await dialog
+    .getByRole("button", { name: "Send to North Star", exact: true })
+    .click();
+  await expect.poll(() => state.inputs.length).toBe(1);
+  expect(state.inputs[0].message).toBe("A new question");
+  expect(
+    await page.evaluate(() =>
+      sessionStorage.getItem("palcare-careos-conversation"),
+    ),
   ).toBe(id);
 });
 
@@ -301,7 +312,7 @@ test("question renders before a held response; Enter, newline, IME and repeat gu
   await expect(composer).toHaveValue("Find receipt\n");
   await composer.press("Enter");
   await state.received.promise;
-  await expect(dialog.locator("[data-user-message]")).toHaveText(
+  await expect(dialog.locator("[data-user-message]").last()).toHaveText(
     "Find receipt",
   );
   await expect(
@@ -327,12 +338,13 @@ test("question renders before a held response; Enter, newline, IME and repeat gu
   await expect(dialog).toHaveAttribute("aria-modal", "false");
 });
 
-test("long atomic answers stay in page flow and prior results can be selected without replay or draft loss", async ({
+test("long atomic answers scroll inside the panel and prior results can be selected without replay or draft loss", async ({
   page,
 }) => {
   const state = await transport(page, { history: true });
   state.long = true;
-  const { dialog, composer } = await open(page);
+  const { dialog, composer, transcript } = await open(page);
+  const pageScroll = await page.evaluate(() => scrollY);
   await composer.fill("A long answer please");
   await composer.press("Enter");
   await state.received.promise;
@@ -342,7 +354,15 @@ test("long atomic answers stay in page flow and prior results can be selected wi
   await expect(latest).toBeVisible();
   await latest.locator("p").first().scrollIntoViewIfNeeded();
   await expect(latest.locator("p").first()).toBeInViewport();
-  await expect(dialog.locator("[data-user-message]")).toHaveText(
+  const lastLine = latest.locator("ul.list-disc > li").last();
+  await lastLine.scrollIntoViewIfNeeded();
+  await expect(lastLine).toBeInViewport();
+  expect(await transcript.evaluate((node) => node.scrollTop)).toBeGreaterThan(
+    0,
+  );
+  expect(await page.evaluate(() => scrollY)).toBe(pageScroll);
+  await expect(composer).toBeInViewport();
+  await expect(dialog.locator("[data-user-message]").last()).toHaveText(
     "A long answer please",
   );
   const firstId = state.inputs[0].requestId;
@@ -354,7 +374,7 @@ test("long atomic answers stay in page flow and prior results can be selected wi
   await state.received.promise;
   state.hold.release();
   await expect(dialog.locator("[data-pending-question]")).toHaveCount(0);
-  await expect(dialog.locator("[data-user-message]")).toHaveText(
+  await expect(dialog.locator("[data-user-message]").last()).toHaveText(
     "Another question while I read",
   );
   await composer.fill("Keep this draft while reviewing a prior answer");
@@ -363,11 +383,10 @@ test("long atomic answers stay in page flow and prior results can be selected wi
     .getByRole("region", { name: "Previous North results", exact: true })
     .getByRole("button", { name: "A long answer please", exact: true })
     .click();
-  await expect(dialog.locator("article[data-request-id]")).toHaveAttribute(
-    "data-request-id",
-    firstId,
-  );
-  await expect(dialog.locator("[data-user-message]")).toHaveText(
+  await expect(
+    dialog.locator("article[data-request-id]").last(),
+  ).toHaveAttribute("data-request-id", firstId);
+  await expect(dialog.locator("[data-user-message]").last()).toHaveText(
     "A long answer please",
   );
   await expect(composer).toHaveValue(
@@ -378,7 +397,7 @@ test("long atomic answers stay in page flow and prior results can be selected wi
   await page
     .getByRole("button", { name: "Ask North Star", exact: true })
     .click();
-  await expect(dialog.locator("[data-user-message]")).toHaveText(
+  await expect(dialog.locator("[data-user-message]").last()).toHaveText(
     "A long answer please",
   );
   expect(state.inputs).toHaveLength(2);
@@ -487,7 +506,10 @@ test("clear and submission are guarded while saved history is restoring", async 
     .getByRole("button", { name: "Ask North Star", exact: true })
     .click();
   const dialog = page.getByRole("dialog");
-  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog
+    .locator("header")
+    .getByRole("button", { name: "Previous chats", exact: true })
+    .click();
   await dialog.getByText("Conversation settings", { exact: true }).click();
   await expect(
     dialog.getByRole("button", {
@@ -495,6 +517,7 @@ test("clear and submission are guarded while saved history is restoring", async 
       exact: true,
     }),
   ).toBeDisabled();
+  await dialog.getByRole("button", { name: "Back", exact: true }).click();
   const composer = dialog.getByLabel("Ask about your purchases", {
     exact: true,
   });
@@ -505,13 +528,18 @@ test("clear and submission are guarded while saved history is restoring", async 
   expect(state.inputs).toHaveLength(0);
   restoring.release();
   await expect(
+    dialog.getByRole("button", { name: "Send to North Star", exact: true }),
+  ).toBeEnabled();
+  await dialog
+    .locator("header")
+    .getByRole("button", { name: "Previous chats", exact: true })
+    .click();
+  await dialog.getByText("Conversation settings", { exact: true }).click();
+  await expect(
     dialog.getByRole("button", {
       name: "Clear conversation history",
       exact: true,
     }),
-  ).toBeEnabled();
-  await expect(
-    dialog.getByRole("button", { name: "Send to North Star", exact: true }),
   ).toBeEnabled();
   await dialog
     .getByRole("button", { name: "Clear conversation history", exact: true })
@@ -523,6 +551,12 @@ test("clear and submission are guarded while saved history is restoring", async 
 test("source disclosure keeps focus and reading position through expansion", async ({
   page,
 }) => {
+  // Opening North is lazy: supply the existing owned conversation reference
+  // instead of implicitly creating a conversation just to obtain its history.
+  await page.addInitScript(
+    (id) => sessionStorage.setItem("palcare-careos-conversation", id),
+    id,
+  );
   const state = await transport(page, { history: true });
   state.saved.turns[0].answer.sources = [
     {
@@ -574,7 +608,10 @@ test("denied browser storage keeps the in-memory send and clear path usable", as
   await composer.fill("A question without storage");
   await composer.press("Enter");
   await expect(dialog.getByText(/Answer begins here/)).toBeVisible();
-  await dialog.getByRole("button", { name: "History", exact: true }).click();
+  await dialog
+    .locator("header")
+    .getByRole("button", { name: "Previous chats", exact: true })
+    .click();
   await dialog.getByText("Conversation settings", { exact: true }).click();
   await dialog
     .getByRole("button", { name: "Clear conversation history", exact: true })

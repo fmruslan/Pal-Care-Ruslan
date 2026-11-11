@@ -210,8 +210,8 @@ test("recovered browser status enables the real ordinary-language composer while
       `[data-native-north-result][data-request-id="${first.requestId}"]`,
     ),
   ).toBeVisible();
-  // Care has no purchases search field: exercise the exact follow-up composer
-  // that was disabled by rejecting the real server's recovery-active status.
+  // The page search remains mounted beneath North. Exercise the exact panel
+  // follow-up composer that rejected the server's recovery-active status.
   await page.goto(OWNER_ORIGIN + "/dashboard");
   // The composer can mount before asynchronous owned-history restoration.
   // Wait for the actual anchor before submitting its follow-up.
@@ -221,12 +221,13 @@ test("recovered browser status enables the real ordinary-language composer while
     ),
   ).toBeVisible();
   await expect(
-    page.getByRole("searchbox", {
+    page.getByRole("main").getByRole("searchbox", {
       name: "Search products and documents",
       exact: true,
     }),
-  ).toHaveCount(0);
-  const composer = page.getByRole("textbox", {
+  ).toBeVisible();
+  const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
+  const composer = dialog.getByRole("textbox", {
     name: "Ask about your purchases",
     exact: true,
   });
@@ -256,6 +257,10 @@ test("recovered browser status enables the real ordinary-language composer while
     page.locator("[data-native-north-result]").filter({ visible: true }),
   ).toHaveCount(1);
   await expect(active).toContainText("Which have no recorded price?");
+  await expect(dialog.locator("[data-user-message]")).toHaveText([
+    "Back to all saved purchases",
+    "Which have no recorded price?",
+  ]);
   const missingIds = ["00000000-0000-4000-8000-000000000204"];
   expect(second.answer.recordsResult.query.price).toBe("missing");
   expect(
@@ -511,7 +516,10 @@ test("current browser auth gates Send and legacy unsent hello recovers without c
   await stop();
   await start(true);
   await page.goto(OWNER_ORIGIN + "/dashboard");
-  await page.getByRole("button", { name: "History", exact: true }).click();
+  await page
+    .getByRole("main")
+    .getByRole("button", { name: "Ask North Star", exact: true })
+    .click();
   const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
   const input = dialog.getByRole("textbox", {
     name: "Ask about your purchases",
@@ -591,7 +599,10 @@ test("current browser auth gates Send and legacy unsent hello recovers without c
     ),
   );
   await page.goto(OWNER_ORIGIN + "/dashboard");
-  await page.getByRole("button", { name: "History", exact: true }).click();
+  await page
+    .getByRole("main")
+    .getByRole("button", { name: "Ask North Star", exact: true })
+    .click();
   await expect(dialog.locator("[data-unsent-question]")).toContainText("hello");
   await expect(dialog.locator("[data-pending-question]")).toHaveCount(0);
   await input.fill("What does North Star do?");

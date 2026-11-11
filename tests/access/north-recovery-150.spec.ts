@@ -275,32 +275,14 @@ test("post-stop same synthetic credential → real Send/ledger → native Insigh
       posts.push({ path, input: request.postDataJSON() });
   });
   await page.goto(OWNER_ORIGIN + "/dashboard");
-  const firstSearch = page.getByRole("searchbox", {
-    name: "Search products and documents",
-    exact: true,
-  });
-  const firstComposer = page.getByRole("textbox", {
-    name: "Ask about your purchases",
-    exact: true,
-  });
+  const panel = page.getByRole("dialog", { name: "North Star", exact: true });
+  // The same tab's open panel and owned channels restore after the restart.
   await expect(
-    firstSearch.or(firstComposer).filter({ visible: true }).first(),
+    panel.getByRole("textbox", {
+      name: "Ask about your purchases",
+      exact: true,
+    }),
   ).toBeVisible();
-  if (await firstSearch.isVisible()) {
-    // Empty-star opens North without an ask. The real Send control below then
-    // waits for verified access, rather than racing a freshly mounted status GET.
-    try {
-      await firstSearch.fill("", { timeout: 2000 });
-      await page
-        .getByRole("button", { name: "Ask North Star", exact: true })
-        .click({ timeout: 2000 });
-    } catch {
-      // The saved workspace may replace Search during hydration. Do not retry
-      // an ask or provider request; require that restored composer explicitly.
-      await expect(firstComposer).toBeVisible();
-    }
-  }
-  await expect(firstComposer).toBeVisible();
   const firstResponse = await submitLanguageTurn(
     page,
     "Which have no recorded price?",
@@ -468,27 +450,7 @@ test("post-stop same synthetic credential → real Send/ledger → native Insigh
   });
   expect(switched).toBe(true);
   await page.goto(OWNER_ORIGIN + "/dashboard");
-  const searchAfterFallback = page.getByRole("searchbox", {
-    name: "Search products and documents",
-    exact: true,
-  });
-  if (await searchAfterFallback.isVisible()) {
-    try {
-      await page
-        .getByRole("button", { name: "Ask North Star", exact: true })
-        .click({ timeout: 2000 });
-    } catch {
-      // Hydration may restore the existing workspace between the visibility
-      // read and click. Require the real composer instead of retrying an ask.
-      await expect(
-        page.getByRole("textbox", {
-          name: "Ask about your purchases",
-          exact: true,
-        }),
-      ).toBeVisible();
-    }
-  }
-  await page
+  await panel
     .getByRole("textbox", { name: "Ask about your purchases", exact: true })
     .fill("Which have no recorded price?");
   await expect(
