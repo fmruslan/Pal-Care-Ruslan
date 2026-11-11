@@ -27,6 +27,32 @@ const indexSchema = z.strictObject({
 });
 export type NorthChat = z.infer<typeof chatSchema>;
 
+/** A pre-index, never-dispatched hint may arrive beside a prepared draft. Only
+ * an empty backend-free chat can adopt unclaimed UUIDs; other chats keep theirs.
+ * This indexes existing editors, never copies answers or authorizes a send. */
+export function adoptUnclaimedNorthHints(
+  chat: NorthChat,
+  chats: NorthChat[],
+  requestIds: string[],
+): NorthChat {
+  if (
+    chat.order.length ||
+    chat.channels.care ||
+    chat.channels.records ||
+    chat.channels.insights.length
+  )
+    return chat;
+  const claimed = new Set(chats.flatMap((value) => value.order));
+  const order = [
+    ...new Set(
+      requestIds.filter(
+        (id) => !claimed.has(id) && z.uuid().safeParse(id).success,
+      ),
+    ),
+  ].slice(-80);
+  return order.length ? { ...chat, order } : chat;
+}
+
 /** Bounded presentation metadata only; all answer content is restored by owned GET. */
 export function readNorthChats(raw: string | null, now = Date.now()) {
   if (!raw || raw.length > 200000) return null;

@@ -80,6 +80,7 @@ import {
   readNorthChats,
   rememberNorthChat,
   chatSummary,
+  adoptUnclaimedNorthHints,
   type NorthChat,
 } from "./north-chat-state";
 import {
@@ -560,9 +561,31 @@ export function CareOSProvider({
           setChats(index.chats);
           activeChat.current = index.activeChatId;
           setActiveChatId(index.activeChatId);
-          const chat = index.chats.find(
+          let chat = index.chats.find(
             (value) => value.id === index.activeChatId,
           );
+          if (chat) {
+            const unclaimed = [
+              ...readUnsent(sessionStorage.getItem(careUnsentKey)),
+              ...readUnsent(
+                sessionStorage.getItem("palcare-records-unsent-v1"),
+              ),
+              readPending(sessionStorage.getItem(carePendingKey)),
+              readPending(sessionStorage.getItem("palcare-records-pending-v1")),
+            ].filter((question) => question?.status === "not-sent");
+            const adopted = adoptUnclaimedNorthHints(
+              chat,
+              index.chats,
+              unclaimed.map((question) => question!.input.requestId),
+            );
+            if (adopted !== chat) {
+              chat = adopted;
+              chatsRef.current = index.chats.map((value) =>
+                value.id === adopted.id ? adopted : value,
+              );
+              setChats(chatsRef.current);
+            }
+          }
           // Singleton keys remain compatibility selectors only. Keep them in
           // sync with the chosen chat before a closed-panel Send can restore.
           if (chat?.channels.care)

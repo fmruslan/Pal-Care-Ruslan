@@ -5,6 +5,7 @@ import {
   readNorthChats,
   rememberNorthChat,
   type NorthChat,
+  adoptUnclaimedNorthHints,
 } from "../../src/components/careos/north-chat-state";
 import { contextOf, type CareTurn } from "../../src/lib/careos/contracts";
 import { demoData } from "../../src/lib/demo/fixtures";
@@ -31,6 +32,41 @@ const chat: NorthChat = {
 const index = { version: 1, activeChatId: chat.id, chats: [chat] };
 
 describe("bounded North chat metadata", () => {
+  it("adopts only unclaimed legacy editor UUIDs beside a backend-free draft without changing its context or text", () => {
+    const draft: NorthChat = {
+      ...chat,
+      id: uuid(8),
+      order: [],
+      channels: { care: null, records: null, insights: [] },
+    };
+    const adopted = adoptUnclaimedNorthHints(
+      draft,
+      [chat, draft],
+      [uuid(2), uuid(9), uuid(9), "not-a-uuid"],
+    );
+    expect(adopted).toEqual({ ...draft, order: [uuid(9)] });
+    expect(draft.order).toEqual([]);
+    expect(chat.order).toEqual([uuid(2)]);
+  });
+  it("never adopts another chat's claimed editor or attaches legacy hints to established backend history", () => {
+    const draft: NorthChat = {
+      ...chat,
+      order: [],
+      channels: { care: null, records: null, insights: [] },
+    };
+    expect(
+      adoptUnclaimedNorthHints(draft, [{ ...chat, id: uuid(8) }], [uuid(2)]),
+    ).toBe(draft);
+    for (const established of [
+      chat,
+      { ...draft, channels: { ...draft.channels, care: uuid(3) } },
+      { ...draft, channels: { ...draft.channels, records: uuid(4) } },
+      { ...draft, channels: { ...draft.channels, insights: [uuid(5)] } },
+    ])
+      expect(
+        adoptUnclaimedNorthHints(established, [established], [uuid(9)]),
+      ).toBe(established);
+  });
   it("preserves each chat's exact context, draft, result and independent channel IDs", () => {
     expect(readNorthChats(JSON.stringify(index), 2000)).toEqual(index);
     const second = {
