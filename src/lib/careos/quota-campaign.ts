@@ -54,6 +54,82 @@ export type QuotaCampaignExtension = z.infer<
   typeof quotaCampaignExtensionSchema
 >;
 
+/** Owner's separately confirmed 300 NEW attempts, never a reset of 263 spent. */
+export const northGuideCampaignSchema = z.strictObject({
+  version: z.literal(1),
+  campaignId: z.literal(RECOVERY_EVALUATION),
+  approvedAt: z.number().int().nonnegative(),
+  ownerApprovalHash: digest,
+  calendarExpiresAt: z.null(),
+  baselineUsed: z.literal(263),
+  executionLimit: z.literal(563),
+  maxAdditional: z.literal(300),
+  purpose: z.literal("north-current-interface-guidance-300"),
+  previousAuthorizationHash: digest,
+  checkpointEventCount: z.number().int().positive(),
+  checkpointEventHash: digest,
+});
+
+export function assertNorthGuideCampaignIntegrity(
+  state: OwnerState,
+  now: number,
+  installing = false,
+) {
+  const x = state.northGuideCampaign;
+  const previous = state.quotaCampaignExtension;
+  const prefix = state.events.slice(0, x?.checkpointEventCount ?? 0);
+  const approvals = state.events.filter(
+    (e) => e.kind === "approve-north-guide-campaign",
+  );
+  const checkpoint = campaignBudget(prefix);
+  const reserves = prefix.filter(
+    (e) => e.kind === "reserve" && e.allocationId === RECOVERY_EVALUATION,
+  );
+  if (
+    !x ||
+    !previous ||
+    x.previousAuthorizationHash !== recoveryHash(previous) ||
+    [
+      previous.ownerApprovalHash,
+      state.quotaCampaign?.ownerApprovalHash,
+    ].includes(x.ownerApprovalHash) ||
+    x.approvedAt < previous.approvedAt ||
+    x.approvedAt > now ||
+    prefix.length !== x.checkpointEventCount ||
+    recoveryHash(prefix) !== x.checkpointEventHash ||
+    prefix.some((e) => e.at > x.approvedAt) ||
+    checkpoint.executionLimit !== 263 ||
+    checkpoint.used !== 263 ||
+    checkpoint.activeQuestion ||
+    new Set(reserves.map((e) => e.subject)).size !== 263 ||
+    reserves.some(
+      (e) =>
+        prefix.filter(
+          (v) =>
+            v.subject === e.subject &&
+            ["completed", "failed", "unknown"].includes(v.kind),
+        ).length !== 1,
+    ) ||
+    state.sessions.some(
+      (s) =>
+        s.allocationId === RECOVERY_EVALUATION &&
+        prefix.some((e) => e.kind === "pair" && e.subject === s.id) &&
+        !s.revoked,
+    ) ||
+    (installing
+      ? approvals.length !== 0 || prefix.length !== state.events.length
+      : approvals.length !== 1 ||
+        state.events[x.checkpointEventCount] !== approvals[0] ||
+        approvals[0].subject !== recoveryHash(x) ||
+        approvals[0].allocationId !== RECOVERY_EVALUATION ||
+        approvals[0].executionLimit !== 563 ||
+        approvals[0].at < x.approvedAt ||
+        approvals[0].at > now)
+  )
+    throw new CareError("careos_owner_north_guide_campaign_denied", 403);
+  return x;
+}
+
 export function assertQuotaCampaignExtensionIntegrity(
   state: OwnerState,
   now: number,
@@ -198,11 +274,22 @@ export function assertQuotaCampaignIntegrity(
     : undefined;
   if (extensionEvents && !extension)
     throw new CareError("careos_owner_quota_campaign_extension_denied", 403);
+  const guide = state.northGuideCampaign
+    ? assertNorthGuideCampaignIntegrity(state, now)
+    : undefined;
+  if (
+    !guide &&
+    state.events.some((e) => e.kind === "approve-north-guide-campaign")
+  )
+    throw new CareError("careos_owner_north_guide_campaign_denied", 403);
   const budget = campaignBudget(state.events);
   if (
-    budget.used > (extension?.executionLimit ?? q.executionLimit) ||
+    budget.used >
+      (guide?.executionLimit ??
+        extension?.executionLimit ??
+        q.executionLimit) ||
     (installing && (budget.used !== 63 || budget.activeQuestion))
   )
     throw new CareError("careos_owner_quota_campaign_accounting_denied", 403);
-  return extension ? { ...q, ...extension } : q;
+  return guide ? { ...q, ...guide } : extension ? { ...q, ...extension } : q;
 }

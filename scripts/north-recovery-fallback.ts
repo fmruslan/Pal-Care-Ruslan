@@ -50,7 +50,12 @@ const dropin =
   "/home/bigrus/.config/systemd/user/palcare-preview.service.d/north-language-300.conf";
 const fallbackSchema = z.strictObject({
   fallback: recoveryTransitionGateSchema.shape.fallback,
-  executionLimit: z.union([z.literal(150), z.literal(163), z.literal(263)]),
+  executionLimit: z.union([
+    z.literal(150),
+    z.literal(163),
+    z.literal(263),
+    z.literal(563),
+  ]),
   questionMarkersSupported: z.literal(true),
   ciReceipt: z.unknown(),
   authorization: z.enum(["legacy-recovery", "quota-bounded"]).optional(),

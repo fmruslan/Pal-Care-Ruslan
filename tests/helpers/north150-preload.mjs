@@ -95,8 +95,20 @@ globalThis.fetch = async (input, init) => {
       productAction: "summary",
       careQuestion: "",
       clarification: "",
+      guide: null,
     };
     switch (payload.question) {
+      case "How do I find a receipt in Pal Care?":
+        value.task = "guidance";
+        value.guide = {
+          text: "Use Purchases & Docs to find the saved original receipt.",
+          steps: [
+            "Open Purchases & Docs, then choose Documents.",
+            "Search for the dated product and open its receipt or View original record.",
+          ],
+          features: ["receipts", "library"],
+        };
+        break;
       case "Which have no recorded price?":
         query.price = "missing";
         break;

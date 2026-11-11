@@ -16,11 +16,17 @@ try {
       "approve-review-origin",
       "approve-quota-campaign",
       "approve-quota-campaign-extension",
+      "approve-north-guide-campaign",
     ].includes(action)
   )
     throw new Error("usage");
   const owner = new StandingOwner();
-  if (action === "approve-quota-campaign-extension") {
+  if (action === "approve-north-guide-campaign") {
+    if (id !== "north-guide-campaign-approval.json") throw new Error("usage");
+    await owner.installNorthGuideCampaign(
+      await owner.files.read("north-guide-campaign-approval.json"),
+    );
+  } else if (action === "approve-quota-campaign-extension") {
     if (id !== "quota-campaign-extension-approval.json")
       throw new Error("usage");
     await owner.installQuotaCampaignExtension(

@@ -16,6 +16,7 @@ import {
 import { turnSchema, type CareTurn } from "../../src/lib/careos/contracts";
 import { answerSemanticRecordsTurn } from "../../src/lib/careos/records/semantic-service";
 import { randomUUID } from "node:crypto";
+import { productGuideAnswer } from "../../src/lib/careos/product-guide";
 
 // Harness self-checks only. Transport/model proposals are injected, no owner or
 // provider access is present, and zero cases can qualify for the genuine ledger.
@@ -151,6 +152,86 @@ test("injected semantic orchestration renders a fresh missing-receipt search wit
       `[data-request-id="${history[0].requestId}"] [data-records-result]`,
     ),
   ).toBeVisible();
+  await guard.dispose();
+});
+
+test("injected current-interface guide renders real navigation and distinct sources without native execution or replay", async ({
+  page,
+  context,
+}, info) => {
+  const guard = await guardRecordsCampaign(context, info.project.use.baseURL!);
+  const requests: string[] = [];
+  // Fixture mode still uses its existing records admission hint, not the live
+  // model-first router. Generic guidance routing is covered separately by the
+  // isolated subscription/563-cap application journey, never by this mock.
+  const message =
+    "How do I browse my saved purchases and receipts in Pal Care?";
+  const steps = [
+    "Start with Care for saved dates and next steps.",
+    "Open Purchases & Docs, then Documents to find the original receipt.",
+    "Open Insights for personal charts, grids and evidence.",
+  ];
+  await page.route(
+    "**/api/careos/records/conversations/*/turns",
+    async (route) => {
+      const input = turnSchema.parse(route.request().postDataJSON());
+      requests.push(input.requestId);
+      await route.fulfill({
+        status: 200,
+        json: {
+          requestId: input.requestId,
+          message: input.message,
+          answer: {
+            mode: "live",
+            questionScope: "general",
+            context: null,
+            revision: input.revision,
+            ...productGuideAnswer({
+              text: "Care → Purchases & Docs → Insights: start with saved evidence, then explore your own purchases.",
+              steps,
+              features: ["overview", "library", "insights"],
+            }),
+          },
+        },
+      });
+    },
+  );
+  await page.goto("/dashboard");
+  const result = await exerciseRecordsScenario(
+    page,
+    { ...northFullRecordsDrafts[0], message },
+    "turns",
+  );
+  const dialog = page.getByRole("dialog", { name: "North Star", exact: true });
+  const article = dialog.locator(`[data-request-id="${result.requestId}"]`);
+  for (const step of steps)
+    await expect(article.getByText(step, { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  // This marker identifies the latest chat answer, not a native SDK action.
+  await expect(page.locator("[data-native-north-result]")).toHaveAttribute(
+    "data-request-id",
+    result.requestId,
+  );
+  await expect(page.getByTestId("customer-studio")).toHaveCount(0);
+  expect(result.turn.answer.customerPresentation).toBeUndefined();
+  expect(result.turn.answer.recordsPresentation).toBeUndefined();
+  await expect(article.locator("[data-records-result]")).toHaveCount(0);
+  await article.getByText("Sources (3)", { exact: true }).click();
+  await expect(
+    article.getByText(
+      "Pal Care interface guide · not purchase or manufacturer evidence",
+      { exact: true },
+    ),
+  ).toHaveCount(3);
+  await article
+    .getByRole("link", { name: "Open Purchases & Docs", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/purchases$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Your products",
+  );
+  expect(requests).toEqual([result.requestId]);
+  expect(guard.forbiddenRequests).toEqual([]);
   await guard.dispose();
 });
 

@@ -5,6 +5,7 @@ import {
   answerConversationTurn,
   CONVERSATION_INSTRUCTIONS,
   conversationPlanSchema,
+  conversationModelPlanSchema,
   type ConversationPlan,
 } from "../../src/lib/careos/records/conversation-service";
 import { emptyRecordsQuery } from "../../src/lib/careos/records/contracts";
@@ -21,6 +22,11 @@ import {
   prohibitsChartExecution,
 } from "../../src/lib/careos/interaction-limits";
 import { recordsTaskCandidate } from "../../src/lib/careos/records/query";
+import {
+  productGuide,
+  productGuideAnswer,
+  productGuideReplySchema,
+} from "../../src/lib/careos/product-guide";
 
 const now = () => new Date("2026-11-03T12:00:00Z");
 const input = (message: string) => ({
@@ -85,6 +91,146 @@ function setup(proposal: ConversationPlan) {
     now,
   };
 }
+
+describe("current-interface guidance — injected model selection, not genuine acceptance", () => {
+  const guide = {
+    text: "Start with Care, find saved evidence in Purchases & Docs, then explore Insights.",
+    steps: [
+      "Open Care for saved dates and next steps.",
+      "Open Purchases & Docs for the dated product and original receipt.",
+      "Open Insights for personal charts, grids and evidence.",
+    ],
+    features: ["overview", "library", "insights"] as const,
+  };
+  it.each([
+    "I'm new. What should I do first?",
+    "How do PayPal, North and AG Studio fit together?",
+    "How do I show a chart without asking North to execute one?",
+  ])(
+    "renders a bounded practical guide without records/care/native execution: %s",
+    async (message) => {
+      const proposal = plan({
+        task: "guidance",
+        guide: { ...guide, features: [...guide.features] },
+      });
+      const options = setup(proposal);
+      const answer = await answerConversationTurn({
+        ...options,
+        input: input(message),
+      });
+      expect(answer).toMatchObject({
+        outcome: "answered",
+        mode: "live",
+        text: guide.text,
+        steps: guide.steps,
+        questionScope: "general",
+        context: null,
+      });
+      expect(answer.recordsResult).toBeUndefined();
+      expect(answer.customerPresentation).toBeUndefined();
+      expect(answer.actions.map((a) => a.href)).toEqual([
+        "/dashboard",
+        "/purchases",
+        "/insights",
+      ]);
+      expect(
+        answer.sources.every((s) =>
+          s.label.includes("not purchase or manufacturer evidence"),
+        ),
+      ).toBe(true);
+      expect(options.knowledge).not.toHaveBeenCalled();
+      expect(options.model.explain).not.toHaveBeenCalled();
+      expect(options.interpret).toHaveBeenCalledOnce();
+      const payload = JSON.parse(options.interpret.mock.calls[0][0]);
+      expect(payload.question).toBe(message);
+      expect(payload.interfaceGuide.overview).toBe(productGuide.overview.facts);
+    },
+  );
+  it("anchors a guidance follow-up to its own steps/features, excluding later care and retaining old results", async () => {
+    const old = plan();
+    expect(Object.hasOwn(old, "guide")).toBe(false);
+    const guided = plan({
+      task: "guidance",
+      guide: { ...guide, features: [...guide.features] },
+    });
+    const options = setup(guided);
+    const answer = await answerConversationTurn(options);
+    const history: CareTurn[] = [
+      {
+        requestId: randomUUID(),
+        message: "Show all purchases",
+        answer: {
+          ...recordsAnswer(
+            querySavedRecords(demoData, emptyRecordsQuery("2026-11-03")),
+            0,
+          ),
+          conversationPlan: old,
+        },
+      },
+      { requestId: randomUUID(), message: "How do I use this?", answer },
+      {
+        requestId: randomUUID(),
+        message: "How do I shut down my Pi?",
+        answer: {
+          ...answer,
+          conversationPlan: plan({ task: "care", careQuestion: "Shutdown Pi" }),
+        },
+      },
+    ];
+    const before = JSON.stringify(history);
+    await answerConversationTurn({
+      ...options,
+      history,
+      input: {
+        ...input("Explain that simply"),
+        followupRequestId: history[1].requestId,
+      },
+    });
+    const payload = JSON.parse(options.interpret.mock.calls.at(-1)![0]);
+    expect(payload.currentTopic).toMatchObject({
+      task: "guidance",
+      guide: { steps: guide.steps, features: [...guide.features] },
+      recordsResult: null,
+      careQuestion: "",
+    });
+    expect(
+      payload.history.map((v: { question: string }) => v.question),
+    ).toEqual(history.slice(0, 2).map((v) => v.message));
+    expect(JSON.stringify(history)).toBe(before);
+    expect(conversationPlanSchema.parse(old)).toEqual(old);
+    expect(conversationModelPlanSchema.safeParse(old).success).toBe(false);
+    expect(
+      conversationModelPlanSchema.parse({ ...old, guide: null }),
+    ).toMatchObject({ guide: null });
+  });
+  it("rejects arbitrary links/feature IDs and deduplicates only server-resolved links", () => {
+    expect(
+      productGuideReplySchema.safeParse({
+        ...guide,
+        features: ["https://example.invalid"],
+      }).success,
+    ).toBe(false);
+    expect(
+      productGuideReplySchema.safeParse({
+        ...guide,
+        href: "/api/checkout/orders",
+      }).success,
+    ).toBe(false);
+    expect(
+      productGuideAnswer({
+        ...guide,
+        features: ["insights", "filters", "insights"],
+      }).actions,
+    ).toEqual([{ label: "Open Insights", href: "/insights" }]);
+  });
+  it("fails closed for a missing guidance body without silently returning older records", async () => {
+    const options = setup(plan({ task: "guidance" }));
+    const answer = await answerConversationTurn(options);
+    expect(answer.outcome).toBe("unavailable");
+    expect(answer.recordsResult).toBeUndefined();
+    expect(answer.actions).toEqual([]);
+  });
+});
 
 describe("recorded genuine campaign defects — injected interpretation, no provider", () => {
   it("keeps the exact Sample receipt identity despite negated verified/Sandbox words", async () => {

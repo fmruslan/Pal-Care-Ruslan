@@ -1,5 +1,7 @@
 # Pal Care
 
+**Shared North launchers are live on [private Pal Care](https://greatbison.tail9e8802.ts.net:8444/dashboard).** Both open the same preserved panel; the corner icon yields to dense content. Current-interface guidance and the separately approved **300 new genuine attempts** are the next candidate, **not yet activated/evaluated**. [Actual release and remaining gates](docs/STATUS.md).
+
 **North launcher refinement — candidate under verification:** shared **Explore with North ☆** below the customer header plus a subtle scrolling-accessible corner icon open the same preserved panel. The requested **300-new-call** evaluation prioritizes practical product guidance; actual current access/accounting, results and remaining limits are recorded in [STATUS](docs/STATUS.md), not inferred from the target.
 
 **Approved North refinement — in progress:** one floating desktop panel/mobile sheet, compact start/chat/history and separate preserved conversations; existing navigation and underlying pages remain unchanged. [Current evidence](docs/STATUS.md).

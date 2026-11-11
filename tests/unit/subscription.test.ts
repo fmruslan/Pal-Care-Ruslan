@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { PilotFiles } from "../../src/lib/careos/subscription/files";
 import {
@@ -111,6 +111,33 @@ describe("subscription-only inference: no API-dollar ledger or live test authori
       );
       expect((error as Error).message).not.toContain("PRIVATE-DUMMY");
     }
+  });
+  it("bounds only owner state at 2 MiB while keeping quality and credential caps unchanged", async () => {
+    const files = await prepare();
+    const overhead = Buffer.byteLength(
+      JSON.stringify({ text: "" }, null, 2) + "\n",
+    );
+    const exact = { text: "x".repeat(2097152 - overhead) };
+    await files.write("owner-state.json", exact);
+    expect(await files.read("owner-state.json")).toEqual(exact);
+    await expect(
+      files.write("owner-state.json", { text: exact.text + "x" }),
+    ).rejects.toMatchObject({ code: "pilot_file_too_large" });
+    expect(await files.read("owner-state.json")).toEqual(exact);
+    await expect(
+      files.write("quality.json", { text: "x".repeat(1048576) }),
+    ).rejects.toMatchObject({ code: "pilot_file_too_large" });
+    await expect(
+      files.write("session.json", { text: "x".repeat(131072) }),
+    ).rejects.toMatchObject({ code: "pilot_file_too_large" });
+    await writeFile(
+      files.directory + "/owner-state.json",
+      JSON.stringify({ text: "x".repeat(2097152) }),
+      { mode: 0o600 },
+    );
+    await expect(files.read("owner-state.json")).rejects.toMatchObject({
+      code: "pilot_unsafe_file",
+    });
   });
   it("persists Studio failure as an unavailable turn and refuses its replay without another plan", () => {
     const turn = unavailablePresentationTurn(randomUUID(), "fixed request");
