@@ -7,7 +7,7 @@ export const productGuide = {
     title: "How Pal Care works",
     href: "/dashboard",
     facts:
-      "Care → Purchases & Docs → Insights. PayPal: verified Sandbox evidence. North: saved-evidence help/supported view requests. AG Studio: real charts/grids/KPIs. Independent demo, not complete PayPal history.",
+      "Pal Care: saved purchases, receipts, source-backed aftercare. Care → Purchases & Docs → Insights. PayPal: verified Sandbox evidence. North: saved-evidence help/supported view requests. AG Studio: real charts/grids/KPIs. Independent demo, not complete PayPal history.",
   },
   care: {
     title: "Care",
@@ -91,9 +91,18 @@ export const productGuideFeatureSchema = z.enum([
   "safety",
   "limits",
 ]);
+// Preserve ordinary whitespace, but never publish invisible editing/control
+// characters as user-facing prose. Rejection does not invent a completion,
+// silently strip characters, raise caps, or authorize another provider attempt.
+const safeGuideProse = z
+  .string()
+  .refine(
+    (value) => !/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value),
+    "Guide prose contains a prohibited control character",
+  );
 export const productGuideReplySchema = z.strictObject({
-  text: z.string().min(20).max(620),
-  steps: z.array(z.string().min(5).max(180)).min(1).max(5),
+  text: safeGuideProse.min(20).max(620),
+  steps: z.array(safeGuideProse.min(5).max(180)).min(1).max(5),
   features: z.array(productGuideFeatureSchema).min(1).max(3),
 });
 export type ProductGuideReply = z.infer<typeof productGuideReplySchema>;

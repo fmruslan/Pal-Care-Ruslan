@@ -33,7 +33,7 @@ const valid = {
 };
 describe("CareOS model trust boundary (injected transports, never hosted inference)", () => {
   it("versions the current one-purchase classifier without mapping unsupported library questions to product facts", () => {
-    expect(CARE_PROMPT_VERSION).toBe("careos-sol-medium-north-1a-v3");
+    expect(CARE_PROMPT_VERSION).toBe("careos-sol-medium-north-1a-v4");
     expect(CARE_INSTRUCTIONS).toContain("ONE purchase or exact-product task");
     expect(CARE_INSTRUCTIONS).toContain("Library-wide purchase lists/search");
     expect(CARE_INSTRUCTIONS).toContain(
@@ -67,6 +67,59 @@ describe("CareOS model trust boundary (injected transports, never hosted inferen
     expect(CARE_SELECTION_INSTRUCTIONS).toContain(
       "do not add adjacent facts merely because they concern the same product",
     );
+  });
+
+  it("limits care quotes to content and unsupported applicability to insufficiency", () => {
+    expect(CARE_INSTRUCTIONS).toContain(
+      "Each quote must be an exact substring of that source's content field",
+    );
+    expect(CARE_INSTRUCTIONS).toContain(
+      "never its title, section, product metadata or conversation history",
+    );
+    expect(CARE_INSTRUCTIONS).toContain(
+      "including applicability to other or all operating systems, return insufficient with no steps",
+    );
+    expect(CARE_INSTRUCTIONS).toContain(
+      "Missing evidence is not proof of incompatibility",
+    );
+  });
+
+  it.each([referenceSource.title, referenceSource.section, "Raspberry Pi OS"])(
+    "rejects metadata used as a content quote: %s",
+    (quote) => {
+      expect(referenceSource.content).not.toContain(quote);
+      expect(() =>
+        groundedAnswer(
+          base(),
+          { ...valid, steps: [{ ...valid.steps[0], quote }] },
+          [referenceSource],
+        ),
+      ).toThrow("careos_evidence_invalid");
+    },
+  );
+
+  it("rejects a foreign source ID and the whole answer when valid and invalid steps are mixed", () => {
+    for (const change of [
+      { sourceId: randomUUID() },
+      { quote: referenceSource.section },
+    ]) {
+      const invalid = { ...valid.steps[0], ...change };
+      for (const steps of [[invalid], [valid.steps[0], invalid]])
+        expect(() =>
+          groundedAnswer(base(), { outcome: "answered", steps }, [
+            referenceSource,
+          ]),
+        ).toThrow("careos_evidence_invalid");
+    }
+  });
+
+  it("still renders the exact shutdown-before-unplugging content, never model prose", () => {
+    const answer = groundedAnswer(base(), valid, [referenceSource]);
+    expect(answer.outcome).toBe("answered");
+    expect(answer.steps).toEqual([referenceSource.content.split("\n")[0]]);
+    expect(answer.steps).not.toContain(valid.steps[0].text);
+    expect(answer.sources[0].id).toBe(referenceSource.id);
+    expect(answer.sources[0].excerpt).toBe(referenceSource.content);
   });
 
   it("rejects financial instructions even when an injected source supplies the exact quote", async () => {
@@ -334,7 +387,7 @@ describe("CareOS model trust boundary (injected transports, never hosted inferen
     expect(result.micro).toBe(400);
     expect(result.usage).toMatchObject({
       schemaName: "careos_care",
-      promptVersion: "careos-sol-medium-north-1a-v3",
+      promptVersion: "careos-sol-medium-north-1a-v4",
     });
     expect(bodies[0]).toMatchObject({
       store: false,
