@@ -17,11 +17,18 @@ try {
       "approve-quota-campaign",
       "approve-quota-campaign-extension",
       "approve-north-guide-campaign",
+      "approve-north-guide-records-binding",
     ].includes(action)
   )
     throw new Error("usage");
   const owner = new StandingOwner();
-  if (action === "approve-north-guide-campaign") {
+  if (action === "approve-north-guide-records-binding") {
+    if (id !== "north-guide-records-binding-approval.json")
+      throw new Error("usage");
+    await owner.installNorthGuideRecordsBinding(
+      await owner.files.read("north-guide-records-binding-approval.json"),
+    );
+  } else if (action === "approve-north-guide-campaign") {
     if (id !== "north-guide-campaign-approval.json") throw new Error("usage");
     await owner.installNorthGuideCampaign(
       await owner.files.read("north-guide-campaign-approval.json"),

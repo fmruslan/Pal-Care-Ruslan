@@ -115,9 +115,11 @@ test("unified Care orders useful help, saved priority actions, real calendar, al
   });
   await page.goto("/dashboard");
   await expect(
-    page.getByText("Your purchases, important dates, and the help you need.", {
-      exact: true,
-    }),
+    page
+      .getByRole("main")
+      .getByText("Your purchases, important dates, and the help you need.", {
+        exact: true,
+      }),
   ).toBeVisible();
   await expect(page.getByText("More tools", { exact: true })).toHaveCount(0);
   const help = page.getByRole("navigation", {

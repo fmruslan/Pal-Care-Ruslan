@@ -26,6 +26,8 @@ import {
 import {
   quotaCampaignExtensionSchema,
   northGuideCampaignSchema,
+  northGuideRecordsBindingSchema,
+  campaignSessionsAtCheckpoint,
 } from "../../src/lib/careos/quota-campaign";
 import {
   submitLanguageTurn,
@@ -34,15 +36,18 @@ import {
 
 test.setTimeout(120000);
 for (const limits of [
-  { baseline: 63, additional: 100, limit: 163, dispatched: 4 },
-  { baseline: 263, additional: 300, limit: 563, dispatched: 5 },
+  { baseline: 63, additional: 100, limit: 163, dispatched: 4, fresh: false },
+  { baseline: 263, additional: 300, limit: 563, dispatched: 5, fresh: false },
+  { baseline: 263, additional: 300, limit: 563, dispatched: 5, fresh: true },
 ]) {
-  test(`quota-only ${limits.limit} policy survives historical deadline, uses normal host-approved browser, real native/care stages, and campaign-only revocation`, async ({
+  test(`quota-only ${limits.limit}${limits.fresh ? " fresh-empty binding" : ""} policy survives historical deadline, uses normal host-approved browser, real native/care stages, and campaign-only revocation`, async ({
     context,
     page,
   }) => {
     const app = await createNorth150App();
     let f: Awaited<ReturnType<typeof north150Fixture>> | undefined;
+    let freshRecordsOwner: string | undefined;
+    let originalRows: unknown[] | undefined;
     try {
       app.clock.advance(RECOVERY_DEADLINE + 86400000 - app.clock.now());
       const fake = OWNER_ORIGIN + "/__synthetic-quota-fixture";
@@ -53,7 +58,7 @@ for (const limits of [
           contentType: "text/html",
           body: "<!doctype html><title>Synthetic fixture</title>",
           headers: {
-            "set-cookie": `${OWNER_COOKIE}=${north150Token}; Path=/; Secure; HttpOnly; SameSite=Strict\npalcare-records=${app.recordsToken}; Path=/; Secure; HttpOnly; SameSite=Strict`,
+            "set-cookie": `${OWNER_COOKIE}=${north150Token}; Path=/; Secure; HttpOnly; SameSite=Strict${limits.fresh ? "" : `\npalcare-records=${app.recordsToken}; Path=/; Secure; HttpOnly; SameSite=Strict`}`,
           },
         });
       });
@@ -148,12 +153,97 @@ for (const limits of [
           }),
         );
       }
+      const routing = await app.route(context, f.recordsOwner, limits.fresh);
+      await app.start();
+      await page.goto(OWNER_ORIGIN + "/ai-evaluation");
+      if (limits.fresh) {
+        expect(
+          (await context.cookies()).some((c) => c.name === "palcare-records"),
+        ).toBe(false);
+        originalRows = (
+          await app.pool.query(
+            "select id,md5(row_to_json(r)::text) hash from care_requests r where conversation_id=any($1::uuid[]) order by id",
+            [f.seeded.ids],
+          )
+        ).rows;
+        const created = await page.evaluate(async () => {
+          const response = await fetch("/api/careos/records/conversations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: "{}",
+          });
+          return { status: response.status, value: await response.json() };
+        });
+        expect(created.status).toBe(201);
+        expect(created.value.turns).toEqual([]);
+        freshRecordsOwner = routing.freshRecordsOwner();
+        expect(freshRecordsOwner).toMatch(/^[a-f0-9]{64}$/);
+        expect(freshRecordsOwner).not.toBe(f.recordsOwner);
+        expect(
+          await page.evaluate(
+            async (id) =>
+              (await fetch(`/api/careos/records/conversations/${id}`)).status,
+            f.seeded.ids[0],
+          ),
+        ).toBe(404);
+        expect(
+          await page.evaluate(
+            async () =>
+              (
+                await fetch("/api/ai/owner", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ action: "pair" }),
+                })
+              ).status,
+          ),
+        ).toBe(403);
+        const checkpoint = (await f.files.read(
+          "owner-state.json",
+        )) as OwnerState;
+        await f.owner.installNorthGuideRecordsBinding(
+          northGuideRecordsBindingSchema.parse({
+            version: 1,
+            campaignId: RECOVERY_EVALUATION,
+            ownerApprovalHash: north150Hash(
+              "synthetic separately approved fresh empty records binding",
+            ),
+            approvedAt: app.clock.now(),
+            purpose: "north-guide-fresh-empty-records-session",
+            guideAuthorizationHash: recoveryHash(checkpoint.northGuideCampaign),
+            previousRecordsOwnerDigest: f.recordsOwner,
+            recordsOwnerDigest: freshRecordsOwner,
+            agentHash: checkpoint.quotaCampaign!.agentHash,
+            providerIdentityHash:
+              checkpoint.quotaCampaign!.providerIdentityHash,
+            emptyConversationId: created.value.id,
+            checkpointEventCount: checkpoint.events.length,
+            checkpointEventHash: recoveryHash(checkpoint.events),
+            checkpointCampaignSessionsHash: recoveryHash(
+              campaignSessionsAtCheckpoint(checkpoint, checkpoint.events),
+            ),
+          }),
+        );
+        const bound = (await f.files.read("owner-state.json")) as OwnerState;
+        for (const field of [
+          "policy",
+          "evaluation",
+          "quotaCampaign",
+          "quotaCampaignExtension",
+          "northGuideCampaign",
+          "sessions",
+        ] as const)
+          expect(bound[field]).toEqual(checkpoint[field]);
+        expect(bound.events.slice(0, checkpoint.events.length)).toEqual(
+          checkpoint.events,
+        );
+        expect(campaignBudget(bound.events)).toEqual(
+          campaignBudget(checkpoint.events),
+        );
+      }
       const approvedBeforePair = (await f.files.read(
         "owner-state.json",
       )) as OwnerState;
-      await app.route(context, f.recordsOwner);
-      await app.start();
-      await page.goto(OWNER_ORIGIN + "/ai-evaluation");
       expect(
         await page.evaluate(async () => (await fetch("/api/ai/owner")).json()),
       ).toMatchObject({
@@ -400,10 +490,25 @@ for (const limits of [
       expect(
         await readFile(join(f.files.directory, RECOVERY_FILE), "utf8"),
       ).toBe(oldGrant);
+      if (freshRecordsOwner) {
+        expect(
+          (
+            await app.pool.query(
+              "select id,md5(row_to_json(r)::text) hash from care_requests r where conversation_id=any($1::uuid[]) order by id",
+              [f.seeded.ids],
+            )
+          ).rows,
+        ).toEqual(originalRows);
+      }
     } finally {
       try {
         await context.unrouteAll({ behavior: "ignoreErrors" });
       } finally {
+        if (freshRecordsOwner)
+          await app.pool.query(
+            "delete from care_conversations where owner=$1",
+            [freshRecordsOwner],
+          );
         await app.dispose(f?.recordsOwner);
       }
     }
