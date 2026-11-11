@@ -8,10 +8,11 @@ export const SOL_RESERVATION_MICRO = 120000;
 export const MODEL_TIMEOUT_MS = 22000;
 export const TURN_DEADLINE_MS = 50000;
 export const EVALUATION_MAX_MICRO = 5000000;
+export const DEEPSEEK_MODEL = "deepseek-flash";
 
 export type ModelUsage = {
-  model: typeof MODEL;
-  reasoning: typeof REASONING;
+  model: typeof MODEL | typeof DEEPSEEK_MODEL;
+  reasoning: typeof REASONING | "none";
   inputTokens: number;
   cachedTokens: number;
   cacheWriteTokens: number;
@@ -19,7 +20,7 @@ export type ModelUsage = {
   reasoningTokens: number;
   micro: number;
   latencyMs: number;
-  pricingVersion: "sol-standard-2026-10-26";
+  pricingVersion: "sol-standard-2026-10-26" | "deepseek-peak-2026-11-11";
   schemaName?: string;
   promptVersion?: string;
 };
@@ -66,5 +67,52 @@ export function pricedUsage(
     micro,
     latencyMs,
     pricingVersion: "sol-standard-2026-10-26",
+  };
+}
+
+// Official Flash peak rates: $0.30/M input, $0.006/M cached, $1.20/M
+// output (including reasoning). Peak pricing conservatively covers off-peak.
+export function pricedDeepSeekUsage(
+  raw: unknown,
+  latencyMs: number,
+): ModelUsage | null {
+  if (!raw || typeof raw !== "object") return null;
+  const u = raw as Record<string, unknown>;
+  const input = u.input_tokens;
+  const output = u.output_tokens;
+  const cached =
+    (u.input_tokens_details as Record<string, unknown> | undefined)
+      ?.cached_tokens ?? 0;
+  const reasoning =
+    (u.output_tokens_details as Record<string, unknown> | undefined)
+      ?.reasoning_tokens ?? 0;
+  if (
+    ![input, output, cached, reasoning].every(
+      (v) =>
+        typeof v === "number" &&
+        Number.isSafeInteger(v) &&
+        v >= 0 &&
+        v <= 1000000,
+    )
+  )
+    return null;
+  const [i, o, c, r] = [input, output, cached, reasoning] as number[];
+  if (
+    c > i ||
+    r > o ||
+    (u.total_tokens !== undefined && u.total_tokens !== i + o)
+  )
+    return null;
+  return {
+    model: DEEPSEEK_MODEL,
+    reasoning: "none",
+    inputTokens: i,
+    cachedTokens: c,
+    cacheWriteTokens: 0,
+    outputTokens: o,
+    reasoningTokens: r,
+    micro: Math.ceil(((i - c) * 300 + c * 6 + o * 1200) / 1000),
+    latencyMs,
+    pricingVersion: "deepseek-peak-2026-11-11",
   };
 }

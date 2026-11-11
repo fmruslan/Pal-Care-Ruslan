@@ -50,6 +50,7 @@ export function careRuntime() {
             totalMicro: config.totalMicro,
             budgetId: config.budgetId,
             reservationMicro: SOL_RESERVATION_MICRO,
+            model: config.model,
           }
         : undefined,
       true,
@@ -67,7 +68,7 @@ export async function assertCustomerRuntimeAccess(
     await assertStandingOwner(channel);
     return;
   }
-  if (config.mode === "subscription")
+  if (config.mode === "subscription" || config.mode === "responses")
     assertEvaluationAccess(
       "customer",
       (await cookies()).get(evaluationCookie("customer"))?.value,

@@ -11,6 +11,8 @@ import {
   MODEL_REQUEST_BYTES,
   MODEL_TIMEOUT_MS,
   pricedUsage,
+  pricedDeepSeekUsage,
+  DEEPSEEK_MODEL,
   type ModelUsage,
 } from "../model-policy";
 
@@ -82,10 +84,12 @@ export class ResponsesProvider implements CareModel {
     },
     transport?: typeof fetch,
   ) {
-    if (
-      config.model !== MODEL ||
-      config.baseURL !== "https://api.openai.com/v1"
-    )
+    if (!(
+      (config.model === MODEL &&
+        config.baseURL === "https://api.openai.com/v1") ||
+      (config.model === DEEPSEEK_MODEL &&
+        config.baseURL === "https://api.deepseek.com")
+    ))
       throw new CareError("careos_model_not_allowed");
     this.client = new OpenAI({
       apiKey: config.apiKey,
@@ -120,16 +124,34 @@ export class ResponsesProvider implements CareModel {
       ],
       text: { format: zodTextFormat(schema, name) },
     };
+    const deepseek = this.config.model === DEEPSEEK_MODEL;
+    if (deepseek) {
+      // DeepSeek treats developer messages as user data. Keep trusted rules in
+      // instructions, and send only supported parameters. History stays ours.
+      delete body.service_tier;
+      delete body.prompt_cache_options;
+      body.reasoning = { effort: "none" };
+      body.instructions = prompt;
+      body.input = [{ role: "user", content: payload }];
+    }
     // 20k request bytes + 2048 framing tokens, priced at the worst .0000025
     // input rate, plus 6k output at .000010 = $0.11512 < $0.12 reserved.
     if (Buffer.byteLength(JSON.stringify(body), "utf8") > MODEL_REQUEST_BYTES)
       throw new CareError("careos_context_too_large");
     const started = Date.now();
     const response = await this.client.responses.create(body, { signal });
-    const compatible =
-      response.model === MODEL && response.service_tier === "default";
+    const compatible = deepseek
+      ? [
+          DEEPSEEK_MODEL,
+          "DeepSeek-V4.1-Flash-1017",
+          "deepseek-v4.1-flash-1017",
+        ].includes(response.model)
+      : response.model === MODEL && response.service_tier === "default";
     const measured = compatible
-      ? pricedUsage(response.usage, Date.now() - started)
+      ? (deepseek ? pricedDeepSeekUsage : pricedUsage)(
+          response.usage,
+          Date.now() - started,
+        )
       : null;
     const usage = measured
       ? { ...measured, schemaName: name, promptVersion: CARE_PROMPT_VERSION }

@@ -6,6 +6,7 @@ import {
   EVALUATION_MAX_MICRO,
 } from "./model-policy";
 import { SUBSCRIPTION_SESSION } from "./subscription/policy";
+import { hostedDemo } from "../hosted-demo";
 import {
   privateHttpsPresentation,
   northReviewLivePresentation,
@@ -16,6 +17,8 @@ export function parseCareConfig(env: Record<string, string | undefined>) {
     .enum(["fixture", "disabled", "responses", "subscription"])
     .safeParse(env.CAREOS_PROVIDER ?? "fixture");
   if (!mode.success) throw new CareError("careos_invalid_configuration");
+  if (env.PALCARE_HOSTED_DEMO === "true" && !hostedDemo(env))
+    throw new CareError("careos_hosted_configuration_invalid");
   if (mode.data === "subscription") {
     const c = z
       .object({
@@ -49,15 +52,20 @@ export function parseCareConfig(env: Record<string, string | undefined>) {
     return { mode: "subscription" as const, ...c.data };
   }
   if (mode.data !== "responses") return { mode: mode.data } as const;
+  const hosted = hostedDemo(env);
   const config = z
     .object({
       enabled: z.literal("true"),
       dataSource: z.literal("database"),
       apiKey: z.string().min(20),
-      model: z.literal(MODEL),
-      projectId: z.string().regex(/^proj_[a-zA-Z0-9_-]+$/),
+      model: hosted ? z.literal("deepseek-flash") : z.literal(MODEL),
+      projectId: hosted
+        ? z.undefined()
+        : z.string().regex(/^proj_[a-zA-Z0-9_-]+$/),
       providerLimitConfirmed: z.literal("true"),
-      baseURL: z.literal("https://api.openai.com/v1"),
+      baseURL: hosted
+        ? z.literal("https://api.deepseek.com")
+        : z.literal("https://api.openai.com/v1"),
       writerUrl: z
         .url()
         .refine((value) =>
@@ -80,9 +88,11 @@ export function parseCareConfig(env: Record<string, string | undefined>) {
       dataSource: env.DEMO_DATA_SOURCE,
       apiKey: env.CAREOS_API_KEY,
       model: env.CAREOS_MODEL ?? MODEL,
-      projectId: env.CAREOS_PROJECT_ID,
+      projectId: hosted ? undefined : env.CAREOS_PROJECT_ID,
       providerLimitConfirmed: env.CAREOS_PROVIDER_LIMIT_CONFIRMED,
-      baseURL: env.CAREOS_RESPONSES_BASE_URL ?? "https://api.openai.com/v1",
+      baseURL:
+        env.CAREOS_RESPONSES_BASE_URL ??
+        (hosted ? "https://api.deepseek.com" : "https://api.openai.com/v1"),
       writerUrl: env.CAREOS_DATABASE_URL,
       dailyMicro: env.CAREOS_DAILY_BUDGET_MICRO,
       totalMicro: env.CAREOS_TOTAL_BUDGET_MICRO,

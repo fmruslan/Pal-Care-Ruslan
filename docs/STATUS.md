@@ -1,5 +1,15 @@
 # Implementation status
 
+## Isolated Render / DeepSeek judge preparation — under verification
+
+**Implemented:** opt-in Render-only `deepseek-flash` Responses transport, supported parameters, conservative official usage normalization, existing strict structured-output/action validation, multi-turn grounded North and existing native Studio presentation path. Separate existing expiring customer/Studio tokens control inference; no anonymous inference, campaign recovery or new limits/accounting framework. Existing PostgreSQL API reservations/rate limits/$5 ceiling are reused. Private Sol paths, host configuration, running assets and database are not changed by this task. Checkout/refunds/payment reads stay off.
+
+**Implemented preparation:** `render.yaml` selects the $7 web/$6 PostgreSQL compute tiers, plus storage/usage. `scripts/prepare-render-judge.ts` prepares existing access tokens and a source-read-only sanitized historical Sandbox export, then populates only a new empty Render DB using existing migrations/sample packs and independent restricted runtime logins. No mock Sandbox seed; no source credentials/accounting/session copy. [Exact owner setup steps](RENDER-JUDGE.md).
+
+**Verified / Incomplete:** focused injected transport/config/access/archive tests pass **40/40**, non-emitting TypeScript, scoped lint and repository checks pass. The local database test correctly stopped before connecting because no explicit dedicated `TEST_DATABASE_URL` is configured; its disposable-PostgreSQL run and exact-head/main required full-risk CI remain pending. No local build overwrites the active private preview's assets. These are not actual Render/provider/browser acceptance. No source DB export, target DB creation, live API call, Render deployment, secret entry, license activation or hosting charge has occurred.
+
+**Blocked / Next:** finish mandatory CI/merge; owner enters the DeepSeek key/access hashes, provisions Render and supplies source/target operator connections privately for one-time isolated preparation. Then verify actual hosted essentials and owner testing. No private deployment, video or Devpost work is in this phase.
+
 ## Provider-stop recovery and readable-guide hardening — separately approved, not activated
 
 **Outcome / gate D:** finish useful remaining North acceptance without bypassing a provider failure or publishing clipped app-help prose. The live campaign is **stopped at 72 new charged attempts / 67 attempted questions**, cumulative **335/563**, **228 unspent**. Sixty-six questions have semantic review: **60 pass / five partial / one fail**, plus one provider-blocked question. Pass totals include explicitly qualified prepared-oracle corrections; original mismatches, failures and separate retests remain retained. There are **71 completed provider stages / one known failed pre-stream503 / no new unknown**; the historical unknown stays charged.

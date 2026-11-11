@@ -22,7 +22,11 @@ export function northMainLivePresentation(
 export function northConversationalPresentation(
   env: Record<string, string | undefined>,
 ) {
-  return northMainLivePresentation(env) || northReviewLivePresentation(env);
+  return (
+    northMainLivePresentation(env) ||
+    northReviewLivePresentation(env) ||
+    hostedDemo(env)
+  );
 }
 
 /** Configuration is presentation only. Dispatch additionally requires the
@@ -73,3 +77,4 @@ export function privateHttpsPresentation(
     env.APP_ORIGIN === privateHttpsOrigin
   );
 }
+import { hostedDemo } from "./hosted-demo";
