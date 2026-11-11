@@ -20,6 +20,8 @@ import {
   quotaCampaignExtensionSchema,
   subscriptionIdentityHash,
   northGuideCampaignSchema,
+  northGuideRecordsBindingSchema,
+  campaignSessionsAtCheckpoint,
 } from "../../src/lib/careos/quota-campaign";
 import { campaignBudget } from "../../src/lib/careos/campaign-execution";
 import {
@@ -205,6 +207,304 @@ describe("separately approved 263 plus 300 guide campaign", () => {
     await f.owner.finishBrowser(proof);
     return { ...f, newBrowser: browser, newProof: proof };
   }
+  async function freshBinding() {
+    const f = await exhaustedGuide();
+    await f.owner.installNorthGuideCampaign(f.guide);
+    const checkpoint = await f.read();
+    const recordsOwnerDigest = north150Hash(
+      "fresh server-minted empty namespace",
+    );
+    const binding = northGuideRecordsBindingSchema.parse({
+      version: 1,
+      campaignId: RECOVERY_EVALUATION,
+      ownerApprovalHash: north150Hash(
+        "owner-approved once-only fresh empty records binding",
+      ),
+      approvedAt: f.clock.now(),
+      purpose: "north-guide-fresh-empty-records-session",
+      guideAuthorizationHash: recoveryHash(checkpoint.northGuideCampaign),
+      previousRecordsOwnerDigest: checkpoint.quotaCampaign!.recordsOwnerDigest,
+      recordsOwnerDigest,
+      agentHash: checkpoint.quotaCampaign!.agentHash,
+      providerIdentityHash: checkpoint.quotaCampaign!.providerIdentityHash,
+      emptyConversationId: randomUUID(),
+      checkpointEventCount: checkpoint.events.length,
+      checkpointEventHash: recoveryHash(checkpoint.events),
+      checkpointCampaignSessionsHash: recoveryHash(
+        campaignSessionsAtCheckpoint(checkpoint, checkpoint.events),
+      ),
+    });
+    return { ...f, checkpoint, binding, recordsOwnerDigest };
+  }
+  async function boundBrowser() {
+    const f = await freshBinding();
+    await f.owner.installNorthGuideRecordsBinding(f.binding);
+    const browser = await f.owner.pair(
+      f.agent,
+      f.proof.token,
+      f.recordsOwnerDigest,
+    );
+    const proof = {
+      ...f.proof,
+      token: browser.token,
+      recordsOwnerDigest: f.recordsOwnerDigest,
+    };
+    await f.owner.approve(browser.id);
+    await f.owner.finishBrowser(proof);
+    return { ...f, boundBrowser: browser, boundProof: proof };
+  }
+  it("binds one fresh namespace without changing old histories/grants/sessions/usage; normal host approval and restart remain required", async () => {
+    const f = await freshBinding();
+    await expect(
+      f.owner.pair(f.agent, f.proof.token, f.recordsOwnerDigest),
+    ).rejects.toThrow("scope_denied");
+    await f.owner.installNorthGuideRecordsBinding(f.binding);
+    const after = await f.read();
+    for (const field of [
+      "policy",
+      "evaluation",
+      "quotaCampaign",
+      "quotaCampaignExtension",
+      "northGuideCampaign",
+      "sessions",
+    ] as const)
+      expect(after[field]).toEqual(f.checkpoint[field]);
+    expect(after.events.slice(0, f.checkpoint.events.length)).toEqual(
+      f.checkpoint.events,
+    );
+    expect(campaignBudget(after.events)).toEqual(
+      campaignBudget(f.checkpoint.events),
+    );
+    expect(after.events.at(-1)).toMatchObject({
+      kind: "approve-north-guide-records-binding",
+      subject: recoveryHash(f.binding),
+      allocationId: RECOVERY_EVALUATION,
+    });
+    expect(after.events.at(-1)).not.toHaveProperty("executionLimit");
+    const browser = await f.owner.pair(
+      f.agent,
+      f.proof.token,
+      f.recordsOwnerDigest,
+    );
+    const proof = {
+      ...f.proof,
+      token: browser.token,
+      recordsOwnerDigest: f.recordsOwnerDigest,
+    };
+    await expect(f.owner.authenticate(proof)).rejects.toThrow();
+    await f.owner.approve(browser.id);
+    await f.owner.finishBrowser(proof);
+    expect(await f.restart().status(proof)).toMatchObject({
+      remaining: 300,
+      used: 263,
+      requestLimit: 563,
+      campaign: { authorized: true },
+      standingAllocation: { used: 274, remaining: 26 },
+    });
+    expect((await f.files.snapshot("evaluation-recovery.json"))!.hash).toBe(
+      f.grant!.hash,
+    );
+    await expect(
+      f.owner.installNorthGuideRecordsBinding({
+        ...f.binding,
+        recordsOwnerDigest: north150Hash("replacement"),
+      }),
+    ).rejects.toThrow("already_set");
+  });
+  it.each([
+    "old-cookie",
+    "missing-cookie",
+    "foreign-cookie",
+    "agent",
+    "origin",
+    "channel",
+  ])(
+    "fresh binding keeps %s denied without consuming any allowance",
+    async (kind) => {
+      const f = await boundBrowser();
+      const proof: OwnerProof = { ...f.boundProof };
+      if (kind === "old-cookie") proof.recordsOwnerDigest = f.recordsOwner;
+      if (kind === "missing-cookie") proof.recordsOwnerDigest = undefined;
+      if (kind === "foreign-cookie")
+        proof.recordsOwnerDigest = north150Hash("foreign");
+      if (kind === "agent") proof.agent = "different agent";
+      if (kind === "origin") proof.origin = "https://foreign.invalid";
+      if (kind === "channel") proof.channel = undefined;
+      const before = await f.read();
+      await expect(
+        f.owner.reserve(
+          proof,
+          "customer",
+          `customer:${randomUUID()}:north_conversation_v1`,
+          true,
+        ),
+      ).rejects.toThrow();
+      await expect(f.owner.authenticate(f.proof)).rejects.toThrow();
+      expect(await f.read()).toEqual(before);
+    },
+  );
+  it.each(["original", "fresh"])(
+    "%s campaign namespace cannot fall through to the standing allocation",
+    async (kind) => {
+      const f = await boundBrowser();
+      const browser = await f.owner.pair(f.agent);
+      const proof = {
+        token: browser.token,
+        agent: f.agent,
+        origin: OWNER_ORIGIN,
+        channel: "records" as const,
+      };
+      await f.owner.approve(browser.id);
+      await f.owner.finishBrowser(proof);
+      await expect(
+        f.owner.reserve(
+          {
+            ...proof,
+            recordsOwnerDigest:
+              kind === "fresh" ? f.recordsOwnerDigest : f.recordsOwner,
+          },
+          "customer",
+          `customer:${randomUUID()}:north_conversation_v1`,
+          true,
+        ),
+      ).rejects.toThrow("quota_campaign_browser_approval_required");
+      expect(await f.owner.status(f.boundProof)).toMatchObject({
+        used: 263,
+        remaining: 300,
+        standingAllocation: { used: 274, remaining: 26 },
+      });
+    },
+  );
+  it.each([
+    "grant",
+    "old-digest",
+    "same-digest",
+    "agent",
+    "provider",
+    "prefix",
+    "sessions",
+    "approval",
+    "future",
+    "active-browser",
+    "question",
+    "provider-block",
+  ])("rejects a %s binding without publishing state", async (kind) => {
+    const f = await freshBinding();
+    const binding = { ...f.binding };
+    if (kind === "grant") binding.guideAuthorizationHash = "0".repeat(64);
+    if (kind === "old-digest")
+      binding.previousRecordsOwnerDigest = "0".repeat(64);
+    if (kind === "same-digest") binding.recordsOwnerDigest = f.recordsOwner;
+    if (kind === "agent") binding.agentHash = "0".repeat(64);
+    if (kind === "provider") binding.providerIdentityHash = "0".repeat(64);
+    if (kind === "prefix") binding.checkpointEventHash = "0".repeat(64);
+    if (kind === "sessions")
+      binding.checkpointCampaignSessionsHash = "0".repeat(64);
+    if (kind === "approval")
+      binding.ownerApprovalHash = f.guide.ownerApprovalHash;
+    if (kind === "future") binding.approvedAt = f.clock.now() + 60000;
+    if (["active-browser", "question", "provider-block"].includes(kind)) {
+      const s = await f.read();
+      if (kind === "active-browser")
+        s.sessions.find((entry) => entry.id === f.browser.id)!.revoked = false;
+      else
+        s.events.push({
+          id: randomUUID(),
+          at: f.clock.now(),
+          kind: kind === "question" ? "question-open" : "provider-block",
+          subject:
+            kind === "question"
+              ? `customer:${randomUUID()}:question:${randomUUID()}`
+              : "provider denied",
+          allocationId: RECOVERY_EVALUATION,
+        });
+      await f.files.write("owner-state.json", s);
+    }
+    const before = await f.read();
+    await expect(
+      f.owner.installNorthGuideRecordsBinding(binding),
+    ).rejects.toThrow();
+    expect(await f.read()).toEqual(before);
+  });
+  it.each([
+    "missing-binding",
+    "missing-event",
+    "changed-binding",
+    "revived-old-session",
+  ])("fails closed after %s, never restoring the old proof", async (kind) => {
+    const f = await boundBrowser();
+    const s = await f.read();
+    if (kind === "missing-binding") delete s.northGuideRecordsBinding;
+    if (kind === "missing-event")
+      s.events = s.events.filter(
+        (e) => e.kind !== "approve-north-guide-records-binding",
+      );
+    if (kind === "changed-binding")
+      s.northGuideRecordsBinding!.recordsOwnerDigest = f.recordsOwner;
+    if (kind === "revived-old-session")
+      s.sessions.find((entry) => entry.id === f.browser.id)!.revoked = false;
+    await f.files.write("owner-state.json", s);
+    await expect(f.restart().authenticate(f.boundProof)).rejects.toThrow();
+    expect(await f.restart().quotaCampaignStatus()).toMatchObject({
+      active: false,
+    });
+  });
+  it.each([561, 562])(
+    "fresh binding preserves atomic whole-question admission at %s used",
+    async (used) => {
+      const f = await boundBrowser();
+      await f.fill(used);
+      const request = randomUUID(),
+        conversation = randomUUID();
+      if (used === 562) {
+        await expect(
+          f.owner.beginCampaignQuestion(
+            f.boundProof,
+            request,
+            conversation,
+            true,
+          ),
+        ).rejects.toThrow();
+        expect(campaignBudget((await f.read()).events)).toMatchObject({
+          used: 562,
+          remaining: 1,
+          held: 0,
+        });
+        return;
+      }
+      await f.owner.beginCampaignQuestion(
+        f.boundProof,
+        request,
+        conversation,
+        true,
+      );
+      for (const stage of ["north_conversation_v1", "careos_care"]) {
+        await f.owner.reserve(
+          f.boundProof,
+          "customer",
+          `customer:${request}:${stage}`,
+          true,
+        );
+        await f.owner.settle(`customer:${request}:${stage}`, "completed", {
+          httpStatus: 200,
+        });
+      }
+      await f.owner.finishCampaignQuestion(f.boundProof, request, conversation);
+      expect(campaignBudget((await f.read()).events)).toMatchObject({
+        used: 563,
+        remaining: 0,
+        held: 0,
+      });
+      await expect(
+        f.owner.beginCampaignQuestion(
+          f.boundProof,
+          randomUUID(),
+          randomUUID(),
+          true,
+        ),
+      ).rejects.toThrow();
+    },
+  );
   it("keeps all old grants, 263 charges, unknowns and revoked proofs; new approval survives restart", async () => {
     const f = await installed();
     const after = await f.read();

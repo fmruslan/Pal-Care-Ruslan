@@ -70,6 +70,95 @@ export const northGuideCampaignSchema = z.strictObject({
   checkpointEventHash: digest,
 });
 
+/** One separately approved empty namespace, never a history/allowance reset. */
+export const northGuideRecordsBindingSchema = z.strictObject({
+  version: z.literal(1),
+  campaignId: z.literal(RECOVERY_EVALUATION),
+  ownerApprovalHash: digest,
+  approvedAt: z.number().int().nonnegative(),
+  purpose: z.literal("north-guide-fresh-empty-records-session"),
+  guideAuthorizationHash: digest,
+  previousRecordsOwnerDigest: digest,
+  recordsOwnerDigest: digest,
+  agentHash: digest,
+  providerIdentityHash: digest,
+  emptyConversationId: z.uuid(),
+  checkpointEventCount: z.number().int().positive(),
+  checkpointEventHash: digest,
+  checkpointCampaignSessionsHash: digest,
+});
+
+export function campaignSessionsAtCheckpoint(
+  state: OwnerState,
+  prefix: OwnerState["events"],
+) {
+  return state.sessions.filter(
+    (entry) =>
+      entry.id === state.evaluation?.sessionId ||
+      (entry.allocationId === RECOVERY_EVALUATION &&
+        prefix.some((e) => e.kind === "pair" && e.subject === entry.id)),
+  );
+}
+
+export function assertNorthGuideRecordsBindingIntegrity(
+  state: OwnerState,
+  now: number,
+  installing = false,
+) {
+  const x = state.northGuideRecordsBinding;
+  const approvals = state.events.filter(
+    (e) => e.kind === "approve-north-guide-records-binding",
+  );
+  if (!x && !approvals.length) return undefined;
+  const q = state.quotaCampaign,
+    guide = state.northGuideCampaign;
+  const prefix = state.events.slice(0, x?.checkpointEventCount ?? 0);
+  const budget = campaignBudget(prefix);
+  const prior = campaignSessionsAtCheckpoint(state, prefix);
+  if (
+    !x ||
+    !q ||
+    !guide ||
+    x.guideAuthorizationHash !== recoveryHash(guide) ||
+    x.previousRecordsOwnerDigest !== q.recordsOwnerDigest ||
+    x.recordsOwnerDigest === q.recordsOwnerDigest ||
+    x.agentHash !== q.agentHash ||
+    x.providerIdentityHash !== q.providerIdentityHash ||
+    [
+      q.ownerApprovalHash,
+      state.quotaCampaignExtension?.ownerApprovalHash,
+      guide.ownerApprovalHash,
+    ].includes(x.ownerApprovalHash) ||
+    x.approvedAt < guide.approvedAt ||
+    x.approvedAt > now ||
+    prefix.length !== x.checkpointEventCount ||
+    recoveryHash(prefix) !== x.checkpointEventHash ||
+    prefix.some((e) => e.at > x.approvedAt) ||
+    budget.executionLimit !== 563 ||
+    budget.used !== 263 ||
+    budget.remaining !== 300 ||
+    budget.activeQuestion ||
+    prior.some((entry) => !entry.revoked) ||
+    recoveryHash(prior) !== x.checkpointCampaignSessionsHash ||
+    (installing
+      ? approvals.length !== 0 ||
+        prefix.length !== state.events.length ||
+        state.sessions.some(
+          (entry) =>
+            entry.allocationId === RECOVERY_EVALUATION && !entry.revoked,
+        )
+      : approvals.length !== 1 ||
+        state.events[x.checkpointEventCount] !== approvals[0] ||
+        approvals[0].subject !== recoveryHash(x) ||
+        approvals[0].allocationId !== RECOVERY_EVALUATION ||
+        approvals[0].executionLimit !== undefined ||
+        approvals[0].at < x.approvedAt ||
+        approvals[0].at > now)
+  )
+    throw new CareError("careos_owner_north_guide_records_binding_denied", 403);
+  return x;
+}
+
 export function assertNorthGuideCampaignIntegrity(
   state: OwnerState,
   now: number,

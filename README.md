@@ -1,5 +1,7 @@
 # Pal Care
 
+**The page search bar is gone on [private Pal Care](https://greatbison.tail9e8802.ts.net:8444/dashboard).** **Explore with North ☆** and the floating star open the same preserved panel. PR #31 passed full/exact-main CI and four private HTTPS profiles. The separately approved once-only fresh empty records binding is now under verification to unblock the existing 300-attempt campaign; no fresh binding/model call is claimed active. [Actual evidence and gates](docs/STATUS.md).
+
 **North buttons only — candidate under verification:** the page-level search/Ask North bar and its History row are removed from Care, Purchases and Documents. Use **Explore with North ☆** or the floating star to open the same panel, composer, chats and drafts. Library filters, legacy query URLs, purchase-specific actions and native Insights remain. The 300-attempt live evaluation is paused at browser admission; this UI task makes no model/access/accounting change. [Current gates](docs/STATUS.md).
 
 The release descriptions below retain their historical checkpoints; current implementation and activation evidence is in [STATUS](docs/STATUS.md).

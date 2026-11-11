@@ -12,6 +12,8 @@ import {
   assertQuotaCampaignIntegrity,
   northGuideCampaignSchema,
   assertNorthGuideCampaignIntegrity,
+  northGuideRecordsBindingSchema,
+  assertNorthGuideRecordsBindingIntegrity,
 } from "./quota-campaign";
 import {
   CAMPAIGN_EXECUTION_LIMIT,
@@ -100,6 +102,7 @@ const eventSchema = z.strictObject({
     "approve-quota-campaign",
     "approve-quota-campaign-extension",
     "approve-north-guide-campaign",
+    "approve-north-guide-records-binding",
     "revoke-quota-campaign",
   ]),
   subject: z.string().min(1).max(200),
@@ -131,6 +134,7 @@ const stateSchema = z.strictObject({
   quotaCampaign: quotaCampaignSchema.optional(),
   quotaCampaignExtension: quotaCampaignExtensionSchema.optional(),
   northGuideCampaign: northGuideCampaignSchema.optional(),
+  northGuideRecordsBinding: northGuideRecordsBindingSchema.optional(),
   sessions: z
     .array(
       z.strictObject({
@@ -277,11 +281,15 @@ export class StandingOwner {
     );
   }
   private async quotaPolicy(s: State) {
-    return assertQuotaCampaignIntegrity(
+    const q = assertQuotaCampaignIntegrity(
       s,
       (await this.files.snapshot("evaluation-recovery.json"))?.hash,
       this.now(),
     );
+    const binding = assertNorthGuideRecordsBindingIntegrity(s, this.now());
+    return binding
+      ? { ...q, recordsOwnerDigest: binding.recordsOwnerDigest }
+      : q;
   }
   private async quotaProof(s: State, proof: OwnerProof) {
     const q = await this.quotaPolicy(s);
@@ -368,6 +376,27 @@ export class StandingOwner {
       this.event(s, "approve-north-guide-campaign", recoveryHash(x));
       s.events.at(-1)!.allocationId = RECOVERY_EVALUATION;
       s.events.at(-1)!.executionLimit = x.executionLimit;
+      await this.quotaPolicy(s);
+    });
+  }
+  /** Host-only, once-only namespace binding. Normal browser approval is separate. */
+  async installNorthGuideRecordsBinding(value: unknown) {
+    const binding = northGuideRecordsBindingSchema.parse(value);
+    return this.change(async (s) => {
+      if (
+        s.northGuideRecordsBinding ||
+        s.events.some((e) => e.kind === "approve-north-guide-records-binding")
+      )
+        return deny("north_guide_records_binding_already_set");
+      await this.quotaPolicy(s);
+      s.northGuideRecordsBinding = binding;
+      assertNorthGuideRecordsBindingIntegrity(s, this.now(), true);
+      this.event(
+        s,
+        "approve-north-guide-records-binding",
+        recoveryHash(binding),
+      );
+      s.events.at(-1)!.allocationId = RECOVERY_EVALUATION;
       await this.quotaPolicy(s);
     });
   }
@@ -480,7 +509,11 @@ export class StandingOwner {
     if (
       !entry.allocationId &&
       s.quotaCampaign &&
-      proof.recordsOwnerDigest === s.quotaCampaign.recordsOwnerDigest
+      !!proof.recordsOwnerDigest &&
+      [
+        s.quotaCampaign.recordsOwnerDigest,
+        s.northGuideRecordsBinding?.recordsOwnerDigest,
+      ].includes(proof.recordsOwnerDigest)
     )
       return deny("quota_campaign_browser_approval_required");
     if (
@@ -576,7 +609,11 @@ export class StandingOwner {
       }
       if (
         s.quotaCampaign &&
-        recordsOwnerDigest === s.quotaCampaign.recordsOwnerDigest
+        !!recordsOwnerDigest &&
+        [
+          s.quotaCampaign.recordsOwnerDigest,
+          s.northGuideRecordsBinding?.recordsOwnerDigest,
+        ].includes(recordsOwnerDigest)
       ) {
         await this.quotaProof(s, {
           agent,

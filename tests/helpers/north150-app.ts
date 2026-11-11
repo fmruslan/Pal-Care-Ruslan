@@ -257,7 +257,12 @@ export async function createNorth150App() {
           .filter(Boolean)
           .map((line) => JSON.parse(line));
       },
-      async route(context: BrowserContext, recordsOwner: string) {
+      async route(
+        context: BrowserContext,
+        recordsOwner: string,
+        allowFreshRecords = false,
+      ) {
+        let mintedRecordsToken: string | undefined;
         await context.route("**/*", async (route) => {
           const request = route.request(),
             url = new URL(request.url());
@@ -297,7 +302,8 @@ export async function createNorth150App() {
               }
               if (
                 cookie.name === "palcare-records" &&
-                cookie.value !== recordsToken
+                cookie.value !== recordsToken &&
+                cookie.value !== mintedRecordsToken
               )
                 throw Error("unexpected non-synthetic records cookie");
             }
@@ -327,11 +333,39 @@ export async function createNorth150App() {
             const created = z
               .object({ id: z.uuid() })
               .parse(await response.json());
+            let createdOwner = recordsOwner;
+            if (allowFreshRecords) {
+              const existing =
+                /(?:^|;\s*)palcare-records=([a-f0-9]{64})(?:;|$)/.exec(
+                  headers.cookie ?? "",
+                )?.[1];
+              const issued = response
+                .headersArray()
+                .find(
+                  (h) =>
+                    h.name.toLowerCase() === "set-cookie" &&
+                    h.value.startsWith("palcare-records="),
+                )?.value;
+              const token = /^palcare-records=([a-f0-9]{64});/.exec(
+                issued ?? "",
+              )?.[1];
+              if (
+                !token ||
+                (existing
+                  ? token !== existing
+                  : !!mintedRecordsToken || token === recordsToken)
+              )
+                throw Error(
+                  "one actual server-minted fresh records cookie required",
+                );
+              if (!existing) mintedRecordsToken = token;
+              createdOwner = north150Hash(`records-v1:${token}`);
+            }
             // DB now() is real, while the owner/browser clock is virtual. Bridge
             // ONLY this fixture's new conversation retention, not any AI grant.
             const updated = await pool!.query(
               "update care_conversations set expires_at=greatest(expires_at,now()+interval '1 day') where id=$1 and owner=$2",
-              [created.id, recordsOwner],
+              [created.id, createdOwner],
             );
             expect(updated.rowCount).toBe(1);
           }
@@ -357,6 +391,12 @@ export async function createNorth150App() {
             );
           }
         });
+        return {
+          freshRecordsOwner: () =>
+            mintedRecordsToken
+              ? north150Hash(`records-v1:${mintedRecordsToken}`)
+              : undefined,
+        };
       },
       async dispose(recordsOwner = north150Hash(`records-v1:${recordsToken}`)) {
         await stop();
