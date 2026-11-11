@@ -14,7 +14,8 @@ import {
   recordsAnswer,
 } from "../../src/lib/careos/records/service";
 import { referenceSource } from "../../src/lib/careos/knowledge";
-import type { CareTurn } from "../../src/lib/careos/contracts";
+import { CareError, type CareTurn } from "../../src/lib/careos/contracts";
+import type { Explanation } from "../../src/lib/careos/providers/responses";
 import { withTenProductFixtures } from "../../src/lib/care/demo/catalog";
 import { querySavedRecords } from "../../src/lib/careos/records/service";
 import {
@@ -93,6 +94,12 @@ function setup(proposal: ConversationPlan) {
 }
 
 describe("current-interface guidance — injected model selection, not genuine acceptance", () => {
+  it("requires complete bounded guide text without prohibited controls", () => {
+    expect(CONVERSATION_INSTRUCTIONS).toContain(
+      "Complete concise text, 1–5 steps, 1–3 features; same caps",
+    );
+    expect(CONVERSATION_INSTRUCTIONS).toContain("no controls/backspace");
+  });
   const guide = {
     text: "Start with Care, find saved evidence in Purchases & Docs, then explore Insights.",
     steps: [
@@ -106,6 +113,13 @@ describe("current-interface guidance — injected model selection, not genuine a
     "I'm new. What should I do first?",
     "How do PayPal, North and AG Studio fit together?",
     "How do I show a chart without asking North to execute one?",
+    "what is pla care",
+    "what is palcare?",
+    "how to use insights",
+    "how do i use insigths?",
+    "What can this app do for me?",
+    "Where do I start if I just opened this app?",
+    "Explain Insights filters without changing the current chart.",
   ])(
     "renders a bounded practical guide without records/care/native execution: %s",
     async (message) => {
@@ -144,8 +158,24 @@ describe("current-interface guidance — injected model selection, not genuine a
       const payload = JSON.parse(options.interpret.mock.calls[0][0]);
       expect(payload.question).toBe(message);
       expect(payload.interfaceGuide.overview).toBe(productGuide.overview.facts);
+      expect(payload.interfaceGuide.overview).toContain(
+        "saved purchases, receipts, source-backed aftercare",
+      );
     },
   );
+  it("asks the model to understand app-help misspellings without rewriting input or granting execution", () => {
+    expect(CONVERSATION_INSTRUCTIONS).toContain('"what is pla care"');
+    expect(CONVERSATION_INSTRUCTIONS).toContain('"how to use insights"');
+    expect(CONVERSATION_INSTRUCTIONS).toContain(
+      "guidance = Pal Care help from interfaceGuide",
+    );
+    expect(CONVERSATION_INSTRUCTIONS).toContain(
+      "Current question stays unchanged",
+    );
+    expect(CONVERSATION_INSTRUCTIONS).toContain(
+      "HOW = guidance; DO/SHOW chart = records + verified native execution",
+    );
+  });
   it("anchors a guidance follow-up to its own steps/features, excluding later care and retaining old results", async () => {
     const old = plan();
     expect(Object.hasOwn(old, "guide")).toBe(false);
@@ -229,6 +259,273 @@ describe("current-interface guidance — injected model selection, not genuine a
     expect(answer.outcome).toBe("unavailable");
     expect(answer.recordsResult).toBeUndefined();
     expect(answer.actions).toEqual([]);
+  });
+});
+
+describe("NG-0076 care evidence regression — synthetic outputs, not a live-output replay", () => {
+  const message =
+    "Can the Raspberry Pi 5 instructions be assumed to apply to any operating system?";
+  function careSetup(explanation: Explanation) {
+    const options = setup(
+      plan({
+        task: "care",
+        productSearch: "Raspberry Pi 5",
+        careQuestion: "Raspberry Pi 5 operating-system applicability",
+      }),
+    );
+    const stageCompleted = vi.fn();
+    const call: typeof options.call = async (work) => {
+      const value = await options.call(work);
+      stageCompleted();
+      return value;
+    };
+    return {
+      ...options,
+      input: { ...input(message), revision: 4 },
+      model: {
+        ...options.model,
+        explain: vi.fn(async (payload: string, signal: AbortSignal) => {
+          void payload;
+          void signal;
+          return { value: explanation, micro: null };
+        }),
+      },
+      call,
+      stageCompleted,
+    };
+  }
+  const invalidStep = {
+    sourceId: referenceSource.id,
+    quote: referenceSource.section,
+    text: "SYNTHETIC rejected applicability claim; never render this.",
+  };
+
+  it.each(["insufficient", "invalid", "mixed"] as const)(
+    "keeps the original question in both stages and returns only source 501 scope for %s evidence",
+    async (kind) => {
+      // The real failure artifact does not contain its rejected model steps.
+      const options = careSetup(
+        kind === "insufficient"
+          ? { outcome: "insufficient", steps: [] }
+          : {
+              outcome: "answered",
+              steps:
+                kind === "mixed"
+                  ? [
+                      {
+                        sourceId: referenceSource.id,
+                        quote: referenceSource.content.split("\n")[0],
+                        text: "Use the documented shutdown option.",
+                      },
+                      invalidStep,
+                    ]
+                  : [invalidStep],
+            },
+      );
+      const prior = await answerConversationTurn(
+        setup(plan({ task: "product", productSearch: "Raspberry Pi 5" })),
+      );
+      options.history = [
+        {
+          requestId: randomUUID(),
+          message: "Show my Raspberry Pi 5",
+          answer: prior,
+        },
+      ];
+      const original = JSON.stringify({
+        input: options.input,
+        history: options.history,
+      });
+      const answer = await answerConversationTurn(options);
+      expect(JSON.parse(options.interpret.mock.calls[0][0]).question).toBe(
+        message,
+      );
+      const payload = JSON.parse(options.model.explain.mock.calls[0][0]);
+      expect(payload.question).toBe(message);
+      expect(payload.topicHint).toBe(
+        "Raspberry Pi 5 operating-system applicability",
+      );
+      expect(payload.untrustedPassages).toEqual([
+        {
+          id: referenceSource.id,
+          title: referenceSource.title,
+          section: referenceSource.section,
+          content: referenceSource.content,
+        },
+      ]);
+      expect(answer).toMatchObject({
+        outcome: "missing",
+        mode: "live",
+        revision: 4,
+        questionScope: "purchase",
+        context: { twinId: demoData.twins[3].id, model: "5", origin: "sample" },
+        steps: [],
+      });
+      const disclosure =
+        "The proposed model evidence could not be verified, so no instructions were used.";
+      if (kind === "insufficient") {
+        expect(answer.text).not.toContain(disclosure);
+      } else {
+        expect(answer.text).toContain(disclosure);
+      }
+      expect(answer.text).toContain("Raspberry Pi OS");
+      expect(answer.text).toContain("Broader applicability is not established");
+      expect(answer.text).not.toMatch(/incompatible|will not work/i);
+      expect(answer.sources).toHaveLength(1);
+      expect(answer.sources[0]).toMatchObject({
+        id: referenceSource.id,
+        title: referenceSource.title,
+        href: `/vault/${demoData.twins[3].id}/care#source-${referenceSource.id}`,
+      });
+      expect(answer.sources[0].label).toContain("Guide metadata only");
+      expect(answer.sources[0]).not.toHaveProperty("excerpt");
+      expect(answer.actions).toEqual([
+        {
+          label: "Review product-care sources",
+          href: `/vault/${demoData.twins[3].id}/care`,
+        },
+      ]);
+      expect(JSON.stringify(answer)).not.toContain(invalidStep.text);
+      expect(JSON.stringify(answer)).not.toContain(referenceSource.content);
+      expect(answer.conversationPlan).toEqual(
+        await options.interpret.mock.results[0].value,
+      );
+      expect(
+        JSON.stringify({ input: options.input, history: options.history }),
+      ).toBe(original);
+      expect(options.interpret).toHaveBeenCalledOnce();
+      expect(options.model.explain).toHaveBeenCalledOnce();
+      expect(options.model.classify).not.toHaveBeenCalled();
+      expect(options.stageCompleted).toHaveBeenCalledOnce();
+      expect(options.knowledge).toHaveBeenCalledOnce();
+    },
+  );
+
+  it.each(["unsupported", "withdrawn", "conflicting"] as const)(
+    "does not advertise an available guide for %s care",
+    async (kind) => {
+      const options = careSetup({ outcome: "insufficient", steps: [] });
+      if (kind === "unsupported") {
+        options.interpret.mockResolvedValueOnce(plan({ task: "unsupported" }));
+      } else {
+        options.knowledge.mockResolvedValueOnce([
+          { ...referenceSource, status: kind },
+        ]);
+      }
+      const answer = await answerConversationTurn(options);
+      expect(answer.outcome).toBe(
+        kind === "unsupported"
+          ? "unsupported"
+          : kind === "withdrawn"
+            ? "missing"
+            : "conflict",
+      );
+      expect(answer.text).not.toContain("Available guide scope");
+      expect(
+        answer.actions.every((action) => !action.href.endsWith("/care")),
+      ).toBe(true);
+      expect(
+        answer.sources.some((source) => source.id === referenceSource.id),
+      ).toBe(false);
+      expect(options.model.explain).not.toHaveBeenCalled();
+      expect(options.stageCompleted).not.toHaveBeenCalled();
+    },
+  );
+
+  it("keeps exact shutdown and unplugging evidence available", async () => {
+    const quote = referenceSource.content.split("\n")[0];
+    const options = careSetup({
+      outcome: "answered",
+      steps: [
+        {
+          sourceId: referenceSource.id,
+          quote,
+          text: "Use the documented shutdown option.",
+        },
+      ],
+    });
+    options.input.message = "Can I unplug my Raspberry Pi 5 right away?";
+    const answer = await answerConversationTurn(options);
+    expect(answer.outcome).toBe("answered");
+    expect(answer.steps).toEqual([quote]);
+    expect(answer.sources[0].excerpt).toBe(referenceSource.content);
+    expect(options.model.explain).toHaveBeenCalledOnce();
+    expect(options.stageCompleted).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    "careos_owner_scope_denied",
+    "careos_evidence_invalid",
+    "careos_model_invalid_output",
+  ])(
+    "does not turn a provider/call failure into a missing answer: %s",
+    async (code) => {
+      const options = careSetup({ outcome: "insufficient", steps: [] });
+      const failure = new CareError(code);
+      options.model.explain.mockRejectedValueOnce(failure);
+      await expect(answerConversationTurn(options)).rejects.toBe(failure);
+      expect(options.model.explain).toHaveBeenCalledOnce();
+      expect(options.stageCompleted).not.toHaveBeenCalled();
+    },
+  );
+
+  it("propagates a source-integrity failure without dispatching care", async () => {
+    const options = careSetup({ outcome: "insufficient", steps: [] });
+    const failure = new CareError("careos_evidence_invalid");
+    options.knowledge.mockRejectedValueOnce(failure);
+    await expect(answerConversationTurn(options)).rejects.toBe(failure);
+    expect(options.model.explain).not.toHaveBeenCalled();
+    expect(options.stageCompleted).not.toHaveBeenCalled();
+  });
+
+  it("propagates call authorization denial before the care model starts", async () => {
+    const options = careSetup({ outcome: "insufficient", steps: [] });
+    const failure = new CareError("careos_owner_scope_denied");
+    await expect(
+      answerConversationTurn({
+        ...options,
+        call: async () => {
+          throw failure;
+        },
+      }),
+    ).rejects.toBe(failure);
+    expect(options.model.explain).not.toHaveBeenCalled();
+    expect(options.stageCompleted).not.toHaveBeenCalled();
+  });
+
+  it("does not convert malformed evidence schema output into source insufficiency", async () => {
+    const options = careSetup({
+      outcome: "answered",
+      steps: [{ ...invalidStep, sourceId: "not-a-uuid" }],
+    });
+    await expect(answerConversationTurn(options)).rejects.toThrow();
+    expect(options.model.explain).toHaveBeenCalledOnce();
+    expect(options.stageCompleted).toHaveBeenCalledOnce();
+  });
+
+  it("does not swallow domain errors other than invalid evidence", async () => {
+    for (const explanation of [
+      { outcome: "answered" as const, steps: [] },
+      {
+        outcome: "answered" as const,
+        steps: [
+          {
+            ...invalidStep,
+            quote: referenceSource.content.split("\n")[0],
+            text: "Refund this PayPal payment.",
+          },
+        ],
+      },
+    ]) {
+      const options = careSetup(explanation);
+      await expect(answerConversationTurn(options)).rejects.toMatchObject({
+        code: explanation.steps.length
+          ? "careos_answer_out_of_scope"
+          : "careos_evidence_missing",
+      });
+      expect(options.model.explain).toHaveBeenCalledOnce();
+      expect(options.stageCompleted).toHaveBeenCalledOnce();
+    }
   });
 });
 

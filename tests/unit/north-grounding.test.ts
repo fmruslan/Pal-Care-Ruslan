@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { contextOf, type CareAnswer } from "../../src/lib/careos/contracts";
-import { groundedAnswer } from "../../src/lib/careos/grounding";
+import {
+  groundedAnswer,
+  insufficientCareAnswer,
+} from "../../src/lib/careos/grounding";
 import { selectedEvidence } from "../../src/lib/careos/evidence-selection";
 import { referenceSource } from "../../src/lib/careos/knowledge";
 import { demoData } from "../../src/lib/demo/fixtures";
@@ -60,13 +63,91 @@ describe("North real-evaluation rendering regressions (saved outputs only, no pr
     ]);
   });
   it("retains the original-guide path when a supplied guide simply does not cover the question", () => {
+    const original = structuredClone(base);
     const answer = groundedAnswer(
       base,
       { outcome: "insufficient", steps: [] },
       [referenceSource],
     );
     expect(answer.text).toContain("available documentation does not support");
+    expect(answer.outcome).toBe("missing");
+    expect(answer.text).toContain(
+      "Available guide scope: Raspberry Pi 5 · safe shutdown · Shutdown options · Raspberry Pi OS",
+    );
+    expect(answer.text).toContain("Broader applicability is not established");
+    expect(answer.text).not.toContain("proposed model evidence");
+    expect(answer.text).not.toMatch(/incompatible|will not work/i);
+    expect(answer.steps).toEqual([]);
+    expect(answer.sources).toEqual([
+      {
+        id: referenceSource.id,
+        title: referenceSource.title,
+        label: `Guide metadata only · ${referenceSource.publisher} · ${referenceSource.license} · reviewed ${referenceSource.reviewedOn}`,
+        href: `/vault/${base.context!.twinId}/care#source-${referenceSource.id}`,
+      },
+    ]);
+    expect(JSON.stringify(answer)).not.toContain(referenceSource.content);
     expect(answer.actions[0].href).toBe(`/vault/${base.context!.twinId}/care`);
+    expect(base).toEqual(original);
+  });
+  it("discloses server-rejected evidence without falsely claiming rejection for ordinary insufficiency", () => {
+    for (const sources of [[], [referenceSource]]) {
+      const normal = insufficientCareAnswer(base, sources);
+      const rejected = insufficientCareAnswer(base, sources, "rejected");
+      const disclosure =
+        "The proposed model evidence could not be verified, so no instructions were used.";
+      expect(normal.text).not.toContain(disclosure);
+      expect(rejected.text).toBe(`${disclosure} ${normal.text}`);
+      expect(rejected.steps).toEqual([]);
+      expect(rejected.sources).toEqual(normal.sources);
+      expect(rejected.actions).toEqual(normal.actions);
+    }
+  });
+  it.each(["withdrawn", "conflicting"] as const)(
+    "does not promote %s source metadata or stale base evidence as available guidance",
+    (status) => {
+      const answer = groundedAnswer(
+        {
+          ...base,
+          sources: [
+            { id: "stale", title: "Old answer", label: "Old", href: "/vault" },
+          ],
+        },
+        { outcome: "insufficient", steps: [] },
+        [{ ...referenceSource, status }],
+      );
+      expect(answer.text).toContain("No matching product-care guide");
+      expect(answer.text).not.toContain("Available guide scope");
+      expect(answer.steps).toEqual([]);
+      expect(answer.sources).toEqual([]);
+      expect(answer.actions[0].href).toContain("#documents-heading");
+    },
+  );
+  it("does not claim an available guide for unsupported products or conflicted evidence", () => {
+    for (const [answerBase, sources] of [
+      [{ ...base, outcome: "unsupported" as const }, [referenceSource]],
+      [{ ...base, outcome: "conflict" as const }, [referenceSource]],
+      [
+        { ...base, context: { ...base.context!, model: "F-01" } },
+        [referenceSource],
+      ],
+      [
+        base,
+        [
+          referenceSource,
+          { ...referenceSource, status: "conflicting" as const },
+        ],
+      ],
+    ] as const) {
+      const answer = groundedAnswer(
+        answerBase,
+        { outcome: "insufficient", steps: [] },
+        [...sources],
+      );
+      expect(answer.text).toContain("No matching product-care guide");
+      expect(answer.sources).toEqual([]);
+      expect(answer.actions[0].href).toContain("#documents-heading");
+    }
   });
   it("does not offer withdrawn guidance as an available guide or fabricate a null-purchase URL", () => {
     const answer = groundedAnswer(
