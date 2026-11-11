@@ -12,6 +12,8 @@ import { digest, validCapability } from "../security";
 import { northReviewPresentation } from "../../private-preview-origin";
 import { StandingOwner } from "../standing-owner";
 import { standingOwnerMode, standingProof } from "../standing-runtime";
+import { hostedDemo } from "../../hosted-demo";
+import { careRuntime } from "../runtime";
 
 const review = northReviewPresentation(process.env);
 export const RECORDS_COOKIE = review
@@ -29,6 +31,7 @@ export function recordsRuntime() {
   const origin = process.env.APP_ORIGIN;
   if (!validAppOrigin(origin))
     throw new CareError("careos_origin_not_configured");
+  if (hostedDemo(process.env)) return { origin, store: careRuntime().store };
   let store: ConversationStore;
   if (getEnvironment().dataSource === "database") {
     shared.northRecordsPostgres ??= new PostgresStore(

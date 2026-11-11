@@ -6,6 +6,7 @@ import {
   MODEL,
   REASONING,
   type ModelUsage,
+  DEEPSEEK_MODEL,
 } from "./model-policy";
 import {
   CareError,
@@ -20,6 +21,7 @@ export type SpendingConfig = {
   totalMicro: number;
   budgetId: string;
   reservationMicro?: 40000 | typeof SOL_RESERVATION_MICRO;
+  model?: typeof MODEL | typeof DEEPSEEK_MODEL;
 };
 export const CALL_RESERVATION_MICRO = 40000; // Legacy reservation; never reprice/release old unknown calls.
 function fingerprint(input: TurnInput) {
@@ -276,8 +278,9 @@ export class PostgresStore implements ConversationStore {
     if (
       usage &&
       (usage.micro !== actualMicro ||
-        usage.model !== MODEL ||
-        usage.reasoning !== REASONING)
+        usage.model !== (this.spending.model ?? MODEL) ||
+        usage.reasoning !==
+          (this.spending.model === DEEPSEEK_MODEL ? "none" : REASONING))
     )
       throw new CareError("careos_usage_invalid");
     const overrun = await this.tx(async (client) => {

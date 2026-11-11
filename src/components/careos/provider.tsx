@@ -1107,7 +1107,7 @@ export function CareOSProvider({
       savedRecords &&
       (liveAdmission ||
         (deterministicQuery && "clarification" in deterministicQuery)) &&
-      mode === "subscription" &&
+      (mode === "subscription" || (mode === "responses" && conversationalAI)) &&
       !aiExpired &&
       !aiAccessDisabled &&
       (liveAdmission || !ownerAccess || ownerState === "ready");

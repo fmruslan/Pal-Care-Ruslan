@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { CareError } from "./contracts";
 import { privateHttpsPresentation } from "../private-preview-origin";
+import { hostedDemo } from "../hosted-demo";
 
 export type EvaluationScope = "customer" | "studio";
 export const evaluationCookie = (scope: EvaluationScope) =>
@@ -67,16 +68,20 @@ export function evaluationSettings(
   now = Date.now(),
 ) {
   const expires = Date.parse(env.CAREOS_EVALUATION_EXPIRES_AT ?? "");
+  const hosted = hostedDemo(env);
   if (
     env.CAREOS_EVALUATION_ENABLED !== "true" ||
     !Number.isFinite(expires) ||
     expires <= now ||
-    expires > now + 86400000 ||
-    !["localhost", "127.0.0.1"].includes(
-      URL.canParse(env.APP_ORIGIN ?? "")
-        ? new URL(env.APP_ORIGIN!).hostname
-        : "",
-    )
+    (hosted
+      ? expires > Date.parse("2026-12-16T00:00:00Z")
+      : expires > now + 86400000) ||
+    (!hosted &&
+      !["localhost", "127.0.0.1"].includes(
+        URL.canParse(env.APP_ORIGIN ?? "")
+          ? new URL(env.APP_ORIGIN!).hostname
+          : "",
+      ))
   )
     throw new CareError("careos_private_evaluation_required", 403);
   for (const name of [

@@ -7,13 +7,16 @@ import type {
 } from "@/lib/careos/evaluation-access";
 import { Button } from "../ui/button";
 import { OwnerConnection, type OwnerCommand } from "./owner-connection";
+import { evaluationRefreshDelay } from "@/lib/careos/window";
 
 export function EvaluationAccess({
   initialAccess,
   ownerCommand,
+  studioHref = "/merchant/intelligence",
 }: {
   initialAccess: EvaluationAccessStatus;
   ownerCommand?: OwnerCommand;
+  studioHref?: "/insights" | "/merchant/intelligence";
 }) {
   const [access, setAccess] = useState<EvaluationAccessStatus | null>(
     initialAccess,
@@ -59,7 +62,7 @@ export function EvaluationAccess({
         ? undefined
         : window.setTimeout(
             () => void refresh(),
-            Math.max(0, deadline - Date.now() + 50),
+            evaluationRefreshDelay(deadline),
           );
     return () => {
       window.removeEventListener("focus", check);
@@ -126,10 +129,7 @@ export function EvaluationAccess({
               <>
                 {" "}
                 ·{" "}
-                <Link
-                  className="text-primary underline"
-                  href="/merchant/intelligence"
-                >
+                <Link className="text-primary underline" href={studioHref}>
                   Open AG Studio
                 </Link>
               </>

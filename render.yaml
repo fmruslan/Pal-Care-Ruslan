@@ -2,7 +2,7 @@
 # resources until the repository owner explicitly creates a Blueprint.
 services:
   - type: web
-    name: palcare
+    name: palcare-judge
     runtime: node
     region: oregon
     plan: 0.5c-512mb
@@ -15,12 +15,62 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 22.23.3
+      - key: PALCARE_HOSTED_DEMO
+        value: "true"
       - key: DEMO_DATA_SOURCE
         value: database
       - key: PAYPAL_CHECKOUT_ENABLED
         value: "false"
       - key: PAYPAL_ENVIRONMENT
         value: sandbox
+      - key: GUARDIAN_OPERATIONS_ENABLED
+        value: "false"
+      - key: GUARDIAN_REFUNDS_ENABLED
+        value: "false"
+      - key: GUARDIAN_PROVIDER_READS_ENABLED
+        value: "false"
+      - key: CAREOS_PROVIDER
+        value: responses
+      - key: CAREOS_MODEL
+        value: deepseek-flash
+      - key: CAREOS_RESPONSES_BASE_URL
+        value: https://api.deepseek.com
+      - key: CAREOS_LIVE_ENABLED
+        value: "true"
+      - key: CAREOS_PROVIDER_LIMIT_CONFIRMED
+        value: "true"
+      - key: CAREOS_API_KEY
+        sync: false
+      - key: CAREOS_OWNER_MODE
+        value: "false"
+      - key: CAREOS_STANDING_AI_ENABLED
+        value: "false"
+      - key: CAREOS_SUBSCRIPTION_ENABLED
+        value: "false"
+      - key: CAREOS_OWNER_PAIRING_ENABLED
+        value: "false"
+      - key: CAREOS_EVALUATION_ENABLED
+        value: "true"
+      - key: CAREOS_EVALUATION_EXPIRES_AT
+        value: "2026-12-16T00:00:00Z"
+      - key: CAREOS_CUSTOMER_ACCESS_HASH
+        sync: false
+      - key: CAREOS_STUDIO_ACCESS_HASH
+        sync: false
+      # Reuse the existing API budget store and its existing $5 maximum;
+      # no new budgets, counters, campaign, or paid fallback.
+      - key: CAREOS_DAILY_BUDGET_MICRO
+        value: "5000000"
+      - key: CAREOS_TOTAL_BUDGET_MICRO
+        value: "5000000"
+      - key: CAREOS_BUDGET_ID
+        value: render-judge
+      - key: CARE_DEMO_ENABLED
+        value: "true"
+      - key: CARE_CONSUMER_SCENARIOS_ENABLED
+        value: "true"
+      - key: CARE_DEMO_READER_DATABASE_URL
+        sync: false
       - key: DATABASE_URL
         sync: false # Explicit restricted reader login, NOT the default owner URL.
       - key: CAREOS_DATABASE_URL
@@ -28,7 +78,7 @@ services:
       - key: APP_ORIGIN
         sync: false # Exact deployed HTTPS origin; no trailing slash.
 databases:
-  - name: palcare-postgres
+  - name: palcare-judge-postgres
     region: oregon
     postgresMajorVersion: "17"
     plan: 0.1c-256mb

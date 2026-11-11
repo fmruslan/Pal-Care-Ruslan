@@ -362,3 +362,13 @@ The approved saved-evidence lane and independent reader are active on private 84
 The separately approved single-game Sandbox preparation reuses the existing checkout endpoints behind default-off `PAYPAL_SHOWCASE_ENABLED` and exact server-only scope. It permits only reserved request `8972bc61-9d98-4d01-b9b8-64c5ef8678e3`, game product `00000000-0000-4000-8000-000000000110`, one originating session and USD 64.99. Buyer balance confirmation and an at-most-two-hour fixed window precede dispatch. Order insertion reserves the sole create POST; retries never repeat it. The existing capture marker still precedes the sole capture POST. Persistent counters permit one initial payment-check cycle plus three lifetime recovery cycles (including unapproved returns), independent of hourly buckets; no financial operation runs on GET. No game Guardian policy, sample conversion, refund or new public scope is enabled. Actual Orders/Payments retrieval, buyer participation and release/readiness gates remain required; injected tests are not PayPal verification. [Exact financial approval](PAYPAL-TEN-PRODUCT-SHOWCASE-APPROVAL.md).
 
 No new endpoint or public writer is added. With the separately gated `CARE_DEMO_ENABLED`, existing fixed-scope record GETs also load a versioned pack through an independent read-only `CARE_DEMO_READER_DATABASE_URL`. Missing/altered database evidence fails visibly, never substitutes fixtures. The existing North conversation plan adds read-only aftercare actions `retail-reference`, `lower-reference`, and `closing-windows`; all purchase identities, amounts, references and dates are resolved server-side. Retail URLs are validated saved source links, never model-proposed fetch tools. Original omitted-field fingerprints, immutable answers, owned follow-up anchors, History, protected inference/accounting and native Insights execution remain unchanged. No response can grant price-adjustment, payment, warranty or recall authority. [Contract and approval scope](CARE-TEN-PRODUCT-PERSISTENCE-APPROVAL.md).
+# Hosted judge configuration
+
+The explicit Render-only DeepSeek configuration reuses the existing conversation,
+records `/interpret` and validated native Studio endpoints. `/api/ai/evaluation`
+accepts the existing distinct customer/Studio access tokens through December16,
+2026 at00:00UTC on the exact configured HTTPS Render origin. A records cookie alone
+never grants model access. Provider keys are server-only; original PostgreSQL
+rate limits, per-call reservations and API budget enforcement remain. Private
+subscription/evaluation authorization is unchanged. [Setup](RENDER-JUDGE.md) ·
+[implementation and unverified hosted gates](STATUS.md).

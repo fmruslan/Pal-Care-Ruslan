@@ -3,6 +3,7 @@ import { TestingAccess } from "@/components/careos/testing-access";
 import { OwnerSettings } from "@/components/careos/owner-settings";
 import { standingOwnerMode } from "@/lib/careos/standing-runtime";
 import { privateHttpsPresentation } from "@/lib/private-preview-origin";
+import { hostedDemo } from "@/lib/hosted-demo";
 import { cookies } from "next/headers";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -42,16 +43,26 @@ export default async function EvaluationPage() {
       : undefined;
   return (
     <main id="main-content" className="mx-auto max-w-2xl p-5 sm:p-8">
-      <h1 className="text-2xl font-semibold">Private Pal Care AI evaluation</h1>
+      <h1 className="text-2xl font-semibold">
+        {hostedDemo(process.env)
+          ? "Pal Care · hosted North access"
+          : "Private Pal Care AI evaluation"}
+      </h1>
       <p className="my-4 text-sm text-muted-foreground">
         {httpsTesting
           ? "Review testing access and prepare an owner approval request. No billing, financial action or automatic renewal."
-          : "Unlock an approved, expiring evaluation scope. This does not enable billing or financial actions. Never enter your OpenAI API key here."}
+          : hostedDemo(process.env)
+            ? "Unlock an approved, expiring scope with the separate access token supplied by the owner. Never enter a provider API key here. Financial actions remain disabled."
+            : "Unlock an approved, expiring evaluation scope. This does not enable billing or financial actions. Never enter your OpenAI API key here."}
       </p>
       {httpsTesting ? (
         <TestingAccess initialAccess={access} />
       ) : (
-        <EvaluationAccess initialAccess={access} ownerCommand={ownerCommand} />
+        <EvaluationAccess
+          initialAccess={access}
+          ownerCommand={ownerCommand}
+          studioHref={hostedDemo(process.env) ? "/insights" : undefined}
+        />
       )}
     </main>
   );

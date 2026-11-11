@@ -24,13 +24,17 @@ import { getKnowledge } from "../knowledge-repository";
 import { ownedFollowupHistory } from "./followup";
 import { getCareFeed } from "../../care/repository";
 import { StandingOwner } from "../standing-owner";
+import { hostedDemo } from "../../hosted-demo";
+import { ResponsesProvider, type ModelResult } from "../providers/responses";
+import { accountedCall } from "../accounted-call";
 
 export async function assertRecordsModelAccess() {
   const { config } = careRuntime();
-  // This increment supports only the existing authorized subscription transport.
-  // It cannot activate the separately gated paid API mode or a memory-store model.
+  // Private subscription or explicitly configured controlled Render API only.
+  // A public records cookie or memory store never grants model authority.
   if (
-    config.mode !== "subscription" ||
+    (config.mode !== "subscription" &&
+      !(config.mode === "responses" && hostedDemo(process.env))) ||
     !(recordsRuntime().store instanceof PostgresStore)
   )
     throw new CareError("careos_live_not_authorized", 403);
@@ -48,6 +52,48 @@ export async function answerAuthorizedRecords(
     (await store.get(id, owner)).turns,
     input.followupRequestId,
   );
+  if (hostedDemo(process.env)) {
+    const { config } = careRuntime();
+    if (config.mode !== "responses" || !(store instanceof PostgresStore))
+      throw new CareError("careos_live_not_authorized", 403);
+    const model = new ResponsesProvider(config);
+    const timeout = AbortSignal.any([
+      signal,
+      AbortSignal.timeout(TURN_DEADLINE_MS),
+    ]);
+    const call = async <T>(
+      work: (signal: AbortSignal) => Promise<ModelResult<T>>,
+    ) => {
+      await assertRecordsModelAccess();
+      timeout.throwIfAborted();
+      const reservation = await store.reserve(id, owner, input.requestId);
+      return accountedCall(
+        () => work(timeout),
+        (micro, usage) =>
+          store.settle(id, owner, input.requestId, reservation, micro, usage),
+      );
+    };
+    return answerConversationTurn({
+      input,
+      history,
+      load: getSavedRecordsData,
+      loadSelected: getDemoData,
+      knowledge: getKnowledge,
+      care: getCareFeed,
+      model,
+      call,
+      interpret: (payload) =>
+        call((s) =>
+          model.structured(
+            payload,
+            conversationModelPlanSchema,
+            "north_conversation_v1",
+            s,
+            CONVERSATION_MODEL_PROMPT,
+          ),
+        ),
+    });
+  }
   const ownerProof = standingOwnerMode()
     ? await assertStandingOwner("records")
     : undefined;

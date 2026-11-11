@@ -1,5 +1,7 @@
 # Pal Care
 
+**Hosted judge preparation:** opt-in Render + DeepSeek Flash, isolated PostgreSQL and controlled North access are under verification, not deployed. [Render setup and required private variables](docs/RENDER-JUDGE.md) · [actual status](docs/STATUS.md). The private GreatBison/Sol environment is unchanged.
+
 **Actual North help is live-verified:** **“what is pla care,” “how to use insights”** and the Insights typo received useful current-interface answers without executing charts. The evaluation is now stopped after **72 new attempts** by a pre-stream provider503 and automatic campaign revocation; **228 unspent is not active permission**. The owner separately approved a bounded, fully checked recovery and fresh-guide hardening. Original failures, clipped longer guidance, charges and revocations remain retained. [Current implementation, evidence and gates](docs/STATUS.md).
 
 **Current North evaluation:** the binding is released and active; **57 additional genuine attempts / 53 questions** are recorded, with **243 attempts remaining** at the checkpoint. Calls are paused while bounded care-evidence/readable-output repairs pass verification. Original failures remain recorded; no allowance reset or completed-call replay. The bar-free private site stays available from its verified binding-aware immutable release. [Actual results and next gates](docs/STATUS.md).

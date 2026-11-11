@@ -7,6 +7,7 @@ export function studioEvaluationAllowed(
   env: Record<string, string | undefined>,
   requestHost: string,
 ) {
+  if (hostedDemo(env)) return requestHost === new URL(env.APP_ORIGIN!).host;
   if (
     (privateHttpsPresentation(env) || northReviewPresentation(env)) &&
     env.AG_STUDIO_PRIVATE_DEVELOPMENT_ENABLED === "true"
@@ -26,3 +27,4 @@ export function studioEvaluationAllowed(
     requestHost === origin.host
   );
 }
+import { hostedDemo } from "../hosted-demo";
