@@ -181,7 +181,18 @@ export async function POST(request: Request) {
         proof.recordsOwnerDigest,
       );
       if (!pair.reused)
-        jar.set(cookieName, pair.token, { ...cookieOptions, maxAge: 300 });
+        jar.set(cookieName, pair.token, {
+          ...cookieOptions,
+          maxAge: Math.min(
+            300,
+            Math.max(
+              0,
+              Math.floor(
+                ((pair.expiresAt ?? Date.now() + 300000) - Date.now()) / 1000,
+              ),
+            ),
+          ),
+        });
       return careResponse({ id: pair.id }); // Public request ID, never the secret.
     }
     if (parsed.data.action === "finish") {

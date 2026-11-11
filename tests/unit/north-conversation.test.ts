@@ -14,7 +14,13 @@ import {
   recordsAnswer,
 } from "../../src/lib/careos/records/service";
 import { referenceSource } from "../../src/lib/careos/knowledge";
-import { CareError, type CareTurn } from "../../src/lib/careos/contracts";
+import {
+  CareError,
+  turnSchema,
+  type CareTurn,
+} from "../../src/lib/careos/contracts";
+import { MemoryStore } from "../../src/lib/careos/store";
+import { malformedGuideSteps } from "../fixtures/product-guide-prose";
 import type { Explanation } from "../../src/lib/careos/providers/responses";
 import { withTenProductFixtures } from "../../src/lib/care/demo/catalog";
 import { querySavedRecords } from "../../src/lib/careos/records/service";
@@ -99,6 +105,12 @@ describe("current-interface guidance — injected model selection, not genuine a
       "Complete concise text, 1–5 steps, 1–3 features; same caps",
     );
     expect(CONVERSATION_INSTRUCTIONS).toContain("no controls/backspace");
+    expect(CONVERSATION_INSTRUCTIONS).toContain(
+      "Prefer 2–3 short steps (~80–140 chars), overview 160–400: soft targets",
+    );
+    expect(CONVERSATION_INSTRUCTIONS).toContain(
+      "Guidance followups/simplification use currentTopic guide, not old care/records",
+    );
   });
   const guide = {
     text: "Start with Care, find saved evidence in Purchases & Docs, then explore Insights.",
@@ -111,6 +123,7 @@ describe("current-interface guidance — injected model selection, not genuine a
   };
   it.each([
     "I'm new. What should I do first?",
+    "I'm new here. Walk me through where to start and how North can help.",
     "How do PayPal, North and AG Studio fit together?",
     "How do I show a chart without asking North to execute one?",
     "what is pla care",
@@ -161,6 +174,10 @@ describe("current-interface guidance — injected model selection, not genuine a
       expect(payload.interfaceGuide.overview).toContain(
         "saved purchases, receipts, source-backed aftercare",
       );
+      expect(payload.interfaceGuide.north).toBe(productGuide.north.facts);
+      expect(payload.interfaceGuide.north).toContain(
+        "Explore with North / corner star",
+      );
     },
   );
   it("asks the model to understand app-help misspellings without rewriting input or granting execution", () => {
@@ -185,6 +202,20 @@ describe("current-interface guidance — injected model selection, not genuine a
     });
     const options = setup(guided);
     const answer = await answerConversationTurn(options);
+    const historicalGuide = {
+      ...guide,
+      features: [...guide.features],
+      steps: malformedGuideSteps.map(({ text }) => text),
+    };
+    const historicalAnswer = {
+      ...answer,
+      steps: historicalGuide.steps,
+      conversationPlan: plan({ task: "guidance", guide: historicalGuide }),
+    };
+    expect(
+      conversationModelPlanSchema.safeParse(historicalAnswer.conversationPlan)
+        .success,
+    ).toBe(false);
     const history: CareTurn[] = [
       {
         requestId: randomUUID(),
@@ -197,7 +228,11 @@ describe("current-interface guidance — injected model selection, not genuine a
           conversationPlan: old,
         },
       },
-      { requestId: randomUUID(), message: "How do I use this?", answer },
+      {
+        requestId: randomUUID(),
+        message: "How do I use this?",
+        answer: historicalAnswer,
+      },
       {
         requestId: randomUUID(),
         message: "How do I shut down my Pi?",
@@ -219,7 +254,7 @@ describe("current-interface guidance — injected model selection, not genuine a
     const payload = JSON.parse(options.interpret.mock.calls.at(-1)![0]);
     expect(payload.currentTopic).toMatchObject({
       task: "guidance",
-      guide: { steps: guide.steps, features: [...guide.features] },
+      guide: { steps: historicalGuide.steps, features: [...guide.features] },
       recordsResult: null,
       careQuestion: "",
     });
@@ -233,6 +268,82 @@ describe("current-interface guidance — injected model selection, not genuine a
       conversationModelPlanSchema.parse({ ...old, guide: null }),
     ).toMatchObject({ guide: null });
   });
+  it("preserves malformed MemoryStore guides and legacy request identity; not HTTP/database acceptance", async () => {
+    const store = new MemoryStore();
+    const conversation = await store.create("guide-history-unit");
+    const request = turnSchema.parse(input("Where do I start?"));
+    const before = JSON.stringify(request);
+    const historicalGuide = {
+      ...guide,
+      features: [...guide.features],
+      steps: malformedGuideSteps.map(({ text }) => text),
+    };
+    const turn: CareTurn = {
+      requestId: request.requestId,
+      message: request.message,
+      answer: {
+        outcome: "answered",
+        mode: "live",
+        revision: 0,
+        context: null,
+        text: historicalGuide.text,
+        steps: historicalGuide.steps,
+        sources: [],
+        actions: [],
+        conversationPlan: plan({ task: "guidance", guide: historicalGuide }),
+      },
+    };
+    const saved = JSON.stringify(turn);
+    expect(
+      await store.claim(conversation.id, "guide-history-unit", request),
+    ).toBeNull();
+    await store.finish(conversation.id, "guide-history-unit", turn);
+    expect(
+      JSON.stringify(
+        (await store.get(conversation.id, "guide-history-unit")).turns[0],
+      ),
+    ).toBe(saved);
+    expect(
+      JSON.stringify(
+        await store.claim(conversation.id, "guide-history-unit", request),
+      ),
+    ).toBe(saved);
+    await expect(
+      store.claim(conversation.id, "guide-history-unit", {
+        ...request,
+        message: "A changed question must not reuse that request.",
+      }),
+    ).rejects.toMatchObject({ code: "careos_request_conflict" });
+    await expect(
+      store.claim(conversation.id, "guide-history-unit", {
+        ...request,
+        followupRequestId: randomUUID(),
+      }),
+    ).rejects.toMatchObject({ code: "careos_request_conflict" });
+    expect(
+      JSON.stringify(
+        await store.claim(conversation.id, "guide-history-unit", request),
+      ),
+    ).toBe(saved);
+    expect(JSON.stringify(request)).toBe(before);
+    expect(request).not.toHaveProperty("followupRequestId");
+  });
+  it.each(malformedGuideSteps)(
+    "rejects fresh $caseId at publication even if injected interpretation only used the stored shape",
+    async ({ text }) => {
+      const proposal = plan({
+        task: "guidance",
+        guide: { ...guide, features: [...guide.features], steps: [text] },
+      });
+      const before = JSON.stringify(proposal);
+      const options = setup(proposal);
+      await expect(answerConversationTurn(options)).rejects.toThrow();
+      expect(options.interpret).toHaveBeenCalledOnce();
+      expect(options.knowledge).not.toHaveBeenCalled();
+      expect(options.model.explain).not.toHaveBeenCalled();
+      expect(JSON.stringify(proposal)).toBe(before);
+    },
+  );
   it("rejects arbitrary links/feature IDs and deduplicates only server-resolved links", () => {
     expect(
       productGuideReplySchema.safeParse({

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { StandingOwner, type OwnerProof } from "../standing-owner";
 import { accessToken, type Transport } from "./auth";
-import { PilotFiles } from "./files";
+import { PilotFiles, PilotError } from "./files";
 import { streamStructured } from "./pilot";
 import { safeFailure } from "./pilot";
 import { setTimeout as delay } from "node:timers/promises";
@@ -45,7 +45,27 @@ export async function standingStructured<T extends z.ZodType>(options: {
       )
         throw new CareError("careos_owner_provider_identity_denied", 403);
     };
-    await assertIdentity();
+    const providerFailure = (error: unknown) =>
+      (error instanceof CareError &&
+        error.code === "careos_owner_provider_identity_denied") ||
+      (error instanceof PilotError &&
+        /^pilot_(signin_required|plan_permission_missing|refresh_|oauth_|http_|empty_http)/.test(
+          error.code,
+        )) ||
+      error instanceof TypeError;
+    const preflight = async <V>(
+      work: () => Promise<V>,
+      providerOperation = false,
+    ): Promise<V> => {
+      try {
+        return await work();
+      } catch (error) {
+        if (providerOperation || providerFailure(error))
+          await owner.stopProviderFailureContinuation(proof);
+        throw error;
+      }
+    };
+    await preflight(assertIdentity);
     await owner.assertHistoricalJournal(
       await options.files.read("session.json"),
     );
@@ -59,15 +79,20 @@ export async function standingStructured<T extends z.ZodType>(options: {
         name: options.name,
       }),
     );
-    const token = await options.files.lockedWaiting(
-      async () => {
-        await owner.assertDispatch(proof, scope, options.enabled(), key);
-        await assertIdentity();
-        return accessToken(options.files, options.transport);
-      },
-      ".lock",
-      options.signal,
-      15000,
+    const token = await preflight(() =>
+      options.files.lockedWaiting(
+        async () => {
+          await owner.assertDispatch(proof, scope, options.enabled(), key);
+          await assertIdentity();
+          return preflight(
+            () => accessToken(options.files, options.transport),
+            true,
+          );
+        },
+        ".lock",
+        options.signal,
+        15000,
+      ),
     );
     let reserved = false;
     const observation: Record<string, unknown> = {};
@@ -92,6 +117,8 @@ export async function standingStructured<T extends z.ZodType>(options: {
       reserved = false;
       return result;
     } catch (error) {
+      if (providerFailure(error))
+        await owner.stopProviderFailureContinuation(proof);
       // Only a completed HTTP rejection with one of these exact temporary
       // admission codes proves no stream opened. A timeout/reset, partial SSE,
       // 429/permission denial or arbitrary 5xx is never automatically retried.

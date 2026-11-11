@@ -23,6 +23,20 @@ const statusSchema = z.object({
   liveEnabled: z.boolean(),
   provider: z.string(),
   providerBlocked: z.boolean(),
+  providerRecovery: z
+    .object({
+      phase: z.enum([
+        "awaiting-browser",
+        "pending-browser",
+        "finish-needed",
+        "active",
+        "disabled",
+        "expired",
+      ]),
+      originalBrowserExpiresAt: z.number(),
+      priorCampaignRevoked: z.literal(true),
+    })
+    .optional(),
   requestLimit: z.number(),
   concurrency: z.number(),
   requestsPerMinute: z.number(),
@@ -214,6 +228,17 @@ export function OwnerSettings() {
           exhausted or blocked. Browser expiration and provider credential
           checks still apply. The original deadline and disabled grant remain
           unchanged.
+        </p>
+      )}
+      {status?.providerRecovery && (
+        <p className="text-sm text-muted-foreground">
+          Once-only continuation: {status.providerRecovery.phase}. Original
+          browser deadline:{" "}
+          {new Date(
+            status.providerRecovery.originalBrowserExpiresAt,
+          ).toLocaleString()}
+          . Earlier campaign and browser revocations remain retained. No extra
+          allowance or automatic retry is granted.
         </p>
       )}
       {status && (

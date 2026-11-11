@@ -29,6 +29,8 @@ import {
 } from "../../src/lib/careos/records/service";
 import { demoData } from "../../src/lib/demo/fixtures";
 import type { CareTurn } from "../../src/lib/careos/contracts";
+import { productGuideReplySchema } from "../../src/lib/careos/product-guide";
+import { malformedGuideSteps } from "../fixtures/product-guide-prose";
 
 const sdkConstruction = vi.hoisted(() => vi.fn());
 vi.mock("openai", async (importOriginal) => {
@@ -216,6 +218,121 @@ const requestInput = (message: string, anchor?: string) => ({
 });
 
 describe("exact shared North wire byte boundary, injected protocol only", () => {
+  it("serializes one basic guide punctuation pattern, not local Unicode refinements or unsupported allOf", () => {
+    const format = JSON.parse(JSON.stringify(wire("schema-only"))).text.format;
+    expect(format).toMatchObject({ type: "json_schema", strict: true });
+    expect(format.schema.required).toContain("guide");
+    const guide = format.schema.properties.guide.anyOf.find(
+      (branch: { type?: string }) => branch.type === "object",
+    );
+    expect(guide).toMatchObject({
+      required: ["text", "steps", "features"],
+      additionalProperties: false,
+      properties: {
+        text: {
+          type: "string",
+          minLength: 20,
+          maxLength: 620,
+          pattern: expect.any(String),
+        },
+        steps: {
+          minItems: 1,
+          maxItems: 5,
+          items: {
+            type: "string",
+            minLength: 5,
+            maxLength: 180,
+            pattern: expect.any(String),
+          },
+        },
+        features: { minItems: 1, maxItems: 3 },
+      },
+    });
+    expect(JSON.stringify(guide)).not.toContain('"allOf"');
+    const pattern = guide.properties.steps.items.pattern;
+    expect(guide.properties.text.pattern).toBe(pattern);
+    expect(pattern).not.toContain("\\p{");
+    const wireEnding = new RegExp(pattern);
+    for (const { text } of malformedGuideSteps)
+      expect(wireEnding.test(text)).toBe(false);
+    expect(wireEnding.test("Review café → 保存记录.\u201d")).toBe(true);
+    // Full Unicode and absolute-end checks are explicitly local-only.
+    const invisible = "Review the saved\u200c receipt.";
+    expect(wireEnding.test(invisible)).toBe(true);
+    expect(
+      productGuideReplySchema.safeParse({
+        text: invisible,
+        steps: ["Read."],
+        features: ["care"],
+      }).success,
+    ).toBe(false);
+    expect(wireEnding.test("Review saved evidence.\n")).toBe(false);
+    expect(
+      productGuideReplySchema.safeParse({
+        text: "Review saved evidence.\n",
+        steps: ["Read."],
+        features: ["care"],
+      }).success,
+    ).toBe(false);
+  });
+  it.each(malformedGuideSteps)(
+    "keeps a completed but invalid $caseId output charged unknown without automatic retry, injected protocol only",
+    async ({ text }) => {
+      const noNetwork = vi
+        .spyOn(globalThis, "fetch")
+        .mockRejectedValue(new Error("network_forbidden"));
+      const owner = {
+        assertDispatch: vi.fn(async () => ({ maxRetries: 1 })),
+        assertHistoricalJournal: vi.fn(async () => {}),
+        reserve: vi.fn(async () => {}),
+        settle: vi.fn(async () => {}),
+        blockProvider: vi.fn(),
+      };
+      // Fake credential acquisition only; no host files or refresh are touched.
+      const files = {
+        read: vi.fn(async () => ({ immutable: "unit-history" })),
+        lockedWaiting: vi.fn(async () => "injected-protocol-token"),
+        write: vi.fn(),
+      };
+      const value = plan({
+        task: "guidance",
+        guide: {
+          text: "Review the saved purchase evidence.",
+          steps: [text],
+          features: ["care"],
+        },
+      });
+      const transport = vi.fn(async () => protocolResponse(value));
+      const requestId = randomUUID();
+      await expect(
+        standingStructured({
+          files: files as unknown as PilotFiles,
+          owner: owner as unknown as StandingOwner,
+          proof: { agent: "injected-unit-owner" },
+          scope: "customer",
+          enabled: () => true,
+          requestId,
+          payload: "injected-guide-output",
+          prompt: CONVERSATION_MODEL_PROMPT,
+          schema: conversationModelPlanSchema,
+          name: schemaName,
+          signal: new AbortController().signal,
+          transport,
+        }),
+      ).rejects.toMatchObject({ code: "pilot_structured_output_invalid" });
+      expect(transport).toHaveBeenCalledOnce();
+      expect(owner.reserve).toHaveBeenCalledOnce();
+      expect(owner.settle).toHaveBeenCalledExactlyOnceWith(
+        `customer:${requestId}:${schemaName}`,
+        "unknown",
+        expect.objectContaining({ httpStatus: 200 }),
+      );
+      expect(files.lockedWaiting).toHaveBeenCalledOnce();
+      expect(files.write).not.toHaveBeenCalled();
+      expect(owner.blockProvider).not.toHaveBeenCalled();
+      expect(noNetwork).not.toHaveBeenCalled();
+    },
+  );
   it("constructs the exact production body including the centralized aftercare prompt and real Zod format", () => {
     expect(wire("unit")).toEqual({
       model: MODEL,

@@ -58,7 +58,10 @@ const fallbackSchema = z.strictObject({
   ]),
   questionMarkersSupported: z.literal(true),
   ciReceipt: z.unknown(),
-  authorization: z.enum(["legacy-recovery", "quota-bounded"]).optional(),
+  authorization: z
+    .enum(["legacy-recovery", "quota-bounded", "provider-failure-recovery"])
+    .optional(),
+  providerFailureResolutionSupported: z.literal(true).optional(),
 });
 /** Pure same-source selection gate. Older 63a cannot parse the new ledger
  * markers and must never become a fallback after this continuation. */
@@ -72,6 +75,9 @@ export function validateNorth150Fallback(
   const proof = fallbackSchema.parse(value);
   const ci = assertCiReceipt(proof.fallback.release, proof.ciReceipt);
   if (
+    (proof.authorization === "provider-failure-recovery" &&
+      (!proof.providerFailureResolutionSupported ||
+        proof.executionLimit !== 563)) ||
     ci.lane !== "full" ||
     recoveryHash(proof.fallback.release) !== recoveryHash(runtime.release) ||
     recoveryHash(ci) !== runtime.ciReceiptHash ||
@@ -148,10 +154,20 @@ export async function managedNorthRecoveryFallback() {
         await recoveryRuntimeEvidence(),
       );
       const release = proof.fallback.release;
+      const state = await new StandingOwner().files.read("owner-state.json");
+      if (
+        state &&
+        typeof state === "object" &&
+        "providerFailureRecovery" in state &&
+        proof.authorization !== "provider-failure-recovery"
+      )
+        throw Error("recovery_aware_fallback_required_for_installed_state");
       const root =
-        proof.authorization === "quota-bounded"
-          ? `${releases}/release-${release.commit.slice(0, 7)}-north-quota-compatible`
-          : north150FallbackRoot;
+        proof.authorization === "provider-failure-recovery"
+          ? `${releases}/release-${release.commit.slice(0, 7)}-north-provider-recovery-compatible`
+          : proof.authorization === "quota-bounded"
+            ? `${releases}/release-${release.commit.slice(0, 7)}-north-quota-compatible`
+            : north150FallbackRoot;
       const build = JSON.parse(
         await readFile(`${root}/.next/palcare-build.json`, "utf8"),
       );
