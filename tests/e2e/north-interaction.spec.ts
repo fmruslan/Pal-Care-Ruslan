@@ -896,6 +896,7 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
   const log = requestLog(page);
   const careId = "00000000-0000-4000-8000-000000008101";
   const planId = "00000000-0000-4000-8000-000000008102";
+  const chatId = "00000000-0000-4000-8000-000000008108";
   const plannedQuestion = "Show my documents";
   const first = injectedTurn(
     "00000000-0000-4000-8000-000000008103",
@@ -958,8 +959,7 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
       });
   });
   await page.goto("/insights");
-  // Wait for the root's initial presentation commit before installing the saved
-  // tab fixture. Otherwise its queued bootstrap can overwrite the injected order.
+  // Let the initial page settle before preparing the saved-chat fixture.
   await expect
     .poll(() =>
       page.evaluate(
@@ -967,8 +967,15 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
       ),
     )
     .toBe(true);
-  await page.evaluate(
-    ({ careId, planId, order, context }) => {
+  // Install once before reload hydration: the departing page flushes its own
+  // presentation on pagehide. Later reloads must exercise actual persistence,
+  // not reinstall the expected order, draft or selected result.
+  await page.addInitScript(
+    ({ careId, planId, chatId, order, context }) => {
+      const fixtureKey = "palcare-e2e-merged-history-installed";
+      if (sessionStorage.getItem(fixtureKey) === chatId) return;
+      const draft = "Keep this draft through history reload";
+      const savedAt = Date.now();
       sessionStorage.setItem("palcare-careos-conversation", careId);
       sessionStorage.setItem(
         "palcare-insights-history-v1",
@@ -976,7 +983,7 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
           {
             conversationId: planId,
             requestId: order[1],
-            createdAt: Date.now(),
+            createdAt: savedAt,
           },
         ]),
       );
@@ -987,14 +994,49 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
           context,
           explicit: true,
           order,
-          draft: "Keep this draft through history reload",
-          savedAt: Date.now(),
+          draft,
+          savedAt,
         }),
       );
+      // Modern metadata is authoritative; singleton keys are compatibility
+      // selectors and cannot add turns to a different existing chat.
+      sessionStorage.setItem(
+        "palcare-north-chats-v1",
+        JSON.stringify({
+          version: 1,
+          activeChatId: chatId,
+          chats: [
+            {
+              id: chatId,
+              title: "Earlier saved receipt question",
+              preview: "Later saved care question",
+              context,
+              explicit: true,
+              draft,
+              activeResultId: order[2],
+              order,
+              dismissed: [],
+              channels: { care: careId, records: null, insights: [planId] },
+              updatedAt: savedAt,
+            },
+          ],
+        }),
+      );
+      sessionStorage.setItem(
+        "palcare-north-workspace-v1",
+        JSON.stringify({
+          version: 1,
+          id: order[2],
+          open: false,
+          historySelected: false,
+        }),
+      );
+      sessionStorage.setItem(fixtureKey, chatId);
     },
     {
       careId,
       planId,
+      chatId,
       order: [first.requestId, planned.requestId, last.requestId],
       context: headphoneContext,
     },
@@ -1011,6 +1053,14 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
     await expect(dialog.locator("[data-user-message]").last()).toHaveText(
       last.message,
     );
+    await expect(dialog.locator("article[data-request-id]")).toHaveCount(3);
+    expect(
+      await dialog
+        .locator("article[data-request-id]")
+        .evaluateAll((nodes) =>
+          nodes.map((node) => node.getAttribute("data-request-id")),
+        ),
+    ).toEqual([first.requestId, planned.requestId, last.requestId]);
     await dialog.getByRole("button", { name: "History", exact: true }).click();
     await expect(
       dialog
@@ -1085,8 +1135,10 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
   // history. The browser's ID index never supplies private transcript content.
   const deniedPlanId = "00000000-0000-4000-8000-000000008106";
   const deniedRequestId = "00000000-0000-4000-8000-000000008107";
-  await page.evaluate(
+  await page.addInitScript(
     ({ deniedPlanId, deniedRequestId }) => {
+      const fixtureKey = "palcare-e2e-denied-history-installed";
+      if (sessionStorage.getItem(fixtureKey) === deniedPlanId) return;
       const available = JSON.parse(
         sessionStorage.getItem("palcare-insights-history-v1")!,
       );
@@ -1116,6 +1168,7 @@ test("reload merges care and completed Insights IDs using their owned GETs, pres
       active.order = [deniedRequestId, ...active.order];
       active.channels.insights = [deniedPlanId, ...active.channels.insights];
       sessionStorage.setItem("palcare-north-chats-v1", JSON.stringify(index));
+      sessionStorage.setItem(fixtureKey, deniedPlanId);
     },
     { deniedPlanId, deniedRequestId },
   );

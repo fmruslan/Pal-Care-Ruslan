@@ -279,8 +279,18 @@ export function IntegratedNorthView({
   useEffect(() => {
     if (!s.isOpen || s.minimized) composing.current = false;
     if (!s.isOpen) return;
+    const opener = document.activeElement;
     const frame = requestAnimationFrame(() => {
-      (s.minimized ? restore.current : panel.current)?.focus({
+      // An early edit or underlying-page interaction wins over delayed opening
+      // focus. In particular, never interrupt WebKit's focused text insertion.
+      const focused = document.activeElement;
+      const target = s.minimized ? restore.current : panel.current;
+      if (
+        target?.contains(focused) ||
+        (focused !== opener && focused !== document.body)
+      )
+        return;
+      target?.focus({
         preventScroll: true,
       });
     });
@@ -503,6 +513,7 @@ export function IntegratedNorthView({
                     type="button"
                     onClick={() => {
                       s.chooseChat(chat.id);
+                      panel.current?.focus({ preventScroll: true });
                     }}
                     className="north-history-chat"
                     aria-current={
@@ -603,6 +614,7 @@ export function IntegratedNorthView({
                         }
                         onClick={() => {
                           s.choose(turn.requestId);
+                          panel.current?.focus({ preventScroll: true });
                           s.setHistoryOpen(false);
                           requestAnimationFrame(scroll.jump);
                         }}

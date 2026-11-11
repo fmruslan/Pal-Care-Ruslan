@@ -292,6 +292,15 @@ test("injected North highlights the homepage milestone beside its answer, valida
   );
   await expect(page.locator("[data-ownership-panel]")).toHaveCount(0);
   await expect(scope.locator("[data-care-product]")).toBeVisible();
+  const originalRequest = await north
+    .locator("[data-native-north-result]")
+    .getAttribute("data-request-id");
+  expect(originalRequest).toMatch(/^[a-f0-9-]{36}$/);
+  // The tablet sheet can cover this source control. Use the supported minimize
+  // action, not a forced click through the panel, without departing the chat.
+  await north
+    .getByRole("button", { name: "Minimize North Star", exact: true })
+    .click();
   await scope
     .getByRole("button", {
       name: "View sources & next steps",
@@ -302,6 +311,14 @@ test("injected North highlights the homepage milestone beside its answer, valida
     page.getByRole("dialog", { name: "Delivery", exact: true }),
   ).toBeVisible();
   await page.keyboard.press("Escape");
+  await page
+    .getByRole("button", { name: "Restore North Star", exact: true })
+    .click();
+  await expect(north.locator("[data-native-north-result]")).toHaveAttribute(
+    "data-request-id",
+    originalRequest!,
+  );
+  expect(dispatches).toBe(1);
   await north
     .getByRole("button", { name: "Close North Star", exact: true })
     .click();

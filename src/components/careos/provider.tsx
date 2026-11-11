@@ -762,11 +762,12 @@ export function CareOSProvider({
       /* Bounded metadata is optional, never a trusted transcript. */
     }
   }
-  function cancelPresentation() {
+  function cancelPresentation(preserveCareFocus = false) {
     presentationEpoch.current++;
     ownershipIntent.current = null;
     careIntent.current = null;
-    window.dispatchEvent(new CustomEvent("palcare-care-focus"));
+    if (preserveCareFocus !== true)
+      window.dispatchEvent(new CustomEvent("palcare-care-focus"));
     insights.cancelRecords();
     setRecordsSubmission(null);
     setOwnershipNotice("");
@@ -1370,7 +1371,9 @@ export function CareOSProvider({
     chooseChat: (id) => void chooseChat(id),
     minimized,
     minimize: () => {
-      cancelPresentation();
+      // Minimize invalidates late/unstarted presentation work, but the user
+      // must still be able to read the already-verified Care evidence below it.
+      cancelPresentation(true);
       setMinimized(true);
     },
     restorePanel: () => {

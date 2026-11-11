@@ -213,10 +213,13 @@ for (const pending of [
           name: "Clear conversation history",
           exact: true,
         });
-        await dialog
-          .locator("header")
-          .getByRole("button", { name: "Previous chats", exact: true })
-          .click();
+        // Welcome and active chat place this same unique action differently.
+        const previousChats = dialog.getByRole("button", {
+          name: "Previous chats",
+          exact: true,
+        });
+        await expect(previousChats).toHaveCount(1);
+        await previousChats.click();
         await options.click();
         await expect(clear).toBeEnabled();
         await clear.click();
@@ -243,10 +246,8 @@ for (const pending of [
         // Only this exact JSON 404 is confirmed missing for customerPlanApi;
         // denial, a lease, network failure or a generic 404 is not that proof.
         outcome = 404;
-        await dialog
-          .locator("header")
-          .getByRole("button", { name: "Previous chats", exact: true })
-          .click();
+        await expect(previousChats).toHaveCount(1);
+        await previousChats.click();
         if (!(await clear.isVisible())) await options.click();
         await expect(clear).toBeEnabled();
         await clear.click();
