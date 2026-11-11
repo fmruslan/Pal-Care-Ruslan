@@ -3,7 +3,20 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
 import { CareError } from "./contracts";
-import { PilotFiles } from "./subscription/files";
+import {
+  PilotFiles,
+  PilotTransitionPublicationUncertainError,
+} from "./subscription/files";
+import {
+  providerFailureRecoverySchema,
+  providerRecoveryContext,
+  providerRecoveryPhase,
+  providerRecoverySubject,
+  providerRecoveryDenied,
+  assertProviderRecoveryEnvironment,
+  readProviderRecoveryEnvironment,
+  type ProviderRecoveryEnvironmentReader,
+} from "./provider-failure-recovery";
 import { northReviewOrigin } from "../private-preview-origin";
 import {
   quotaCampaignSchema,
@@ -104,6 +117,9 @@ const eventSchema = z.strictObject({
     "approve-north-guide-campaign",
     "approve-north-guide-records-binding",
     "revoke-quota-campaign",
+    "approve-provider-failure-recovery",
+    "resolve-provider-failed-question",
+    "disable-provider-failure-recovery",
   ]),
   subject: z.string().min(1).max(200),
   allocationId: z.uuid().optional(),
@@ -135,6 +151,7 @@ const stateSchema = z.strictObject({
   quotaCampaignExtension: quotaCampaignExtensionSchema.optional(),
   northGuideCampaign: northGuideCampaignSchema.optional(),
   northGuideRecordsBinding: northGuideRecordsBindingSchema.optional(),
+  providerFailureRecovery: providerFailureRecoverySchema.optional(),
   sessions: z
     .array(
       z.strictObject({
@@ -154,6 +171,9 @@ const stateSchema = z.strictObject({
   events: z.array(eventSchema).max(5000),
 });
 export type OwnerState = z.infer<typeof stateSchema>;
+/** Strict normalized host-state decoding, also used by isolated fixture builders. */
+export const parseOwnerState = (value: unknown): OwnerState =>
+  stateSchema.parse(value);
 type State = OwnerState;
 export type OwnerProof = {
   token?: string;
@@ -206,6 +226,7 @@ export class StandingOwner {
     public files = ownerFiles(),
     private now = () => Date.now(),
     recovery?: EvaluationRecovery,
+    private providerRecoveryEnvironment: ProviderRecoveryEnvironmentReader = readProviderRecoveryEnvironment,
   ) {
     this.recovery = recovery ?? new EvaluationRecovery(files, now);
   }
@@ -228,6 +249,28 @@ export class StandingOwner {
         await this.files.write("owner-state.json", stateSchema.parse(s));
       return result;
     }, ".owner-access-lock");
+  }
+  /** Restriction publication must never fail back to live authority. The same
+   * durable owner lock is retained on serialization/write/read-back uncertainty;
+   * callbacks authenticate before mutation, so rejected visitors cannot strand it. */
+  private async publishRestriction(s: State) {
+    try {
+      const next = stateSchema.parse(s);
+      await this.files.write("owner-state.json", next);
+      if (recoveryHash(await this.state()) !== recoveryHash(next))
+        throw new Error("owner_restriction_publication_mismatch");
+    } catch (error) {
+      throw new PilotTransitionPublicationUncertainError(error);
+    }
+  }
+  private async restrict<T>(work: (s: State) => T) {
+    return this.files.lockedRecoveryTransition(async () => {
+      const s = await this.state();
+      const before = recoveryHash(s);
+      const result = await work(s);
+      if (recoveryHash(s) !== before) await this.publishRestriction(s);
+      return result;
+    });
   }
   private async additionalOrigin(s: State, origin = OWNER_ORIGIN) {
     if (origin === OWNER_ORIGIN) return;
@@ -272,6 +315,111 @@ export class StandingOwner {
     subject: string,
   ) {
     s.events.push({ id: randomUUID(), at: this.now(), kind, subject });
+  }
+  private recoveryContext(s: State) {
+    return providerRecoveryContext(s, this.now());
+  }
+  private disableProviderRecovery(s: State) {
+    if (
+      s.providerFailureRecovery &&
+      !s.events.some((e) => e.kind === "disable-provider-failure-recovery")
+    ) {
+      this.event(
+        s,
+        "disable-provider-failure-recovery",
+        recoveryHash(s.providerFailureRecovery),
+      );
+      s.events.at(-1)!.allocationId = RECOVERY_EVALUATION;
+    }
+  }
+  /** Once-only host transition. No cookie issuance, DB, credential refresh or network.
+   * The trusted core validates release evidence even when called without the CLI. */
+  async installProviderFailureRecovery(value: unknown) {
+    const proof = providerFailureRecoverySchema.parse(value);
+    return this.files.lockedRecoveryTransition(async () => {
+      const s = await this.state();
+      if (
+        s.providerFailureRecovery ||
+        s.events.some(
+          (e) =>
+            e.kind.includes("provider-failure-recovery") ||
+            e.kind === "resolve-provider-failed-question",
+        )
+      )
+        return providerRecoveryDenied();
+      const environment = await this.providerRecoveryEnvironment(proof);
+      assertProviderRecoveryEnvironment(proof, environment, this.now());
+      const before = recoveryHash(s);
+      s.providerFailureRecovery = proof;
+      providerRecoveryContext(s, this.now(), true);
+      this.event(s, "approve-provider-failure-recovery", recoveryHash(proof));
+      s.events.at(-1)!.allocationId = RECOVERY_EVALUATION;
+      this.event(
+        s,
+        "resolve-provider-failed-question",
+        providerRecoverySubject,
+      );
+      s.events.at(-1)!.allocationId = RECOVERY_EVALUATION;
+      await this.quotaPolicy(s);
+      const budget = campaignBudget(s.events, this.recoveryContext(s));
+      if (
+        budget.used !== 335 ||
+        budget.executionLimit !== 563 ||
+        budget.remaining !== 228 ||
+        budget.held !== 0 ||
+        budget.activeQuestion
+      )
+        return providerRecoveryDenied();
+      const finalEnvironment = await this.providerRecoveryEnvironment(proof);
+      assertProviderRecoveryEnvironment(proof, finalEnvironment, this.now());
+      if (
+        recoveryHash(finalEnvironment) !== recoveryHash(environment) ||
+        recoveryHash(await this.state()) !== before
+      )
+        return providerRecoveryDenied();
+      const result = stateSchema.parse(s);
+      try {
+        await this.files.write("owner-state.json", result);
+        if (recoveryHash(await this.state()) !== recoveryHash(result))
+          return providerRecoveryDenied();
+      } catch (error) {
+        // Publication may already be visible: retain the durable denial sentinel.
+        throw new PilotTransitionPublicationUncertainError(error);
+      }
+      return recoveryHash(proof);
+    });
+  }
+  /** Internal provider-lifecycle stop, bound to the exact presented continuation.
+   * A forged/ordinary visitor proof cannot cancel this phase. No public endpoint. */
+  async stopProviderFailureContinuation(proof: OwnerProof) {
+    return this.restrict((s) => {
+      const p = s.providerFailureRecovery;
+      if (
+        !p ||
+        !proof.token ||
+        proof.origin !== OWNER_ORIGIN ||
+        proof.channel !== "records" ||
+        hash(proof.agent) !== p.identity.agentHash ||
+        proof.recordsOwnerDigest !== p.identity.recordsOwnerDigest
+      )
+        return;
+      const pairs = s.events
+        .slice(p.checkpoint.eventCount + 2)
+        .filter(
+          (e) => e.kind === "pair" && e.allocationId === RECOVERY_EVALUATION,
+        );
+      const entry = s.sessions.find(
+        (v) => v.id === pairs[0]?.subject && v.tokenHash === hash(proof.token!),
+      );
+      if (
+        pairs.length !== 1 ||
+        !entry ||
+        entry.finishedAt === undefined ||
+        entry.approvedAt === null
+      )
+        return;
+      this.disableProviderRecovery(s);
+    });
   }
   private campaignEntry(s: State, entry: State["sessions"][number]) {
     return (
@@ -503,6 +651,19 @@ export class StandingOwner {
       return deny("provider_unavailable");
     if (!p.scopes.includes(selected)) return deny("scope_denied");
     const fixedCampaign = this.campaignEntry(s, entry);
+    if (
+      s.providerFailureRecovery &&
+      (fixedCampaign ||
+        proof.recordsOwnerDigest ===
+          s.providerFailureRecovery.identity.recordsOwnerDigest)
+    ) {
+      const continuation = providerRecoveryPhase(s, this.now());
+      if (
+        continuation?.phase !== "active" ||
+        continuation.entry?.id !== entry.id
+      )
+        return deny("provider_failure_recovery_browser_required");
+    }
     const quota = entry.allocationId
       ? await this.quotaProof(s, proof)
       : undefined;
@@ -583,13 +744,33 @@ export class StandingOwner {
       // A second tab/reload must not replace a valid or pending browser secret.
       // Returning the existing public request ID does not renew its cookie.
       let campaignBrowser = false;
+      if (s.providerFailureRecovery) {
+        const continuation = providerRecoveryPhase(s, this.now());
+        if (
+          !continuation ||
+          ["disabled", "expired"].includes(continuation.phase)
+        )
+          return deny("provider_failure_recovery_disabled");
+        await this.quotaProof(s, {
+          agent,
+          recordsOwnerDigest,
+          origin: OWNER_ORIGIN,
+        });
+        // This phase permits one pending/session total, not replacement pairing.
+        if (
+          continuation.entry &&
+          continuation.entry.tokenHash !== hash(existingToken ?? "")
+        )
+          return deny("provider_failure_recovery_browser_already_set");
+      }
       if (existingToken) {
         const prior = s.sessions.find(
           (v) => v.tokenHash === hash(existingToken),
         );
         const recoverySecret =
+          !s.providerFailureRecovery &&
           (await this.recovery.read())?.activation?.tokenHash ===
-          hash(existingToken);
+            hash(existingToken);
         if (
           s.quotaCampaign &&
           (prior?.allocationId === RECOVERY_EVALUATION || recoverySecret)
@@ -599,7 +780,8 @@ export class StandingOwner {
             recordsOwnerDigest,
             origin: OWNER_ORIGIN,
           });
-          if (campaignBudget(s.events).activeQuestion) return deny("busy");
+          if (campaignBudget(s.events, this.recoveryContext(s)).activeQuestion)
+            return deny("busy");
           campaignBrowser = true;
         } else if (
           (prior?.id === RECOVERY_SESSION && prior.revoked) ||
@@ -620,7 +802,8 @@ export class StandingOwner {
           recordsOwnerDigest,
           origin: OWNER_ORIGIN,
         });
-        if (campaignBudget(s.events).activeQuestion) return deny("busy");
+        if (campaignBudget(s.events, this.recoveryContext(s)).activeQuestion)
+          return deny("busy");
         campaignBrowser = true;
       }
       const existing = await this.inspectBrowser(s, {
@@ -638,6 +821,8 @@ export class StandingOwner {
           id: existing.pairing!.id,
           token: existingToken!,
           reused: true,
+          expiresAt: s.sessions.find((v) => v.id === existing.pairing!.id)
+            ?.expiresAt,
         };
       if (
         (existing.state === "remembered" ||
@@ -648,6 +833,9 @@ export class StandingOwner {
           id: s.sessions.find((v) => v.tokenHash === hash(existingToken!))!.id,
           token: existingToken!,
           reused: true,
+          expiresAt: s.sessions.find(
+            (v) => v.tokenHash === hash(existingToken!),
+          )?.expiresAt,
         };
       if (
         s.events.filter((e) => e.kind === "pair" && e.at > this.now() - 3600000)
@@ -664,10 +852,18 @@ export class StandingOwner {
         approvedAt: null,
         revoked: false,
         ...(campaignBrowser ? { allocationId: RECOVERY_EVALUATION } : {}),
+        ...(s.providerFailureRecovery
+          ? { expiresAt: s.providerFailureRecovery.originalBrowserExpiresAt }
+          : {}),
       });
       this.event(s, "pair", id);
       if (campaignBrowser) s.events.at(-1)!.allocationId = RECOVERY_EVALUATION;
-      return { id, token, reused: false };
+      return {
+        id,
+        token,
+        reused: false,
+        expiresAt: s.providerFailureRecovery?.originalBrowserExpiresAt,
+      };
     });
   }
   /** Only the local owner CLI calls this. No web approval endpoint. */
@@ -684,6 +880,14 @@ export class StandingOwner {
       )
         return deny("pair_expired");
       if (entry.allocationId) {
+        if (s.providerFailureRecovery) {
+          const continuation = providerRecoveryPhase(s, this.now());
+          if (
+            continuation?.phase !== "pending-browser" ||
+            continuation.entry?.id !== entry.id
+          )
+            return deny("provider_failure_recovery_browser_required");
+        }
         const q = await this.quotaPolicy(s);
         if (entry.agentHash !== q.agentHash) return deny("scope_denied");
         if (
@@ -777,6 +981,14 @@ export class StandingOwner {
         return deny("scope_denied");
       const entry = principal.entry;
       if (entry.allocationId) await this.quotaProof(s, proof);
+      if (s.providerFailureRecovery && entry.allocationId) {
+        const continuation = providerRecoveryPhase(s, this.now());
+        if (
+          continuation?.phase !== "active" ||
+          continuation.entry?.id !== entry.id
+        )
+          return deny("provider_failure_recovery_browser_required");
+      }
       // Bound write volume; absolute lifetime never slides.
       if (!principal.recovered && this.now() - entry.lastSeen >= 3600000) {
         entry.lastSeen = this.now();
@@ -787,10 +999,21 @@ export class StandingOwner {
   }
   async finishBrowser(proof: OwnerProof) {
     return this.change(async (s) => {
+      await this.additionalOrigin(s, proof.origin);
       const browser = await this.inspectBrowser(s, proof);
       if (browser.state !== "finish-needed" && browser.state !== "remembered")
         return deny(browser.state.replaceAll("-", "_"));
       const entry = await this.session(s, proof);
+      if (s.providerFailureRecovery) {
+        await this.quotaProof(s, proof);
+        const continuation = providerRecoveryPhase(s, this.now());
+        if (
+          !continuation ||
+          !["finish-needed", "active"].includes(continuation.phase) ||
+          continuation.entry?.id !== entry.id
+        )
+          return deny("provider_failure_recovery_browser_required");
+      }
       if (entry.finishedAt === undefined) {
         entry.finishedAt = this.now();
         this.event(s, "finish-browser", entry.id);
@@ -799,21 +1022,55 @@ export class StandingOwner {
       return Math.min(
         entry.createdAt + OWNER_MAX_AGE,
         entry.expiresAt ?? Infinity,
+        ...(s.providerFailureRecovery
+          ? [
+              entry.lastSeen + OWNER_IDLE,
+              s.providerFailureRecovery.originalBrowserExpiresAt,
+            ]
+          : []),
       );
     });
   }
   async revokeSession(id: string) {
-    await this.change((s) => {
+    await this.restrict((s) => {
       const entry = s.sessions.find((v) => v.id === id);
       if (!entry) return deny("signin_required");
       entry.revoked = true;
       this.event(s, "revoke-session", id);
+      if (
+        s.providerFailureRecovery &&
+        s.sessions.indexOf(entry) >=
+          s.providerFailureRecovery.checkpoint.sessionCount
+      )
+        this.disableProviderRecovery(s);
     });
     if (id === RECOVERY_SESSION)
       await this.disableEvaluationRecovery("session-revoked");
   }
   async logout(proof: OwnerProof, pendingChallenge?: string): Promise<void> {
-    const ids = await this.change(async (s) => {
+    const ids = await this.restrict(async (s) => {
+      if (s.providerFailureRecovery) {
+        const entry = s.sessions
+          .slice(s.providerFailureRecovery.checkpoint.sessionCount)
+          .find(
+            (v) =>
+              v.tokenHash === hash(proof.token ?? "") &&
+              v.agentHash === hash(proof.agent),
+          );
+        if (
+          entry &&
+          proof.origin === OWNER_ORIGIN &&
+          proof.recordsOwnerDigest ===
+            s.providerFailureRecovery.identity.recordsOwnerDigest
+        ) {
+          if (!entry.revoked) {
+            entry.revoked = true;
+            this.event(s, "logout", entry.id);
+          }
+          this.disableProviderRecovery(s);
+          return [entry.id];
+        }
+      }
       // A cancellation is not an authentication upgrade. Never require a live
       // inference principal to kill a grant the caller cryptographically owns.
       const normalCampaign = s.sessions.some(
@@ -863,6 +1120,12 @@ export class StandingOwner {
         if (selected.id === RECOVERY_SESSION && alreadyCancelled) continue;
         selected.revoked = true;
         this.event(s, "logout", selected.id);
+        if (
+          s.providerFailureRecovery &&
+          s.sessions.indexOf(selected) >=
+            s.providerFailureRecovery.checkpoint.sessionCount
+        )
+          this.disableProviderRecovery(s);
       }
       return entries.map((x) => x.id);
     });
@@ -870,13 +1133,14 @@ export class StandingOwner {
       await this.disableEvaluationRecovery("logout");
   }
   async revokePolicy(proof: OwnerProof) {
-    await this.change(async (s) => {
+    await this.restrict(async (s) => {
       const entry = await this.session(s, proof);
       this.event(
         s,
         entry.allocationId ? "revoke-quota-campaign" : "revoke-policy",
         entry.allocationId ?? s.policy?.id ?? "disabled",
       );
+      this.disableProviderRecovery(s);
     });
     await this.disableEvaluationRecovery("policy-revoked");
   }
@@ -893,7 +1157,11 @@ export class StandingOwner {
       const policy = await this.allowed(state, proof, selected, enabled);
       const principal = await this.principal(state, proof, true);
       if (this.campaignEntry(state, principal.entry))
-        assertCampaignStage(state.events, stageKey ?? "");
+        assertCampaignStage(
+          state.events,
+          stageKey ?? "",
+          this.recoveryContext(state),
+        );
       return policy;
     }, ".owner-access-lock");
   }
@@ -937,6 +1205,7 @@ export class StandingOwner {
         s.events,
         requestId,
         conversationId,
+        this.recoveryContext(s),
       );
       this.event(s, "question-open", subject);
       s.events.at(-1)!.allocationId = RECOVERY_EVALUATION;
@@ -961,6 +1230,7 @@ export class StandingOwner {
         s.events,
         requestId,
         conversationId,
+        this.recoveryContext(s),
       );
       this.event(s, "question-close", subject);
       s.events.at(-1)!.allocationId = RECOVERY_EVALUATION;
@@ -987,7 +1257,7 @@ export class StandingOwner {
       if (s.events.some((e) => e.kind === "reserve" && e.subject === key))
         return deny("already_dispatched");
       if (this.campaignEntry(s, principal.entry))
-        assertCampaignStage(s.events, key);
+        assertCampaignStage(s.events, key, this.recoveryContext(s));
       this.event(s, "reserve", key);
       if (this.campaignEntry(s, principal.entry))
         s.events.at(-1)!.allocationId = RECOVERY_EVALUATION;
@@ -1000,7 +1270,7 @@ export class StandingOwner {
     outcome: "completed" | "failed" | "unknown",
     observation?: unknown,
   ) {
-    const allocation = await this.change((s) => {
+    const allocation = await this.restrict((s) => {
       if (
         !s.events.some((e) => e.kind === "reserve" && e.subject === key) ||
         s.events.some(
@@ -1018,6 +1288,8 @@ export class StandingOwner {
       if (observation)
         s.events.at(-1)!.observation =
           eventSchema.shape.observation.parse(observation);
+      if (allocationId === RECOVERY_EVALUATION && outcome !== "completed")
+        this.disableProviderRecovery(s);
       return allocationId;
     });
     // Journal outcome is durable first. Even failed recovery-file I/O cannot
@@ -1034,8 +1306,9 @@ export class StandingOwner {
       return deny("history_mismatch");
   }
   async blockProvider() {
-    await this.change((s) => {
+    await this.restrict((s) => {
       this.event(s, "provider-block", "permission-or-usage-denied");
+      this.disableProviderRecovery(s);
     });
     await this.disableEvaluationRecovery("provider-blocked");
   }
@@ -1092,9 +1365,17 @@ export class StandingOwner {
   /** Must succeed durably BEFORE a controlled fallback. No swallowing failure. */
   async disableEvaluationRecovery(reason = "controlled-fallback") {
     z.string().min(1).max(120).parse(reason);
-    return this.files.lockedWaiting(async () => {
-      const cutoff = await this.recovery.postStopCheckpoint();
+    return this.files.lockedRecoveryTransition(async () => {
       const current = await this.state();
+      const before = recoveryHash(current);
+      this.disableProviderRecovery(current);
+      // The new phase never rewrites or attempts to revive the disabled legacy file.
+      if (current.providerFailureRecovery) {
+        if (recoveryHash(current) !== before)
+          await this.publishRestriction(current);
+        return;
+      }
+      const cutoff = await this.recovery.postStopCheckpoint();
       if (
         current.quotaCampaign &&
         !["logout", "session-revoked"].includes(reason) &&
@@ -1106,8 +1387,9 @@ export class StandingOwner {
           recoveryHash(current.quotaCampaign),
         );
         current.events.at(-1)!.allocationId = RECOVERY_EVALUATION;
-        await this.files.write("owner-state.json", stateSchema.parse(current));
       }
+      if (recoveryHash(current) !== before)
+        await this.publishRestriction(current);
       if (cutoff !== null) {
         const s = await this.state();
         if (
@@ -1122,17 +1404,17 @@ export class StandingOwner {
           // The original grant is already terminal and remains byte-exact.
           // A fresh restriction after the approved cutoff stops continuation.
           this.event(s, "revoke-session", RECOVERY_SESSION);
-          await this.files.write("owner-state.json", stateSchema.parse(s));
+          await this.publishRestriction(s);
         }
       }
       return this.recovery.disable(reason);
-    }, ".owner-access-lock");
+    });
   }
   /** No bearer token or issuance: engineering queue inspection, not dispatch authority. */
   async evaluationRecoveryStatus() {
     return this.files.lockedWaiting(async () => {
       const s = await this.state();
-      const budget = campaignBudget(s.events);
+      const budget = campaignBudget(s.events, this.recoveryContext(s));
       const base = {
         active: false,
         evaluationId: RECOVERY_EVALUATION,
@@ -1150,6 +1432,12 @@ export class StandingOwner {
         availableForNewQuestion: budget.availableForNewQuestion,
         questionActive: !!budget.activeQuestion,
       };
+      if (s.providerFailureRecovery)
+        return {
+          ...base,
+          phase: "disabled",
+          providerRecoveryPhase: providerRecoveryPhase(s, this.now())!.phase,
+        };
       try {
         const doc = await this.recovery.read();
         if (!doc) return { ...base, phase: "absent" };
@@ -1189,11 +1477,19 @@ export class StandingOwner {
     return this.files.lockedWaiting(async () => {
       const s = await this.state();
       if (!s.quotaCampaign) return { active: false as const };
-      const budget = campaignBudget(s.events);
+      const budget = campaignBudget(s.events, this.recoveryContext(s));
+      const continuation = providerRecoveryPhase(s, this.now());
       try {
         const q = await this.quotaPolicy(s);
         return {
-          active: true as const,
+          active: !continuation || continuation.phase === "active",
+          ...(continuation
+            ? {
+                providerRecoveryPhase: continuation.phase,
+                browserExpiresAt:
+                  s.providerFailureRecovery!.originalBrowserExpiresAt,
+              }
+            : {}),
           campaignId: q.campaignId,
           ownerApprovalHash: q.ownerApprovalHash,
           authorizationHash: recoveryHash(
@@ -1211,6 +1507,7 @@ export class StandingOwner {
                 entry.approvedAt !== null &&
                 this.now() < entry.createdAt + OWNER_MAX_AGE &&
                 this.now() < entry.lastSeen + OWNER_IDLE,
+              // Explicit continuation expiry is independently enforced by quotaPolicy.
             )?.id ?? null,
           calendarExpiresAt: null,
           used: budget.used,
@@ -1227,8 +1524,17 @@ export class StandingOwner {
     }, ".owner-access-lock");
   }
   async status(proof: OwnerProof, diagnostic?: (reason: string) => void) {
-    await this.files.prepare();
+    return this.files.lockedWaiting(
+      () => this.statusUnlocked(proof, diagnostic),
+      ".owner-access-lock",
+    );
+  }
+  private async statusUnlocked(
+    proof: OwnerProof,
+    diagnostic?: (reason: string) => void,
+  ) {
     const s = await this.state();
+    const continuation = providerRecoveryPhase(s, this.now());
     const browser = await this.inspectBrowser(s, proof);
     diagnostic?.(browser.reason);
     let remembered = false;
@@ -1271,6 +1577,9 @@ export class StandingOwner {
         entry.allocationId && entry.tokenHash === hash(proof.token ?? ""),
     );
     const evaluationBrowser =
+      (!!s.providerFailureRecovery &&
+        proof.recordsOwnerDigest ===
+          s.providerFailureRecovery.identity.recordsOwnerDigest) ||
       !!identifiedQuota ||
       recoveryCredential ||
       (!!evaluation &&
@@ -1281,7 +1590,9 @@ export class StandingOwner {
         ));
     const used = evaluationBrowser ? evaluationUsed : originalUsed;
     const budget =
-      evaluation?.id === RECOVERY_EVALUATION ? campaignBudget(s.events) : null;
+      evaluation?.id === RECOVERY_EVALUATION
+        ? campaignBudget(s.events, this.recoveryContext(s))
+        : null;
     const limit = evaluationBrowser
       ? (budget?.executionLimit ?? evaluation!.requestLimit)
       : (s.policy?.requestLimit ?? 0);
@@ -1289,7 +1600,10 @@ export class StandingOwner {
     if (currentEntry?.allocationId) {
       try {
         await this.quotaProof(s, proof);
-        quotaAuthorized = true;
+        quotaAuthorized =
+          !continuation ||
+          (continuation.phase === "active" &&
+            continuation.entry?.id === currentEntry.id);
       } catch {
         /* No authority from status. */
       }
@@ -1318,11 +1632,32 @@ export class StandingOwner {
           : (s.policy?.maxRetries ?? 0),
       providerBlocked: s.events.some((e) => e.kind === "provider-block"),
       policy: s.policy ? "approved" : "disabled",
-      revoked: s.events.some(
-        (e) =>
-          e.kind === "revoke-policy" ||
-          (evaluationBrowser && e.kind === "revoke-quota-campaign"),
-      ),
+      revoked:
+        (!!continuation &&
+          ["disabled", "expired"].includes(continuation.phase)) ||
+        s.events.some(
+          (e) =>
+            e.kind === "revoke-policy" ||
+            (evaluationBrowser &&
+              e.kind === "revoke-quota-campaign" &&
+              !(
+                continuation &&
+                identifiedQuota?.id === continuation.entry?.id &&
+                e.id ===
+                  s.providerFailureRecovery!.failedQuestion
+                    .campaignRevocationEventId
+              )),
+        ),
+      ...(continuation
+        ? {
+            providerRecovery: {
+              phase: continuation.phase,
+              originalBrowserExpiresAt:
+                s.providerFailureRecovery!.originalBrowserExpiresAt,
+              priorCampaignRevoked: true as const,
+            },
+          }
+        : {}),
       used,
       remaining: s.policy ? Math.max(0, limit - used) : 0,
       campaign:
@@ -1358,6 +1693,7 @@ export class StandingOwner {
                     browserExpiresAt: Math.min(
                       identifiedQuota.createdAt + OWNER_MAX_AGE,
                       identifiedQuota.lastSeen + OWNER_IDLE,
+                      identifiedQuota.expiresAt ?? Infinity,
                     ),
                   }
                 : {}),

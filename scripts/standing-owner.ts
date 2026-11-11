@@ -18,11 +18,18 @@ try {
       "approve-quota-campaign-extension",
       "approve-north-guide-campaign",
       "approve-north-guide-records-binding",
+      "approve-provider-failure-recovery",
     ].includes(action)
   )
     throw new Error("usage");
   const owner = new StandingOwner();
-  if (action === "approve-north-guide-records-binding") {
+  if (action === "approve-provider-failure-recovery") {
+    if (process.env.CI || id !== "provider-failure-recovery-approval.json")
+      throw new Error("usage");
+    await owner.installProviderFailureRecovery(
+      await owner.files.read("provider-failure-recovery-approval.json"),
+    );
+  } else if (action === "approve-north-guide-records-binding") {
     if (id !== "north-guide-records-binding-approval.json")
       throw new Error("usage");
     await owner.installNorthGuideRecordsBinding(
@@ -74,15 +81,17 @@ try {
     await owner.installPolicy(policy);
   }
   console.log(
-    action === "approve-quota-campaign-extension"
-      ? "Exact owner-approved 100-attempt amendment stored. All previous grants and charges retained; normal browser approval and provider checks remain required."
-      : action === "approve-quota-campaign"
-        ? "Quota-bounded campaign policy stored without a calendar deadline. Historical grants/usage unchanged; normal browser approval and provider checks remain required."
-        : action === "approve-review-origin"
-          ? "Exact review origin approved against the existing policy. No allowance, session or expiry was reset."
-          : action === "approve-policy"
-            ? "Exact standing policy stored. Runtime activation and provider credentials unchanged."
-            : "Browser access updated. AI permission and provider credentials unchanged.",
+    action === "approve-provider-failure-recovery"
+      ? "Once-only bounded recovery installed. All charges and revocations retained; one unused hold released. Normal same-namespace browser approval and Finish remain required."
+      : action === "approve-quota-campaign-extension"
+        ? "Exact owner-approved 100-attempt amendment stored. All previous grants and charges retained; normal browser approval and provider checks remain required."
+        : action === "approve-quota-campaign"
+          ? "Quota-bounded campaign policy stored without a calendar deadline. Historical grants/usage unchanged; normal browser approval and provider checks remain required."
+          : action === "approve-review-origin"
+            ? "Exact review origin approved against the existing policy. No allowance, session or expiry was reset."
+            : action === "approve-policy"
+              ? "Exact standing policy stored. Runtime activation and provider credentials unchanged."
+              : "Browser access updated. AI permission and provider credentials unchanged.",
   );
 } catch {
   console.error(

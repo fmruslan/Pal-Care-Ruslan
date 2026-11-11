@@ -58,6 +58,7 @@ type FileName =
   | "quota-campaign-extension-approval.json"
   | "north-guide-campaign-approval.json"
   | "north-guide-records-binding-approval.json"
+  | "provider-failure-recovery-approval.json"
   | "evaluation-recovery.json"
   | "evaluation-recovery-transition.json"
   | "north-review-origin-approval.json"

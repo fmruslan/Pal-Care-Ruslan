@@ -9,6 +9,10 @@ import {
 } from "./evaluation-recovery";
 import type { OwnerState } from "./standing-owner";
 import type { Registration } from "./subscription/files";
+import {
+  providerRecoveryContext,
+  providerRecoveryPhase,
+} from "./provider-failure-recovery";
 
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
 /** An additive owner policy, not another allowance or browser credential.
@@ -293,6 +297,8 @@ export function assertQuotaCampaignIntegrity(
   now: number,
   installing = false,
 ) {
+  const recovery = providerRecoveryContext(state, now);
+  const phase = recovery ? providerRecoveryPhase(state, now) : undefined;
   const q = state.quotaCampaign;
   const original = state.sessions.find((s) => s.id === RECOVERY_SESSION);
   const prefix = state.events.slice(0, q?.historicalEventCount ?? 0);
@@ -315,11 +321,16 @@ export function assertQuotaCampaignIntegrity(
           e.allocationId === RECOVERY_EVALUATION &&
           (e.at < q.approvedAt || e.at > now),
       ) ||
-    state.events.some((e) =>
-      ["revoke-policy", "provider-block", "revoke-quota-campaign"].includes(
-        e.kind,
-      ),
-    )
+    state.events.some(
+      (e) =>
+        ["revoke-policy", "provider-block"].includes(e.kind) ||
+        (e.kind === "revoke-quota-campaign" &&
+          (!recovery ||
+            e.id !==
+              state.providerFailureRecovery!.failedQuestion
+                .campaignRevocationEventId)),
+    ) ||
+    (phase && ["disabled", "expired"].includes(phase.phase))
   )
     throw new CareError("careos_owner_quota_campaign_denied", 403);
   const approvals = state.events.filter(
@@ -371,7 +382,7 @@ export function assertQuotaCampaignIntegrity(
     state.events.some((e) => e.kind === "approve-north-guide-campaign")
   )
     throw new CareError("careos_owner_north_guide_campaign_denied", 403);
-  const budget = campaignBudget(state.events);
+  const budget = campaignBudget(state.events, recovery);
   if (
     budget.used >
       (guide?.executionLimit ??

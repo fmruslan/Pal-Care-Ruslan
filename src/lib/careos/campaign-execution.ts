@@ -22,8 +22,18 @@ export type CampaignExecutionEvent = {
 type Stage = {
   key: string;
   at: number;
+  reserveEventId?: string;
+  terminalEventId?: string;
   outcome?: "completed" | "failed" | "unknown";
   httpStatus?: number;
+};
+/** Internal context authenticated against immutable owner state, never HTTP input. */
+export type CampaignRecoveryResolution = {
+  approvalHash: string;
+  checkpointEventCount: number;
+  questionSubject: string;
+  reserveEventId: string;
+  terminalEventId: string;
 };
 type Question = {
   requestId: string;
@@ -99,7 +109,10 @@ function assertClose(question: Question | undefined, expected: string) {
  * validating AND appending an event atomically to the owner ledger. Historical
  * reservations before the first marker remain charged without requiring holds.
  * These helpers neither authenticate callers nor grant provider authority. */
-function derive(events: readonly CampaignExecutionEvent[]) {
+function derive(
+  events: readonly CampaignExecutionEvent[],
+  recovery?: CampaignRecoveryResolution,
+) {
   let used = 0;
   let executionLimit: CampaignBudget["executionLimit"] =
     CAMPAIGN_EXECUTION_LIMIT;
@@ -107,8 +120,38 @@ function derive(events: readonly CampaignExecutionEvent[]) {
   let lastAt = -1;
   let active: Question | undefined;
   const requests = new Set<string>();
-  for (const event of events) {
+  let resolved = false;
+  for (const [eventIndex, event] of events.entries()) {
     if (event.allocationId !== allocation) continue;
+    if (event.kind === "resolve-provider-failed-question") {
+      const approval = events[eventIndex - 1];
+      const stage = active?.stages[0];
+      if (
+        !recovery ||
+        resolved ||
+        eventIndex !== recovery.checkpointEventCount + 1 ||
+        approval?.kind !== "approve-provider-failure-recovery" ||
+        approval.subject !== recovery.approvalHash ||
+        approval.allocationId !== allocation ||
+        event.subject !== recovery.questionSubject ||
+        active?.subject !== event.subject ||
+        active.stages.length !== 1 ||
+        stage?.reserveEventId !== recovery.reserveEventId ||
+        stage.terminalEventId !== recovery.terminalEventId ||
+        stage.outcome !== "failed" ||
+        stage.httpStatus !== 503 ||
+        event.executionLimit !== undefined ||
+        event.observation !== undefined ||
+        event.at < lastAt ||
+        event.at < approval.at ||
+        !Number.isSafeInteger(event.at)
+      )
+        deny("invalid_recovery_resolution");
+      active = undefined;
+      resolved = true;
+      lastAt = event.at;
+      continue;
+    }
     // Only the explicit additive authorization changes the projection. Legacy
     // grants and their earlier 150 ceiling remain unchanged. Authentication and
     // the authorization hash are independently checked by StandingOwner.
@@ -184,13 +227,18 @@ function derive(events: readonly CampaignExecutionEvent[]) {
       used++;
       assertStage(active, event.subject);
       if (used > executionLimit) deny("invalid_ledger");
-      active!.stages.push({ key: event.subject, at: event.at });
+      active!.stages.push({
+        key: event.subject,
+        at: event.at,
+        reserveEventId: event.id,
+      });
     } else if (marked) {
       const stage = active?.stages.find((s) => s.key === event.subject);
       if (!stage || stage.outcome || event.at < stage.at)
         deny("invalid_ledger");
       stage.outcome = event.kind as Stage["outcome"];
       stage.httpStatus = event.observation?.httpStatus;
+      stage.terminalEventId = event.id;
     }
   }
   const held = active ? QUESTION_MAX_STAGES - active.stages.length : 0;
@@ -220,17 +268,19 @@ function derive(events: readonly CampaignExecutionEvent[]) {
 
 export function campaignBudget(
   events: readonly CampaignExecutionEvent[],
+  recovery?: CampaignRecoveryResolution,
 ): CampaignBudget {
-  return derive(events).budget;
+  return derive(events, recovery).budget;
 }
 
 export function assertCampaignQuestionOpen(
   events: readonly CampaignExecutionEvent[],
   requestId: string,
   conversationId: string,
+  recovery?: CampaignRecoveryResolution,
 ): string {
   const expected = subject(requestId, conversationId);
-  const { budget, active, requests } = derive(events);
+  const { budget, active, requests } = derive(events, recovery);
   if (requests.has(requestId)) deny("request_reused");
   if (active) deny("question_busy", 429);
   if (budget.availableForNewQuestion < QUESTION_MAX_STAGES)
@@ -241,8 +291,9 @@ export function assertCampaignQuestionOpen(
 export function assertCampaignStage(
   events: readonly CampaignExecutionEvent[],
   key: string,
+  recovery?: CampaignRecoveryResolution,
 ): void {
-  const { active, budget } = derive(events);
+  const { active, budget } = derive(events, recovery);
   assertStage(active, key);
   if (budget.remaining < 1 || budget.held < 1) deny("quota_exhausted", 429);
 }
@@ -251,8 +302,9 @@ export function assertCampaignQuestionClose(
   events: readonly CampaignExecutionEvent[],
   requestId: string,
   conversationId: string,
+  recovery?: CampaignRecoveryResolution,
 ): string {
   const expected = subject(requestId, conversationId);
-  assertClose(derive(events).active, expected);
+  assertClose(derive(events, recovery).active, expected);
   return expected;
 }
