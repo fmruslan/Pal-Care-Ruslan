@@ -56,6 +56,7 @@ type FileName =
   | "evaluation-approval.json"
   | "quota-campaign-approval.json"
   | "quota-campaign-extension-approval.json"
+  | "north-guide-campaign-approval.json"
   | "evaluation-recovery.json"
   | "evaluation-recovery-transition.json"
   | "north-review-origin-approval.json"
@@ -100,9 +101,11 @@ export class PilotFiles {
         s.mode & 0o077 ||
         s.nlink !== 1 ||
         s.size >
-          (["quality.json", "owner-state.json"].includes(name)
-            ? 1048576
-            : 131072)
+          (name === "owner-state.json"
+            ? 2097152
+            : name === "quality.json"
+              ? 1048576
+              : 131072)
       )
         throw new PilotError("pilot_unsafe_file");
       try {
@@ -124,7 +127,11 @@ export class PilotFiles {
     const body = JSON.stringify(value, null, 2) + "\n";
     if (
       Buffer.byteLength(body) >
-      (["quality.json", "owner-state.json"].includes(name) ? 1048576 : 131072)
+      (name === "owner-state.json"
+        ? 2097152
+        : name === "quality.json"
+          ? 1048576
+          : 131072)
     )
       throw new PilotError("pilot_file_too_large");
     // Private host state is provisioned at runtime, never a deployment asset.

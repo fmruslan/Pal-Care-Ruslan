@@ -4,6 +4,7 @@ import { CareError } from "./contracts";
 export const CAMPAIGN_EXECUTION_LIMIT = 150;
 export const QUOTA_CAMPAIGN_EXECUTION_LIMIT = 163;
 export const QUOTA_CAMPAIGN_EXTENSION_LIMIT = 263;
+export const NORTH_GUIDE_CAMPAIGN_LIMIT = 563;
 export const CAMPAIGN_HISTORICAL_LIMIT = 300;
 export const QUESTION_MAX_STAGES = 2;
 const allocation = "feb8831c-702b-476e-91e3-d0034ceb645d";
@@ -16,7 +17,7 @@ export type CampaignExecutionEvent = {
   readonly at: number;
   readonly id?: string;
   readonly observation?: { readonly httpStatus?: number };
-  readonly executionLimit?: 163 | 263;
+  readonly executionLimit?: 163 | 263 | 563;
 };
 type Stage = {
   key: string;
@@ -36,7 +37,8 @@ export type CampaignBudget = {
   executionLimit:
     | typeof CAMPAIGN_EXECUTION_LIMIT
     | typeof QUOTA_CAMPAIGN_EXECUTION_LIMIT
-    | typeof QUOTA_CAMPAIGN_EXTENSION_LIMIT;
+    | typeof QUOTA_CAMPAIGN_EXTENSION_LIMIT
+    | typeof NORTH_GUIDE_CAMPAIGN_LIMIT;
   used: number;
   remaining: number;
   held: number;
@@ -127,6 +129,16 @@ function derive(events: readonly CampaignExecutionEvent[]) {
       )
         deny("invalid_ledger");
       executionLimit = QUOTA_CAMPAIGN_EXTENSION_LIMIT;
+    }
+    if (event.kind === "approve-north-guide-campaign") {
+      if (
+        executionLimit !== QUOTA_CAMPAIGN_EXTENSION_LIMIT ||
+        event.executionLimit !== NORTH_GUIDE_CAMPAIGN_LIMIT ||
+        used !== QUOTA_CAMPAIGN_EXTENSION_LIMIT ||
+        active
+      )
+        deny("invalid_ledger");
+      executionLimit = NORTH_GUIDE_CAMPAIGN_LIMIT;
     }
     const isMarker = ["question-open", "question-close"].includes(event.kind);
     const isAttempt = ["reserve", "completed", "failed", "unknown"].includes(

@@ -18,6 +18,7 @@ import type { PilotFiles } from "../../src/lib/careos/subscription/files";
 import {
   conversationPayload,
   conversationPlanSchema,
+  conversationModelPlanSchema,
   CONVERSATION_MODEL_PROMPT,
   type ConversationPlan,
 } from "../../src/lib/careos/records/conversation-service";
@@ -53,7 +54,7 @@ const wire = (payload: string) =>
   structuredRequestBody({
     payload,
     prompt: CONVERSATION_MODEL_PROMPT,
-    schema: conversationPlanSchema,
+    schema: conversationModelPlanSchema,
     name: schemaName,
   });
 function plan(change: Partial<ConversationPlan> = {}): ConversationPlan {
@@ -71,6 +72,7 @@ function plan(change: Partial<ConversationPlan> = {}): ConversationPlan {
     productAction: "summary",
     careQuestion: "",
     clarification: "",
+    guide: null,
     ...change,
   });
 }
@@ -224,7 +226,7 @@ describe("exact shared North wire byte boundary, injected protocol only", () => 
         { role: "developer", content: CONVERSATION_MODEL_PROMPT },
         { role: "user", content: "unit" },
       ],
-      text: { format: zodTextFormat(conversationPlanSchema, schemaName) },
+      text: { format: zodTextFormat(conversationModelPlanSchema, schemaName) },
     });
     expect(CONVERSATION_MODEL_PROMPT).toContain(
       "aftercare: use this read-only ownership task",
@@ -272,7 +274,7 @@ describe("exact shared North wire byte boundary, injected protocol only", () => 
         accessToken: "injected-budget-fixture-only",
         payload,
         prompt: CONVERSATION_MODEL_PROMPT,
-        schema: conversationPlanSchema,
+        schema: conversationModelPlanSchema,
         name: schemaName,
         beforeDispatch,
         transport,
@@ -316,7 +318,7 @@ describe("exact shared North wire byte boundary, injected protocol only", () => 
         accessToken: "injected-budget-fixture-only",
         payload,
         prompt: CONVERSATION_MODEL_PROMPT,
-        schema: conversationPlanSchema,
+        schema: conversationModelPlanSchema,
         name: schemaName,
         beforeDispatch,
         transport,
@@ -348,7 +350,7 @@ describe("exact shared North wire byte boundary, injected protocol only", () => 
           accessToken: "injected-budget-fixture-only",
           payload,
           prompt: CONVERSATION_MODEL_PROMPT,
-          schema: conversationPlanSchema,
+          schema: conversationModelPlanSchema,
           name: schemaName,
           beforeDispatch,
           transport,
@@ -396,7 +398,7 @@ describe("exact shared North wire byte boundary, injected protocol only", () => 
           requestId: randomUUID(),
           payload: makePayload(),
           prompt: CONVERSATION_MODEL_PROMPT,
-          schema: conversationPlanSchema,
+          schema: conversationModelPlanSchema,
           name: schemaName,
           signal: new AbortController().signal,
           transport,
@@ -433,7 +435,7 @@ describe("exact shared North wire byte boundary, injected protocol only", () => 
         requestId: randomUUID(),
         payload: payloadAtBytes(20001),
         prompt: CONVERSATION_MODEL_PROMPT,
-        schema: conversationPlanSchema,
+        schema: conversationModelPlanSchema,
         name: schemaName,
         signal: new AbortController().signal,
       }),

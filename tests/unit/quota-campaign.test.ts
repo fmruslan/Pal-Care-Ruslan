@@ -19,6 +19,7 @@ import {
   quotaCampaignSchema,
   quotaCampaignExtensionSchema,
   subscriptionIdentityHash,
+  northGuideCampaignSchema,
 } from "../../src/lib/careos/quota-campaign";
 import { campaignBudget } from "../../src/lib/careos/campaign-execution";
 import {
@@ -157,6 +158,243 @@ async function fixture() {
 afterEach(async () => {
   for (const root of roots.splice(0))
     await rm(root, { recursive: true, force: true });
+});
+
+describe("separately approved 263 plus 300 guide campaign", () => {
+  async function exhaustedGuide() {
+    const f = await fixture();
+    const old = await f.authorize();
+    await f.fill(163);
+    await f.owner.revokeSession(old.pair.id);
+    await f.owner.installQuotaCampaignExtension(await f.extension());
+    const browser = await f.owner.pair(
+      f.agent,
+      old.proof.token,
+      f.recordsOwner,
+    );
+    const proof = { ...old.proof, token: browser.token };
+    await f.owner.approve(browser.id);
+    await f.owner.finishBrowser(proof);
+    await f.fill(263);
+    await f.owner.revokeSession(browser.id);
+    const before = await f.read();
+    const guide = northGuideCampaignSchema.parse({
+      version: 1,
+      campaignId: RECOVERY_EVALUATION,
+      approvedAt: f.clock.now(),
+      ownerApprovalHash: north150Hash(
+        "owner confirms 300 NEW useful guide attempts",
+      ),
+      calendarExpiresAt: null,
+      baselineUsed: 263,
+      executionLimit: 563,
+      maxAdditional: 300,
+      purpose: "north-current-interface-guidance-300",
+      previousAuthorizationHash: recoveryHash(before.quotaCampaignExtension),
+      checkpointEventCount: before.events.length,
+      checkpointEventHash: recoveryHash(before.events),
+    });
+    return { ...f, old, browser, proof, before, guide };
+  }
+  async function installed() {
+    const f = await exhaustedGuide();
+    await f.owner.installNorthGuideCampaign(f.guide);
+    const browser = await f.owner.pair(f.agent, f.proof.token, f.recordsOwner);
+    const proof = { ...f.proof, token: browser.token };
+    await f.owner.approve(browser.id);
+    await f.owner.finishBrowser(proof);
+    return { ...f, newBrowser: browser, newProof: proof };
+  }
+  it("keeps all old grants, 263 charges, unknowns and revoked proofs; new approval survives restart", async () => {
+    const f = await installed();
+    const after = await f.read();
+    for (const field of [
+      "policy",
+      "evaluation",
+      "quotaCampaign",
+      "quotaCampaignExtension",
+    ] as const)
+      expect(after[field]).toEqual(f.before[field]);
+    expect(after.events.slice(0, f.before.events.length)).toEqual(
+      f.before.events,
+    );
+    expect(after.sessions.slice(0, f.before.sessions.length)).toEqual(
+      f.before.sessions,
+    );
+    expect((await f.files.snapshot("evaluation-recovery.json"))!.hash).toBe(
+      f.grant!.hash,
+    );
+    expect(await f.restart().quotaCampaignStatus()).toMatchObject({
+      active: true,
+      executionLimit: 563,
+      used: 263,
+      remaining: 300,
+      baselineUsed: 263,
+      maxAdditional: 300,
+      authorizationHash: recoveryHash(f.guide),
+    });
+    expect(await f.restart().status(f.newProof)).toMatchObject({
+      requestLimit: 563,
+      used: 263,
+      remaining: 300,
+      unknown: 1,
+      campaign: { authorized: true, baselineUsed: 263, maxAdditional: 300 },
+      standingAllocation: { used: 274, remaining: 26 },
+    });
+    await expect(f.owner.authenticate(f.proof)).rejects.toThrow();
+    await expect(f.owner.installNorthGuideCampaign(f.guide)).rejects.toThrow(
+      "already_set",
+    );
+  });
+  it("retains two-stage admission through 563 and denies the 301st new attempt without resets", async () => {
+    const f = await installed();
+    await f.fill(561);
+    const request = randomUUID(),
+      conversation = randomUUID();
+    await f.owner.beginCampaignQuestion(
+      f.newProof,
+      request,
+      conversation,
+      true,
+    );
+    for (const stage of ["north_conversation_v1", "careos_care"]) {
+      await f.owner.reserve(
+        f.newProof,
+        "customer",
+        `customer:${request}:${stage}`,
+        true,
+      );
+      await f.owner.settle(`customer:${request}:${stage}`, "completed", {
+        httpStatus: 200,
+      });
+    }
+    await f.owner.finishCampaignQuestion(f.newProof, request, conversation);
+    expect(campaignBudget((await f.read()).events)).toMatchObject({
+      used: 563,
+      remaining: 0,
+      held: 0,
+    });
+    const before = await f.read();
+    await expect(
+      f.owner.beginCampaignQuestion(
+        f.newProof,
+        randomUUID(),
+        randomUUID(),
+        true,
+      ),
+    ).rejects.toThrow();
+    expect(await f.read()).toEqual(before);
+  });
+  it("one remaining attempt cannot admit a two-stage question", async () => {
+    const f = await installed();
+    await f.fill(562);
+    await expect(
+      f.owner.beginCampaignQuestion(
+        f.newProof,
+        randomUUID(),
+        randomUUID(),
+        true,
+      ),
+    ).rejects.toThrow();
+    expect(campaignBudget((await f.read()).events)).toMatchObject({
+      used: 562,
+      remaining: 1,
+      held: 0,
+    });
+  });
+  it.each([
+    "cap",
+    "baseline",
+    "previous",
+    "prefix",
+    "approval",
+    "future",
+    "active-browser",
+    "unsettled",
+    "provider",
+  ])("rejects %s without publishing any state", async (kind) => {
+    const f = await exhaustedGuide();
+    const guide: Record<string, unknown> = { ...f.guide };
+    if (kind === "cap") guide.executionLimit = 600;
+    if (kind === "baseline") guide.baselineUsed = 0;
+    if (kind === "previous")
+      guide.previousAuthorizationHash = recoveryHash(f.before.quotaCampaign);
+    if (kind === "prefix") guide.checkpointEventHash = "0".repeat(64);
+    if (kind === "approval")
+      guide.ownerApprovalHash =
+        f.before.quotaCampaignExtension!.ownerApprovalHash;
+    if (kind === "future") guide.approvedAt = f.clock.now() + 60000;
+    if (["active-browser", "unsettled", "provider"].includes(kind)) {
+      const s = await f.read();
+      if (kind === "active-browser")
+        s.sessions.find((v) => v.id === f.browser.id)!.revoked = false;
+      if (kind === "unsettled")
+        s.events.splice(
+          s.events.findLastIndex((e) => e.kind === "question-close"),
+          1,
+        );
+      if (kind === "provider")
+        s.events.push({
+          id: randomUUID(),
+          at: f.clock.now(),
+          kind: "provider-block",
+          subject: "blocked",
+        });
+      await f.files.write("owner-state.json", s);
+    }
+    const before = await f.read();
+    await expect(f.owner.installNorthGuideCampaign(guide)).rejects.toThrow();
+    expect(await f.read()).toEqual(before);
+  });
+  it("rejects an approval event without its exact grant and never funds an old question retroactively", async () => {
+    const f = await installed();
+    const s = await f.read();
+    delete s.northGuideCampaign;
+    await f.files.write("owner-state.json", s);
+    await expect(
+      f.owner.beginCampaignQuestion(
+        f.newProof,
+        randomUUID(),
+        randomUUID(),
+        true,
+      ),
+    ).rejects.toThrow();
+    const events = structuredClone(f.before.events);
+    events.splice(786, 0, {
+      id: randomUUID(),
+      at: f.clock.now(),
+      kind: "approve-north-guide-campaign",
+      subject: recoveryHash(f.guide),
+      allocationId: RECOVERY_EVALUATION,
+      executionLimit: 563,
+    });
+    expect(() => campaignBudget(events)).toThrow("invalid_ledger");
+  });
+  it("retains every journal entry past the old 3000 bound and fails closed above the new 5000 bound", async () => {
+    const f = await installed();
+    const s = await f.read();
+    while (s.events.length < 5000)
+      s.events.push({
+        id: randomUUID(),
+        at: f.clock.now(),
+        kind: "touch",
+        subject: f.newBrowser.id,
+      });
+    await f.files.write("owner-state.json", s);
+    expect(await f.owner.quotaCampaignStatus()).toMatchObject({
+      active: true,
+      used: 263,
+    });
+    expect((await f.read()).events).toEqual(s.events);
+    s.events.push({
+      id: randomUUID(),
+      at: f.clock.now(),
+      kind: "touch",
+      subject: f.newBrowser.id,
+    });
+    await f.files.write("owner-state.json", s);
+    await expect(f.owner.quotaCampaignStatus()).rejects.toThrow();
+  });
 });
 
 describe("one exact additive 163 to 263 amendment", () => {

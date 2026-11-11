@@ -17,7 +17,7 @@ import {
 import { northConversationalPresentation } from "../../private-preview-origin";
 import {
   answerConversationTurn,
-  conversationPlanSchema,
+  conversationModelPlanSchema,
   CONVERSATION_MODEL_PROMPT,
 } from "./conversation-service";
 import { getKnowledge } from "../knowledge-repository";
@@ -87,7 +87,7 @@ export async function answerAuthorizedRecords(
           return (
             await provider.structured(
               payload,
-              conversationPlanSchema,
+              conversationModelPlanSchema,
               "north_conversation_v1",
               timeout,
               CONVERSATION_MODEL_PROMPT,

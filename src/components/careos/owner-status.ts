@@ -13,7 +13,12 @@ export const ownerStatusSchema = z.object({
   provider: z.string(),
   campaign: z
     .object({
-      executionLimit: z.union([z.literal(150), z.literal(163), z.literal(263)]),
+      executionLimit: z.union([
+        z.literal(150),
+        z.literal(163),
+        z.literal(263),
+        z.literal(563),
+      ]),
       availableForNewQuestion: z.number().int().nonnegative(),
       questionActive: z.boolean(),
       maxQuestionStages: z.literal(QUESTION_MAX_STAGES),

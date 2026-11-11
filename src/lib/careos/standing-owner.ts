@@ -10,6 +10,8 @@ import {
   quotaCampaignExtensionSchema,
   assertQuotaCampaignExtensionIntegrity,
   assertQuotaCampaignIntegrity,
+  northGuideCampaignSchema,
+  assertNorthGuideCampaignIntegrity,
 } from "./quota-campaign";
 import {
   CAMPAIGN_EXECUTION_LIMIT,
@@ -73,7 +75,9 @@ const evaluationSchema = evaluationApprovalSchema.extend({
   baselineEventHash: digest,
 });
 const eventSchema = z.strictObject({
-  executionLimit: z.union([z.literal(163), z.literal(263)]).optional(),
+  executionLimit: z
+    .union([z.literal(163), z.literal(263), z.literal(563)])
+    .optional(),
   id: z.uuid(),
   at: time,
   kind: z.enum([
@@ -95,6 +99,7 @@ const eventSchema = z.strictObject({
     "question-close",
     "approve-quota-campaign",
     "approve-quota-campaign-extension",
+    "approve-north-guide-campaign",
     "revoke-quota-campaign",
   ]),
   subject: z.string().min(1).max(200),
@@ -125,6 +130,7 @@ const stateSchema = z.strictObject({
   evaluation: evaluationSchema.optional(),
   quotaCampaign: quotaCampaignSchema.optional(),
   quotaCampaignExtension: quotaCampaignExtensionSchema.optional(),
+  northGuideCampaign: northGuideCampaignSchema.optional(),
   sessions: z
     .array(
       z.strictObject({
@@ -141,7 +147,7 @@ const stateSchema = z.strictObject({
       }),
     )
     .max(128),
-  events: z.array(eventSchema).max(3000),
+  events: z.array(eventSchema).max(5000),
 });
 export type OwnerState = z.infer<typeof stateSchema>;
 type State = OwnerState;
@@ -339,6 +345,32 @@ export class StandingOwner {
       await this.quotaPolicy(s);
     });
   }
+  /** Fixed host-only additive grant. No browser, provider or standing-policy renewal. */
+  async installNorthGuideCampaign(value: unknown) {
+    const x = northGuideCampaignSchema.parse(value);
+    return this.change(async (s) => {
+      if (
+        s.northGuideCampaign ||
+        s.events.some((e) => e.kind === "approve-north-guide-campaign")
+      )
+        return deny("north_guide_campaign_already_set");
+      await this.quotaPolicy(s);
+      if (
+        !s.policy ||
+        s.sessions.some(
+          (entry) =>
+            entry.allocationId === RECOVERY_EVALUATION && !entry.revoked,
+        )
+      )
+        return deny("north_guide_campaign_denied");
+      s.northGuideCampaign = x;
+      assertNorthGuideCampaignIntegrity(s, this.now(), true);
+      this.event(s, "approve-north-guide-campaign", recoveryHash(x));
+      s.events.at(-1)!.allocationId = RECOVERY_EVALUATION;
+      s.events.at(-1)!.executionLimit = x.executionLimit;
+      await this.quotaPolicy(s);
+    });
+  }
   private async principal(s: State, proof: OwnerProof, admission = false) {
     if (!proof.token || !/^[a-f0-9]{64}$/.test(proof.token))
       return deny("signin_required");
@@ -469,10 +501,14 @@ export class StandingOwner {
     ).length;
     const limit =
       evaluation?.id === RECOVERY_EVALUATION
-        ? Math.min(
-            evaluation.requestLimit,
-            quota?.executionLimit ?? CAMPAIGN_EXECUTION_LIMIT,
-          )
+        ? quota && s.northGuideCampaign
+          ? // Only the independently validated NEW grant can exceed the immutable
+            // historical 300 ceiling. Legacy/standing allocations keep their caps.
+            quota.executionLimit
+          : Math.min(
+              evaluation.requestLimit,
+              quota?.executionLimit ?? CAMPAIGN_EXECUTION_LIMIT,
+            )
         : (evaluation?.requestLimit ?? p.requestLimit);
     if (used >= limit) return deny("quota_exhausted");
     if (
@@ -1124,7 +1160,7 @@ export class StandingOwner {
           campaignId: q.campaignId,
           ownerApprovalHash: q.ownerApprovalHash,
           authorizationHash: recoveryHash(
-            s.quotaCampaignExtension ?? s.quotaCampaign,
+            s.northGuideCampaign ?? s.quotaCampaignExtension ?? s.quotaCampaign,
           ),
           executionLimit: q.executionLimit,
           baselineUsed: q.baselineUsed,
@@ -1261,10 +1297,15 @@ export class StandingOwner {
                 0,
                 budget.historicalLimit - budget.used,
               ),
-              baselineUsed: s.quotaCampaignExtension?.baselineUsed ?? 63,
+              baselineUsed:
+                s.northGuideCampaign?.baselineUsed ??
+                s.quotaCampaignExtension?.baselineUsed ??
+                63,
               maxAdditional:
                 identifiedQuota && s.quotaCampaign
-                  ? s.quotaCampaign.maxAdditional
+                  ? (s.northGuideCampaign?.maxAdditional ??
+                    s.quotaCampaignExtension?.maxAdditional ??
+                    s.quotaCampaign.maxAdditional)
                   : CAMPAIGN_EXECUTION_LIMIT - 63,
               used: budget.used,
               remaining: budget.remaining,
