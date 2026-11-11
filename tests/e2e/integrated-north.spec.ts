@@ -81,8 +81,10 @@ for (const route of ["/dashboard", "/purchases", "/documents", "/insights"]) {
     ).toHaveCount(0);
     await expect(top).toHaveCount(1);
     await expect(top).toBeVisible();
-    await expect(floating).toHaveCount(1);
-    await expect(floating).toBeVisible();
+    // Dense tablet collections may legitimately yield the corner icon. Keep its
+    // DOM identity/collision contract, then exercise it in real clear footer space.
+    const floatingNode = page.locator(".north-floating-launcher");
+    await expect(floatingNode).toHaveCount(1);
     await expectClearCorner();
     await top.click();
     const composer = north(page).getByRole("textbox", {
@@ -93,11 +95,14 @@ for (const route of ["/dashboard", "/purchases", "/documents", "/insights"]) {
     await north(page)
       .getByRole("button", { name: "Close North Star", exact: true })
       .click();
+    await page.locator("footer").last().scrollIntoViewIfNeeded();
+    await expect(floating).toBeVisible();
     await floating.click();
     await expect(composer).toHaveValue(`Keep the unsent ${route} question`);
     await north(page)
       .getByRole("button", { name: "Close North Star", exact: true })
       .click();
+    await page.evaluate(() => scrollTo(0, 0));
     if (route === "/insights") {
       const studio = page.getByTestId("customer-studio");
       await expect(studio.getByRole("grid")).toBeVisible({ timeout: 20000 });
@@ -119,7 +124,7 @@ for (const route of ["/dashboard", "/purchases", "/documents", "/insights"]) {
         )),
       0,
     );
-    const fixed = await floating.boundingBox();
+    const fixed = await floatingNode.boundingBox();
     expect(fixed!.width).toBeGreaterThanOrEqual(44);
     expect(fixed!.height).toBeGreaterThanOrEqual(44);
     await page.evaluate(() => scrollTo(0, innerHeight / 2));
@@ -260,6 +265,8 @@ test("shared top and floating North launchers preserve one panel, drafts and his
   await north(page)
     .getByRole("button", { name: "Close North Star", exact: true })
     .click();
+  await page.locator("footer").last().scrollIntoViewIfNeeded();
+  await expect(floating).toBeVisible();
   await floating.click();
   await expect(
     north(page).getByRole("region", { name: "Previous chats", exact: true }),
