@@ -672,10 +672,18 @@ test("exact malformed historical guide keeps PostgreSQL fingerprint/row and rest
         name: "Ask about your purchases",
         exact: true,
       });
-      if (!(await composer.isVisible()))
-        await page
-          .getByRole("button", { name: "Explore with North Star", exact: true })
-          .click();
+      if (!(await composer.isVisible())) {
+        // The remembered panel may finish reopening between this observation
+        // and activation. Its idempotent accessible launcher must still work
+        // without a pointer click through the newly opened floating panel.
+        const launcher = page.getByRole("button", {
+          name: "Explore with North Star",
+          exact: true,
+        });
+        await launcher.focus();
+        await launcher.press("Enter");
+      }
+      await expect(composer).toBeVisible();
       const restored = page
         .locator(`[data-request-id="${saved.turn.requestId}"]`)
         .filter({ visible: true });
