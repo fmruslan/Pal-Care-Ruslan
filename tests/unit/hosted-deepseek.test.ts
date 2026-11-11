@@ -29,7 +29,7 @@ const env = {
   CAREOS_TOTAL_BUDGET_MICRO: "5000000",
   CAREOS_BUDGET_ID: "render-judge",
   CAREOS_EVALUATION_ENABLED: "true",
-  CAREOS_EVALUATION_EXPIRES_AT: "2026-12-16T00:00:00Z",
+  CAREOS_EVALUATION_EXPIRES_AT: "2027-01-01T08:00:00Z",
   CAREOS_CUSTOMER_ACCESS_HASH: createHash("sha256").update(token).digest("hex"),
   CAREOS_STUDIO_ACCESS_HASH: createHash("sha256")
     .update("b".repeat(64))
@@ -135,7 +135,81 @@ describe("Render-only DeepSeek; injected transport, no live calls", () => {
       assertEvaluationAccess(
         "customer",
         token,
-        { ...env, CAREOS_EVALUATION_EXPIRES_AT: "2027-01-01T00:00:00Z" },
+        { ...env, CAREOS_EVALUATION_EXPIRES_AT: "2027-01-01T08:00:00.001Z" },
+        now,
+      ),
+    ).toThrow();
+  });
+  it("covers December 31 Pacific and denies both scopes exactly at the approved deadline", () => {
+    const deadline = Date.parse("2027-01-01T08:00:00Z");
+    const studio = "b".repeat(64);
+    expect(new Date("2026-12-31T23:59:59.999-08:00").getTime()).toBe(
+      deadline - 1,
+    );
+    for (const [scope, capability] of [
+      ["customer", token],
+      ["studio", studio],
+    ] as const) {
+      expect(() =>
+        assertEvaluationAccess(scope, capability, env, deadline - 1),
+      ).not.toThrow();
+      expect(() =>
+        assertEvaluationAccess(scope, capability, env, deadline),
+      ).toThrow();
+      expect(() =>
+        assertEvaluationAccess(
+          scope,
+          capability,
+          { ...env, RENDER: "false" },
+          now,
+        ),
+      ).toThrow();
+    }
+  });
+  it("does not extend an older configured window or widen private local access", () => {
+    const old = {
+      ...env,
+      CAREOS_EVALUATION_EXPIRES_AT: "2026-12-16T00:00:00Z",
+    };
+    expect(() =>
+      assertEvaluationAccess("customer", token, old, now),
+    ).not.toThrow();
+    expect(() =>
+      assertEvaluationAccess(
+        "customer",
+        token,
+        old,
+        Date.parse(old.CAREOS_EVALUATION_EXPIRES_AT),
+      ),
+    ).toThrow();
+    const local = {
+      ...env,
+      PALCARE_HOSTED_DEMO: "false",
+      RENDER: "false",
+      APP_ORIGIN: "http://localhost:3000",
+    };
+    expect(() =>
+      assertEvaluationAccess("customer", token, local, now),
+    ).toThrow();
+    expect(() =>
+      assertEvaluationAccess(
+        "customer",
+        token,
+        {
+          ...local,
+          CAREOS_EVALUATION_EXPIRES_AT: new Date(now + 86400000).toISOString(),
+        },
+        now,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      assertEvaluationAccess(
+        "customer",
+        token,
+        {
+          ...local,
+          CAREOS_EVALUATION_EXPIRES_AT: new Date(now + 86400001).toISOString(),
+        },
         now,
       ),
     ).toThrow();

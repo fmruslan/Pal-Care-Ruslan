@@ -107,5 +107,9 @@ public AI. Unknown usage stays reserved; no retries or automatic fallback.
 Checkout, refunds, provider payment reads and workers stay disabled. Vendor
 watermarks/notices remain intact; this change does not issue/activate a license
 or claim additional entitlement. Keep hosting funded through December15,2026;
-the hosted access window ends December16 at00:00UTC. Actual hosted performance,
+the owner-approved hosted access window ends January1,2027 at08:00UTC
+(after all of December31,2026 Pacific time). This does not increase budgets,
+credits or rate limits, change private Sol access, or automatically extend an
+already-issued browser cookie; authorize the existing scope tokens again after
+deployment if its browser access still has the earlier expiry. Actual hosted performance,
 provider compatibility and owner acceptance must be verified after deployment.

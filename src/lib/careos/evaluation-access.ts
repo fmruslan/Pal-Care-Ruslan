@@ -74,7 +74,7 @@ export function evaluationSettings(
     !Number.isFinite(expires) ||
     expires <= now ||
     (hosted
-      ? expires > Date.parse("2026-12-16T00:00:00Z")
+      ? expires > Date.parse("2027-01-01T08:00:00Z")
       : expires > now + 86400000) ||
     (!hosted &&
       !["localhost", "127.0.0.1"].includes(
