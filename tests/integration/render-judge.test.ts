@@ -13,6 +13,8 @@ import {
   SOL_RESERVATION_MICRO,
 } from "../../src/lib/careos/model-policy";
 import "../../scripts/environment";
+import { newGuestAccess } from "../../src/lib/careos/evaluation-access";
+import { digest } from "../../src/lib/careos/security";
 
 const url = process.env.TEST_DATABASE_URL;
 if (
@@ -126,6 +128,61 @@ test("fresh judge DB uses reviewed migrations, eleven records and existing persi
       ).rows[0].amount,
       usage.micro + SOL_RESERVATION_MICRO,
     );
+    // Guest namespaces use the existing immutable ownership boundary. Knowing
+    // another visitor's UUID cannot read, claim, clear or spend against it.
+    const guestEnv = {
+      RENDER: "true",
+      PALCARE_HOSTED_DEMO: "true",
+      APP_ORIGIN: "https://palcare-judge.onrender.com",
+      CAREOS_PROVIDER: "responses",
+      CAREOS_MODEL: "deepseek-flash",
+      CAREOS_API_KEY: "synthetic-not-a-real-api-key",
+      CAREOS_EVALUATION_ENABLED: "true",
+      CAREOS_EVALUATION_EXPIRES_AT: "2027-01-01T08:00:00Z",
+    };
+    const guestNow = Date.parse("2026-11-12T00:00:00Z");
+    const a = newGuestAccess("studio", guestEnv, guestNow).token;
+    const b = newGuestAccess("studio", guestEnv, guestNow).token;
+    const aOwner = digest(`customer-studio:${a}`),
+      bOwner = digest(`customer-studio:${b}`);
+    const aConversation = await store.create(aOwner);
+    await assert.rejects(
+      store.get(aConversation.id, bOwner),
+      /careos_conversation_not_found/,
+    );
+    await assert.rejects(
+      store.clear(aConversation.id, bOwner),
+      /careos_conversation_not_found/,
+    );
+    await assert.rejects(
+      store.claim(aConversation.id, bOwner, {
+        ...input,
+        requestId: randomUUID(),
+      }),
+      /careos_conversation_not_found/,
+    );
+    await assert.rejects(
+      store.get(aConversation.id, digest(`studio:${a}`)),
+      /careos_conversation_not_found/,
+    );
+    assert.equal(
+      (await store.get(aConversation.id, aOwner)).id,
+      aConversation.id,
+    );
+    const expanded = new PostgresStore(target.pool, {
+      dailyMicro: 18000000,
+      totalMicro: 18000000,
+      budgetId: "render-test",
+      reservationMicro: SOL_RESERVATION_MICRO,
+      model: "deepseek-flash",
+    });
+    assert.deepEqual(await expanded.spendingStatus(), {
+      dailyMicro: 18000000,
+      totalMicro: 18000000,
+      dailyUsedMicro: usage.micro + SOL_RESERVATION_MICRO,
+      totalUsedMicro: usage.micro + SOL_RESERVATION_MICRO,
+      blocked: false,
+    });
   } finally {
     await target?.pool.end();
     if (created) await admin.query(`drop database ${name}`);

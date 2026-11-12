@@ -4,6 +4,7 @@ import { OwnerSettings } from "@/components/careos/owner-settings";
 import { standingOwnerMode } from "@/lib/careos/standing-runtime";
 import { privateHttpsPresentation } from "@/lib/private-preview-origin";
 import { hostedDemo } from "@/lib/hosted-demo";
+import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -12,6 +13,7 @@ import {
   evaluationCookie,
 } from "@/lib/careos/evaluation-access";
 export default async function EvaluationPage() {
+  if (hostedDemo(process.env)) redirect("/dashboard");
   if (standingOwnerMode())
     return (
       <main

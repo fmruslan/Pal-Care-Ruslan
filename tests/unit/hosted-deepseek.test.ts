@@ -6,6 +6,7 @@ import { parseCareConfig } from "../../src/lib/careos/config";
 import {
   assertEvaluationAccess,
   evaluationAccessStatus,
+  newGuestAccess,
 } from "../../src/lib/careos/evaluation-access";
 import { ResponsesProvider } from "../../src/lib/careos/providers/responses";
 import { pricedDeepSeekUsage } from "../../src/lib/careos/model-policy";
@@ -111,14 +112,16 @@ describe("Render-only DeepSeek; injected transport, no live calls", () => {
       }),
     ).toThrow();
   });
-  it("retains distinct existing capability cookies, expiry and no anonymous inference", () => {
+  it("requires independently signed guest capabilities, never legacy shared tokens", () => {
+    const guest = newGuestAccess("customer", env, now).token;
     expect(() =>
       assertEvaluationAccess("customer", undefined, env, now),
     ).toThrow();
     expect(() =>
-      assertEvaluationAccess("customer", token, env, now),
+      assertEvaluationAccess("customer", guest, env, now),
     ).not.toThrow();
-    expect(() => assertEvaluationAccess("studio", token, env, now)).toThrow();
+    expect(() => assertEvaluationAccess("studio", guest, env, now)).toThrow();
+    expect(() => assertEvaluationAccess("customer", token, env, now)).toThrow();
     expect(evaluationAccessStatus({}, env, now).scopes).toEqual({
       customer: false,
       studio: false,
@@ -126,7 +129,7 @@ describe("Render-only DeepSeek; injected transport, no live calls", () => {
     expect(() =>
       assertEvaluationAccess(
         "customer",
-        token,
+        guest,
         env,
         Date.parse(env.CAREOS_EVALUATION_EXPIRES_AT),
       ),
@@ -134,7 +137,7 @@ describe("Render-only DeepSeek; injected transport, no live calls", () => {
     expect(() =>
       assertEvaluationAccess(
         "customer",
-        token,
+        guest,
         { ...env, CAREOS_EVALUATION_EXPIRES_AT: "2027-01-01T08:00:00.001Z" },
         now,
       ),
@@ -142,14 +145,11 @@ describe("Render-only DeepSeek; injected transport, no live calls", () => {
   });
   it("covers December 31 Pacific and denies both scopes exactly at the approved deadline", () => {
     const deadline = Date.parse("2027-01-01T08:00:00Z");
-    const studio = "b".repeat(64);
     expect(new Date("2026-12-31T23:59:59.999-08:00").getTime()).toBe(
       deadline - 1,
     );
-    for (const [scope, capability] of [
-      ["customer", token],
-      ["studio", studio],
-    ] as const) {
+    for (const scope of ["customer", "studio"] as const) {
+      const capability = newGuestAccess(scope, env, deadline - 1).token;
       expect(() =>
         assertEvaluationAccess(scope, capability, env, deadline - 1),
       ).not.toThrow();
@@ -172,7 +172,12 @@ describe("Render-only DeepSeek; injected transport, no live calls", () => {
       CAREOS_EVALUATION_EXPIRES_AT: "2026-12-16T00:00:00Z",
     };
     expect(() =>
-      assertEvaluationAccess("customer", token, old, now),
+      assertEvaluationAccess(
+        "customer",
+        newGuestAccess("customer", old, now).token,
+        old,
+        now,
+      ),
     ).not.toThrow();
     expect(() =>
       assertEvaluationAccess(

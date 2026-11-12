@@ -5,6 +5,7 @@ import {
   type CareContext,
 } from "@/lib/careos/contracts";
 import { ASSISTANT_SPOKEN_NAME } from "@/lib/assistant-identity";
+import { ensureGuestAccess } from "./guest-client";
 
 export const conversationKey = "palcare-careos-conversation";
 export const pendingKey = "palcare-careos-pending-v1";
@@ -112,6 +113,7 @@ export async function careApi<T>(
   body?: unknown,
   channel: "care" | "records" = "care",
 ): Promise<T> {
+  if (method === "POST") await ensureGuestAccess();
   const response = await fetch(
     `/api/careos/${channel === "records" ? "records/" : ""}conversations${path}`,
     {

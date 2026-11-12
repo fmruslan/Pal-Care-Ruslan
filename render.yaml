@@ -53,16 +53,12 @@ services:
         value: "true"
       - key: CAREOS_EVALUATION_EXPIRES_AT
         value: "2027-01-01T08:00:00Z"
-      - key: CAREOS_CUSTOMER_ACCESS_HASH
-        sync: false
-      - key: CAREOS_STUDIO_ACCESS_HASH
-        sync: false
-      # Reuse the existing API budget store and its existing $5 maximum;
-      # no new budgets, counters, campaign, or paid fallback.
+      # Automatic guest cookies replace manual scope hashes in hosted mode.
+      # Existing ledger/ID/unknowns are retained; $2 of $20 remains outside cap.
       - key: CAREOS_DAILY_BUDGET_MICRO
-        value: "5000000"
+        value: "18000000"
       - key: CAREOS_TOTAL_BUDGET_MICRO
-        value: "5000000"
+        value: "18000000"
       - key: CAREOS_BUDGET_ID
         value: render-judge
       - key: CARE_DEMO_ENABLED

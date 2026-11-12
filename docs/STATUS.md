@@ -1,5 +1,43 @@
 # Implementation status
 
+## Plug-and-play hosted judge access — implemented, release verification pending
+
+**Implemented:** hosted-only automatic signed 24-hour customer/Studio guest
+cookies reuse existing scope admission, conversation ownership, PostgreSQL limits,
+reservation accounting and native SDK execution. No visitor login/token/setup;
+hosted `/ai-evaluation` redirects to Care. Each visitor has independent owned
+history; the DeepSeek key remains server-side. The approved hosted ceiling moves
+from $5 to $18 daily/total against the owner's stated $20 credits, preserving
+`render-judge`, every previous charge/unknown and existing rate/call limits.
+Only the original hosted $5 settings are compatibility-upgraded; explicit other
+limits remain enforced. Aggregate read-only status makes actual existing usage
+inspectable without exposing conversation content or credentials.
+
+**Verified:** before this change, public database readiness and Care/Purchases/
+Documents/Insights returned HTTP200 on `0559662`; PR36 and exact-main CI passed.
+The first **25 focused access/provider/guest tests**, lint, formatting and
+non-emitting TypeScript pass locally. The full local test command stopped at the
+active-preview workspace guard; it was not bypassed or counted as a pass. Full
+coverage is required in CI. No local build changes active GreatBison assets. Its running service,
+private configuration, database and accounting are untouched.
+
+**Incomplete:** exact-source mandatory **full** risk lane (authentication/API/
+configuration), merge/exact-main release and Render auto-deployment, followed by
+two fresh-browser genuine DeepSeek/native-action/isolation checks. No new genuine
+hosted answer or native-action success is claimed before actual observation.
+
+**Blocked:** external hosted ledger read is unavailable from GreatBison; actual
+used/reserved balance will be checked through hosted read-only status after
+deployment. Provider credit balance is owner-attested, not independently observed.
+
+**Next:** required PR/main CI → automatic Render deployment → minimal two-browser
+North/native SDK state/data and cross-visitor isolation acceptance. No new owner
+decision needed within the approved hosted scope; no financial/provider-payment
+calls, private deployment, migration, credential provisioning or campaign.
+
+Earlier setup checkpoints below are historical and superseded by the live
+`0559662` readiness evidence and this hosted guest change where noted.
+
 ## Hosted-only end-of-December expiry — owner approved, activation pending
 
 **Implemented:** the Render-only access maximum and Blueprint expiry move to **2027-01-01T08:00:00Z**, covering all of **December31,2026 Pacific time**. Existing tokens, dollar budgets, request limits, records and private Sol authorization remain unchanged. Older configured dates/cookies do not silently renew; existing scopes may be reauthorized through the original token screen. The Blueprint also retains the owner's already-successful Render build-command fix restoring missing Git `origin` metadata; workspace validation is not disabled.

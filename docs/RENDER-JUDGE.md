@@ -2,20 +2,23 @@
 
 Hosted-only DeepSeek Flash uses the existing Responses SDK, North conversations,
 grounding, strict plans and native Studio execution. GreatBison/Sol is not deployed
-or reconfigured. Browsing is public; AI requires separate existing customer/Studio
-capability tokens. No provider API key goes into a browser or chat.
+or reconfigured. Hosted visitors automatically receive separate signed, expiring
+customer/Studio guest cookies on their first explicit North/Studio request. No
+login, token entry or `/ai-evaluation` setup; that hosted page redirects to Care.
+The DeepSeek key stays on Render and signs domain-separated capabilities; only
+HttpOnly/Secure/Strict host-only cookies reach the browser. Cookies expire within
+24 hours or the configured hosted deadline, whichever comes first. Existing
+valid cookies are not rotated or extended by admission. This does not grant
+private Sol, purchase-write, operator or financial access.
 
-## 1. Prepare access and the genuine historical copy
+## 1. Prepare the genuine historical copy (operator-only, already completed)
 
 Run from the checked-out final `main`, using a private terminal. Files below must
 stay outside Git; do not post their contents or screen-record them.
 
-```sh
-corepack pnpm exec tsx scripts/prepare-render-judge.ts --access /tmp/opencode/render-access.env
-```
-
-Read that file privately. The two `*_ACCESS_HASH` values go to Render; the two
-`*_BROWSER_ACCESS_TOKEN` values are for `/ai-evaluation` only, not Render secrets.
+The original `--access` helper and manual hashes are historical; hosted guest
+mode no longer uses or requires them. Do not repeat database preparation on the
+working populated deployment.
 
 Export the original October 22 USD129 verified Sandbox record using an existing
 operator connection with SELECT on its checkout, Twin, documents and event. Enter
@@ -45,7 +48,6 @@ is included in the application or deployment command.
    upgrade is required. Authorize charges yourself.
 3. Fill the prompted variables:
    - `CAREOS_API_KEY`: your dedicated DeepSeek key, privately.
-   - `CAREOS_CUSTOMER_ACCESS_HASH`, `CAREOS_STUDIO_ACCESS_HASH`: generated hashes.
    - `APP_ORIGIN`: intended `https://<service-host>.onrender.com`, no slash. Correct
      it to Render's actual hostname if Render chooses a different one.
    - `DATABASE_URL`, `CAREOS_DATABASE_URL`, `CARE_DEMO_READER_DATABASE_URL`:
@@ -89,18 +91,23 @@ files or private GreatBison variables in the web service.
 ## 4. Personally test
 
 Open the Render HTTPS URL in a fresh browser. Care, Purchases & Docs, documents and
-Insights should work without private credentials/Tailscale. At `/ai-evaluation`,
-select **North Star chat**, enter the customer access token, then select **AG Studio**
-and enter its separate token. Return to Care (reload if previously open).
+Insights should work without private credentials/Tailscale. Click **Explore with
+North ☆**, ask a question and request a chart in Insights; no setup page.
 
 Check one purchase question, “How do I use Insights?”, and one explicit native
 Studio action. Only actual state/data read-back establishes action success.
-Share these access instructions/tokens privately with intended testers/judges;
-do not publish the tokens in source or video. AI remains controlled, not anonymous.
+Two browser contexts must have distinct conversation ownership and cannot read
+or mutate each other's histories, even with a known conversation UUID.
 
 Existing persistent API safeguards remain: six turns/minute and 30/hour per
 conversation owner, 200 provider calls/hour, 500/day globally, at most two calls
-per question, original $0.12 reservations and the existing $5 API budget ceiling.
+per question and original $0.12 reservations. The owner-approved hosted ceiling is
+**$18 daily/total**, leaving $2 of the stated $20 credits outside the application
+cap. Existing Render settings equal to the legacy $5 ceiling resolve to $18 in
+hosted mode; other explicit limits remain enforced. The Blueprint uses $18.
+The original `render-judge` ledger ID, historical usage and unknown reservations
+remain unchanged. `GET /api/ai/evaluation` exposes only aggregate budget/window
+and current-scope status, never credentials or other visitors' histories.
 These are reused protections, not a new budget framework or promise of unrestricted
 public AI. Unknown usage stays reserved; no retries or automatic fallback.
 
@@ -108,8 +115,8 @@ Checkout, refunds, provider payment reads and workers stay disabled. Vendor
 watermarks/notices remain intact; this change does not issue/activate a license
 or claim additional entitlement. Keep hosting funded through December15,2026;
 the owner-approved hosted access window ends January1,2027 at08:00UTC
-(after all of December31,2026 Pacific time). This does not increase budgets,
-credits or rate limits, change private Sol access, or automatically extend an
-already-issued browser cookie; authorize the existing scope tokens again after
-deployment if its browser access still has the earlier expiry. Actual hosted performance,
+(after all of December31,2026 Pacific time). This does not purchase more credits,
+reset usage, change private Sol access, or increase rate limits. Exhausted funds,
+limits or provider failures remain explicit unavailable states, not paid fallback.
+Actual hosted performance,
 provider compatibility and owner acceptance must be verified after deployment.
