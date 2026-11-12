@@ -1,5 +1,17 @@
 # Implementation status
 
+## North selected-purchase navigation — customer bug fix under verification
+
+**Implemented:** selecting a dated purchase for a simple navigation request opens that exact server-resolved purchase. Selected-purchase shortcuts (`take me there`, `open it`, `show me its receipt`, care/warranty/return details) use the existing read-only context endpoint and saved routes, without inference or a new conversation turn. A unique other dated option may be opened; back returns to the preceding North navigation in the same chat. Insights opens its existing workspace with North context retained, without claiming a new native filter. Compact selected-purchase actions resolve actual receipt IDs; missing/multiple receipts are not guessed. Typing no longer closes valid choices. Previous results stay read-only; selection retains the conversation/history.
+
+The server retains an explicit dated selection when a planner restates the same canonical product as a fresh request, while preserving conflicting product/date/provenance predicates, fresh library scope and owned-history anchoring. Reasoning/care questions retain genuine provider/source checks. Interface guidance names current Care / Purchases & Docs / Insights controls and direct saved-record navigation. No model, accounting, schema or financial authority changes.
+
+**Verified baseline:** PR42 exact-head/full run [43152523569](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/43152523569), exact-main `802e70d60aee3581a2c0dd48f16d626c63e6e7be` [43154774887](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/43154774887), Render deployment `7728446994` and build `3ZfXeuE7Ze1XsFhAgv5nG` passed two fresh guest live DeepSeek/native SDK/read-back/isolation checks. Aggregate usage moved $0.603159 → $0.604818, retaining unknowns. This is the previous release, not navigation-correction evidence. [Release receipt](https://github.com/fmruslan/Pal-Care-Ruslan/pull/42#issuecomment-6814603320).
+
+**Incomplete / Blocked:** focused regressions/static checks and required full-risk CI/deployment acceptance are pending. GreatBison's original running build remains untouched, so application/unit suites run in isolated CI rather than bypassing its active-preview guard. Actual hosted navigation/selected-warranty acceptance remains pending within the existing $1.50 testing cap; no broad campaign.
+
+**Next:** exact-head full CI → exact-main CI and verified Render deployment → bounded actual October 22 Sandbox choice/purchase/receipt/follow-up checks with zero model POSTs for resolved navigation. Owner review follows deployment.
+
 ## Hosted documented strict-function transport — primary correction under verification
 
 **Verified release / actual blocker:** PR41 head `deb93888e921bac8a0ecb1b1b50684fac6863612` passed [full CI43146171530](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/43146171530) after a retained failed-job-only Firefox rerun. Main `90d9e3881619298020d332f9843b8e54921d676f` passed [43150409375](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/43150409375). GitHub deployment7727863874 explicitly identifies that exact SHA and successful Render deployment `dep-dbqje5c9v7es73dnnir0`, build `h7vNDjNDpGCkvzpvkJwGb`. The next genuine check STILL rejected `productAction` as invalid; explicit instructions alone did not establish valid output. No native success is claimed.

@@ -585,32 +585,49 @@ export async function answerConversationTurn(options: {
     referenceDate,
   );
   if (!search) throw new Error("north_invalid_product_query");
+  // Preserve every scoped predicate, but match canonical product terms against
+  // the owned identity (including its saved/snapshotted brand), not categories.
+  const productTerms = search.search.toLowerCase().split(/\s+/).filter(Boolean);
+  const matchingProducts = (source: DemoData) =>
+    querySavedRecords(source, { ...search, search: "" }).records.filter(
+      (candidate) => {
+        const record = findTwin(source, candidate.id);
+        if (!record) return false;
+        const identity =
+          `${record.product.brand} ${record.product.name} ${record.product.model}`.toLowerCase();
+        return productTerms.every((term) => identity.includes(term));
+      },
+    );
+  // An explicit, server-loaded dated choice survives a planner's fresh/name
+  // restatement. It never overrides conflicting predicates or a broad fresh
+  // aftercare request; records/library tasks were handled above.
+  const selectedMatches =
+    selected &&
+    !(
+      plan.task === "aftercare" &&
+      !plan.productSearch &&
+      !plan.productAction.startsWith("open_") &&
+      plan.relation === "fresh"
+    ) &&
+    matchingProducts(exactSelected ?? data).some(
+      (candidate) => candidate.id === selected.twin.id,
+    );
   if (
     exactSelected &&
-    (plan.relation === "selected" ||
+    (selectedMatches ||
+      plan.relation === "selected" ||
       (plan.relation === "followup" &&
         history.at(-1)?.answer.context?.twinId === selected?.twin.id))
   )
     data = exactSelected;
-  // Preserve every scoped predicate, but match canonical product terms against
-  // the owned identity (including its saved/snapshotted brand), not categories.
-  const productTerms = search.search.toLowerCase().split(/\s+/).filter(Boolean);
-  let candidates = querySavedRecords(data, {
-    ...search,
-    search: "",
-  }).records.filter((candidate) => {
-    const record = findTwin(data, candidate.id);
-    if (!record) return false;
-    const identity =
-      `${record.product.brand} ${record.product.name} ${record.product.model}`.toLowerCase();
-    return productTerms.every((term) => identity.includes(term));
-  });
+  let candidates = matchingProducts(data);
   const recent = history.at(-1)?.answer;
   const priorContext = recent?.context?.twinId;
   const bound =
     selected ?? (priorContext ? findTwin(data, priorContext) : undefined);
   if (
-    (plan.relation === "selected" ||
+    (selectedMatches ||
+      plan.relation === "selected" ||
       (!plan.productSearch && plan.task !== "aftercare") ||
       (plan.relation === "followup" &&
         recent?.questionScope === "purchase" &&

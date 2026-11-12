@@ -18,6 +18,10 @@ import { ContextPicker } from "./context-picker";
 import { Button } from "../ui/button";
 import { documentPreviewId } from "@/lib/north-presentation";
 import type { CareContext, CareTurn } from "@/lib/careos/contracts";
+import type {
+  PurchaseNavigation,
+  NavigationDestination,
+} from "@/lib/careos/navigation";
 import type { PendingQuestion } from "./conversation-client";
 import { displayDate } from "@/lib/demo/presentation";
 import { ownerSendMessage, type OwnerSendState } from "./owner-status";
@@ -61,6 +65,9 @@ export type IntegratedNorthState = {
   blocked: boolean;
   error: string;
   context: CareContext | null;
+  navigation: PurchaseNavigation | null;
+  navigationNotice: string;
+  openDestination: (destination: NavigationDestination) => void;
   select: (context: CareContext | null) => void;
   recordsSubmission: string | null;
   consumeRecords: () => void;
@@ -831,6 +838,7 @@ export function IntegratedNorthView({
                       answer!.purchaseChoices?.length ? (
                         <PurchaseChoices
                           choices={answer!.purchaseChoices}
+                          selectedId={s.context?.twinId}
                           active={
                             s.choiceAvailable &&
                             active.requestId === s.turns.at(-1)?.requestId &&
@@ -856,7 +864,14 @@ export function IntegratedNorthView({
                                 variant="outline"
                                 key={`${action.href}:${action.label}`}
                               >
-                                <Link href={action.href} onClick={s.navigate}>
+                                <Link
+                                  href={action.href}
+                                  onClick={() => {
+                                    if (answer!.context)
+                                      s.select(answer!.context);
+                                    s.navigate();
+                                  }}
+                                >
                                   {action.label}
                                 </Link>
                               </Button>
@@ -928,6 +943,45 @@ export function IntegratedNorthView({
                   </article>
                 );
               })}
+            {s.navigation &&
+              (s.navigationNotice ||
+                s.turns.find((turn) => turn.requestId === s.activeId)?.answer
+                  .outcome === "selection" ||
+                s.turns.find((turn) => turn.requestId === s.activeId)?.answer
+                  .actions.length === 0) && (
+                <section
+                  aria-label="Selected purchase actions"
+                  className="space-y-2 rounded-xl border p-3"
+                >
+                  <p className="text-sm">
+                    Selected: {s.navigation.context.name} ·{" "}
+                    {s.navigation.context.purchasedOn &&
+                      displayDate(s.navigation.context.purchasedOn)}{" "}
+                    ·{" "}
+                    {s.navigation.context.origin === "sandbox"
+                      ? "Verified Sandbox"
+                      : "Example purchase"}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {s.navigation.actions.map((action) => (
+                      <Button
+                        key={action.destination}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => s.openDestination(action.destination)}
+                        disabled={s.busy}
+                      >
+                        {action.label}
+                      </Button>
+                    ))}
+                  </div>
+                </section>
+              )}
+            {s.navigationNotice && (
+              <p role="status" className="text-sm">
+                {s.navigationNotice}
+              </p>
+            )}
             {s.pending && (
               <article
                 data-pending-question

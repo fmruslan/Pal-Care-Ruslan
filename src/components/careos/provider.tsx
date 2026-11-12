@@ -25,6 +25,12 @@ import {
 } from "lucide-react";
 import { Button } from "../ui/button";
 import type { CareContext, Intent } from "@/lib/careos/contracts";
+import {
+  navigationIntent,
+  purchaseNavigationSchema,
+  type PurchaseNavigation,
+  type NavigationDestination,
+} from "@/lib/careos/navigation";
 import { useConversation } from "./use-conversation";
 import {
   readPending,
@@ -309,6 +315,13 @@ export function CareOSProvider({
   const [expanded, setExpanded] = useState(false);
   const [mobile, setMobile] = useState(false);
   const [context, setContext] = useState<CareContext | null>(null);
+  const [navigation, setNavigation] = useState<PurchaseNavigation | null>(null);
+  const [navigationNotice, setNavigationNotice] = useState("");
+  const [navigating, setNavigating] = useState(false);
+  const previousDestination = useRef<{
+    chatId: string | null;
+    href: string;
+  } | null>(null);
   const contextRef = useRef<CareContext | null>(null);
   const routeContext = useRef<{
     pathname: string;
@@ -483,9 +496,10 @@ export function CareOSProvider({
   const recordDraft =
     conversationalReady ||
     recordsTaskCandidate(draft, ownedPreviousQuery, lastReplyWasPurchase);
-  const submitBlocked = recordDraft
-    ? busy || !!pending
-    : unavailable || plannerBlocked;
+  const submitBlocked =
+    recordDraft || (!!context?.twinId && !!navigationIntent(draft))
+      ? busy || !!pending || navigating
+      : unavailable || plannerBlocked;
   const trigger = useRef<HTMLButtonElement>(null);
   const composing = useRef(false);
   const admitting = useRef(false);
@@ -517,9 +531,11 @@ export function CareOSProvider({
   const updateContext = useCallback((value: CareContext | null) => {
     registered.current = true;
     if (JSON.stringify(contextRef.current) === JSON.stringify(value)) return;
+    if (contextRef.current?.twinId !== value?.twinId) setNavigation(null);
     contextRef.current = value;
     revision.current++;
     setContext(value);
+    setNavigationNotice("");
   }, []);
   const register = useCallback(
     (value: CareContext | null) => {
@@ -960,6 +976,94 @@ export function CareOSProvider({
     setDismissedChoices(dismissed);
     rememberPresentation({ dismissed });
   }
+  useEffect(() => {
+    if (!context?.twinId) return;
+    const controller = new AbortController();
+    void fetch(
+      `/api/careos/context?twinId=${encodeURIComponent(context.twinId)}`,
+      { cache: "no-store", signal: controller.signal },
+    )
+      .then(async (response) => {
+        if (!response.ok) return;
+        const resolved = purchaseNavigationSchema.parse(await response.json());
+        if (
+          !controller.signal.aborted &&
+          resolved.context.twinId === context.twinId
+        )
+          setNavigation(resolved);
+      })
+      .catch(() => {
+        /* A missing read never invents a destination. */
+      });
+    return () => controller.abort();
+  }, [context?.twinId, activeChatId]);
+
+  async function openPurchaseDestination(
+    destination: NavigationDestination,
+    selected: CareContext,
+  ) {
+    if (!selected.twinId || navigating || busy || pending) return false;
+    const epoch = presentationEpoch.current;
+    setNavigating(true);
+    try {
+      const response = await fetch(
+        `/api/careos/context?twinId=${encodeURIComponent(selected.twinId)}`,
+        { cache: "no-store" },
+      );
+      if (!response.ok) throw Error("purchase_unavailable");
+      const resolved = purchaseNavigationSchema.parse(await response.json());
+      if (
+        epoch !== presentationEpoch.current ||
+        resolved.context.twinId !== selected.twinId
+      )
+        return false;
+      select(resolved.context);
+      setNavigation(resolved);
+      const action = resolved.actions.find(
+        (action) => action.destination === destination,
+      );
+      if (!action) {
+        setNavigationNotice(
+          "There isn’t one unambiguous saved receipt for this purchase. Open its documents to choose an available record.",
+        );
+        return true;
+      }
+      previousDestination.current = {
+        chatId: activeChat.current,
+        href: `${window.location.pathname}${window.location.search}${window.location.hash}`,
+      };
+      setNavigationNotice(
+        destination === "insights"
+          ? "Opening Insights. Your selected purchase stays in North; Insights keeps its own visible filters."
+          : `${action.label} · ${resolved.context.name}`,
+      );
+      setMinimized(true);
+      rememberPresentation();
+      router.push(action.href);
+      return true;
+    } catch {
+      if (epoch !== presentationEpoch.current) return false;
+      setNavigationNotice(
+        "This saved purchase is unavailable right now. Your selection and conversation are preserved; no AI request was sent.",
+      );
+      return true;
+    } finally {
+      setNavigating(false);
+    }
+  }
+
+  function choosePurchase(message: string, selected: CareContext) {
+    if (!selected.twinId || busy || pending || navigating) return;
+    const destination = navigationIntent(message, true);
+    if (destination && destination !== "back" && destination !== "other") {
+      void openPurchaseDestination(destination, selected);
+    } else {
+      // Resolve the selection before admitting the follow-up. Explicit selection
+      // must outrank the historical answer's absent/ambiguous context.
+      select(selected);
+      void ask(message, undefined, selected);
+    }
+  }
   useLayoutEffect(() => {
     if (!presentationLoaded) return;
     // Commit IDs/context/draft before the visible result can be followed by an
@@ -1003,10 +1107,54 @@ export function CareOSProvider({
       admitting.current ||
       switching.current ||
       busy ||
+      navigating ||
       pending ||
       !message.trim()
     )
       return false;
+    const shortcut = navigationIntent(message);
+    const selectedContext =
+      selected ??
+      (integrated && historySelection.current
+        ? turns.find((turn) => turn.requestId === activeResultId)?.answer
+            .context
+        : contextRef.current);
+    if (
+      shortcut === "back" &&
+      previousDestination.current?.chatId === activeChat.current
+    ) {
+      const target = previousDestination.current.href;
+      previousDestination.current = null;
+      cancelPresentation();
+      setMinimized(true);
+      router.push(target);
+      return true;
+    }
+    if (shortcut === "other" && selectedContext?.twinId) {
+      const choices =
+        [...turns]
+          .reverse()
+          .find((turn) =>
+            turn.answer.purchaseChoices?.some(
+              (choice) => choice.context.twinId === selectedContext.twinId,
+            ),
+          )?.answer.purchaseChoices ?? [];
+      const others = choices.filter(
+        (choice) =>
+          choice.context.twinId !== selectedContext.twinId &&
+          choice.context.name === selectedContext.name &&
+          choice.context.model === selectedContext.model,
+      );
+      if (others.length === 1)
+        return openPurchaseDestination("purchase", others[0].context);
+    } else if (
+      shortcut &&
+      shortcut !== "back" &&
+      shortcut !== "other" &&
+      selectedContext?.twinId
+    ) {
+      return openPurchaseDestination(shortcut, selectedContext);
+    }
     if (integrated) {
       // Closed Home can admit directly through its one field, before an open
       // workspace has restored any hooks. Never bypass another channel's
@@ -1077,7 +1225,8 @@ export function CareOSProvider({
       integrated && historySelection.current
         ? turns.find((turn) => turn.requestId === activeResultId)
         : undefined;
-    const bound = viewed ? viewed.answer.context : contextRef.current;
+    const bound =
+      selected ?? (viewed ? viewed.answer.context : contextRef.current);
     const boundRevision = revision.current;
     const ownedHistory = records.conversation?.turns ?? [];
     const anchorIndex =
@@ -1432,16 +1581,7 @@ export function CareOSProvider({
         hasChatIndex.current = true;
       }
       setDraft(value);
-      const dismissed = [
-        ...new Set([
-          ...dismissedChoices,
-          ...turns
-            .filter((turn) => turn.answer.outcome === "selection")
-            .map((turn) => turn.requestId),
-        ]),
-      ];
-      setDismissedChoices(dismissed);
-      rememberPresentation({ draft: value, dismissed });
+      rememberPresentation({ draft: value });
     },
     submit,
     ask: (message) => {
@@ -1452,11 +1592,17 @@ export function CareOSProvider({
       });
     },
     pending,
-    choiceAvailable: !unavailable,
+    choiceAvailable: !busy && !pending && !navigating,
     busy,
     blocked: submitBlocked,
     error,
     context,
+    navigation:
+      navigation?.context.twinId === context?.twinId ? navigation : null,
+    navigationNotice,
+    openDestination: (destination) => {
+      if (context) void openPurchaseDestination(destination, context);
+    },
     select,
     recordsSubmission,
     consumeRecords: () => setRecordsSubmission(null),
@@ -1473,10 +1619,7 @@ export function CareOSProvider({
     mode,
     expired: aiExpired,
     accessDisabled: aiAccessDisabled,
-    onChoice: (message, selected) => {
-      if (unavailable || !selected.twinId) return;
-      void ask(message, undefined, selected);
-    },
+    onChoice: choosePurchase,
     dismissedChoices,
     dismissChoice: (id) => {
       const dismissed = [...dismissedChoices, id];
@@ -1952,11 +2095,12 @@ export function CareOSProvider({
                             composer.current?.focus();
                           }}
                           onChoose={(choice) => {
-                            if (unavailable || !choice.context.twinId) return;
+                            if (busy || pending || !choice.context.twinId)
+                              return;
                             focusTranscript();
                             // This is a deliberate new, differently scoped question—not a replay.
                             // The original selection result and its request identity remain unchanged.
-                            void ask(turn.message, undefined, choice.context);
+                            choosePurchase(turn.message, choice.context);
                           }}
                         />
                       ) : (

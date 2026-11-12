@@ -29,7 +29,9 @@ const originalQuestion =
 const selectionText =
   "Synthetic purchase-choice result for UI testing only. Choose a saved purchase.";
 const inactiveNote =
-  "These choices are closed. Ask another question or choose a purchase above.";
+  "Earlier purchase options. Use Choose a purchase to change the selection for your next question.";
+const selectedNote =
+  "Selected Everyday headphones · Oct 18, 2026 · Sample. Your next question uses this purchase.";
 const choices: PurchaseChoice[] = [
   { context: sample, purchasedOn: "2026-10-18", provenance: "Sample" },
   {
@@ -289,7 +291,7 @@ test("one direct dated choice creates exactly one scoped follow-up without navig
     original.requestId,
   );
   await expect(
-    selection.getByText(inactiveNote, { exact: true }),
+    selection.getByText(selectedNote, { exact: true }),
   ).toBeVisible();
   await expect(group).toHaveCount(0);
   await expect(selection.getByRole("button")).toHaveCount(0);
@@ -313,7 +315,7 @@ test("one direct dated choice creates exactly one scoped follow-up without navig
   ).toHaveCount(0);
   await selectHistory(dialog, state.saved, original.requestId);
   await expect(
-    selection.getByText(inactiveNote, { exact: true }),
+    selection.getByText(selectedNote, { exact: true }),
   ).toBeVisible();
   await expect(selection.getByRole("button")).toHaveCount(0);
   await expect(dialog.locator("strong")).toHaveText(
@@ -337,13 +339,11 @@ test("a new question retires old choices; summary actions retain their exact sou
   const group = selection.getByRole("region", { name: "Choose a purchase" });
   await expect(group.getByRole("button")).toHaveCount(3);
   await composer.fill("Summarize the speaker instead.");
-  await expect(group).toHaveCount(0);
-  await expect(
-    selection.getByText(inactiveNote, { exact: true }),
-  ).toBeVisible();
+  await expect(group).toBeVisible();
   expect(state.inputs).toHaveLength(1);
   await composer.press("Enter");
   await state.secondReceived.promise;
+  await expect(group).toHaveCount(0);
   expect(state.inputs[1].twinId).toBe(speaker.twinId);
   await expect(page).toHaveURL(speakerHref);
   await expect(selection.getByRole("button")).toHaveCount(0);

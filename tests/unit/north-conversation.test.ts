@@ -23,6 +23,7 @@ import { MemoryStore } from "../../src/lib/careos/store";
 import { malformedGuideSteps } from "../fixtures/product-guide-prose";
 import type { Explanation } from "../../src/lib/careos/providers/responses";
 import { withTenProductFixtures } from "../../src/lib/care/demo/catalog";
+import { careFeed } from "../../src/lib/care/model";
 import { querySavedRecords } from "../../src/lib/careos/records/service";
 import {
   verifiedReceiptRequest,
@@ -1316,6 +1317,146 @@ describe("retrospective receipt prompt contract, not genuine model acceptance", 
   );
 });
 describe("model-first conversation, with application-owned facts and no keyword admission", () => {
+  it.each([
+    ["care", "summary", "How do I turn it off safely?"],
+    ["product", "receipt", "Show its receipt"],
+    ["aftercare", "open_purchase", "Open this purchase"],
+  ] as const)(
+    "retains an explicit dated choice for %s even with a fresh canonical-name plan",
+    async (task, productAction, message) => {
+      const twin = demoData.twins.find(
+        (t) =>
+          t.id ===
+          (task === "product"
+            ? "00000000-0000-4000-8000-000000000201"
+            : "00000000-0000-4000-8000-000000000204"),
+      )!;
+      const data = {
+        ...demoData,
+        twins: [...demoData.twins, { ...twin, id: randomUUID() }],
+      };
+      const options = setup(
+        plan({
+          task,
+          productAction,
+          productSearch: task === "product" ? "headphones" : "Raspberry Pi 5",
+        }),
+      );
+      options.load.mockResolvedValue(data);
+      const care = vi.fn(async () =>
+        careFeed({
+          data,
+          knowledge: [],
+          guardian: null,
+          activity: { items: [], unavailable: [] },
+          now: now(),
+        }),
+      );
+      const answer = await answerConversationTurn({
+        ...options,
+        input: { ...input(message), twinId: twin.id },
+        care,
+      });
+      expect(answer.outcome).not.toBe("selection");
+      expect(answer.context?.twinId).toBe(twin.id);
+      expect(answer.purchaseChoices).toBeUndefined();
+      if (task === "care") {
+        expect(options.model.explain).toHaveBeenCalledOnce();
+        expect(answer.sources[0].id).toBe(referenceSource.id);
+      } else if (task === "aftercare") {
+        expect(care).toHaveBeenCalledExactlyOnceWith(twin.id);
+        expect(answer.ownershipPresentation?.twinId).toBe(twin.id);
+      } else {
+        expect(
+          answer.actions.some(
+            (a) => a.href === "/documents/00000000-0000-4000-8000-000000000301",
+          ),
+        ).toBe(true);
+        expect(options.model.explain).not.toHaveBeenCalled();
+      }
+    },
+  );
+  it("resolves a matching explicit choice outside the bounded library", async () => {
+    const twin = demoData.twins.find(
+      (t) => t.id === "00000000-0000-4000-8000-000000000201",
+    )!;
+    const selected = { ...twin, id: randomUUID() };
+    const loadSelected = vi.fn(async () => ({
+      ...demoData,
+      twins: [selected],
+    }));
+    const answer = await answerConversationTurn({
+      ...setup(plan({ task: "product", productSearch: "headphones" })),
+      input: { ...input("Tell me about this one"), twinId: selected.id },
+      loadSelected,
+    });
+    expect(loadSelected).toHaveBeenCalledExactlyOnceWith(selected.id);
+    expect(answer.context?.twinId).toBe(selected.id);
+  });
+  it.each(["product", "origin", "date"] as const)(
+    "keeps a genuine %s conflict from falling back to the selected purchase",
+    async (conflict) => {
+      const proposal = plan({
+        task: "product",
+        productAction: "receipt",
+        productSearch: conflict === "product" ? "headphones" : "Raspberry Pi 5",
+      });
+      if (conflict === "origin") proposal.query.origin = "sandbox";
+      if (conflict === "date") proposal.query.from = "2026-11-03";
+      const options = setup(proposal);
+      const headphones = demoData.twins.find(
+        (t) => t.id === "00000000-0000-4000-8000-000000000201",
+      )!;
+      options.load.mockResolvedValue({
+        ...demoData,
+        twins: [...demoData.twins, { ...headphones, id: randomUUID() }],
+      });
+      const answer = await answerConversationTurn({
+        ...options,
+        input: {
+          ...input("Find the other matching receipt"),
+          twinId: "00000000-0000-4000-8000-000000000204",
+        },
+      });
+      expect(answer.context).toBeNull();
+      if (conflict === "product")
+        expect(answer.purchaseChoices).toHaveLength(2);
+      else expect(answer.text).toContain("couldn't identify that product");
+      expect(options.knowledge).not.toHaveBeenCalled();
+      expect(options.model.explain).not.toHaveBeenCalled();
+    },
+  );
+  it("keeps a fresh library request collection-wide despite an explicit purchase", async () => {
+    const answer = await answerConversationTurn({
+      ...setup(plan()),
+      input: {
+        ...input("Show all my purchases"),
+        twinId: "00000000-0000-4000-8000-000000000204",
+      },
+    });
+    expect(answer.recordsResult?.records).toHaveLength(demoData.twins.length);
+  });
+  it("keeps broad fresh aftercare collection-wide despite an explicit purchase", async () => {
+    const care = vi.fn(async () =>
+      careFeed({
+        data: demoData,
+        knowledge: [],
+        guardian: null,
+        activity: { items: [], unavailable: [] },
+        now: now(),
+      }),
+    );
+    const answer = await answerConversationTurn({
+      ...setup(plan({ task: "aftercare", productAction: "payment" })),
+      input: {
+        ...input("Show payment evidence for all purchases"),
+        twinId: "00000000-0000-4000-8000-000000000204",
+      },
+      care,
+    });
+    expect(care).toHaveBeenCalledExactlyOnceWith(undefined);
+    expect(answer.careSelection).toHaveLength(demoData.twins.length);
+  });
   it("keeps a named refund question on matching purchases and rejects its unsupported premise before a dated choice", async () => {
     const product = demoData.products.find((p) =>
       p.name.toLowerCase().includes("headphones"),

@@ -28,19 +28,26 @@ export function PurchaseChoices({
   active,
   onChoose,
   onDismiss,
+  selectedId,
 }: {
   choices: PurchaseChoice[];
   active: boolean;
   onChoose: (choice: PurchaseChoice) => void;
   onDismiss: () => void;
+  selectedId?: string | null;
 }) {
-  if (!active)
+  if (!active) {
+    const selected = choices.find(
+      (choice) => choice.context.twinId === selectedId,
+    );
     return (
       <p className="text-sm text-muted-foreground">
-        These choices are closed. Ask another question or choose a purchase
-        above.
+        {selected
+          ? `Selected ${selected.context.name} · ${displayDate(selected.purchasedOn)} · ${selected.provenance}. Your next question uses this purchase.`
+          : "Earlier purchase options. Use Choose a purchase to change the selection for your next question."}
       </p>
     );
+  }
   return (
     <section
       aria-label="Choose a purchase"
