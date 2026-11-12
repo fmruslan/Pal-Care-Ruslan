@@ -1,5 +1,15 @@
 # Implementation status
 
+## Hosted guest release / first genuine provider failure
+
+**Implemented / Verified:** PR37 merged as `16d86552c2749d88790a75ab042f96a1a1113392` after all six full-risk jobs and release-gate passed ([PR CI43123152551](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/43123152551)); [exact-main43125669247](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/43125669247) also passed. Render automatically serves guest admission, database readiness HTTP200 and hosted `/ai-evaluation` → Care. Initial live ledger was **$0 used/reserved / $18 cap / unblocked**. GreatBison was restored to unchanged clean original local main/build/service.
+
+**Actual application / Blocked:** the first fresh incognito browser automatically acquired guest access and created an owned conversation without a setup page. Its one genuine chart question returned HTTP503 `careos_unavailable`; no native success is claimed. The original **$0.12 unknown reservation** and failed question remain retained, with no replay or financial request. The existing adapter hid the provider's failure category. Complex schema serialization succeeds in an injected local check; the actual upstream status remains unknown.
+
+**Implemented candidate / Incomplete:** hosted-only fixed failure categories distinguish provider authentication/balance/rate/schema/request/timeout/connection errors without exposing provider bodies, headers, prompts or credentials. Private Sol behavior and all reservations remain unchanged. Required full CI/deployment and a fresh, non-replayed question remain pending; this is a bounded diagnostic repair, not a new recovery framework or campaign.
+
+**Next:** release this narrow correction, identify the actual safe upstream failure category, correct only the proven cause, then finish the approved two-browser North/native-action/isolation essentials. Do not mark ready before genuine success.
+
 ## Plug-and-play hosted judge access — implemented, release verification pending
 
 **Implemented:** hosted-only automatic signed 24-hour customer/Studio guest

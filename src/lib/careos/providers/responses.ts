@@ -139,7 +139,47 @@ export class ResponsesProvider implements CareModel {
     if (Buffer.byteLength(JSON.stringify(body), "utf8") > MODEL_REQUEST_BYTES)
       throw new CareError("careos_context_too_large");
     const started = Date.now();
-    const response = await this.client.responses.create(body, { signal });
+    const response = await this.client.responses
+      .create(body, { signal })
+      .catch((error: unknown) => {
+        // Hosted failures must be diagnosable without publishing provider bodies,
+        // headers, request payloads or credentials. Unknown costs remain reserved.
+        // Do not change the private Sol adapter's existing error contract.
+        if (!deepseek) throw error;
+        if (error instanceof OpenAI.APIConnectionTimeoutError)
+          throw new ModelFailure("careos_provider_timeout", null, null);
+        if (error instanceof OpenAI.APIConnectionError)
+          throw new ModelFailure(
+            "careos_provider_connection_failed",
+            null,
+            null,
+          );
+        if (error instanceof OpenAI.APIError) {
+          const status = error.status;
+          if (status === 400 || status === 422) {
+            const message = error.message.toLowerCase();
+            const category = /schema|response_format|text.format/.test(message)
+              ? "schema"
+              : "request";
+            throw new ModelFailure(
+              `careos_provider_${category}_rejected`,
+              null,
+              null,
+            );
+          }
+          if (
+            [401, 402, 403, 404, 413, 429, 500, 502, 503, 504].includes(
+              status ?? 0,
+            )
+          )
+            throw new ModelFailure(
+              `careos_provider_http_${status}`,
+              null,
+              null,
+            );
+        }
+        throw new ModelFailure("careos_provider_unavailable", null, null);
+      });
     const compatible = deepseek
       ? [
           DEEPSEEK_MODEL,
