@@ -1,8 +1,30 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { deepseekSchema } from "../../src/lib/careos/providers/deepseek-request";
+import {
+  deepseekSchema,
+  deepseekRequestBody,
+} from "../../src/lib/careos/providers/deepseek-request";
 import { ResponsesProvider } from "../../src/lib/careos/providers/responses";
 describe("DeepSeek grammar subset, strict application validation retained", () => {
+  it("adds inactive envelope guidance only to hosted North, retaining explanation semantics and original user data", () => {
+    const schema = z.strictObject({ text: z.string() });
+    const input = {
+      payload: 'Original "unchanged" question',
+      prompt: "Trusted original rules",
+      schema,
+      name: "north_conversation_v1",
+    };
+    const north = deepseekRequestBody(input);
+    expect(north.instructions).toContain('preserve "explain"');
+    expect(north.instructions).toContain('"productAction":"summary"');
+    expect(north.instructions).toContain(
+      "defaults apply ONLY to unused fields",
+    );
+    expect(north.input).toEqual([{ role: "user", content: input.payload }]);
+    expect(
+      deepseekRequestBody({ ...input, name: "customer_plan" }).instructions,
+    ).toBe(input.prompt);
+  });
   it("retains required/extra-key/enum/nullable structure while moving unsupported constraints to descriptions, without mutating the schema", () => {
     const original = {
       type: "object",

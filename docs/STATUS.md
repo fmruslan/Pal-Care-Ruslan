@@ -1,5 +1,15 @@
 # Implementation status
 
+## Hosted plan-envelope refinement — exact invalid field identified
+
+**Verified release:** PR40 head `e32118aa18d7325528d7ca325c4f3a70a2d29348` passed all mandatory full-risk jobs [43143204348](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/43143204348). Exact-main `0023bebbf65750d96dbc22b769756fc5439dab7e` passed [43145141362](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/43145141362) and automatically deployed build `qke1mcf-e7azg-teekMOC`. Database readiness remains HTTP200, checkout/Guardian disabled, GreatBison unchanged.
+
+**Actual failure / Blocked:** the next genuine chart check reaches DeepSeek but strict application parsing reports **`careos_model_invalid_output_productAction_invalid_value`**. No raw model value is published and no native action is claimed successful. This identifies the rejected field, not proof of whether its value was missing, null or an invalid literal. Original failures, unknown reservations and measured completions remain retained; the $1.50 testing cap remains enforced.
+
+**Implemented candidate / Incomplete:** a tiny hosted-only instruction makes the complete required envelope and inactive values explicit: chart/category requests use query.operation/format, not a new productAction enum; unused product action is the existing summary value, unused strings remain empty, comparison/guide remain null where appropriate. The original strict schema, allowed actions, local grounding and native SDK/data checks are unchanged. A read-only review checks task-semantic compatibility; no private prompt, provider retry, enum expansion, post-hoc output repair or financial authority is added.
+
+**Next:** focused static checks and required exact-source CI → automatic Render deployment → only the remaining genuine guest/native/isolation essentials within the existing testing cap. Do not mark judge-ready before actual success.
+
 ## Hosted constrained-output correction — under focused review
 
 **Verified:** PR39 head `e13bd16e6ab2788e257c8cd388bf20cb3e843f44` passed full CI [43137166161](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/43137166161) after one retained failed-job-only Firefox navigation rerun. Exact-main `edc1aebbd47655e7f274a2c3c79869bc9650256b` passed [43141658608](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/43141658608) and automatically deployed build `8o6-HJbhFcv6drdyRtcAw`.
