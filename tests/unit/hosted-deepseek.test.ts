@@ -219,7 +219,7 @@ describe("Render-only DeepSeek; injected transport, no live calls", () => {
       ),
     ).toThrow();
   });
-  it("sends trusted system instructions, strict JSON schema and supported parameters", async () => {
+  it("sends trusted schema instructions in supported JSON mode and validates the original strict schema", async () => {
     const fetcher = vi.fn(async () => response());
     const result = await new ResponsesProvider(
       config,
@@ -239,13 +239,15 @@ describe("Render-only DeepSeek; injected transport, no live calls", () => {
     const body = JSON.parse(init.body as string);
     expect(body).toMatchObject({
       model: "deepseek-flash",
-      instructions: "Trusted rules",
       reasoning: { effort: "none" },
-      text: { format: { type: "json_schema", strict: true } },
+      text: { format: { type: "json_object" } },
     });
     expect(body.input).toEqual([
       { role: "user", content: "original question and owned history" },
     ]);
+    expect(body.instructions).toContain("Trusted rules");
+    expect(body.instructions).toContain('"additionalProperties":false');
+    expect(body.instructions).toContain('"intent"');
     expect(body).not.toHaveProperty("service_tier");
     expect(body).not.toHaveProperty("prompt_cache_options");
     expect(result).toMatchObject({

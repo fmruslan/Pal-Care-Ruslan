@@ -1,5 +1,15 @@
 # Implementation status
 
+## Hosted DeepSeek schema compatibility — correction under verification
+
+**Verified release:** PR38 head `a62fde51d61db4a1f1243e0ffaabe60a2f5de969` passed all selected full-risk jobs and gate ([43133774806](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/43133774806)). Exact-main `8d809c86e3519e29f2938704bc65b770b25e1f1d` passed [43136086580](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/43136086580) and automatically deployed Render build `Cg2oMkm0itzViXtOi8zK0`. The bounded blank-document handoff corrected the isolated fixture navigation races without retries/assertion suppression. All original failed runs remain retained.
+
+**Actual diagnosis / Blocked:** one new guest chart question returned the fixed **`careos_provider_schema_rejected`** category; automatic admission and database readiness work, but no genuine North/native success is claimed. A later live read-only aggregate shows **$0.48 used/reserved / $18 cap / unblocked**; this aggregate may include other visitors and is not reclassified as measured test billing. Original unknown reservations remain charged. All agent testing remains capped at $1.50 including unknowns, with no replay or financial request.
+
+**Implemented candidate:** DeepSeek's documented Responses `json_object` mode receives the exact trusted JSON schema as system instructions instead of unsupported constrained-decoding schema parameters. Every returned object still passes the original strict Zod schema, grounding, action validation and actual native SDK state/data checks. No raw text/tool/financial fallback, new provider, retry, raised cap or accounting reset. Hosted preflight and dispatch share one pure request builder and measure the complete escaped schema/instructions under the unchanged 20 KB cap; private Sol wire construction remains unchanged.
+
+**Incomplete / Next:** focused static/format and exact-source mandatory full CI → automatic Render deployment → approved minimal real North/native/isolation checks, within the remaining $1.50 testing ceiling. Private GreatBison main/build/service/configuration/data/accounting remain unchanged; no new owner decision needed within this approved correction.
+
 ## Hosted guest release / first genuine provider failure
 
 **Implemented / Verified:** PR37 merged as `16d86552c2749d88790a75ab042f96a1a1113392` after all six full-risk jobs and release-gate passed ([PR CI43123152551](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/43123152551)); [exact-main43125669247](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/43125669247) also passed. Render automatically serves guest admission, database readiness HTTP200 and hosted `/ai-evaluation` → Care. Initial live ledger was **$0 used/reserved / $18 cap / unblocked**. GreatBison was restored to unchanged clean original local main/build/service.

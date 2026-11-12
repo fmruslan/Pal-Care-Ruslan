@@ -74,6 +74,7 @@ export async function answerAuthorizedRecords(
       );
     };
     return answerConversationTurn({
+      hosted: true,
       input,
       history,
       load: getSavedRecordsData,

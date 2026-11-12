@@ -26,13 +26,17 @@ export function structuredRequestBody(options: {
 }
 
 export function structuredRequestBytes(
-  body: OpenAI.Responses.ResponseCreateParamsStreaming,
+  body:
+    | OpenAI.Responses.ResponseCreateParamsStreaming
+    | OpenAI.Responses.ResponseCreateParamsNonStreaming,
 ) {
   return Buffer.byteLength(JSON.stringify(body));
 }
 
 export function assertStructuredRequestSize(
-  body: OpenAI.Responses.ResponseCreateParamsStreaming,
+  body:
+    | OpenAI.Responses.ResponseCreateParamsStreaming
+    | OpenAI.Responses.ResponseCreateParamsNonStreaming,
 ) {
   if (structuredRequestBytes(body) > MODEL_REQUEST_BYTES)
     throw new PilotError("pilot_request_too_large");
