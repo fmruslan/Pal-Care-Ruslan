@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   deepseekSchema,
   deepseekRequestBody,
+  deepseekChatUsage,
 } from "../../src/lib/careos/providers/deepseek-request";
 import { ResponsesProvider } from "../../src/lib/careos/providers/responses";
 describe("DeepSeek grammar subset, strict application validation retained", () => {
@@ -15,15 +16,16 @@ describe("DeepSeek grammar subset, strict application validation retained", () =
       name: "north_conversation_v1",
     };
     const north = deepseekRequestBody(input);
-    expect(north.instructions).toContain('preserve "explain"');
-    expect(north.instructions).toContain('"productAction":"summary"');
-    expect(north.instructions).toContain(
+    expect(north.messages[0].content).toContain('preserve "explain"');
+    expect(north.messages[0].content).toContain('"productAction":"summary"');
+    expect(north.messages[0].content).toContain(
       "defaults apply ONLY to unused fields",
     );
-    expect(north.input).toEqual([{ role: "user", content: input.payload }]);
+    expect(north.messages[1]).toEqual({ role: "user", content: input.payload });
     expect(
-      deepseekRequestBody({ ...input, name: "customer_plan" }).instructions,
-    ).toBe(input.prompt);
+      deepseekRequestBody({ ...input, name: "customer_plan" }).messages[0]
+        .content,
+    ).not.toContain("defaults apply ONLY to unused fields");
   });
   it("retains required/extra-key/enum/nullable structure while moving unsupported constraints to descriptions, without mutating the schema", () => {
     const original = {
@@ -84,17 +86,27 @@ describe("DeepSeek grammar subset, strict application validation retained", () =
         new Response(
           JSON.stringify({
             model: "deepseek-flash",
-            status: "completed",
-            usage: { input_tokens: 100, output_tokens: 10, total_tokens: 110 },
-            output: [
+            usage: {
+              prompt_tokens: 100,
+              completion_tokens: 10,
+              total_tokens: 110,
+            },
+            choices: [
               {
-                type: "message",
-                content: [
-                  {
-                    type: "output_text",
-                    text: '{"text":"too long private model content"}',
-                  },
-                ],
+                finish_reason: "tool_calls",
+                message: {
+                  role: "assistant",
+                  content: null,
+                  tool_calls: [
+                    {
+                      type: "function",
+                      function: {
+                        name: "bounded_text",
+                        arguments: '{"text":"too long private model content"}',
+                      },
+                    },
+                  ],
+                },
               },
             ],
           }),
@@ -112,5 +124,30 @@ describe("DeepSeek grammar subset, strict application validation retained", () =
       code: "careos_model_invalid_output_text_too_big",
       micro: 42,
     });
+  });
+  it("normalizes Chat usage without silently accepting contradictory cache evidence", () => {
+    const raw = {
+      prompt_tokens: 100,
+      completion_tokens: 10,
+      total_tokens: 110,
+      prompt_cache_hit_tokens: 20,
+      prompt_cache_miss_tokens: 80,
+      prompt_tokens_details: { cached_tokens: 20 },
+    };
+    expect(deepseekChatUsage(raw)).toMatchObject({
+      input_tokens: 100,
+      output_tokens: 10,
+      total_tokens: 110,
+      input_tokens_details: { cached_tokens: 20 },
+    });
+    expect(
+      deepseekChatUsage({
+        ...raw,
+        prompt_tokens_details: { cached_tokens: 30 },
+      }),
+    ).toBeNull();
+    expect(
+      deepseekChatUsage({ ...raw, prompt_cache_miss_tokens: 70 }),
+    ).toBeNull();
   });
 });

@@ -325,6 +325,10 @@ async function installPairApproveFinish(page: Page) {
 
 test.beforeEach(async ({ context, page }) => {
   app = await createProviderFailureRecoveryApp();
+  // The server uses a synthetic day. Keep the browser's progressing clock on
+  // that day too, rather than triggering an overdue-midnight calendar refresh
+  // and competing Next hard navigation during pairing/document departure.
+  await page.clock.setSystemTime(app.clock.now());
   const agent = await installProviderRecoveryCookies(
     page,
     undefined,
@@ -370,6 +374,9 @@ test.beforeEach(async ({ context, page }) => {
   await app.route(context, fixture.recordsOwner);
   await app.start();
   await page.goto(OWNER_ORIGIN + "/dashboard");
+  expect(await page.evaluate(() => new Date().toISOString().slice(0, 10))).toBe(
+    new Date(app.clock.now()).toISOString().slice(0, 10),
+  );
 });
 
 test.afterEach(async ({ context }) => {
@@ -902,6 +909,7 @@ test("original finite pin survives admission/restart; expiry cannot refresh auth
 }) => {
   await installPairApproveFinish(page);
   app!.clock.advance(fixture!.pinnedExpiresAt - app!.clock.now());
+  await page.clock.setSystemTime(app!.clock.now());
   await page.goto("about:blank");
   await app!.stop();
   await app!.start();
