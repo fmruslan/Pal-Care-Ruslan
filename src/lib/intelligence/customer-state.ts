@@ -123,6 +123,7 @@ export function commandSelection(
   }
 }
 
+// Built-in Studio types keep grids, charts and KPIs on the same native filtering path.
 export function widgetDefinition(widget: InsightWidget) {
   if (widget === "sample-value" || widget === "sandbox-value")
     return {

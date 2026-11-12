@@ -162,6 +162,7 @@ export function inspectOrder(payload: unknown, expected: CheckoutOrder) {
   };
 }
 
+// Independently retrieved Payments evidence must match the Orders capture identity/time.
 export function inspectCaptureStatus(
   payload: unknown,
   order: CheckoutOrder,

@@ -1027,6 +1027,7 @@ export function CustomerStudio({
           };
         let names: string[];
         try {
+          // Agent Framework tools call apply, which verifies SDK state and rendered data.
           names = await executeCustomerAgent(api.current, plan, apply, signal);
         } catch (error) {
           setNotice(

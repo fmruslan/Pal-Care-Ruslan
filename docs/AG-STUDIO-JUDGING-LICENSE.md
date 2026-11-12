@@ -2,6 +2,10 @@
 
 **Verified November 9, 2026; key not issued or configured.** No separate trial has been activated. Existing license gates/notices remain unchanged.
 
+**November12 final-pass update:** the owner now requires full public access through **December31,2026 at11:59PM Pacific** (January1,2027 at08:00UTC exclusive). The older December15 request below is retained as historical text, not sufficient coverage for the extended requirement. No issued/configured key or confirmed December31 entitlement is recorded. Native hosted Studio/Agent Framework functionality has actual acceptance evidence in [STATUS](STATUS.md); successful execution or an intact watermark is not license confirmation. The published hackathon promise is evidence of sponsor support, not proof of the exact extended term. This unresolved confirmation is not described as a demonstrated submission prohibition; report any actual contrary vendor terms if obtained.
+
+For the existing sponsor enquiry, request confirmation for **palcare-judge.onrender.com**, pinned **Studio3.0.0**, native Grid/Charts/KPI, custom widgets and **AgStudioAiModule/Agent Framework**, including public demo/video use **through December31 Pacific**. No paid trial or license activation is authorized in this final pass. Preserve the watermark and third-party notices.
+
 AG Grid's [November 6 official article](https://www.ag-grid.com/blog/build-a-payments-dashboard-without-building-a-dashboard/) explicitly states:
 
 > Note that hackathon entries do not require a licence – for the judging period, we will take care of the licence key.

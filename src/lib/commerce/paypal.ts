@@ -110,6 +110,7 @@ export class SandboxPayPal implements PayPalGateway, RefundGateway {
         oAuthClientId: config.clientId,
         oAuthClientSecret: config.clientSecret,
       },
+      // Durable checkout state owns recovery; the SDK must not replay a capture.
       httpClientOptions: { retryConfig: { maxNumberOfRetries: 0 } },
     });
     this.orders = new OrdersController(client);

@@ -87,6 +87,7 @@ function TimelineWidget(params: AgWidgetParams<CustomData, unknown, Context>) {
           ?.fields.find((f) => f.key === "careEvents.id" || f.fieldId === "id");
         if (!field) throw Error("calendar_schema_missing");
         const selection = params.context.selection();
+        // The custom calendar uses Studio's data API, then checks IDs against saved evidence.
         const result = await params.widgetApi.getData(
           { fields: [field] },
           { maxRows: 1000, maxBytes: 1000000, signal: controller.signal },

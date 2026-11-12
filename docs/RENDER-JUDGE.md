@@ -1,7 +1,8 @@
 # Render judge setup
 
-Hosted-only DeepSeek Flash uses the existing Responses SDK, North conversations,
-grounding, strict plans and native Studio execution. GreatBison/Sol is not deployed
+Hosted-only DeepSeek Flash uses the pinned OpenAI SDK's documented DeepSeek beta
+Chat strict-function output, existing North conversations, grounding, strict plans
+and native Studio execution. GreatBison/Sol is not deployed
 or reconfigured. Hosted visitors automatically receive separate signed, expiring
 customer/Studio guest cookies on their first explicit North/Studio request. No
 login, token entry or `/ai-evaluation` setup; that hosted page redirects to Care.
@@ -10,6 +11,18 @@ HttpOnly/Secure/Strict host-only cookies reach the browser. Cookies expire withi
 24 hours or the configured hosted deadline, whichever comes first. Existing
 valid cookies are not rotated or extended by admission. This does not grant
 private Sol, purchase-write, operator or financial access.
+
+## Current public access and duration
+
+**Owner-required availability: through December 31, 2026, 11:59 PM Pacific**, superseding the earlier December15 hosting target. The exclusive cutoff is **January1,2027 at08:00UTC** (`CAREOS_EVALUATION_EXPIRES_AT` in `render.yaml` and the hosted access validator). The actual public status GET on November12 reports this cutoff, active access and an unblocked ledger; readiness reports the restricted database-backed application ready.
+
+Guest grants last at most24hours. The browser's next explicit North/Studio request automatically obtains valid guest scopes after expiry; it requires no login/token input and does not replay an earlier question. Valid grants are not extended by admission. Conversation records and their owner cookies also expire after24hours: previous expired history is not revived; a visitor can start a new conversation. Global spending/accounting remains retained across guest renewal and daily boundaries. This is bounded public access, not unlimited AI.
+
+At the November12 pre-final-walkthrough checkpoint, aggregate usage/reservations were **$0.611590 of the existing $18 daily/total cap**, leaving **$17.388410 application headroom**. This is not the DeepSeek account balance. The owner must keep Render web service/PostgreSQL funded and unsuspended and the existing DeepSeek key/account funded through December31. No authenticated billing/key-expiry evidence is available to this pass; no credit purchase, cap increase, policy reset or paid fallback is authorized. Rate limits and explicit unavailable responses remain enforced if funds or allowance run out.
+
+AG Studio's public judging arrangement, exact hostname/version/AI entitlement and December31 coverage are **not confirmed** by a configured key. Preserve all vendor notices/watermark; [license status](AG-STUDIO-JUDGING-LICENSE.md) distinguishes the published sponsor promise from an actual grant. No code expiry was found in native Studio's hosted presentation gate; that is not proof of license entitlement through the requested period.
+
+The setup commands below document the original authorized deployment. They are **not judge steps** and must not be rerun against the populated deployment. Judges use [the public URL](https://palcare-judge.onrender.com) directly.
 
 ## 1. Prepare the genuine historical copy (operator-only, already completed)
 
@@ -113,13 +126,13 @@ public AI. Unknown usage stays reserved; no retries or automatic fallback.
 
 Checkout, refunds, provider payment reads and workers stay disabled. Vendor
 watermarks/notices remain intact; this change does not issue/activate a license
-or claim additional entitlement. Keep hosting funded through December15,2026;
+or claim additional entitlement. Keep hosting and PostgreSQL funded through December31,2026;
 the owner-approved hosted access window ends January1,2027 at08:00UTC
 (after all of December31,2026 Pacific time). This does not purchase more credits,
 reset usage, change private Sol access, or increase rate limits. Exhausted funds,
 limits or provider failures remain explicit unavailable states, not paid fallback.
 Responses JSON/schema releases reached the provider but did not reliably satisfy
-the strict application plan. The primary hosted candidate uses documented
+the strict application plan. The released hosted implementation uses documented
 `/beta/chat/completions` strict function serialization, thinking disabled and one
 forced fixed schema-name function. This returns a proposal, not tool execution;
 one choice/call, exact name, no prose and the ORIGINAL strict Zod/grounding/action
@@ -127,7 +140,8 @@ checks remain mandatory. Unsupported length/item/date grammar constraints remain
 trusted descriptions and original application rules. Hosted preflight and dispatch
 share the exact Chat body builder under 20 KB. Chat usage maps conservatively to
 the existing ledger; contradictory/unknown usage retains reservations. No retry,
-alternate provider or financial authority is enabled. Actual nullable/schema and
-native acceptance remains unverified until evidenced in STATUS/release checks.
-Actual hosted performance,
-provider compatibility and owner acceptance must be verified after deployment.
+alternate provider or financial authority is enabled. PR42 passed two fresh-browser
+genuine DeepSeek/native state-and-data/isolation checks; PR43 passed selected
+Sandbox purchase navigation and an exact-purchase warranty follow-up. Prior
+failed Responses modes remain historical evidence. [Release results and the final
+bounded walkthrough](STATUS.md) distinguish actual hosted acceptance from mocks.
