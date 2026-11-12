@@ -213,7 +213,7 @@ export function conversationPayload(options: {
   const protectedFacts = new Set(
     (latestRecords?.records ?? previous?.records ?? []).map(factKey),
   );
-  const wire = (options.hosted ? deepseekRequestBody : structuredRequestBody)({
+  const wire = structuredRequestBody({
     payload: "",
     prompt: CONVERSATION_MODEL_PROMPT,
     schema: conversationModelPlanSchema,
@@ -299,15 +299,21 @@ export function conversationPayload(options: {
         "Read shared ownership facts; never assume a date or coverage",
     };
   };
-  const request = (payload: string) => ({
-    ...wire,
-    input: [
-      ...(!options.hosted
-        ? [{ role: "developer" as const, content: CONVERSATION_MODEL_PROMPT }]
-        : []),
-      { role: "user" as const, content: payload },
-    ],
-  });
+  const request = (payload: string) =>
+    options.hosted
+      ? deepseekRequestBody({
+          payload,
+          prompt: CONVERSATION_MODEL_PROMPT,
+          schema: conversationModelPlanSchema,
+          name: "north_conversation_v1",
+        })
+      : {
+          ...wire,
+          input: [
+            { role: "developer" as const, content: CONVERSATION_MODEL_PROMPT },
+            { role: "user" as const, content: payload },
+          ],
+        };
   let payload = JSON.stringify(project());
   const tooLarge = () =>
     structuredRequestBytes(request(payload)) > MODEL_REQUEST_BYTES;

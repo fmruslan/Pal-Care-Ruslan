@@ -586,15 +586,14 @@ describe("North whole-context wire projection, fictional owned prefixes", () => 
     expect(structuredRequestBytes(body)).toBeLessThanOrEqual(
       MODEL_REQUEST_BYTES,
     );
-    expect(body.text?.format).toMatchObject({
-      type: "json_schema",
-      name: schemaName,
-      strict: true,
+    expect(body.tools?.[0]).toMatchObject({
+      type: "function",
+      function: { name: schemaName, strict: true },
     });
-    expect(JSON.stringify(body.text?.format)).toContain(
+    expect(JSON.stringify(body.tools)).toContain(
       '"additionalProperties":false',
     );
-    expect(body.input).toEqual([{ role: "user", content: payload }]);
+    expect(body.messages[1]).toEqual({ role: "user", content: payload });
     expect(JSON.parse(payload).question).toBe(question);
     expect(JSON.parse(payload).currentTopic.question).toBe(
       history.at(-1)!.message,

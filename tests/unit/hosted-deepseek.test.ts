@@ -13,6 +13,7 @@ import { pricedDeepSeekUsage } from "../../src/lib/careos/model-policy";
 import { studioEvaluationAllowed } from "../../src/lib/intelligence/access";
 import { northConversationalPresentation } from "../../src/lib/private-preview-origin";
 import { evaluationRefreshDelay } from "../../src/lib/careos/window";
+import { accountedCall } from "../../src/lib/careos/accounted-call";
 
 const token = "a".repeat(64);
 const env = {
@@ -53,18 +54,33 @@ const usage = {
 function response(text = '{"intent":"summary"}', extra = {}) {
   return new Response(
     JSON.stringify({
-      id: "resp_test",
-      object: "response",
+      id: "chatcmpl_test",
+      object: "chat.completion",
       model: "deepseek-flash",
-      status: "completed",
-      usage,
-      output: [
+      usage: {
+        prompt_tokens: usage.input_tokens,
+        completion_tokens: usage.output_tokens,
+        total_tokens: usage.total_tokens,
+        prompt_cache_hit_tokens: 100,
+        prompt_cache_miss_tokens: 900,
+        prompt_tokens_details: { cached_tokens: 100 },
+        completion_tokens_details: { reasoning_tokens: 0 },
+      },
+      choices: [
         {
-          type: "message",
-          id: "msg_test",
-          role: "assistant",
-          status: "completed",
-          content: [{ type: "output_text", text, annotations: [] }],
+          index: 0,
+          finish_reason: "tool_calls",
+          message: {
+            role: "assistant",
+            content: null,
+            tool_calls: [
+              {
+                id: "call_test",
+                type: "function",
+                function: { name: "test_intent", arguments: text },
+              },
+            ],
+          },
         },
       ],
       ...extra,
@@ -235,21 +251,24 @@ describe("Render-only DeepSeek; injected transport, no live calls", () => {
       string,
       RequestInit,
     ];
-    expect(String(url)).toBe("https://api.deepseek.com/responses");
+    expect(String(url)).toBe("https://api.deepseek.com/beta/chat/completions");
     const body = JSON.parse(init.body as string);
     expect(body).toMatchObject({
       model: "deepseek-flash",
-      reasoning: { effort: "none" },
-      text: {
-        format: { type: "json_schema", name: "test_intent", strict: true },
-      },
+      thinking: { type: "disabled" },
+      stream: false,
+      tool_choice: { type: "function", function: { name: "test_intent" } },
     });
-    expect(body.input).toEqual([
-      { role: "user", content: "original question and owned history" },
-    ]);
-    expect(body.instructions).toContain("Trusted rules");
-    expect(body.text.format.schema.additionalProperties).toBe(false);
-    expect(body.text.format.schema.properties.intent).toEqual({
+    expect(body.messages[1]).toEqual({
+      role: "user",
+      content: "original question and owned history",
+    });
+    expect(body.messages[0].role).toBe("system");
+    expect(body.messages[0].content).toContain("Trusted rules");
+    expect(body.tools).toHaveLength(1);
+    expect(body.tools[0].function.strict).toBe(true);
+    expect(body.tools[0].function.parameters.additionalProperties).toBe(false);
+    expect(body.tools[0].function.parameters.properties.intent).toEqual({
       type: "string",
       enum: ["summary"],
     });
@@ -260,6 +279,96 @@ describe("Render-only DeepSeek; injected transport, no live calls", () => {
       micro: 391,
       usage: { model: "deepseek-flash", reasoning: "none" },
     });
+  });
+  it("rejects wrong, duplicate or incomplete serialization calls after capturing known usage, without executing or retrying", async () => {
+    const call = {
+      id: "call_test",
+      type: "function",
+      function: { name: "test_intent", arguments: '{"intent":"summary"}' },
+    };
+    for (const [finish_reason, tool_calls] of [
+      [
+        "tool_calls",
+        [{ ...call, function: { ...call.function, name: "arbitrary_tool" } }],
+      ],
+      ["tool_calls", [call, call]],
+      ["length", [call]],
+    ] as const) {
+      const fetcher = vi.fn(async () =>
+        response('{"intent":"summary"}', {
+          choices: [
+            {
+              index: 0,
+              finish_reason,
+              message: { role: "assistant", content: null, tool_calls },
+            },
+          ],
+        }),
+      );
+      await expect(
+        new ResponsesProvider(config, fetcher as typeof fetch).structured(
+          "test",
+          schema,
+          "test_intent",
+          AbortSignal.timeout(1000),
+        ),
+      ).rejects.toMatchObject({ micro: 391 });
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    }
+  });
+  it("settles measured usage for malformed calls, unexpected prose and multiple choices without raw failures or retries", async () => {
+    const call = {
+      id: "call_test",
+      type: "function",
+      function: { name: "test_intent", arguments: '{"intent":"summary"}' },
+    };
+    const choice = {
+      index: 0,
+      finish_reason: "tool_calls",
+      message: {
+        role: "assistant",
+        content: null as string | null,
+        tool_calls: [call],
+      },
+    };
+    for (const choices of [
+      [{ ...choice, message: { ...choice.message, tool_calls: [null] } }],
+      [
+        {
+          ...choice,
+          message: { ...choice.message, tool_calls: [{ type: "function" }] },
+        },
+      ],
+      [
+        {
+          ...choice,
+          message: { ...choice.message, content: "Unvalidated prose" },
+        },
+      ],
+      [choice, choice],
+    ]) {
+      const fetcher = vi.fn(async () =>
+        response('{"intent":"summary"}', { choices }),
+      );
+      const settle = vi.fn(async () => {});
+      await expect(
+        accountedCall(
+          () =>
+            new ResponsesProvider(config, fetcher as typeof fetch).structured(
+              "test",
+              schema,
+              "test_intent",
+              AbortSignal.timeout(1000),
+            ),
+          settle,
+        ),
+      ).rejects.toMatchObject({ code: "careos_model_refused", micro: 391 });
+      expect(settle).toHaveBeenCalledExactlyOnceWith(
+        391,
+        expect.objectContaining({ micro: 391, model: "deepseek-flash" }),
+      );
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    }
   });
   it("retains measured usage when rejecting invalid JSON or unsafe action output", async () => {
     for (const text of ["not JSON", '{"intent":"summary","refund":true}']) {

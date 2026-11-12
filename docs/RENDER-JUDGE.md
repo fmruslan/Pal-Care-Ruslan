@@ -118,12 +118,16 @@ the owner-approved hosted access window ends January1,2027 at08:00UTC
 (after all of December31,2026 Pacific time). This does not purchase more credits,
 reset usage, change private Sol access, or increase rate limits. Exhausted funds,
 limits or provider failures remain explicit unavailable states, not paid fallback.
-The JSON-object compatibility release reached the provider but did not pass strict
-application validation. The constrained-output candidate retains structural
-schema enforcement while moving unsupported length/item/date grammar
-constraints to trusted descriptions; the ORIGINAL strict server-side Zod,
-grounding and action checks still enforce every application rule. Hosted preflight
-and dispatch share the exact body builder under the original 20 KB cap. No
-automatic retry or alternate provider is enabled; actual acceptance is in STATUS.
+Responses JSON/schema releases reached the provider but did not reliably satisfy
+the strict application plan. The primary hosted candidate uses documented
+`/beta/chat/completions` strict function serialization, thinking disabled and one
+forced fixed schema-name function. This returns a proposal, not tool execution;
+one choice/call, exact name, no prose and the ORIGINAL strict Zod/grounding/action
+checks remain mandatory. Unsupported length/item/date grammar constraints remain
+trusted descriptions and original application rules. Hosted preflight and dispatch
+share the exact Chat body builder under 20 KB. Chat usage maps conservatively to
+the existing ledger; contradictory/unknown usage retains reservations. No retry,
+alternate provider or financial authority is enabled. Actual nullable/schema and
+native acceptance remains unverified until evidenced in STATUS/release checks.
 Actual hosted performance,
 provider compatibility and owner acceptance must be verified after deployment.

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { CareError, intentSchema } from "../contracts";
 import { CAREOS_ROLE } from "../role";
 import { ASSISTANT_SPOKEN_NAME } from "../../assistant-identity";
-import { deepseekRequestBody } from "./deepseek-request";
+import { deepseekRequestBody, deepseekChatUsage } from "./deepseek-request";
 import {
   MODEL,
   REASONING,
@@ -113,7 +113,7 @@ export class ResponsesProvider implements CareModel {
     if (Buffer.byteLength(payload, "utf8") > 20000)
       throw new CareError("careos_context_too_large");
     const deepseek = this.config.model === DEEPSEEK_MODEL;
-    const body: OpenAI.Responses.ResponseCreateParamsNonStreaming = deepseek
+    const body = deepseek
       ? deepseekRequestBody({ payload, schema, name, prompt })
       : {
           model: this.config.model,
@@ -136,80 +136,120 @@ export class ResponsesProvider implements CareModel {
     if (Buffer.byteLength(JSON.stringify(body), "utf8") > MODEL_REQUEST_BYTES)
       throw new CareError("careos_context_too_large");
     const started = Date.now();
-    const response = await this.client.responses
-      .create(body, { signal })
-      .catch((error: unknown) => {
-        // Hosted failures must be diagnosable without publishing provider bodies,
-        // headers, request payloads or credentials. Unknown costs remain reserved.
-        // Do not change the private Sol adapter's existing error contract.
-        if (!deepseek) throw error;
-        if (error instanceof OpenAI.APIConnectionTimeoutError)
-          throw new ModelFailure("careos_provider_timeout", null, null);
-        if (error instanceof OpenAI.APIConnectionError)
+    const pending = deepseek
+      ? this.client
+          .withOptions({ baseURL: "https://api.deepseek.com/beta" })
+          .chat.completions.create(
+            body as ReturnType<typeof deepseekRequestBody>,
+            { signal },
+          )
+      : this.client.responses.create(
+          body as OpenAI.Responses.ResponseCreateParamsNonStreaming,
+          { signal },
+        );
+    const raw = await pending.catch((error: unknown) => {
+      // Hosted failures must be diagnosable without publishing provider bodies,
+      // headers, request payloads or credentials. Unknown costs remain reserved.
+      // Do not change the private Sol adapter's existing error contract.
+      if (!deepseek) throw error;
+      if (error instanceof OpenAI.APIConnectionTimeoutError)
+        throw new ModelFailure("careos_provider_timeout", null, null);
+      if (error instanceof OpenAI.APIConnectionError)
+        throw new ModelFailure("careos_provider_connection_failed", null, null);
+      if (error instanceof OpenAI.APIError) {
+        const status = error.status;
+        if (status === 400 || status === 422) {
+          const message = error.message.toLowerCase();
+          const category = /schema|response_format|text.format/.test(message)
+            ? "schema"
+            : "request";
           throw new ModelFailure(
-            "careos_provider_connection_failed",
+            `careos_provider_${category}_rejected`,
             null,
             null,
           );
-        if (error instanceof OpenAI.APIError) {
-          const status = error.status;
-          if (status === 400 || status === 422) {
-            const message = error.message.toLowerCase();
-            const category = /schema|response_format|text.format/.test(message)
-              ? "schema"
-              : "request";
-            throw new ModelFailure(
-              `careos_provider_${category}_rejected`,
-              null,
-              null,
-            );
-          }
-          if (
-            [401, 402, 403, 404, 413, 429, 500, 502, 503, 504].includes(
-              status ?? 0,
-            )
-          )
-            throw new ModelFailure(
-              `careos_provider_http_${status}`,
-              null,
-              null,
-            );
         }
-        throw new ModelFailure("careos_provider_unavailable", null, null);
-      });
+        if (
+          [401, 402, 403, 404, 413, 429, 500, 502, 503, 504].includes(
+            status ?? 0,
+          )
+        )
+          throw new ModelFailure(`careos_provider_http_${status}`, null, null);
+      }
+      throw new ModelFailure("careos_provider_unavailable", null, null);
+    });
+    const chat = deepseek
+      ? (raw as OpenAI.Chat.Completions.ChatCompletion)
+      : undefined;
+    const response = !deepseek ? (raw as OpenAI.Responses.Response) : undefined;
+    const model = raw.model;
     const compatible = deepseek
       ? [
           DEEPSEEK_MODEL,
           "DeepSeek-V4.1-Flash-1017",
           "deepseek-v4.1-flash-1017",
-        ].includes(response.model)
-      : response.model === MODEL && response.service_tier === "default";
+        ].includes(model)
+      : model === MODEL && response?.service_tier === "default";
     const measured = compatible
       ? (deepseek ? pricedDeepSeekUsage : pricedUsage)(
-          response.usage,
+          chat ? deepseekChatUsage(chat.usage) : response?.usage,
           Date.now() - started,
         )
       : null;
     const usage = measured
-      ? { ...measured, schemaName: name, promptVersion: CARE_PROMPT_VERSION }
+      ? {
+          ...measured,
+          schemaName: name,
+          promptVersion: deepseek
+            ? "careos-deepseek-strict-tool-v1"
+            : CARE_PROMPT_VERSION,
+        }
       : null;
     const micro = usage?.micro ?? null;
     // Parse after capturing usage, so refusals/truncation/invalid JSON still settle
     // known costs. Network ambiguity or malformed usage keeps its reservation.
     if (!compatible)
       throw new ModelFailure("careos_model_contract_mismatch", null, null);
-    if (response.status !== "completed")
-      throw new ModelFailure("careos_model_incomplete", micro, usage);
-    const messages = response.output.filter((x) => x.type === "message");
-    if (
-      response.output.some((x) => !["message", "reasoning"].includes(x.type)) ||
-      messages.length !== 1 ||
-      messages[0].content.length !== 1 ||
-      messages[0].content[0].type !== "output_text"
-    )
-      throw new ModelFailure("careos_model_refused", micro, usage);
+    let text: string;
+    if (chat) {
+      const choice = chat.choices?.[0],
+        message = choice?.message,
+        calls = message?.tool_calls;
+      if (choice?.finish_reason !== "tool_calls")
+        throw new ModelFailure("careos_model_incomplete", micro, usage);
+      if (
+        chat.choices.length !== 1 ||
+        message?.role !== "assistant" ||
+        message.refusal ||
+        message.content ||
+        !Array.isArray(calls) ||
+        calls.length !== 1 ||
+        !calls[0] ||
+        calls[0].type !== "function" ||
+        !calls[0].function ||
+        typeof calls[0].function !== "object" ||
+        calls[0].function.name !== name ||
+        typeof calls[0].function.arguments !== "string"
+      )
+        throw new ModelFailure("careos_model_refused", micro, usage);
+      text = calls[0].function.arguments;
+    } else {
+      if (response!.status !== "completed")
+        throw new ModelFailure("careos_model_incomplete", micro, usage);
+      const messages = response!.output.filter((x) => x.type === "message");
+      if (
+        response!.output.some(
+          (x) => !["message", "reasoning"].includes(x.type),
+        ) ||
+        messages.length !== 1 ||
+        messages[0].content.length !== 1 ||
+        messages[0].content[0].type !== "output_text"
+      )
+        throw new ModelFailure("careos_model_refused", micro, usage);
+      text = messages[0].content[0].text;
+    }
     try {
-      const value = schema.parse(JSON.parse(messages[0].content[0].text));
+      const value = schema.parse(JSON.parse(text));
       return { value, micro, usage };
     } catch (error) {
       // Diagnose only trusted root field names / Zod's fixed issue codes, never
