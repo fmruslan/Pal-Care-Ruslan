@@ -943,35 +943,40 @@ export function IntegratedNorthView({
                   </article>
                 );
               })}
-            {s.navigation && (
-              <section
-                aria-label="Selected purchase actions"
-                className="space-y-2 rounded-xl border p-3"
-              >
-                <p className="text-sm">
-                  Selected: {s.navigation.context.name} ·{" "}
-                  {s.navigation.context.purchasedOn &&
-                    displayDate(s.navigation.context.purchasedOn)}{" "}
-                  ·{" "}
-                  {s.navigation.context.origin === "sandbox"
-                    ? "Verified Sandbox"
-                    : "Example purchase"}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {s.navigation.actions.map((action) => (
-                    <Button
-                      key={action.destination}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => s.openDestination(action.destination)}
-                      disabled={s.busy}
-                    >
-                      {action.label}
-                    </Button>
-                  ))}
-                </div>
-              </section>
-            )}
+            {s.navigation &&
+              (s.navigationNotice ||
+                s.turns.find((turn) => turn.requestId === s.activeId)?.answer
+                  .outcome === "selection" ||
+                s.turns.find((turn) => turn.requestId === s.activeId)?.answer
+                  .actions.length === 0) && (
+                <section
+                  aria-label="Selected purchase actions"
+                  className="space-y-2 rounded-xl border p-3"
+                >
+                  <p className="text-sm">
+                    Selected: {s.navigation.context.name} ·{" "}
+                    {s.navigation.context.purchasedOn &&
+                      displayDate(s.navigation.context.purchasedOn)}{" "}
+                    ·{" "}
+                    {s.navigation.context.origin === "sandbox"
+                      ? "Verified Sandbox"
+                      : "Example purchase"}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {s.navigation.actions.map((action) => (
+                      <Button
+                        key={action.destination}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => s.openDestination(action.destination)}
+                        disabled={s.busy}
+                      >
+                        {action.label}
+                      </Button>
+                    ))}
+                  </div>
+                </section>
+              )}
             {s.navigationNotice && (
               <p role="status" className="text-sm">
                 {s.navigationNotice}

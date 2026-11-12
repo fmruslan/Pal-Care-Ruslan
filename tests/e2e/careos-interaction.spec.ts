@@ -215,7 +215,9 @@ test("a rejected conversation bootstrap keeps the unsent question editable and p
   await expect(dialog.getByRole("alert")).toContainText("verify this browser");
   expect(state.inputs).toHaveLength(0);
   reject = false;
-  await composer.fill("Show my receipt");
+  // Recovery must exercise a new reasoning turn. Resolved receipt navigation
+  // now intentionally uses GET only and does not bootstrap a conversation.
+  await composer.fill("Explain my purchase details");
   state.hold.release();
   await expect(
     dialog.getByRole("button", { name: "Send to North Star" }),
