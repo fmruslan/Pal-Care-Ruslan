@@ -1,6 +1,6 @@
 # Pal Care
 
-**Hosted judge demo:** https://palcare-judge.onrender.com is database-backed and publicly reachable. Automatic limited guest North/Insights access is implemented and under release verification; no visitor token setup is needed in the candidate. [Hosted configuration](docs/RENDER-JUDGE.md) · [actual verification status](docs/STATUS.md). Private GreatBison/Sol is unchanged.
+**Hosted judge demo:** https://palcare-judge.onrender.com is database-backed and publicly reachable. Automatic limited guest DeepSeek North/native Insights access passed two fresh-browser live checks in PR42; no visitor token setup is needed. A selected-purchase navigation correction is under verification: direct purchase/receipt/care links without another AI request. [Hosted configuration](docs/RENDER-JUDGE.md) · [actual verification status](docs/STATUS.md). Private GreatBison/Sol is unchanged.
 
 **Actual North help is live-verified:** **“what is pla care,” “how to use insights”** and the Insights typo received useful current-interface answers without executing charts. The evaluation is now stopped after **72 new attempts** by a pre-stream provider503 and automatic campaign revocation; **228 unspent is not active permission**. The owner separately approved a bounded, fully checked recovery and fresh-guide hardening. Original failures, clipped longer guidance, charges and revocations remain retained. [Current implementation, evidence and gates](docs/STATUS.md).
 

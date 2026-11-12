@@ -55,7 +55,7 @@ export const productGuide = {
     title: "Using North",
     href: "/dashboard",
     facts:
-      "Explore with North / corner star: one overlay; corner yields on dense content. New chat keeps chats; Previous chats restores; History reads, no resend. Drafts/context persist. No payment/access/scheduling authority.",
+      "Explore with North / corner star: one overlay. Select a dated purchase; Open purchase/View receipt/Care details use saved routes without AI. 'Take me there' uses selection. New chat keeps chats; Previous chats restores; History reads, no resend. Drafts/context persist. No payment/access/scheduling authority.",
   },
   prices: {
     title: "Prices and recorded adjustments",

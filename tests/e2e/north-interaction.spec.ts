@@ -403,7 +403,11 @@ for (const retirement of ["dismiss", "change context"] as const) {
     await openNorth(page);
     await expect(
       dialog.locator(`[data-request-id="${turn.requestId}"]`),
-    ).toContainText("These choices are closed.");
+    ).toContainText(
+      retirement === "dismiss"
+        ? "Earlier purchase options."
+        : "Selected Everyday headphones",
+    );
     await expect(choice).toHaveCount(0);
     await expect(composer).toHaveValue("Keep my replacement draft");
     expect(log.mutations()).toEqual(before);

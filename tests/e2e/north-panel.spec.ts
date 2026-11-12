@@ -140,7 +140,10 @@ test("a known-unsent question stays with its original chat and is never replayed
   expect(state.writes).toEqual([]);
 });
 
-async function interceptConversations(page: Page) {
+async function interceptConversations(
+  page: Page,
+  prepareTurn?: (turn: CareTurn) => void,
+) {
   const conversations = new Map<string, Conversation>();
   const writes: { path: string; input: unknown }[] = [];
   const reads: string[] = [];
@@ -205,6 +208,7 @@ async function interceptConversations(page: Page) {
           actions: [],
         },
       };
+      prepareTurn?.(turn);
       saved!.turns.push(turn);
       await route.fulfill({ json: turn });
       return;
@@ -246,6 +250,184 @@ async function send(page: Page, message: string) {
   await expect(panel(page).locator("[data-pending-question]")).toHaveCount(0);
   return turn;
 }
+
+test("injected dated headphones choices navigate through saved fixture GETs without another conversation POST", async ({
+  page,
+}) => {
+  // The fixture has only one headphones Twin. The second choice deliberately
+  // aliases the real kettle ID as a dated headphones sibling in the intercepted
+  // answer only. Real context GETs and real routes must resolve the actual kettle;
+  // this is UI transport regression coverage, not genuine duplicate-purchase or
+  // live model/Sandbox acceptance.
+  const sibling: CareContext = {
+    ...headphones,
+    twinId: kettle.twinId,
+    purchasedOn: kettle.purchasedOn,
+  };
+  const state = await interceptConversations(page, (turn) => {
+    turn.answer = {
+      ...turn.answer,
+      outcome: "selection",
+      context: null,
+      text: "Which dated example headphones purchase do you mean?",
+      sources: [],
+      purchaseChoices: [headphones, sibling].map((context) => ({
+        context,
+        purchasedOn: context.purchasedOn!,
+        provenance: "Sample",
+      })),
+    };
+  });
+  const contextRequests: string[] = [];
+  page.on("request", (request) => {
+    const url = new URL(request.url());
+    if (url.pathname === "/api/careos/context") {
+      expect(request.method()).toBe("GET");
+      contextRequests.push(`${url.pathname}${url.search}`);
+    }
+  });
+  await page.goto("/purchases");
+  await launcher(page).click();
+  const first = await send(page, "Take me to my headphones");
+  expect(state.writes).toHaveLength(2);
+  expect(state.conversations.size).toBe(1);
+  const original = structuredClone([...state.conversations.values()]);
+  const settledWrites = structuredClone(state.writes);
+  const choices = panel(page).getByRole("region", {
+    name: "Choose a purchase",
+    exact: true,
+  });
+  const datedChoices = choices.getByRole("button", {
+    name: /Everyday headphones/,
+  });
+  await expect(datedChoices).toHaveCount(2);
+  await expect(datedChoices.nth(0).locator("time")).toHaveAttribute(
+    "datetime",
+    headphones.purchasedOn!,
+  );
+  await expect(datedChoices.nth(1).locator("time")).toHaveAttribute(
+    "datetime",
+    kettle.purchasedOn!,
+  );
+  const contextResponse = (twinId: string) =>
+    page.waitForResponse(
+      (response) =>
+        response.request().method() === "GET" &&
+        new URL(response.url()).pathname === "/api/careos/context" &&
+        new URL(response.url()).search === `?twinId=${twinId}`,
+    );
+  const selectedRead = contextResponse(headphones.twinId!);
+  await datedChoices.nth(0).click();
+  const selected = await selectedRead;
+  expect(selected.ok()).toBe(true);
+  const resolved = await selected.json();
+  expect(resolved.context.twinId).toBe(headphones.twinId);
+  expect(resolved.actions).toContainEqual({
+    destination: "receipt",
+    label: "View receipt",
+    href: "/documents/00000000-0000-4000-8000-000000000301",
+  });
+  await expect(page).toHaveURL(`/vault/${headphones.twinId}`);
+
+  async function restoreAndCheck(context: CareContext) {
+    await page
+      .getByRole("button", { name: "Restore North Star", exact: true })
+      .click();
+    await expect(
+      panel(page).locator(`[data-request-id="${first.requestId}"]`),
+    ).toBeVisible();
+    await expect(
+      panel(page).getByRole("region", {
+        name: "Persistent purchase context",
+        exact: true,
+      }),
+    ).toContainText(context.name);
+    expect(state.writes).toEqual(settledWrites);
+    expect([...state.conversations.values()]).toEqual(original);
+  }
+  let currentTwinId = headphones.twinId;
+  async function navigate(
+    message: string,
+    target: string,
+    context?: CareContext,
+  ) {
+    const beforeReads = contextRequests.length;
+    const read = context ? contextResponse(context.twinId!) : undefined;
+    await composer(page).fill(message);
+    await panel(page)
+      .getByRole("button", { name: "Send to North Star", exact: true })
+      .click();
+    if (read) {
+      const response = await read;
+      expect(response.ok()).toBe(true);
+      expect((await response.json()).context.twinId).toBe(context!.twinId);
+    }
+    await expect(page).toHaveURL(target);
+    if (!context || context.twinId === currentTwinId) {
+      expect(contextRequests.length - beforeReads).toBe(context ? 1 : 0);
+    }
+    if (context) currentTwinId = context.twinId;
+    expect(state.writes).toEqual(settledWrites);
+  }
+
+  await restoreAndCheck(headphones);
+  const actions = panel(page).getByRole("region", {
+    name: "Selected purchase actions",
+    exact: true,
+  });
+  await expect(actions).toBeVisible();
+  await expect(actions.getByRole("button")).toHaveCount(
+    resolved.actions.length,
+  );
+  for (const action of resolved.actions) {
+    await expect(
+      actions.getByRole("button", { name: action.label, exact: true }),
+    ).toBeVisible();
+  }
+  const buttonRead = contextResponse(headphones.twinId!);
+  await actions
+    .getByRole("button", { name: "View receipt", exact: true })
+    .click();
+  expect((await buttonRead).ok()).toBe(true);
+  await expect(page).toHaveURL(
+    "/documents/00000000-0000-4000-8000-000000000301",
+  );
+  await restoreAndCheck(headphones);
+  await navigate("go back", `/vault/${headphones.twinId}`);
+  await restoreAndCheck(headphones);
+  await navigate(
+    "show me its receipt",
+    "/documents/00000000-0000-4000-8000-000000000301",
+    headphones,
+  );
+  await restoreAndCheck(headphones);
+  await navigate(
+    "Now take me there",
+    `/vault/${headphones.twinId}`,
+    headphones,
+  );
+  await restoreAndCheck(headphones);
+  await navigate("go back", "/documents/00000000-0000-4000-8000-000000000301");
+  await restoreAndCheck(headphones);
+  await navigate("open it", `/vault/${headphones.twinId}`, headphones);
+  await restoreAndCheck(headphones);
+  await navigate("the other one", `/vault/${kettle.twinId}`, kettle);
+  await restoreAndCheck(kettle);
+  await navigate(
+    "show me its receipt",
+    "/documents/00000000-0000-4000-8000-000000000302",
+    kettle,
+  );
+  await restoreAndCheck(kettle);
+  expect(new Set(contextRequests)).toEqual(
+    new Set([
+      `/api/careos/context?twinId=${headphones.twinId}`,
+      `/api/careos/context?twinId=${kettle.twinId}`,
+    ]),
+  );
+  expect(state.writes).toHaveLength(2);
+  expect(state.prohibited).toEqual([]);
+});
 
 for (const viewport of [
   { width: 1440, height: 1000 },

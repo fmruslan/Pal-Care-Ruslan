@@ -120,7 +120,7 @@ records: exactly two short accompanying bullets uses productAction concise; reta
 Simpler explanation: records/explain even with a fresh fully specified lookup; apply its filters. A bare "Why?" whose causal referent is unresolved needs a focused clarification, not totals/invented causality. Scope doesn't explain why events happened.
 acknowledgement: harmless honesty preferences only, no data/tool request; other text fields empty. Fixed reply requires execution/read-back, claims no completion. Asking to fabricate success or pretend a chart/refund/payment completed is unsupported. This task grants no user authority, scheduling guarantee or financial operation. Mixed requests retain prohibitions.
 Never accept an unsourced completed-refund premise; check aftercare/refunds, invent no cause. An explicitly named product keeps its productSearch and fresh named-product scope even with "all"; never substitute unrelated Demo refund. Resolve dated ambiguity. Truly collection-wide requests use blank search. Payment ≠ refund evidence; unavailable ≠ zero. Review only.
-Use server UTC referenceDate, owned history/anchor, selected product and catalogue. Fresh library tasks start with ALL purchases, no inherited filters/context; explicit all/my purchases clears stale scope. Those/that/which of them retains the owned selection. Clarify genuine ambiguity/conflicts/unsupported tools, not ordinary typos. Search is ONLY canonical product/model, never conversational residue. Use dedicated category/provenance/receipt/document/price fields. Electronics = Audio + Computing. Application arithmetic separates Sample and Verified Sandbox.
+Use server UTC referenceDate, owned history/anchor, selected product and catalogue. An explicit selected dated purchase resolves it/its/there/that one for product, receipt, warranty and care followups: relation selected, no repeated purchase clarification. A genuinely different named product or conflicting date/provenance still needs matching evidence. Fresh library tasks start with ALL purchases, no inherited filters/context; explicit all/my purchases clears stale scope. Those/that/which of them retains the owned selection. Clarify genuine ambiguity/conflicts/unsupported tools, not ordinary typos. Search is ONLY canonical product/model, never conversational residue. Use dedicated category/provenance/receipt/document/price fields. Electronics = Audio + Computing. Application arithmetic separates Sample and Verified Sandbox.
 currentTopic is the latest actual owned answer through the anchor, the default for simplification/repetition. With recordsResult use records/followup/explain, retaining predicates/comparison, not older care. Result products identify products, not implicit care intent. Only latest care supplies careQuestion; explicit use questions may resolve care from selection/unique owned history. Clarify ambiguous referents; invent no facts/procedures.
 facts appears once; recordIndexes/catalogue are zero-based fact positions, never IDs/authority. history retains whole numbered questions; latest answer is in currentTopic, older answers are at most 800-character excerpts. coverage discloses omitted whole turns/facts and excerpting; result blocks give full recordCount, supplied indexes and completeness. Missing rows aren't zero matches; missing history isn't memory. Never claim access to omitted context or reconstruct omitted questions/facts; ask a short clarification when a referent is unresolved. Current question stays unchanged.
 For retrospective receipt, invoice or proof-of-payment requests only, PayPal is purchase-provenance shorthand for the saved verified Sandbox purchase, including misspellings such as "paypal hedphones recipt": choose product/receipt with query.origin sandbox and preserve the requested product words. This is not universal PayPal account access, a fresh payment-status check or proof that any verified purchase exists. An explicit Sample request overrides implicit PayPal shorthand: choose query.origin sample and keep its receipt labeled fictional, never PayPal-verified. If the user explicitly requires both Sample and verified Sandbox for the same single receipt, choose clarification rather than silently discard either explicit condition. Only server-supplied saved evidence can establish a verified receipt; absent or ambiguous evidence stays missing or requires a dated purchase choice.
@@ -585,32 +585,49 @@ export async function answerConversationTurn(options: {
     referenceDate,
   );
   if (!search) throw new Error("north_invalid_product_query");
+  // Preserve every scoped predicate, but match canonical product terms against
+  // the owned identity (including its saved/snapshotted brand), not categories.
+  const productTerms = search.search.toLowerCase().split(/\s+/).filter(Boolean);
+  const matchingProducts = (source: DemoData) =>
+    querySavedRecords(source, { ...search, search: "" }).records.filter(
+      (candidate) => {
+        const record = findTwin(source, candidate.id);
+        if (!record) return false;
+        const identity =
+          `${record.product.brand} ${record.product.name} ${record.product.model}`.toLowerCase();
+        return productTerms.every((term) => identity.includes(term));
+      },
+    );
+  // An explicit, server-loaded dated choice survives a planner's fresh/name
+  // restatement. It never overrides conflicting predicates or a broad fresh
+  // aftercare request; records/library tasks were handled above.
+  const selectedMatches =
+    selected &&
+    !(
+      plan.task === "aftercare" &&
+      !plan.productSearch &&
+      !plan.productAction.startsWith("open_") &&
+      plan.relation === "fresh"
+    ) &&
+    matchingProducts(exactSelected ?? data).some(
+      (candidate) => candidate.id === selected.twin.id,
+    );
   if (
     exactSelected &&
-    (plan.relation === "selected" ||
+    (selectedMatches ||
+      plan.relation === "selected" ||
       (plan.relation === "followup" &&
         history.at(-1)?.answer.context?.twinId === selected?.twin.id))
   )
     data = exactSelected;
-  // Preserve every scoped predicate, but match canonical product terms against
-  // the owned identity (including its saved/snapshotted brand), not categories.
-  const productTerms = search.search.toLowerCase().split(/\s+/).filter(Boolean);
-  let candidates = querySavedRecords(data, {
-    ...search,
-    search: "",
-  }).records.filter((candidate) => {
-    const record = findTwin(data, candidate.id);
-    if (!record) return false;
-    const identity =
-      `${record.product.brand} ${record.product.name} ${record.product.model}`.toLowerCase();
-    return productTerms.every((term) => identity.includes(term));
-  });
+  let candidates = matchingProducts(data);
   const recent = history.at(-1)?.answer;
   const priorContext = recent?.context?.twinId;
   const bound =
     selected ?? (priorContext ? findTwin(data, priorContext) : undefined);
   if (
-    (plan.relation === "selected" ||
+    (selectedMatches ||
+      plan.relation === "selected" ||
       (!plan.productSearch && plan.task !== "aftercare") ||
       (plan.relation === "followup" &&
         recent?.questionScope === "purchase" &&
