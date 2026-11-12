@@ -1,5 +1,15 @@
 # Implementation status
 
+## Hosted constrained-output correction — under focused review
+
+**Verified:** PR39 head `e13bd16e6ab2788e257c8cd388bf20cb3e843f44` passed full CI [43137166161](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/43137166161) after one retained failed-job-only Firefox navigation rerun. Exact-main `edc1aebbd47655e7f274a2c3c79869bc9650256b` passed [43141658608](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/43141658608) and automatically deployed build `8o6-HJbhFcv6drdyRtcAw`.
+
+**Actual failure / Blocked:** JSON-object mode reaches DeepSeek, with measured/settled usage, but fresh chart and guidance output failed the original strict validator (`careos_model_invalid_output`). It is not accepted North/native functionality. A later hosted aggregate reads **$0.602009 used/reserved / $18 cap / unblocked**, including retained unknowns and potentially other visitors; it is not all attributed to agent tests. The $1.50 agent-testing cap remains in force; no original failed question is replayed.
+
+**Implemented candidate:** provider constrained decoding explicitly sets `strict:true` and keeps the schema's required fields, allowed keys, types/enums/nullable structure and documented supported patterns. Unsupported length/item/date constraints move to trusted descriptions while the ORIGINAL strict Zod schema still enforces every application bound. String literals become equivalent enums. Preflight and dispatch retain the same builder/20 KB cap. Hosted invalid JSON versus trusted root-field/Zod-code diagnostics expose no model/provider text, unexpected keys, source content or credentials. Private Sol behavior/accounting and all financial boundaries remain unchanged. Two owner-approved read-only reviews found the missing explicit strict flag and unnecessarily removed patterns; both are corrected, and acceptance correlates the awaited actual answer and exact record IDs instead of a hardcoded count/asynchronous response collection. No agent starts live calls or touches runtime state.
+
+**Incomplete / Next:** integrate focused review findings, static/format checks and mandatory exact-source CI, then automatically deploy and run only the remaining real guest North/native/isolation essentials within the $1.50 cap. Do not call the site judge-ready before genuine success; GreatBison remains its unchanged original main/build/service/configuration/data/accounting.
+
 ## Hosted DeepSeek schema compatibility — correction under verification
 
 **Verified release:** PR38 head `a62fde51d61db4a1f1243e0ffaabe60a2f5de969` passed all selected full-risk jobs and gate ([43133774806](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/43133774806)). Exact-main `8d809c86e3519e29f2938704bc65b770b25e1f1d` passed [43136086580](https://github.com/fmruslan/Pal-Care-Ruslan/actions/runs/43136086580) and automatically deployed Render build `Cg2oMkm0itzViXtOi8zK0`. The bounded blank-document handoff corrected the isolated fixture navigation races without retries/assertion suppression. All original failed runs remain retained.

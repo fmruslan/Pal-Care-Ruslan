@@ -118,10 +118,12 @@ the owner-approved hosted access window ends January1,2027 at08:00UTC
 (after all of December31,2026 Pacific time). This does not purchase more credits,
 reset usage, change private Sol access, or increase rate limits. Exhausted funds,
 limits or provider failures remain explicit unavailable states, not paid fallback.
-The schema-compatibility correction uses documented Responses JSON-object mode
-with the exact schema in trusted instructions and unchanged strict server-side
-Zod/grounding/action checks. Hosted preflight and dispatch share the exact body
-builder under the original 20 KB cap. No automatic schema retry or alternate
-provider is enabled; actual release/provider acceptance remains in STATUS.
+The JSON-object compatibility release reached the provider but did not pass strict
+application validation. The constrained-output candidate retains structural
+schema enforcement while moving unsupported length/item/date grammar
+constraints to trusted descriptions; the ORIGINAL strict server-side Zod,
+grounding and action checks still enforce every application rule. Hosted preflight
+and dispatch share the exact body builder under the original 20 KB cap. No
+automatic retry or alternate provider is enabled; actual acceptance is in STATUS.
 Actual hosted performance,
 provider compatibility and owner acceptance must be verified after deployment.
