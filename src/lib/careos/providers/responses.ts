@@ -4,6 +4,7 @@ import { z } from "zod";
 import { CareError, intentSchema } from "../contracts";
 import { CAREOS_ROLE } from "../role";
 import { ASSISTANT_SPOKEN_NAME } from "../../assistant-identity";
+import { deepseekRequestBody } from "./deepseek-request";
 import {
   MODEL,
   REASONING,
@@ -111,29 +112,25 @@ export class ResponsesProvider implements CareModel {
   ): Promise<ModelResult<z.infer<T>>> {
     if (Buffer.byteLength(payload, "utf8") > 20000)
       throw new CareError("careos_context_too_large");
-    const body: OpenAI.Responses.ResponseCreateParamsNonStreaming = {
-      model: this.config.model,
-      store: false,
-      service_tier: "default" as const,
-      prompt_cache_options: { mode: "implicit" as const, ttl: "30m" as const },
-      max_output_tokens: MODEL_OUTPUT_TOKENS,
-      reasoning: { effort: REASONING },
-      input: [
-        { role: "developer" as const, content: prompt },
-        { role: "user" as const, content: payload },
-      ],
-      text: { format: zodTextFormat(schema, name) },
-    };
     const deepseek = this.config.model === DEEPSEEK_MODEL;
-    if (deepseek) {
-      // DeepSeek treats developer messages as user data. Keep trusted rules in
-      // instructions, and send only supported parameters. History stays ours.
-      delete body.service_tier;
-      delete body.prompt_cache_options;
-      body.reasoning = { effort: "none" };
-      body.instructions = prompt;
-      body.input = [{ role: "user", content: payload }];
-    }
+    const body: OpenAI.Responses.ResponseCreateParamsNonStreaming = deepseek
+      ? deepseekRequestBody({ payload, schema, name, prompt })
+      : {
+          model: this.config.model,
+          store: false,
+          service_tier: "default" as const,
+          prompt_cache_options: {
+            mode: "implicit" as const,
+            ttl: "30m" as const,
+          },
+          max_output_tokens: MODEL_OUTPUT_TOKENS,
+          reasoning: { effort: REASONING },
+          input: [
+            { role: "developer" as const, content: prompt },
+            { role: "user" as const, content: payload },
+          ],
+          text: { format: zodTextFormat(schema, name) },
+        };
     // 20k request bytes + 2048 framing tokens, priced at the worst .0000025
     // input rate, plus 6k output at .000010 = $0.11512 < $0.12 reserved.
     if (Buffer.byteLength(JSON.stringify(body), "utf8") > MODEL_REQUEST_BYTES)

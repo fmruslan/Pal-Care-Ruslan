@@ -44,6 +44,7 @@ import {
   structuredRequestBytes,
   assertStructuredRequestSize,
 } from "../subscription/request";
+import { deepseekRequestBody } from "../providers/deepseek-request";
 
 export const conversationPlanSchema = z.strictObject({
   task: z.enum([
@@ -165,6 +166,7 @@ const factKey = (record: SavedRecord) =>
 /** Pure, exact-wire-budgeted model projection. Stored messages/results are never
  * edited. No substring/keyword router decides the user's task or referent. */
 export function conversationPayload(options: {
+  hosted?: boolean;
   input: TurnInput;
   history: CareTurn[];
   referenceDate: string;
@@ -211,7 +213,7 @@ export function conversationPayload(options: {
   const protectedFacts = new Set(
     (latestRecords?.records ?? previous?.records ?? []).map(factKey),
   );
-  const wire = structuredRequestBody({
+  const wire = (options.hosted ? deepseekRequestBody : structuredRequestBody)({
     payload: "",
     prompt: CONVERSATION_MODEL_PROMPT,
     schema: conversationModelPlanSchema,
@@ -300,7 +302,9 @@ export function conversationPayload(options: {
   const request = (payload: string) => ({
     ...wire,
     input: [
-      { role: "developer" as const, content: CONVERSATION_MODEL_PROMPT },
+      ...(!options.hosted
+        ? [{ role: "developer" as const, content: CONVERSATION_MODEL_PROMPT }]
+        : []),
       { role: "user" as const, content: payload },
     ],
   });
@@ -334,6 +338,7 @@ export function conversationPayload(options: {
 /** Model-first for EVERY authorized turn, including wording the fallback parser
  * would misread or accept. No model-supplied record IDs, money, URLs or tools. */
 export async function answerConversationTurn(options: {
+  hosted?: boolean;
   input: TurnInput;
   history: CareTurn[];
   load: () => Promise<DemoData & { source?: "fixtures" | "database" }>;
@@ -390,6 +395,7 @@ export async function answerConversationTurn(options: {
   const plan = conversationPlanSchema.parse(
     await options.interpret(
       conversationPayload({
+        ...(options.hosted ? { hosted: true } : {}),
         input,
         history,
         referenceDate,

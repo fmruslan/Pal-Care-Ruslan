@@ -31,6 +31,7 @@ import { demoData } from "../../src/lib/demo/fixtures";
 import type { CareTurn } from "../../src/lib/careos/contracts";
 import { productGuideReplySchema } from "../../src/lib/careos/product-guide";
 import { malformedGuideSteps } from "../fixtures/product-guide-prose";
+import { deepseekRequestBody } from "../../src/lib/careos/providers/deepseek-request";
 
 const sdkConstruction = vi.hoisted(() => vi.fn());
 vi.mock("openai", async (importOriginal) => {
@@ -564,6 +565,36 @@ describe("exact shared North wire byte boundary, injected protocol only", () => 
 });
 
 describe("North whole-context wire projection, fictional owned prefixes", () => {
+  it("measures the exact hosted JSON-mode schema/instructions and retains the original question, anchor and stored history", () => {
+    const { library, history } = prefix();
+    const original = JSON.stringify(history);
+    const question = 'Explain "those" purchases — 原始问题🙂';
+    const payload = conversationPayload({
+      hosted: true,
+      input: requestInput(question, history.at(-1)!.requestId),
+      history,
+      library,
+      selected: null,
+      referenceDate: date,
+    });
+    const body = deepseekRequestBody({
+      payload,
+      prompt: CONVERSATION_MODEL_PROMPT,
+      schema: conversationModelPlanSchema,
+      name: schemaName,
+    });
+    expect(structuredRequestBytes(body)).toBeLessThanOrEqual(
+      MODEL_REQUEST_BYTES,
+    );
+    expect(body.text?.format).toEqual({ type: "json_object" });
+    expect(body.instructions).toContain('"additionalProperties":false');
+    expect(body.input).toEqual([{ role: "user", content: payload }]);
+    expect(JSON.parse(payload).question).toBe(question);
+    expect(JSON.parse(payload).currentTopic.question).toBe(
+      history.at(-1)!.message,
+    );
+    expect(JSON.stringify(history)).toBe(original);
+  });
   it("fits the eleven-record eight-turn failure shape without duplicate facts or historical plans", () => {
     const { library, history } = prefix();
     const original = JSON.stringify(history);
