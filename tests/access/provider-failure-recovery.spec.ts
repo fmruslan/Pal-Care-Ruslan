@@ -227,7 +227,12 @@ async function installPairApproveFinish(page: Page) {
   expect((await interpret(page)).status).toBe(403);
   expect(await app!.transport()).toEqual([]);
 
+  // Dispose the old dashboard document before starting this full navigation.
+  // A late hydration/bridge navigation must not race pairing. The same browser
+  // context and per-origin sessionStorage/cookies remain intact, as on restart.
+  await page.goto("about:blank");
   await page.goto(OWNER_ORIGIN + "/ai-evaluation");
+  await expect(page).toHaveURL(OWNER_ORIGIN + "/ai-evaluation");
   const pairResponse = page.waitForResponse(
     (response) =>
       response.request().method() === "POST" &&
@@ -365,12 +370,6 @@ test.beforeEach(async ({ context, page }) => {
   await app.route(context, fixture.recordsOwner);
   await app.start();
   await page.goto(OWNER_ORIGIN + "/dashboard");
-  // The bridge can still be fulfilling hydration/navigation requests after the
-  // initial load event. Finish that initial read-only navigation before tests
-  // install host proof and leave for /ai-evaluation; otherwise WebKit/Firefox
-  // can abort the new navigation with a late dashboard document navigation.
-  await page.waitForLoadState("networkidle");
-  await expect(page).toHaveURL(OWNER_ORIGIN + "/dashboard");
 });
 
 test.afterEach(async ({ context }) => {
@@ -673,7 +672,11 @@ test("exact malformed historical guide keeps PostgreSQL fingerprint/row and rest
           title: saved.turn.message,
         },
       );
+      // Retain the exact tab's UUID hints, cookies and owned GET while disposing
+      // the old document's queued navigation, matching the restart handoff.
+      await page.goto("about:blank");
       await page.goto(OWNER_ORIGIN + "/dashboard");
+      await expect(page).toHaveURL(OWNER_ORIGIN + "/dashboard");
       const composer = page.getByRole("textbox", {
         name: "Ask about your purchases",
         exact: true,

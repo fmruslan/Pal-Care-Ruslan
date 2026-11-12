@@ -12,6 +12,8 @@
 
 **Testing / actual isolation:** two fresh hosted contexts each read their own conversation HTTP200 and reject the other's GET/POST/DELETE HTTP404 with Secure/HttpOnly/Strict cookies. No provider/financial calls occur in that check. One fresh different guidance question returned generic503 in2.127seconds, leaving total **$0.24 reserved**, not released. Owner explicitly caps testing at **$1.50**, including these unknowns. No more unclassified calls are planned.
 
+**Failed synchronization retained:** head47bed17 / run43131353780 still failed private Firefox/WebKit full navigations; waiting for network idle was insufficient and is removed. Existing restart tests already dispose the old document through `about:blank` before opening the next route. That same bounded handoff now precedes pairing and exact historical-guide reloads, with exact target URL assertions, unchanged browser context/cookies/sessionStorage, no navigation retry, and all original owner/ledger/provider/native assertions retained. This remains a candidate until exact-source CI passes; no actual GreatBison runtime changes.
+
 **Next:** release this narrow correction, identify the actual safe upstream failure category, correct only the proven cause, then finish the approved two-browser North/native-action/isolation essentials. Do not mark ready before genuine success.
 
 ## Plug-and-play hosted judge access — implemented, release verification pending
