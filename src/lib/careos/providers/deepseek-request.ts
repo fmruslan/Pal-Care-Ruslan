@@ -3,6 +3,10 @@ import { zodTextFormat } from "openai/helpers/zod";
 import type { z } from "zod";
 import { DEEPSEEK_MODEL, MODEL_OUTPUT_TOKENS } from "../model-policy";
 
+const northEnvelope = `Return every required field with exactly the supplied enum values, never invented enums. For records, productAction defaults to "summary"; preserve "explain" for explanation/chart discussion (no chart execution), "concise" for supported two-bullet style and "scope-first" for explicit scope-first presentation. For guidance use productAction "summary". Creating a chart uses task "records", query.operation "breakdown", query.format "chart"; category predicates belong in query.categories, never productAction. Use "" only for unused productSearch, careQuestion and clarification, null for unused comparison. guide is null except guidance, which requires the complete guide object. Preserve requested filters, named-product search, owned followup scope and explicit comparison periods; defaults apply ONLY to unused fields.
+Complete shape example for a fresh all-purchases chart, not a replacement for interpreting the original question or its scope:
+{"task":"records","relation":"fresh","query":{"outcome":"query","operation":"breakdown","format":"chart","from":null,"to":null,"categories":[],"origin":"all","receipt":"any","document":"any","price":"any","search":""},"comparison":null,"productSearch":"","productAction":"summary","careQuestion":"","clarification":"","guide":null}`;
+
 /** Provider grammar only. Unsupported length/item/date constraints remain
  * in trusted descriptions and are still enforced by the ORIGINAL Zod parser.
  * Property names and literal values are never interpreted as schema keywords. */
@@ -75,7 +79,10 @@ export function deepseekRequestBody(options: {
     store: false,
     max_output_tokens: MODEL_OUTPUT_TOKENS,
     reasoning: { effort: "none" },
-    instructions: options.prompt,
+    instructions:
+      options.name === "north_conversation_v1"
+        ? `${options.prompt}\n${northEnvelope}`
+        : options.prompt,
     input: [{ role: "user", content: options.payload }],
     text: {
       format: {
