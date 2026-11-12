@@ -8,6 +8,10 @@
 
 **Implemented candidate / Incomplete:** hosted-only fixed failure categories distinguish provider authentication/balance/rate/schema/request/timeout/connection errors without exposing provider bodies, headers, prompts or credentials. Private Sol behavior and all reservations remain unchanged. Required full CI/deployment and a fresh, non-replayed question remain pending; this is a bounded diagnostic repair, not a new recovery framework or campaign.
 
+**CI failure retained / correction:** PR38's original full run43126754844 and failed-job-only rerun both stopped on pre-inference private-browser navigation: late `/dashboard` navigation interrupted `/ai-evaluation` (WebKit; the first attempt also Firefox NS_BINDING_ABORTED). Other selected jobs passed. The isolated test now waits for the initial bridge/hydration requests to become idle and asserts the exact dashboard URL before leaving; no assertion, retry policy or authority guard is removed. New exact-source full CI remains required. No actual GreatBison navigation/service is changed.
+
+**Testing / actual isolation:** two fresh hosted contexts each read their own conversation HTTP200 and reject the other's GET/POST/DELETE HTTP404 with Secure/HttpOnly/Strict cookies. No provider/financial calls occur in that check. One fresh different guidance question returned generic503 in2.127seconds, leaving total **$0.24 reserved**, not released. Owner explicitly caps testing at **$1.50**, including these unknowns. No more unclassified calls are planned.
+
 **Next:** release this narrow correction, identify the actual safe upstream failure category, correct only the proven cause, then finish the approved two-browser North/native-action/isolation essentials. Do not mark ready before genuine success.
 
 ## Plug-and-play hosted judge access — implemented, release verification pending

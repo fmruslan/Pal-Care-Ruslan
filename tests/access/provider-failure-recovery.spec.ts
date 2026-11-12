@@ -365,6 +365,12 @@ test.beforeEach(async ({ context, page }) => {
   await app.route(context, fixture.recordsOwner);
   await app.start();
   await page.goto(OWNER_ORIGIN + "/dashboard");
+  // The bridge can still be fulfilling hydration/navigation requests after the
+  // initial load event. Finish that initial read-only navigation before tests
+  // install host proof and leave for /ai-evaluation; otherwise WebKit/Firefox
+  // can abort the new navigation with a late dashboard document navigation.
+  await page.waitForLoadState("networkidle");
+  await expect(page).toHaveURL(OWNER_ORIGIN + "/dashboard");
 });
 
 test.afterEach(async ({ context }) => {
