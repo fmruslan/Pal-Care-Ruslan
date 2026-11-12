@@ -232,6 +232,7 @@ export class ResponsesProvider implements CareModel {
         typeof calls[0].function.arguments !== "string"
       )
         throw new ModelFailure("careos_model_refused", micro, usage);
+      // DeepSeek's forced function serializes a proposal; no function is invoked here.
       text = calls[0].function.arguments;
     } else {
       if (response!.status !== "completed")

@@ -796,6 +796,7 @@ export async function answerConversationTurn(options: {
   );
   let answer: CareAnswer;
   try {
+    // Resolve source IDs and exact quotes against approved passages; render source wording.
     answer = groundedAnswer(baseAnswer, explanation, sources);
   } catch (error) {
     if (

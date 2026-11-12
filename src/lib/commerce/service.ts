@@ -538,6 +538,7 @@ export class CheckoutService {
     leaseToken: string,
     capture: { id: string; capturedAt: string },
   ) {
+    // Verified checkout evidence, Twin, receipt, policy and event commit together.
     await this.db.transaction(async (tx) => {
       const [locked] = await tx
         .select()
@@ -596,6 +597,7 @@ export class CheckoutService {
           id: randomUUID(),
           twinId,
           kind: "policy",
+          // A verified Sandbox payment does not make demo policy terms PayPal evidence.
           origin: "sample",
           title: order.policy.title,
           content: order.policy.content,
