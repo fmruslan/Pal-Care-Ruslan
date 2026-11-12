@@ -219,7 +219,7 @@ describe("Render-only DeepSeek; injected transport, no live calls", () => {
       ),
     ).toThrow();
   });
-  it("sends trusted schema instructions in supported JSON mode and validates the original strict schema", async () => {
+  it("sends supported structural schema with trusted instructions and validates the original strict application schema", async () => {
     const fetcher = vi.fn(async () => response());
     const result = await new ResponsesProvider(
       config,
@@ -240,14 +240,19 @@ describe("Render-only DeepSeek; injected transport, no live calls", () => {
     expect(body).toMatchObject({
       model: "deepseek-flash",
       reasoning: { effort: "none" },
-      text: { format: { type: "json_object" } },
+      text: {
+        format: { type: "json_schema", name: "test_intent", strict: true },
+      },
     });
     expect(body.input).toEqual([
       { role: "user", content: "original question and owned history" },
     ]);
     expect(body.instructions).toContain("Trusted rules");
-    expect(body.instructions).toContain('"additionalProperties":false');
-    expect(body.instructions).toContain('"intent"');
+    expect(body.text.format.schema.additionalProperties).toBe(false);
+    expect(body.text.format.schema.properties.intent).toEqual({
+      type: "string",
+      enum: ["summary"],
+    });
     expect(body).not.toHaveProperty("service_tier");
     expect(body).not.toHaveProperty("prompt_cache_options");
     expect(result).toMatchObject({
@@ -268,7 +273,10 @@ describe("Render-only DeepSeek; injected transport, no live calls", () => {
           AbortSignal.timeout(1000),
         ),
       ).rejects.toMatchObject({
-        code: "careos_model_invalid_output",
+        code:
+          text === "not JSON"
+            ? "careos_model_invalid_json"
+            : "careos_model_invalid_output",
         micro: 391,
       });
     }

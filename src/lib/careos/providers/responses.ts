@@ -211,8 +211,26 @@ export class ResponsesProvider implements CareModel {
     try {
       const value = schema.parse(JSON.parse(messages[0].content[0].text));
       return { value, micro, usage };
-    } catch {
-      throw new ModelFailure("careos_model_invalid_output", micro, usage);
+    } catch (error) {
+      // Diagnose only trusted root field names / Zod's fixed issue codes, never
+      // model content, unexpected keys, provider bodies or source text.
+      let code = "careos_model_invalid_output";
+      if (deepseek && error instanceof SyntaxError)
+        code = "careos_model_invalid_json";
+      if (deepseek && error instanceof z.ZodError) {
+        const issue = error.issues[0],
+          field = issue?.path[0];
+        const properties = zodTextFormat(schema, name).schema.properties as
+          Record<string, unknown> | undefined;
+        if (
+          typeof field === "string" &&
+          /^[a-zA-Z][a-zA-Z0-9_]{0,40}$/.test(field) &&
+          properties &&
+          Object.hasOwn(properties, field)
+        )
+          code = `careos_model_invalid_output_${field}_${issue.code}`;
+      }
+      throw new ModelFailure(code, micro, usage);
     }
   }
   classify(payload: string, signal: AbortSignal) {
