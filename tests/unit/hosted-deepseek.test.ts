@@ -291,6 +291,46 @@ describe("Render-only DeepSeek; injected transport, no live calls", () => {
       expect(fetcher).toHaveBeenCalledOnce();
     }
   });
+  it("exposes only fixed hosted failure categories, never provider response secrets", async () => {
+    for (const [status, message, code] of [
+      [
+        401,
+        "secret key incorrect: test-sensitive-value",
+        "careos_provider_http_401",
+      ],
+      [402, "private account balance exhausted", "careos_provider_http_402"],
+      [
+        400,
+        "invalid schema containing private-value",
+        "careos_provider_schema_rejected",
+      ],
+      [
+        422,
+        "invalid parameter private-value",
+        "careos_provider_request_rejected",
+      ],
+      [429, "private quota details", "careos_provider_http_429"],
+      [503, "private upstream details", "careos_provider_http_503"],
+    ] as const) {
+      const fetcher = vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              error: { message, type: "invalid_request_error" },
+            }),
+            { status, headers: { "content-type": "application/json" } },
+          ),
+      );
+      const provider = new ResponsesProvider(config, fetcher as typeof fetch);
+      const failure = await provider
+        .structured("test", schema, "test_intent", AbortSignal.timeout(1000))
+        .catch((e) => e);
+      expect(failure).toMatchObject({ code, micro: null, usage: null });
+      expect(failure.message).toBe(code);
+      expect(JSON.stringify(failure)).not.toContain(message);
+      expect(fetcher).toHaveBeenCalledTimes(1);
+    }
+  });
   it("uses conservative peak cost and rejects malformed usage", () => {
     expect(pricedDeepSeekUsage(usage, 10)?.micro).toBe(391);
     expect(
